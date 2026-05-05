@@ -4,7 +4,11 @@ use winit::{
     window::WindowBuilder,
 };
 use wgpu::{util::DeviceExt, *};
+use winit::dpi::PhysicalSize;
 use tokio;
+
+use winit::keyboard::KeyCode;
+use winit_input_helper::WinitInputHelper;
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
@@ -13,25 +17,240 @@ struct Vertex {
     color: [f32; 3],
 }
 
+macro_rules! triangle {
+    ($x1:expr, $y1:expr, $x2:expr, $y2:expr, $x3:expr, $y3:expr, $r:expr, $g:expr, $b:expr) => {
+        [
+            Vertex { position: [$x1, $y1], color: [$r, $g, $b] },
+            Vertex { position: [$x2, $y2], color: [$r, $g, $b] },
+            Vertex { position: [$x3, $y3], color: [$r, $g, $b] },
+        ]
+    };
+}
+
 
 #[tokio::main]
 async fn main() {
-    
+    //основной цикл winit
     let event_loop = EventLoop::new().unwrap();
 
+
+    //winit window
     let window = WindowBuilder::new()
         .with_title("game")
+        .with_inner_size(PhysicalSize::new(800, 800))
         .build(&event_loop)
         .unwrap();
     
-    init(
+    //instance (экземпляр)
+    //with defalt settings
+    let instance = wgpu::Instance::new(InstanceDescriptor::default());
 
-    );
+    //поверхность
+    //usafe
+    let surface = unsafe { instance.create_surface(&window) }
+        .expect("Failed to create surface");
 
-    //main loop
+    //addapter/physical_device
+
+    //опции выбора видеокарты
+    let addapter_option = wgpu::RequestAdapterOptions {
+        //выбирает адаптер, совместимый с этой поверхностью (обычно дискретная видеокарта)
+        compatible_surface : Some(&surface),
+        //всё остальное поумолчанию
+        ..Default::default()
+    };
+
+    let addapter_future = instance.request_adapter(&addapter_option);
+
+    let addapter = pollster::block_on(addapter_future).unwrap();
+
+    println!("{}",addapter.get_info().name);
+    
+    //device
+    //let device_description = wgpu::DeviceDescriptor::default();
+    let (device, queue) = addapter
+    .request_device(
+        &DeviceDescriptor { //настройки устройства
+            //какие плагины необходимы
+            required_features: Features::empty(),
+            //минимальные требования
+            required_limits: Limits::default(),
+            //Отладка
+            label: None,
+        },
+        None,
+    )
+    .await
+    .unwrap();
+
+
+    //shaders
+    //получаем код шейдера
+    let shader_code = include_str!(".././src/shaders.wgsl");
+    //shader object
+    //описание шейдера
+    let description = wgpu::ShaderModuleDescriptor {
+        //отладка
+        label : None,
+        //.into() - преобразует &str в Cow<'_, str>
+        source : wgpu::ShaderSource::Wgsl(shader_code.into()),
+    };
+    //Компилирует шейдер для GPU
+    let shader_module = device.create_shader_module(description);
+
+    //surface_format
+    let surface_format = TextureFormat::Bgra8UnormSrgb;
+
+    //color_target
+    let color_target = wgpu::ColorTargetState {
+        format: surface_format,
+        blend: Some(BlendState::REPLACE),
+        write_mask: ColorWrites::ALL,
+    };
+
+    let color_targets = [Some(color_target)];
+
+    //Render pipeline
+    //PipelineLayout
+    let pipeline_layout = device.create_pipeline_layout(&PipelineLayoutDescriptor {
+        label: Some("Pipeline Layout"),
+        bind_group_layouts: &[], // группы привязки (текстуры, буферы)
+        push_constant_ranges: &[], // константы, которые можно быстро обновлять
+    });
+
+
+    let description = wgpu::RenderPipelineDescriptor {
+        label : Some("Render Pipeline"),
+        vertex : wgpu::VertexState {
+            buffers: &[wgpu::VertexBufferLayout {
+                array_stride: std::mem::size_of::<Vertex>() as wgpu::BufferAddress,
+                step_mode: wgpu::VertexStepMode::Vertex,
+                attributes: &[
+                    wgpu::VertexAttribute {
+                        offset: 0,// смещение на 0 байт
+                        shader_location: 0,  // @location(0) в шейдере
+                        format: wgpu::VertexFormat::Float32x2,  // position: [f32; 2]
+                    },
+                    wgpu::VertexAttribute {
+                        offset: std::mem::size_of::<[f32; 2]>() as wgpu::BufferAddress,// смещение 8 байт
+                        shader_location: 1,  // @location(1) в шейдере
+                        format: wgpu::VertexFormat::Float32x3,  // color: [f32; 3]
+                    }
+                ]
+            }],
+            module : &shader_module,
+            entry_point : "vs_main",
+        },
+
+        fragment : Some(wgpu::FragmentState {
+            targets: &[Some(ColorTargetState {
+                format: surface_format,
+                blend: Some(BlendState::REPLACE),
+                write_mask: ColorWrites::ALL,
+            })],
+            module : &shader_module,
+            entry_point : "fs_main",
+        }),
+        
+        primitive: PrimitiveState {
+            topology: PrimitiveTopology::TriangleList, // список треугольников
+            strip_index_format: None, // не используем полоски
+            front_face: FrontFace::Ccw, // против часовой стрелки = лицевая
+            cull_mode: None, // не отсекаем грани
+            unclipped_depth: false,
+            polygon_mode: PolygonMode::Fill, // заливаем цветом (не каркасный режим)
+            conservative: false, // не использовать консервативный растеризатор
+        },
+
+        layout : Some(&pipeline_layout),
+        depth_stencil : None,
+        multisample : Default::default(),
+        multiview : None,
+    };
+
+    let render_pipeline = device.create_render_pipeline(&description);
+
+    let window_size = window.inner_size();
+
+    let config = SurfaceConfiguration {
+        usage: TextureUsages::RENDER_ATTACHMENT, // использовать как цель рендеринга
+        format: surface_format, // формат пикселей (BGRA8)
+        width: window_size.width, // ширина окна
+        height: window_size.height, // высота окна
+        present_mode: PresentMode::Fifo, //вертикальная синхронизация
+        alpha_mode: CompositeAlphaMode::Auto, // альфа-канал автоматический
+        view_formats: vec![], // дополнительные форматы для текстур
+        desired_maximum_frame_latency: 2, // задержка кадров (2 = баланс)
+    };
+
+    surface.configure(&device, &config);
+
+
+    //Vbo
+       
+    let mut vertices = [
+        triangle!(-0.5, 0.5, -0.5, -0.5, 0.5, -0.5,  0.0, 0.0, 0.6),
+        triangle!( 0.5, -0.5, 0.5, 0.5, -0.5, 0.5,   0.0, 0.0, 1.0),
+    ].concat();
+
+    // Создаём буфер вершин
+    let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+        //
+        label: Some("Vertex Buffer"),
+        contents: bytemuck::cast_slice(&vertices),
+        usage: wgpu::BufferUsages::VERTEX,
+    });
+
+    //EBO
+    // Индексы для двух треугольников (6 индексов)
+    let mut indices: [u16; 6] = [
+        0, 1, 2,  // первый треугольник
+        3, 4, 5,  // второй треугольник
+    ];
+
+    // Создаём буфер индексов
+    let index_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+        //
+        label: Some("Index Buffer"),
+        contents: bytemuck::cast_slice(&indices),
+        usage: wgpu::BufferUsages::INDEX,
+    });
+    
+
+    //main loop vars
     let window_id = window.id();
+    let mut input = WinitInputHelper::new();
     // main loop
     event_loop.run(|event, event_loop_target| {
+
+        // Передаём каждое событие в input helper
+        if input.update(&event) {
+            // Проверка нажатия (только в этом кадре)
+            if input.key_pressed(KeyCode::Space) {
+                println!("Space was JUST pressed!");
+            }
+            
+            // Проверка удержания (каждый кадр, пока зажат)
+            if input.key_held(KeyCode::KeyW) {
+                println!("W is being held!");
+            }
+            
+            // Проверка отпускания
+            if input.key_released(KeyCode::Escape) {
+                event_loop_target.exit();
+                return;
+            }
+            
+            // Выход по закрытию окна
+            if input.close_requested() {
+                event_loop_target.exit();
+                return;
+            }
+            
+            // Здесь обновляйте игровую логику и рендерите
+            // render();
+        }
+
         match event {
             Event::WindowEvent {
                 event: WindowEvent::CloseRequested,
@@ -50,7 +269,8 @@ async fn main() {
             } => {
                 render(
                     &surface,&device,&queue,&render_pipeline,
-                    &vertex_buffer,&mut vertices
+                    &vertex_buffer,&index_buffer,
+                    &mut vertices,&mut indices
                 );
             }
 
@@ -86,15 +306,17 @@ fn render(
     queue: &wgpu::Queue,
     render_pipeline: &wgpu::RenderPipeline,
     vertex_buffer: &wgpu::Buffer,
-    vertices: &mut [Vertex; 3],
+    index_buffer: &wgpu::Buffer,
+    vertices: &mut Vec<Vertex>,
+    indices : &mut [u16;6],
 ){
-    vertices[0].position[0] += 0.001;
+    //vertices[0].position[0] += 0.001;
     // ПЕРЕсоздаём буфер вершин
-    let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-        label: Some("Vertex Buffer"),
-        contents: bytemuck::cast_slice(vertices),
-        usage: wgpu::BufferUsages::VERTEX,
-    });
+    // let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+    //     label: Some("Vertex Buffer"),
+    //     contents: bytemuck::cast_slice(vertices),
+    //     usage: wgpu::BufferUsages::VERTEX,
+    // });
 
     // Получаем текущий кадр (с обработкой ошибок)
     let frame = match surface.get_current_texture() {
@@ -131,8 +353,9 @@ fn render(
         // Устанавливаем конвейер
         render_pass.set_pipeline(&render_pipeline);
         render_pass.set_vertex_buffer(0, vertex_buffer.slice(..));
+        render_pass.set_index_buffer(index_buffer.slice(..), wgpu::IndexFormat::Uint16);
         // Отрисовываем 3 вершины (треугольник), 1 экземпляр
-        render_pass.draw(0..3, 0..1);
+        render_pass.draw_indexed(0..indices.len() as u32, 0, 0..1);
     }
 
     // Завершаем запись команд

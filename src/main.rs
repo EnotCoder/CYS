@@ -291,12 +291,11 @@ async fn main() {
             if input.key_held(KeyCode::KeyS) || input.key_held(KeyCode::ArrowDown) {
                 translation[1] -= speed;
             }
-
-            // Обновляем uniform buffer
-        let uniforms = Uniforms { translation };
-        queue.write_buffer(&uniform_buffer, 0, bytemuck::cast_slice(&[uniforms]));
         }
 
+        // Обновляем uniform buffer
+        let uniforms = Uniforms { translation };
+        queue.write_buffer(&uniform_buffer, 0, bytemuck::cast_slice(&[uniforms]));
 
         match event {
             Event::WindowEvent {

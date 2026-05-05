@@ -27,6 +27,11 @@ macro_rules! triangle {
     };
 }
 
+#[repr(C)]
+#[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
+struct Uniforms {
+    translation: [f32; 2],
+}
 
 #[tokio::main]
 async fn main() {
@@ -97,6 +102,48 @@ async fn main() {
     };
     //Компилирует шейдер для GPU
     let shader_module = device.create_shader_module(description);
+    
+
+    // Начальная позиция квадрата
+    let mut translation = [0.0, 0.0];
+    let mut uniforms = Uniforms { translation };
+
+    // Создаём uniform buffer
+    let uniform_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+        label: Some("Uniform Buffer"),
+        contents: bytemuck::cast_slice(&[uniforms]),
+        usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+    });
+
+
+    // Создаём bind group layout (описывает доступ к uniform буферу в шейдере)
+    let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+        label: Some("Bind Group Layout"),
+        entries: &[
+            wgpu::BindGroupLayoutEntry {
+                binding: 0,
+                visibility: wgpu::ShaderStages::VERTEX, // Доступен только в вершинном шейдере
+                ty: wgpu::BindingType::Buffer {
+                    ty: wgpu::BufferBindingType::Uniform,
+                    has_dynamic_offset: false,
+                    min_binding_size: None,
+                },
+                count: None,
+            },
+        ],
+    });
+
+    // Создаём bind group (связывает uniform буфер с шейдером)
+    let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+        label: Some("Bind Group"),
+        layout: &bind_group_layout,
+        entries: &[
+            wgpu::BindGroupEntry {
+                binding: 0,
+                resource: uniform_buffer.as_entire_binding(),
+            },
+        ],
+    });
 
     //surface_format
     let surface_format = TextureFormat::Bgra8UnormSrgb;
@@ -114,7 +161,7 @@ async fn main() {
     //PipelineLayout
     let pipeline_layout = device.create_pipeline_layout(&PipelineLayoutDescriptor {
         label: Some("Pipeline Layout"),
-        bind_group_layouts: &[], // группы привязки (текстуры, буферы)
+        bind_group_layouts: &[&bind_group_layout], // группы привязки (текстуры, буферы)
         push_constant_ranges: &[], // константы, которые можно быстро обновлять
     });
 
@@ -216,40 +263,40 @@ async fn main() {
         usage: wgpu::BufferUsages::INDEX,
     });
     
+    
 
     //main loop vars
     let window_id = window.id();
     let mut input = WinitInputHelper::new();
+
+    // Добавьте скорость и позицию
+    let mut speed = 0.01;
+    let mut translation = [0.0, 0.0];
     // main loop
     event_loop.run(|event, event_loop_target| {
 
         // Передаём каждое событие в input helper
         if input.update(&event) {
-            // Проверка нажатия (только в этом кадре)
-            if input.key_pressed(KeyCode::Space) {
-                println!("Space was JUST pressed!");
+
+            // В event_loop.run, внутри if input.update(&event):
+            if input.key_held(KeyCode::KeyA) || input.key_held(KeyCode::ArrowLeft) {
+                translation[0] -= speed;
             }
-            
-            // Проверка удержания (каждый кадр, пока зажат)
-            if input.key_held(KeyCode::KeyW) {
-                println!("W is being held!");
+            if input.key_held(KeyCode::KeyD) || input.key_held(KeyCode::ArrowRight) {
+                translation[0] += speed;
             }
-            
-            // Проверка отпускания
-            if input.key_released(KeyCode::Escape) {
-                event_loop_target.exit();
-                return;
+            if input.key_held(KeyCode::KeyW) || input.key_held(KeyCode::ArrowUp) {
+                translation[1] += speed;
             }
-            
-            // Выход по закрытию окна
-            if input.close_requested() {
-                event_loop_target.exit();
-                return;
+            if input.key_held(KeyCode::KeyS) || input.key_held(KeyCode::ArrowDown) {
+                translation[1] -= speed;
             }
-            
-            // Здесь обновляйте игровую логику и рендерите
-            // render();
+
+            // Обновляем uniform buffer
+        let uniforms = Uniforms { translation };
+        queue.write_buffer(&uniform_buffer, 0, bytemuck::cast_slice(&[uniforms]));
         }
+
 
         match event {
             Event::WindowEvent {
@@ -270,7 +317,8 @@ async fn main() {
                 render(
                     &surface,&device,&queue,&render_pipeline,
                     &vertex_buffer,&index_buffer,
-                    &mut vertices,&mut indices
+                    &mut indices,
+                    &bind_group
                 );
             }
 
@@ -307,16 +355,9 @@ fn render(
     render_pipeline: &wgpu::RenderPipeline,
     vertex_buffer: &wgpu::Buffer,
     index_buffer: &wgpu::Buffer,
-    vertices: &mut Vec<Vertex>,
     indices : &mut [u16;6],
+    bind_group: &wgpu::BindGroup,
 ){
-    //vertices[0].position[0] += 0.001;
-    // ПЕРЕсоздаём буфер вершин
-    // let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-    //     label: Some("Vertex Buffer"),
-    //     contents: bytemuck::cast_slice(vertices),
-    //     usage: wgpu::BufferUsages::VERTEX,
-    // });
 
     // Получаем текущий кадр (с обработкой ошибок)
     let frame = match surface.get_current_texture() {
@@ -354,6 +395,7 @@ fn render(
         render_pass.set_pipeline(&render_pipeline);
         render_pass.set_vertex_buffer(0, vertex_buffer.slice(..));
         render_pass.set_index_buffer(index_buffer.slice(..), wgpu::IndexFormat::Uint16);
+        render_pass.set_bind_group(0, bind_group, &[]);
         // Отрисовываем 3 вершины (треугольник), 1 экземпляр
         render_pass.draw_indexed(0..indices.len() as u32, 0, 0..1);
     }

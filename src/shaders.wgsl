@@ -8,10 +8,21 @@ struct VertexOutput {
     @builtin(position) position: vec4<f32>,
 };
 
+// Uniform-буфер с позицией
+struct Uniforms {
+    translation: vec2<f32>,
+};
+
+// Добавляем привязку uniform буфера
+@group(0) @binding(0)
+var<uniform> uniforms: Uniforms;
+
 @vertex
 fn vs_main(in: VertexInput) -> VertexOutput {
     var out: VertexOutput;
-    out.position = vec4<f32>(in.position, 0.0, 1.0);
+    // ПРИМЕНЯЕМ СМЕЩЕНИЕ К ПОЗИЦИИ
+    let pos = in.position + uniforms.translation;
+    out.position = vec4<f32>(pos, 0.0, 1.0);
     out.color = vec4<f32>(in.color, 1.0);
     return out;
 }

@@ -11,7 +11,7 @@ pub struct Uniforms {
 
 //depth buffer class
 pub struct DepthBuffer {
-    pub texture: wgpu::Texture,
+    pub _texture: wgpu::Texture,
     pub view: wgpu::TextureView,
 }
 
@@ -34,7 +34,7 @@ impl DepthBuffer {
         
         let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
         
-        Self { texture, view }
+        Self { _texture: texture, view }
     }
     
     pub fn resize(&mut self, device: &wgpu::Device, new_size: winit::dpi::PhysicalSize<u32>) {

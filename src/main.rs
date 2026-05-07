@@ -1,6 +1,6 @@
 use winit::{
     event::{Event,WindowEvent},
-    event_loop::{ControlFlow,EventLoop},
+    event_loop::{EventLoop},
     window::WindowBuilder,
 };
 use wgpu::{util::DeviceExt, *};
@@ -12,6 +12,9 @@ use winit_input_helper::WinitInputHelper;
 
 mod buffers;
 use buffers::*;
+
+mod render;
+use render::*;
 
 //triangle info
 #[repr(C)]
@@ -54,7 +57,7 @@ async fn main() {
 
     //поверхность
     //usafe
-    let surface = unsafe { instance.create_surface(&window) }
+    let surface = instance.create_surface(&window)
         .expect("Failed to create surface");
 
     //addapter/physical_device
@@ -93,7 +96,7 @@ async fn main() {
     //init buffers
     let mut translation = [0.0, 0.0, 5.0, 0.0];
     let window_size = window.inner_size();
-    let mut speed = 0.01;
+    let speed = 0.01;
 
     let buffers = init_buffers(
         window_size,
@@ -102,11 +105,11 @@ async fn main() {
     );
 
     let mut projection = buffers.projection;
-    let mut uniform_buffer = buffers.uniform_buffer;
+    let uniform_buffer = buffers.uniform_buffer;
     let mut depth_buffer = buffers.depth_buffer;
-    let mut depth_stencil = buffers.depth_stencil;
-    let mut bind_group_layout = buffers.bind_group_layout;
-    let mut bind_groupprojection = buffers.bind_groupprojection;
+    let depth_stencil = buffers.depth_stencil;
+    let bind_group_layout = buffers.bind_group_layout;
+    let bind_groupprojection = buffers.bind_groupprojection;
 
     //shaders
     //получаем код шейдера
@@ -125,14 +128,14 @@ async fn main() {
     //surface_format
     let surface_format = TextureFormat::Bgra8UnormSrgb;
 
-    //color_target
-    let color_target = wgpu::ColorTargetState {
+    //color_target 
+    // dont use
+    let _color_target = wgpu::ColorTargetState {
         format: surface_format,
         blend: Some(BlendState::REPLACE),
         write_mask: ColorWrites::ALL,
     };
 
-    let color_targets = [Some(color_target)];
 
     //Render pipeline
     //PipelineLayout
@@ -210,7 +213,7 @@ async fn main() {
 
     //Vbo
        
-    let mut vertices = [
+    let vertices = [
         make_triangle(-0.5, 0.5, 0.0, -0.5, -0.5, 0.0, 0.5, -0.5, 0.0, 0.0, 0.0, 0.6),
         make_triangle( 0.5, -0.5, 0.0, 0.5, 0.5, 0.0, -0.5, 0.5, 0.0, 0.0, 0.0, 1.0),
     ].concat();
@@ -241,11 +244,10 @@ async fn main() {
     
 
     //main loop vars
-    let window_id = window.id();
     let mut input = WinitInputHelper::new();
 
     // main loop
-    event_loop.run(|event, event_loop_target| {
+    let _ = event_loop.run(|event, event_loop_target| {
 
         // Передаём каждое событие в input helper
         if input.update(&event) {
@@ -324,72 +326,4 @@ async fn main() {
         }
     });
 
-}
-
-fn render(
-    surface: &wgpu::Surface,
-    device: &wgpu::Device,
-    queue: &wgpu::Queue,
-    render_pipeline: &wgpu::RenderPipeline,
-    vertex_buffer: &wgpu::Buffer,
-    index_buffer: &wgpu::Buffer,
-    indices : &mut [u16;6],
-    bind_group: &wgpu::BindGroup,
-    depth_view: &wgpu::TextureView,
-){
-
-    // Получаем текущий кадр (с обработкой ошибок)
-    let frame = match surface.get_current_texture() {
-        Ok(frame) => frame,
-        Err(e) => {
-            eprintln!("Failed to get current texture: {:?}", e);
-            return;
-        }
-    };
-    let view = frame.texture.create_view(&TextureViewDescriptor::default());
-
-    // Создаём командный энкодер
-    let mut encoder = device.create_command_encoder(&CommandEncoderDescriptor {
-        label: Some("Render Encoder"),
-    });
-
-    // Начинаем рендер‑пасс (с полным описанием)
-    {
-        let mut render_pass = encoder.begin_render_pass(&RenderPassDescriptor {
-            label: Some("Render Pass"),
-            color_attachments: &[Some(RenderPassColorAttachment {
-                view: &view,
-                resolve_target: None,
-                ops: Operations {
-                    load: LoadOp::Clear(Color::WHITE),
-                    store: StoreOp::Store,
-                },
-            })],
-            depth_stencil_attachment: Some(RenderPassDepthStencilAttachment {
-                view: &depth_view,
-                depth_ops: Some(Operations {
-                    load: LoadOp::Clear(1.0),
-                    store: StoreOp::Store,
-                }),
-                stencil_ops: None,
-            }),
-            occlusion_query_set: None,
-            timestamp_writes: None,
-        });
-
-        // Устанавливаем конвейер
-        render_pass.set_pipeline(&render_pipeline);
-        render_pass.set_vertex_buffer(0, vertex_buffer.slice(..));
-        render_pass.set_index_buffer(index_buffer.slice(..), wgpu::IndexFormat::Uint16);
-        render_pass.set_bind_group(0, bind_group, &[]);
-        // Отрисовываем 3 вершины (треугольник), 1 экземпляр
-        render_pass.draw_indexed(0..indices.len() as u32, 0, 0..1);
-    }
-
-    // Завершаем запись команд
-    let command_buffer = encoder.finish();
-    // Отправляем команды на выполнение (как итератор)
-    queue.submit(std::iter::once(command_buffer));
-    // Показываем кадр
-    frame.present();
 }

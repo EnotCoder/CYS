@@ -13,24 +13,71 @@ use winit_input_helper::WinitInputHelper;
 #[repr(C)]
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
 struct Vertex {
-    position: [f32; 2],
+    position: [f32; 3],
     color: [f32; 3],
 }
 
-macro_rules! triangle {
-    ($x1:expr, $y1:expr, $x2:expr, $y2:expr, $x3:expr, $y3:expr, $r:expr, $g:expr, $b:expr) => {
-        [
-            Vertex { position: [$x1, $y1], color: [$r, $g, $b] },
-            Vertex { position: [$x2, $y2], color: [$r, $g, $b] },
-            Vertex { position: [$x3, $y3], color: [$r, $g, $b] },
-        ]
-    };
+fn make_triangle(
+    x1: f32, y1: f32, z1: f32,
+    x2: f32, y2: f32, z2: f32,
+    x3: f32, y3: f32, z3: f32,
+    r: f32, g: f32, b: f32,
+) -> [Vertex; 3] {
+    [
+        Vertex { position: [x1, y1, z1], color: [r, g, b] },
+        Vertex { position: [x2, y2, z2], color: [r, g, b] },
+        Vertex { position: [x3, y3, z3], color: [r, g, b] },
+    ]
 }
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
 struct Uniforms {
-    translation: [f32; 2],
+    translation: [f32; 4],
+    projection: [f32; 16],
+}
+
+struct DepthBuffer {
+    texture: wgpu::Texture,
+    view: wgpu::TextureView,
+}
+
+impl DepthBuffer {
+    fn new(device: &wgpu::Device, size: winit::dpi::PhysicalSize<u32>) -> Self {
+        let texture = device.create_texture(&wgpu::TextureDescriptor {
+            label: Some("Depth Texture"),
+            size: wgpu::Extent3d {
+                width: size.width,
+                height: size.height,
+                depth_or_array_layers: 1,
+            },
+            mip_level_count: 1,
+            sample_count: 1,
+            dimension: wgpu::TextureDimension::D2,
+            format: wgpu::TextureFormat::Depth32Float,
+            usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
+            view_formats: &[],
+        });
+        
+        let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
+        
+        Self { texture, view }
+    }
+    
+    fn resize(&mut self, device: &wgpu::Device, new_size: winit::dpi::PhysicalSize<u32>) {
+        *self = Self::new(device, new_size);
+    }
+}
+
+// Создаём матрицу перспективы
+fn create_perspective_matrix(aspect: f32, fov: f32, near: f32, far: f32) -> [f32; 16] {
+    let f = 1.0 / (fov * 0.5).tan();
+    [
+        f / aspect, 0.0, 0.0, 0.0,
+        0.0, f, 0.0, 0.0,
+        0.0, 0.0, far / (far - near), 1.0,
+        0.0, 0.0, -far * near / (far - near), 0.0,
+    ]
 }
 
 #[tokio::main]
@@ -105,8 +152,16 @@ async fn main() {
     
 
     // Начальная позиция квадрата
-    let mut translation = [0.0, 0.0];
-    let mut uniforms = Uniforms { translation };
+    let mut translation = [0.0, 0.0, 5.0, 0.0];
+    let window_size = window.inner_size();
+
+    let aspect = window_size.width as f32 / window_size.height as f32;
+    let mut projection = create_perspective_matrix(aspect, std::f32::consts::PI / 4.0, 0.1, 100.0);
+
+    let uniforms = Uniforms { 
+        translation: translation,
+        projection: projection,
+    };
 
     // Создаём uniform buffer
     let uniform_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
@@ -145,6 +200,18 @@ async fn main() {
         ],
     });
 
+    // Создаём depth texture
+    let mut depth_buffer = DepthBuffer::new(&device, window_size);
+
+    // Настройка depth_stencil для render pipeline
+    let depth_stencil = wgpu::DepthStencilState {
+        format: wgpu::TextureFormat::Depth32Float,
+        depth_write_enabled: true,
+        depth_compare: wgpu::CompareFunction::Less,
+        stencil: wgpu::StencilState::default(),
+        bias: wgpu::DepthBiasState::default(),
+    };
+
     //surface_format
     let surface_format = TextureFormat::Bgra8UnormSrgb;
 
@@ -176,10 +243,10 @@ async fn main() {
                     wgpu::VertexAttribute {
                         offset: 0,// смещение на 0 байт
                         shader_location: 0,  // @location(0) в шейдере
-                        format: wgpu::VertexFormat::Float32x2,  // position: [f32; 2]
+                        format: wgpu::VertexFormat::Float32x3,  // position: [f32; 2]
                     },
                     wgpu::VertexAttribute {
-                        offset: std::mem::size_of::<[f32; 2]>() as wgpu::BufferAddress,// смещение 8 байт
+                        offset: std::mem::size_of::<[f32; 3]>() as wgpu::BufferAddress,// смещение 8 байт
                         shader_location: 1,  // @location(1) в шейдере
                         format: wgpu::VertexFormat::Float32x3,  // color: [f32; 3]
                     }
@@ -210,14 +277,12 @@ async fn main() {
         },
 
         layout : Some(&pipeline_layout),
-        depth_stencil : None,
+        depth_stencil: Some(depth_stencil),
         multisample : Default::default(),
         multiview : None,
     };
 
     let render_pipeline = device.create_render_pipeline(&description);
-
-    let window_size = window.inner_size();
 
     let config = SurfaceConfiguration {
         usage: TextureUsages::RENDER_ATTACHMENT, // использовать как цель рендеринга
@@ -236,8 +301,8 @@ async fn main() {
     //Vbo
        
     let mut vertices = [
-        triangle!(-0.5, 0.5, -0.5, -0.5, 0.5, -0.5,  0.0, 0.0, 0.6),
-        triangle!( 0.5, -0.5, 0.5, 0.5, -0.5, 0.5,   0.0, 0.0, 1.0),
+        make_triangle(-0.5, 0.5, 0.0, -0.5, -0.5, 0.0, 0.5, -0.5, 0.0, 0.0, 0.0, 0.6),
+        make_triangle( 0.5, -0.5, 0.0, 0.5, 0.5, 0.0, -0.5, 0.5, 0.0, 0.0, 0.0, 1.0),
     ].concat();
 
     // Создаём буфер вершин
@@ -271,7 +336,6 @@ async fn main() {
 
     // Добавьте скорость и позицию
     let mut speed = 0.01;
-    let mut translation = [0.0, 0.0];
     // main loop
     event_loop.run(|event, event_loop_target| {
 
@@ -286,15 +350,15 @@ async fn main() {
                 translation[0] += speed;
             }
             if input.key_held(KeyCode::KeyW) || input.key_held(KeyCode::ArrowUp) {
-                translation[1] += speed;
+                translation[2] += speed;
             }
             if input.key_held(KeyCode::KeyS) || input.key_held(KeyCode::ArrowDown) {
-                translation[1] -= speed;
+                translation[2] -= speed;
             }
         }
 
         // Обновляем uniform buffer
-        let uniforms = Uniforms { translation };
+        let uniforms = Uniforms { translation, projection,};
         queue.write_buffer(&uniform_buffer, 0, bytemuck::cast_slice(&[uniforms]));
 
         match event {
@@ -317,7 +381,8 @@ async fn main() {
                     &surface,&device,&queue,&render_pipeline,
                     &vertex_buffer,&index_buffer,
                     &mut indices,
-                    &bind_group
+                    &bind_group,
+                    &depth_buffer.view,
                 );
             }
 
@@ -338,6 +403,12 @@ async fn main() {
                     desired_maximum_frame_latency: 2,
                 };
                 surface.configure(&device, &config);
+
+                depth_buffer.resize(&device, new_size);
+
+                let new_aspect = new_size.width as f32 / new_size.height as f32;
+                    projection = create_perspective_matrix(new_aspect, 
+                    std::f32::consts::PI / 4.0, 0.1, 100.0);
             }
 
             // Игнорируем все остальные события
@@ -356,6 +427,7 @@ fn render(
     index_buffer: &wgpu::Buffer,
     indices : &mut [u16;6],
     bind_group: &wgpu::BindGroup,
+    depth_view: &wgpu::TextureView,
 ){
 
     // Получаем текущий кадр (с обработкой ошибок)
@@ -385,7 +457,14 @@ fn render(
                     store: StoreOp::Store,
                 },
             })],
-            depth_stencil_attachment: None,
+            depth_stencil_attachment: Some(RenderPassDepthStencilAttachment {
+                view: &depth_view,
+                depth_ops: Some(Operations {
+                    load: LoadOp::Clear(1.0),
+                    store: StoreOp::Store,
+                }),
+                stencil_ops: None,
+            }),
             occlusion_query_set: None,
             timestamp_writes: None,
         });

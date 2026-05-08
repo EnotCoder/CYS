@@ -11,9 +11,9 @@ use winit::keyboard::KeyCode;
 use winit_input_helper::WinitInputHelper;
 
 mod buffers;
-use buffers::*;
-
 mod render;
+
+use buffers::*;
 use render::*;
 
 //triangle info
@@ -95,8 +95,10 @@ async fn main() {
 
     //init buffers
     let mut translation = [0.0, 0.0, 5.0, 0.0];
+    let mut rotation = [0.0, 0.0, 0.0, 0.0];
     let window_size = window.inner_size();
     let speed = 0.01;
+    let rotation_speed = 0.05;
 
     //VBO   
     let vertices = [
@@ -113,6 +115,7 @@ async fn main() {
     let buffers = init_buffers(
         window_size,
         translation,
+        rotation,
         &device,
         &vertices,
         &indices,
@@ -249,10 +252,23 @@ async fn main() {
             if input.key_held(KeyCode::KeyS) || input.key_held(KeyCode::ArrowDown) {
                 translation[2] -= speed;
             }
+
+            if input.key_held(KeyCode::KeyQ) {
+                rotation[1] -= rotation_speed;
+            }
+            if input.key_held(KeyCode::KeyE) {
+                rotation[1] += rotation_speed;
+            }
+            if input.key_held(KeyCode::KeyF) {
+                rotation[0] -= rotation_speed;
+            }
+            if input.key_held(KeyCode::KeyR) {
+                rotation[0] += rotation_speed;
+            }
         }
 
         // Обновляем uniform buffer
-        let uniforms = Uniforms { translation, projection,};
+        let uniforms = Uniforms { translation, rotation, projection,};
         queue.write_buffer(&uniform_buffer, 0, bytemuck::cast_slice(&[uniforms]));
 
         match event {

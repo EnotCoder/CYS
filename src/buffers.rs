@@ -1,6 +1,8 @@
 use wgpu::{util::DeviceExt, *};
 use winit::dpi::PhysicalSize;
 
+use crate::Vertex;
+
 //transform class
 #[repr(C)]
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
@@ -14,6 +16,7 @@ pub struct DepthBuffer {
     pub _texture: wgpu::Texture,
     pub view: wgpu::TextureView,
 }
+
 
 impl DepthBuffer {
     pub fn new(device: &wgpu::Device, size: winit::dpi::PhysicalSize<u32>) -> Self {
@@ -60,12 +63,17 @@ pub struct Buffers{
     pub depth_stencil: wgpu::DepthStencilState,
     pub bind_group_layout: wgpu::BindGroupLayout,
     pub bind_groupprojection: wgpu::BindGroup,
+    pub vertex_buffer: wgpu::Buffer,
+    pub index_buffer: wgpu::Buffer,
+
 }
 
 pub fn init_buffers(
     window_size: PhysicalSize<u32>,
     translation: [f32;4],
     device: &wgpu::Device,
+    vertices: &[Vertex],
+    indices: &[u16],
 ) -> Buffers{
     let aspect = window_size.width as f32 / window_size.height as f32;
 
@@ -125,6 +133,22 @@ pub fn init_buffers(
         bias: wgpu::DepthBiasState::default(),
     };
 
+    // Создаём буфер вершин
+    let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+        //
+        label: Some("Vertex Buffer"),
+        contents: bytemuck::cast_slice(&vertices),
+        usage: wgpu::BufferUsages::VERTEX,
+    });
+
+    // Создаём буфер индексов
+    let index_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+        //
+        label: Some("Index Buffer"),
+        contents: bytemuck::cast_slice(&indices),
+        usage: wgpu::BufferUsages::INDEX,
+    });
+
     Buffers {
         projection,
         uniform_buffer,
@@ -132,5 +156,7 @@ pub fn init_buffers(
         depth_stencil,
         bind_group_layout,
         bind_groupprojection,
+        vertex_buffer,
+        index_buffer,
     }
 }

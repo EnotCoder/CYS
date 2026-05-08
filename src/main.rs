@@ -98,10 +98,24 @@ async fn main() {
     let window_size = window.inner_size();
     let speed = 0.01;
 
+    //VBO   
+    let vertices = [
+        make_triangle(-0.5, 0.5, 0.0, -0.5, -0.5, 0.0, 0.5, -0.5, 0.0, 0.0, 0.0, 0.6),
+        make_triangle( 0.5, -0.5, 0.0, 0.5, 0.5, 0.0, -0.5, 0.5, 0.0, 0.0, 0.0, 1.0),
+    ].concat();
+
+    //EBO
+    let mut indices: [u16; 6] = [
+        0, 1, 2,
+        3, 4, 5,
+    ];
+
     let buffers = init_buffers(
         window_size,
         translation,
         &device,
+        &vertices,
+        &indices,
     );
 
     let mut projection = buffers.projection;
@@ -110,6 +124,9 @@ async fn main() {
     let depth_stencil = buffers.depth_stencil;
     let bind_group_layout = buffers.bind_group_layout;
     let bind_groupprojection = buffers.bind_groupprojection;
+
+    let vertex_buffer = buffers.vertex_buffer;
+    let index_buffer = buffers.index_buffer;
 
     //shaders
     //получаем код шейдера
@@ -209,39 +226,6 @@ async fn main() {
     };
 
     surface.configure(&device, &config);
-
-
-    //Vbo
-       
-    let vertices = [
-        make_triangle(-0.5, 0.5, 0.0, -0.5, -0.5, 0.0, 0.5, -0.5, 0.0, 0.0, 0.0, 0.6),
-        make_triangle( 0.5, -0.5, 0.0, 0.5, 0.5, 0.0, -0.5, 0.5, 0.0, 0.0, 0.0, 1.0),
-    ].concat();
-
-    // Создаём буфер вершин
-    let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-        //
-        label: Some("Vertex Buffer"),
-        contents: bytemuck::cast_slice(&vertices),
-        usage: wgpu::BufferUsages::VERTEX,
-    });
-
-    //EBO
-    // Индексы для двух треугольников (6 индексов)
-    let mut indices: [u16; 6] = [
-        0, 1, 2,  // первый треугольник
-        3, 4, 5,  // второй треугольник
-    ];
-
-    // Создаём буфер индексов
-    let index_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-        //
-        label: Some("Index Buffer"),
-        contents: bytemuck::cast_slice(&indices),
-        usage: wgpu::BufferUsages::INDEX,
-    });
-    
-    
 
     //main loop vars
     let mut input = WinitInputHelper::new();

@@ -7,7 +7,7 @@ pub fn render(
     render_pipeline: &wgpu::RenderPipeline,
     vertex_buffer: &wgpu::Buffer,
     index_buffer: &wgpu::Buffer,
-    indices : &mut [u16;6],
+    indices : &[u16],
     bind_group: &wgpu::BindGroup,
     depth_view: &wgpu::TextureView,
 ){

@@ -96,10 +96,10 @@ async fn main() {
     .unwrap();
 
     //init buffers
-    let mut translation = [0.0, 0.0, 5.0, 0.0];
+    let mut translation = [0.0, -1.0, 5.0, 0.0];
     let mut rotation = [0.0, 0.0, 0.0, 0.0];
     let window_size = window.inner_size();
-    let speed = 0.01;
+    let speed = 0.05;
     let rotation_speed = 0.05;
 
     //VBO  
@@ -107,28 +107,17 @@ async fn main() {
     // В main.rs, загрузка модели:
     let model_result = load_obj_simple("./models/table.obj");
 
-    let (vertices, indices) = match model_result {
+    let (vertices, indices_u32) = match model_result {
         Ok(model) => {
-            println!("✅ Loaded model: {} vertices, {} indices", 
+            println!("Loaded model: {} vertices, {} indices", 
                     model.vertices.len(), model.indices.len());
             
-            // Массивы на 18 элементов
-            let vertices_array: [Vertex; 18] = model.vertices.try_into()
-                .expect("Expected 18 vertices");
-            let indices_array: [u16; 18] = model.indices.iter()
-                .map(|&i| i as u16)
-                .collect::<Vec<u16>>()
-                .try_into()
-                .expect("Expected 18 indices");
-            
-            (vertices_array, indices_array)
+            (model.vertices, model.indices)
         }
         Err(e) => {
-            eprintln!("⚠️ Failed to load model: {}", e);
-            eprintln!("   Using default square (converted to 18 elements)");
+            eprintln!("Failed to load model: {}", e);
             
-            // Создаём квадрат на 6 вершин, а потом повторяем для 18
-            let square_vertices = [
+            let default_vertices = vec![
                 Vertex { position: [-0.5, 0.5, 0.0], color: [0.0, 0.0, 0.6] },
                 Vertex { position: [-0.5, -0.5, 0.0], color: [0.0, 0.0, 0.6] },
                 Vertex { position: [0.5, -0.5, 0.0], color: [0.0, 0.0, 0.6] },
@@ -136,27 +125,14 @@ async fn main() {
                 Vertex { position: [0.5, 0.5, 0.0], color: [0.0, 0.0, 1.0] },
                 Vertex { position: [-0.5, 0.5, 0.0], color: [0.0, 0.0, 1.0] },
             ];
-            let square_indices: [u16; 6] = [0, 1, 2, 3, 4, 5];
-            
-            // Расширяем до 18 элементов (повторяем 3 раза)
-            let mut vertices_18 = Vec::new();
-            let mut indices_18 = Vec::new();
-            for i in 0..3 {
-                for v in square_vertices.iter() {
-                    vertices_18.push(*v);
-                }
-                for idx in square_indices.iter() {
-                    indices_18.push(*idx + (i * 6) as u16);
-                }
-            }
-            
-            let vertices_array: [Vertex; 18] = vertices_18.try_into().unwrap();
-            let indices_array: [u16; 18] = indices_18.try_into().unwrap();
-            
-            (vertices_array, indices_array)
+
+            let default_indices: Vec<u32> = vec![0, 1, 2, 3, 4, 5];
+
+            (default_vertices, default_indices)
         }
     };
 
+    let indices: Vec<u16> = indices_u32.iter().map(|&i| i as u16).collect();
 
     let buffers = init_buffers(
         window_size,
@@ -287,16 +263,16 @@ async fn main() {
 
             // В event_loop.run, внутри if input.update(&event):
             if input.key_held(KeyCode::KeyA) || input.key_held(KeyCode::ArrowLeft) {
-                translation[0] -= speed;
-            }
-            if input.key_held(KeyCode::KeyD) || input.key_held(KeyCode::ArrowRight) {
                 translation[0] += speed;
             }
+            if input.key_held(KeyCode::KeyD) || input.key_held(KeyCode::ArrowRight) {
+                translation[0] -= speed;
+            }
             if input.key_held(KeyCode::KeyW) || input.key_held(KeyCode::ArrowUp) {
-                translation[2] += speed;
+                translation[2] -= speed;
             }
             if input.key_held(KeyCode::KeyS) || input.key_held(KeyCode::ArrowDown) {
-                translation[2] -= speed;
+                translation[2] += speed;
             }
 
             if input.key_held(KeyCode::KeyQ) {
@@ -304,12 +280,6 @@ async fn main() {
             }
             if input.key_held(KeyCode::KeyE) {
                 rotation[1] += rotation_speed;
-            }
-            if input.key_held(KeyCode::KeyF) {
-                rotation[0] -= rotation_speed;
-            }
-            if input.key_held(KeyCode::KeyR) {
-                rotation[0] += rotation_speed;
             }
         }
 

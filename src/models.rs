@@ -2,6 +2,7 @@ use std::fs::File;
 use std::io::{BufRead, BufReader};
 use wgpu::{util::DeviceExt, *};
 
+use crate::Uniforms;
 use crate::Vertex;
 
 pub struct Model_obj{
@@ -85,15 +86,19 @@ pub struct ModelInstance {
     pub vertex_buffer: wgpu::Buffer,
     pub index_buffer: wgpu::Buffer,
     pub index_count: u32,
+    pub uniform_buffer: wgpu::Buffer,
+    pub bind_group: wgpu::BindGroup,
 }
 
 impl ModelInstance{
     pub fn new(
+        path: &str,
         device: &wgpu::Device,
         translation: [f32; 4],
         rotation: [f32; 4],
+        projection: [f32; 16], 
     )-> ModelInstance{
-        let model_result = load_obj_simple("./models/table.obj");
+        let model_result = load_obj_simple(path);
 
         let (vertices, indices_u32) = match model_result {
             Ok(model) => {
@@ -137,6 +142,39 @@ impl ModelInstance{
             usage: wgpu::BufferUsages::INDEX,
         });
 
+        // Создаём свой uniform buffer для этой модели
+        let uniforms = Uniforms { translation, rotation, projection };
+        let uniform_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("Model Uniform Buffer"),
+            contents: bytemuck::cast_slice(&[uniforms]),
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+        });
+        
+        // Создаём bind group layout
+        let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            label: Some("Model Bind Group Layout"),
+            entries: &[wgpu::BindGroupLayoutEntry {
+                binding: 0,
+                visibility: wgpu::ShaderStages::VERTEX,
+                ty: wgpu::BindingType::Buffer {
+                    ty: wgpu::BufferBindingType::Uniform,
+                    has_dynamic_offset: false,
+                    min_binding_size: None,
+                },
+                count: None,
+            }],
+        });
+        
+        // Создаём bind group
+        let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: Some("Model Bind Group"),
+            layout: &bind_group_layout,
+            entries: &[wgpu::BindGroupEntry {
+                binding: 0,
+                resource: uniform_buffer.as_entire_binding(),
+            }],
+        });
+
         Self{
             vertices,
             indices,
@@ -145,6 +183,17 @@ impl ModelInstance{
             vertex_buffer,
             index_buffer,
             index_count,
+            uniform_buffer,
+            bind_group,
         }
+    }
+
+    pub fn update_transform(&self, queue: &wgpu::Queue, projection: [f32; 16]) {
+        let uniforms = Uniforms { 
+            translation: self.translation, 
+            rotation: self.rotation, 
+            projection 
+        };
+        queue.write_buffer(&self.uniform_buffer, 0, bytemuck::cast_slice(&[uniforms]));
     }
 }

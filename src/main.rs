@@ -97,6 +97,8 @@ async fn main() {
 
     //init buffers
     let mut translation = [0.0, -1.0, 5.0, 0.0];
+    let mut model1_base = [0.0, 0.0, 0.0, 0.0];
+    let mut model2_base = [0.0, 0.0, 0.0, 0.0];
     let mut rotation = [0.0, 0.0, 0.0, 0.0];
     let window_size = window.inner_size();
     let speed = 0.05;
@@ -119,8 +121,17 @@ async fn main() {
     let bind_group = &buffers.bind_groupprojection;
     
     // Создаём модель
-    let table_model = ModelInstance::new(&device, translation, rotation);
-    let models = vec![table_model,table_model_c];
+    let block = ModelInstance::new("./models/room.obj", &device, 
+        [0.0 + translation[0], 0.0 + translation[1], 
+            0.0 + translation[2], 0.0 + translation[3]],
+        rotation, projection);
+
+    let table_model = ModelInstance::new("./models/table.obj", &device, 
+        [0.0 + translation[0], 0.0 + translation[1], 
+            0.0 + translation[2], 0.0 + translation[3]],
+        rotation, projection);
+
+    let mut models = vec![table_model, block];
 
     //init_model_buffers(&device, &mut models);
 
@@ -229,34 +240,70 @@ async fn main() {
     // main loop
     let _ = event_loop.run(|event, event_loop_target| {
 
+        let mut needs_update = false;
+
         // Передаём каждое событие в input helper
         if input.update(&event) {
 
             // В event_loop.run, внутри if input.update(&event):
             if input.key_held(KeyCode::KeyA) || input.key_held(KeyCode::ArrowLeft) {
                 translation[0] += speed;
+                needs_update = true;
             }
             if input.key_held(KeyCode::KeyD) || input.key_held(KeyCode::ArrowRight) {
                 translation[0] -= speed;
+                needs_update = true;
             }
             if input.key_held(KeyCode::KeyW) || input.key_held(KeyCode::ArrowUp) {
                 translation[2] -= speed;
+                needs_update = true;
             }
             if input.key_held(KeyCode::KeyS) || input.key_held(KeyCode::ArrowDown) {
                 translation[2] += speed;
+                needs_update = true;
             }
 
             if input.key_held(KeyCode::KeyQ) {
                 rotation[1] -= rotation_speed;
+                needs_update = true;
             }
             if input.key_held(KeyCode::KeyE) {
                 rotation[1] += rotation_speed;
+                needs_update = true;
             }
         }
 
         // Обновляем uniform buffer
-        let uniforms = Uniforms { translation, rotation, projection,};
-        queue.write_buffer(&uniform_buffer, 0, bytemuck::cast_slice(&[uniforms]));
+
+        if needs_update {
+            // Обновляем позиции всех моделей
+            let new_pos1 = [
+                model1_base[0] + translation[0],
+                model1_base[1] + translation[1],
+                model1_base[2] + translation[2],
+                model1_base[3] + translation[3],
+            ];
+            let new_pos2 = [
+                model2_base[0] + translation[0],
+                model2_base[1] + translation[1],
+                model2_base[2] + translation[2],
+                model2_base[3] + translation[3],
+            ];
+            
+            models[0].translation = new_pos1;
+            models[1].translation = new_pos2;
+            models[0].rotation = rotation;
+            models[1].rotation = rotation;
+            
+            // Обновляем uniform buffer для каждой модели
+            models[0].update_transform(&queue, projection);
+            models[1].update_transform(&queue, projection);
+            
+            // Обновляем глобальный uniform buffer (для камеры)
+            let uniforms = Uniforms { translation: translation, rotation, projection };
+            queue.write_buffer(uniform_buffer, 0, bytemuck::cast_slice(&[uniforms]));
+        }
+
 
         match event {
             Event::WindowEvent {

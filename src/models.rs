@@ -1,20 +1,21 @@
+use std::fs::File;
+use std::io::{BufRead, BufReader};
+use wgpu::{util::DeviceExt, *};
+
 use crate::Vertex;
 
-pub struct Model{
+pub struct Model_obj{
     pub vertices: Vec<Vertex>,
     pub indices: Vec<u32>,
 }
 
-use std::fs::File;
-use std::io::{BufRead, BufReader};
-
-pub fn load_obj_simple(path: &str) -> Result<Model, String> {
+pub fn load_obj_simple(path: &str) -> Result<Model_obj, String> {
     let file = File::open(path).map_err(|e| format!("Failed to open file: {}", e))?;
     let reader = BufReader::new(file);
     
     let mut positions = Vec::new();
     let mut face_indices = Vec::new();
-    let mut current_color = [1.0, 1.0, 1.0];  // Белый цвет по умолчанию
+    let mut current_color = [1.0, 1.0, 1.0];
     
     for line in reader.lines() {
         let line = line.map_err(|e| format!("Failed to read line: {}", e))?;
@@ -73,5 +74,77 @@ pub fn load_obj_simple(path: &str) -> Result<Model, String> {
     
     let indices: Vec<u32> = (0..vertices.len() as u32).collect();
     
-    Ok(Model { vertices, indices })
+    Ok(Model_obj { vertices, indices })
+}
+
+pub struct ModelInstance {
+    pub vertices: Vec<Vertex>,
+    pub indices: Vec<u16>,
+    pub translation: [f32; 4],
+    pub rotation: [f32; 4],
+    pub vertex_buffer: wgpu::Buffer,
+    pub index_buffer: wgpu::Buffer,
+    pub index_count: u32,
+}
+
+impl ModelInstance{
+    pub fn new(
+        device: &wgpu::Device,
+        translation: [f32; 4],
+        rotation: [f32; 4],
+    )-> ModelInstance{
+        let model_result = load_obj_simple("./models/table.obj");
+
+        let (vertices, indices_u32) = match model_result {
+            Ok(model) => {
+                println!("Loaded model: {} vertices, {} indices", 
+                        model.vertices.len(), model.indices.len());
+                
+                (model.vertices, model.indices)
+            }
+            Err(e) => {
+                eprintln!("Failed to load model: {}", e);
+                
+                let default_vertices = vec![
+                    Vertex { position: [-0.5, 0.5, 0.0], color: [0.0, 0.0, 0.6] },
+                    Vertex { position: [-0.5, -0.5, 0.0], color: [0.0, 0.0, 0.6] },
+                    Vertex { position: [0.5, -0.5, 0.0], color: [0.0, 0.0, 0.6] },
+                    Vertex { position: [0.5, -0.5, 0.0], color: [0.0, 0.0, 1.0] },
+                    Vertex { position: [0.5, 0.5, 0.0], color: [0.0, 0.0, 1.0] },
+                    Vertex { position: [-0.5, 0.5, 0.0], color: [0.0, 0.0, 1.0] },
+                ];
+
+                let default_indices: Vec<u32> = vec![0, 1, 2, 3, 4, 5];
+
+                (default_vertices, default_indices)
+            }
+        };
+
+        let indices: Vec<u16> = indices_u32.iter().map(|&i| i as u16).collect();
+        let index_count = indices.len() as u32;
+
+        // Создаём буфер вершин
+        let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some(&format!("Vertex Buffer")),
+            contents: bytemuck::cast_slice(&vertices),
+            usage: wgpu::BufferUsages::VERTEX,
+        });
+        
+        // Создаём буфер индексов
+        let index_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some(&format!("Index Buffer")),
+            contents: bytemuck::cast_slice(&indices),
+            usage: wgpu::BufferUsages::INDEX,
+        });
+
+        Self{
+            vertices,
+            indices,
+            translation,
+            rotation,
+            vertex_buffer,
+            index_buffer,
+            index_count,
+        }
+    }
 }

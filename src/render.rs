@@ -1,69 +1,65 @@
 use wgpu::{util::DeviceExt, *};
+use crate::ModelInstance;
 
 pub fn render(
     surface: &wgpu::Surface,
     device: &wgpu::Device,
     queue: &wgpu::Queue,
     render_pipeline: &wgpu::RenderPipeline,
-    vertex_buffer: &wgpu::Buffer,
-    index_buffer: &wgpu::Buffer,
-    indices : &Vec<u16>,
+    models: &Vec<ModelInstance>,
     bind_group: &wgpu::BindGroup,
     depth_view: &wgpu::TextureView,
 ){
-
-    // Получаем текущий кадр (с обработкой ошибок)
-    let frame = match surface.get_current_texture() {
+    let output = match surface.get_current_texture() {
         Ok(frame) => frame,
-        Err(e) => {
-            eprintln!("Failed to get current texture: {:?}", e);
-            return;
-        }
+        Err(_) => return,
     };
-    let view = frame.texture.create_view(&TextureViewDescriptor::default());
-
-    // Создаём командный энкодер
-    let mut encoder = device.create_command_encoder(&CommandEncoderDescriptor {
+    
+    let view = output.texture.create_view(&wgpu::TextureViewDescriptor::default());
+    
+    let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
         label: Some("Render Encoder"),
     });
-
-    // Начинаем рендер‑пасс (с полным описанием)
+    
     {
-        let mut render_pass = encoder.begin_render_pass(&RenderPassDescriptor {
+        let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: Some("Render Pass"),
-            color_attachments: &[Some(RenderPassColorAttachment {
+            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                 view: &view,
                 resolve_target: None,
-                ops: Operations {
-                    load: LoadOp::Clear(Color::WHITE),
-                    store: StoreOp::Store,
+                ops: wgpu::Operations {
+                    load: wgpu::LoadOp::Clear(wgpu::Color {
+                        r: 0.1,
+                        g: 0.2,
+                        b: 0.3,
+                        a: 1.0,
+                    }),
+                    store: wgpu::StoreOp::Store,
                 },
             })],
-            depth_stencil_attachment: Some(RenderPassDepthStencilAttachment {
-                view: &depth_view,
-                depth_ops: Some(Operations {
-                    load: LoadOp::Clear(1.0),
-                    store: StoreOp::Store,
+            depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
+                view: depth_view,
+                depth_ops: Some(wgpu::Operations {
+                    load: wgpu::LoadOp::Clear(1.0),
+                    store: wgpu::StoreOp::Store,
                 }),
                 stencil_ops: None,
             }),
             occlusion_query_set: None,
             timestamp_writes: None,
         });
-
-        // Устанавливаем конвейер
-        render_pass.set_pipeline(&render_pipeline);
-        render_pass.set_vertex_buffer(0, vertex_buffer.slice(..));
-        render_pass.set_index_buffer(index_buffer.slice(..), wgpu::IndexFormat::Uint16);
+        
+        render_pass.set_pipeline(render_pipeline);
         render_pass.set_bind_group(0, bind_group, &[]);
-        // Отрисовываем 3 вершины (треугольник), 1 экземпляр
-        render_pass.draw_indexed(0..indices.len() as u32, 0, 0..1);
+        
+        // Рендерим каждую модель
+        for model in models {
+            render_pass.set_vertex_buffer(0, model.vertex_buffer.slice(..));
+            render_pass.set_index_buffer(model.index_buffer.slice(..), IndexFormat::Uint16);
+            render_pass.draw_indexed(0..model.index_count, 0, 0..1);
+        }
     }
-
-    // Завершаем запись команд
-    let command_buffer = encoder.finish();
-    // Отправляем команды на выполнение (как итератор)
-    queue.submit(std::iter::once(command_buffer));
-    // Показываем кадр
-    frame.present();
+    
+    queue.submit(std::iter::once(encoder.finish()));
+    output.present();
 }

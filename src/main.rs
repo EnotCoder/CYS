@@ -102,56 +102,27 @@ async fn main() {
     let speed = 0.05;
     let rotation_speed = 0.05;
 
-    //VBO  
 
-    // В main.rs, загрузка модели:
-    let model_result = load_obj_simple("./models/table.obj");
 
-    let (vertices, indices_u32) = match model_result {
-        Ok(model) => {
-            println!("Loaded model: {} vertices, {} indices", 
-                    model.vertices.len(), model.indices.len());
-            
-            (model.vertices, model.indices)
-        }
-        Err(e) => {
-            eprintln!("Failed to load model: {}", e);
-            
-            let default_vertices = vec![
-                Vertex { position: [-0.5, 0.5, 0.0], color: [0.0, 0.0, 0.6] },
-                Vertex { position: [-0.5, -0.5, 0.0], color: [0.0, 0.0, 0.6] },
-                Vertex { position: [0.5, -0.5, 0.0], color: [0.0, 0.0, 0.6] },
-                Vertex { position: [0.5, -0.5, 0.0], color: [0.0, 0.0, 1.0] },
-                Vertex { position: [0.5, 0.5, 0.0], color: [0.0, 0.0, 1.0] },
-                Vertex { position: [-0.5, 0.5, 0.0], color: [0.0, 0.0, 1.0] },
-            ];
-
-            let default_indices: Vec<u32> = vec![0, 1, 2, 3, 4, 5];
-
-            (default_vertices, default_indices)
-        }
-    };
-
-    let indices: Vec<u16> = indices_u32.iter().map(|&i| i as u16).collect();
-
-    let buffers = init_buffers(
+    let mut buffers = init_buffers(
         window_size,
         translation,
         rotation,
         &device,
-        &vertices,
-        &indices,
     );
 
     let mut projection = buffers.projection;
-    let uniform_buffer = buffers.uniform_buffer;
-    let mut depth_buffer = buffers.depth_buffer;
+    let uniform_buffer = &buffers.uniform_buffer;
     let depth_stencil = buffers.depth_stencil;
-    let bind_group_layout = buffers.bind_group_layout;
-    let bind_groupprojection = buffers.bind_groupprojection;
+    let bind_group_layout = &buffers.bind_group_layout;
+    
+    let bind_group = &buffers.bind_groupprojection;
+    
+    // Создаём модель
+    let table_model = ModelInstance::new(&device, translation, rotation);
+    let models = vec![table_model,table_model_c];
 
-    let vertex_buffer = buffers.vertex_buffer;
-    let index_buffer = buffers.index_buffer;
+    //init_model_buffers(&device, &mut models);
 
     //shaders
     //получаем код шейдера
@@ -305,10 +276,7 @@ async fn main() {
             } => {
                 render(
                     &surface,&device,&queue,&render_pipeline,
-                    &vertex_buffer,&index_buffer,
-                    &indices,
-                    &bind_groupprojection,
-                    &depth_buffer.view,
+                    &models,bind_group,&buffers.depth_buffer.view
                 );
             }
 
@@ -330,7 +298,7 @@ async fn main() {
                 };
                 surface.configure(&device, &config);
 
-                depth_buffer.resize(&device, new_size);
+                buffers.depth_buffer.resize(&device, new_size);
 
                 let new_aspect = new_size.width as f32 / new_size.height as f32;
                     projection = create_perspective_matrix(new_aspect, 

@@ -2,6 +2,7 @@ use wgpu::{util::DeviceExt, *};
 use winit::dpi::PhysicalSize;
 
 use crate::Vertex;
+use crate::ModelInstance;
 
 //transform class
 #[repr(C)]
@@ -101,9 +102,6 @@ pub struct Buffers{
     pub depth_stencil: wgpu::DepthStencilState,
     pub bind_group_layout: wgpu::BindGroupLayout,
     pub bind_groupprojection: wgpu::BindGroup,
-    pub vertex_buffer: wgpu::Buffer,
-    pub index_buffer: wgpu::Buffer,
-
 }
 
 pub fn init_buffers(
@@ -111,8 +109,6 @@ pub fn init_buffers(
     translation: [f32;4],
     rotation: [f32;4],
     device: &wgpu::Device,
-    vertices: &Vec<Vertex>,
-    indices: &Vec<u16>,
 ) -> Buffers{
     let aspect = window_size.width as f32 / window_size.height as f32;
 
@@ -173,22 +169,6 @@ pub fn init_buffers(
         bias: wgpu::DepthBiasState::default(),
     };
 
-    // Создаём буфер вершин
-    let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-        //
-        label: Some("Vertex Buffer"),
-        contents: bytemuck::cast_slice(&vertices),
-        usage: wgpu::BufferUsages::VERTEX,
-    });
-
-    // Создаём буфер индексов
-    let index_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-        //
-        label: Some("Index Buffer"),
-        contents: bytemuck::cast_slice(&indices),
-        usage: wgpu::BufferUsages::INDEX,
-    });
-
     Buffers {
         projection,
         uniform_buffer,
@@ -196,7 +176,30 @@ pub fn init_buffers(
         depth_stencil,
         bind_group_layout,
         bind_groupprojection,
-        vertex_buffer,
-        index_buffer,
+    }
+}
+
+pub fn init_model_buffers(
+    device: &wgpu::Device,
+    models: &mut Vec<ModelInstance>,
+) {
+    for model in models {
+        // Создаём vertex buffer
+        model.vertex_buffer = device.create_buffer_init(
+            &wgpu::util::BufferInitDescriptor {
+                label: Some("Model Vertex Buffer"),
+                contents: bytemuck::cast_slice(&model.vertices),
+                usage: wgpu::BufferUsages::VERTEX,
+            }
+        );
+        
+        // Создаём index buffer
+        model.index_buffer = device.create_buffer_init(
+            &wgpu::util::BufferInitDescriptor {
+                label: Some("Model Index Buffer"),
+                contents: bytemuck::cast_slice(&model.indices),
+                usage: wgpu::BufferUsages::INDEX,
+            }
+        );
     }
 }

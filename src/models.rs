@@ -82,6 +82,7 @@ pub struct ModelInstance {
     pub vertices: Vec<Vertex>,
     pub indices: Vec<u16>,
     pub translation: [f32; 4],
+    pub translation_base: [f32; 4],
     pub rotation: [f32; 4],
     pub vertex_buffer: wgpu::Buffer,
     pub index_buffer: wgpu::Buffer,
@@ -95,6 +96,7 @@ impl ModelInstance{
         path: &str,
         device: &wgpu::Device,
         translation: [f32; 4],
+        translation_base: [f32; 4],
         rotation: [f32; 4],
         projection: [f32; 16], 
     )-> ModelInstance{
@@ -179,6 +181,7 @@ impl ModelInstance{
             vertices,
             indices,
             translation,
+            translation_base,
             rotation,
             vertex_buffer,
             index_buffer,
@@ -196,4 +199,6 @@ impl ModelInstance{
         };
         queue.write_buffer(&self.uniform_buffer, 0, bytemuck::cast_slice(&[uniforms]));
     }
+
+
 }

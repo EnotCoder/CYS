@@ -19,7 +19,6 @@ pub fn load_obj_simple(path: &str) -> Result<Model_obj, String> {
     let mut positions = Vec::new();
     let mut tex_coords = Vec::new();
     let mut face_indices = Vec::new();
-    let mut current_color = [1.0, 1.0, 1.0];
     
     for line in reader.lines() {
         let line = line.map_err(|e| format!("Failed to read line: {}", e))?;
@@ -41,24 +40,27 @@ pub fn load_obj_simple(path: &str) -> Result<Model_obj, String> {
                 let v = parts[2].parse::<f32>().unwrap_or(0.0);
 
                 tex_coords.push([u, v]);
-                println!("Loaded UV: ({}, {})", u, v);
             }
             "f" => {  // Грань
                 for i in 1..parts.len() {
                     let face_part = parts[i];
+                    // indices = ["5", "3"]
                     let indices: Vec<&str> = face_part.split('/').collect();
                     
-                    // Индекс позиции (всегда есть)
+                    // indices[0] = "5"
+                    // parse::<usize>() = 5
+                    // 5 - 1 = 4
+                    // pos_idx = 4 (индекс вершины в массиве positions)
                     let pos_idx = indices[0].parse::<usize>().unwrap_or(0) - 1;
                     
-                    // Индекс текстурных координат (может отсутствовать)
+                    // Индекс текстурных координат
                     let tex_idx = if indices.len() > 1 && !indices[1].is_empty() {
                         Some(indices[1].parse::<usize>().unwrap_or(0) - 1)
                     } else {
                         None
                     };
                     
-                    face_indices.push((pos_idx, tex_idx, current_color));
+                    face_indices.push((pos_idx, tex_idx));
                 }
             }
             _ => {}
@@ -67,7 +69,7 @@ pub fn load_obj_simple(path: &str) -> Result<Model_obj, String> {
     
     // Создаём вершины с правильными цветами
     let mut vertices = Vec::new();
-    for (pos_idx, tex_idx_opt, color) in face_indices {
+    for (pos_idx, tex_idx_opt) in face_indices {
         let pos = positions[pos_idx];
         
         // Получаем UV координаты, если они есть
@@ -78,7 +80,7 @@ pub fn load_obj_simple(path: &str) -> Result<Model_obj, String> {
         
         vertices.push(Vertex {
             position: [pos[0], pos[1], pos[2]],
-            tex_coord: tex,  // Теперь tex - это [f32; 2], а не Option
+            tex_coord: tex,
         });
     }
     
@@ -188,6 +190,8 @@ impl ModelInstance{
                 resource: uniform_buffer.as_entire_binding(),
             }],
         });
+
+        //texture
 
         let texture = Texture::from_path(device, queue, texture_path, "model_texture")
             .expect("Failed to load texture");

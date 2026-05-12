@@ -105,11 +105,11 @@ async fn main() {
     // Создаём модель
     let block = ModelInstance::new("./models/room.obj", &device, &queue,
         translation, [0.0, 0.0, 0.0, 0.0], 
-        rotation, projection, "Peter.png");
+        rotation, projection, "tex/desk.png");
 
     let table_model = ModelInstance::new("./models/table.obj", &device, &queue,
         translation, [0.0, 0.0, 0.0, 0.0],
-        rotation, projection, "Peter.png");
+        rotation, projection, "tex/desk.png");
 
     let mut models = vec![table_model, block];
 

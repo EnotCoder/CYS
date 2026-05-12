@@ -1,3 +1,4 @@
+// Структура uniform (оставляем как есть)
 struct Uniforms {
     translation: vec4<f32>,
     rotation: vec4<f32>,
@@ -7,9 +8,17 @@ struct Uniforms {
 @group(0) @binding(0)
 var<uniform> uniforms: Uniforms;
 
+// Добавляем текстуру и сэмплер во 2-ю группу
+@group(1) @binding(0)
+var my_texture: texture_2d<f32>;
+
+@group(1) @binding(1)
+var my_sampler: sampler;
+
+// Выходные данные вершинного шейдера
 struct VertexOutput {
     @builtin(position) position: vec4<f32>,
-    @location(0) color: vec3<f32>,
+    @location(0) tex_coord: vec2<f32>,  // Передаём UV координаты вместо цвета
 };
 
 // Вращение вокруг X
@@ -48,7 +57,7 @@ fn rotate_z(vertex: vec3<f32>, angle: f32) -> vec3<f32> {
 @vertex
 fn vs_main(
     @location(0) position: vec3<f32>,
-    @location(1) color: vec3<f32>,
+    @location(1) tex_coord: vec2<f32>,  // Теперь это UV координаты
 ) -> VertexOutput {
     var output: VertexOutput;
     
@@ -62,13 +71,14 @@ fn vs_main(
     let world_pos = rotated + uniforms.translation.xyz;
     
     output.position = uniforms.projection * vec4<f32>(world_pos, 1.0);
-    output.color = color;
+    output.tex_coord = tex_coord;  // Передаём UV координаты
     return output;
 }
 
 @fragment
 fn fs_main(
-    @location(0) color: vec3<f32>,
+    @location(0) tex_coord: vec2<f32>,  // Получаем UV координаты
 ) -> @location(0) vec4<f32> {
-    return vec4<f32>(color, 1.0);
+    // Берём цвет из текстуры по UV координатам
+    return textureSample(my_texture, my_sampler, tex_coord);
 }

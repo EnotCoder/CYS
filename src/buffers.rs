@@ -1,8 +1,14 @@
 use wgpu::{util::DeviceExt, *};
 use winit::dpi::PhysicalSize;
-
-use crate::Vertex;
 use crate::ModelInstance;
+
+//triangle info
+#[repr(C)]
+#[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
+pub struct Vertex {
+    pub position: [f32; 3],
+    pub tex_coord: [f32; 2],
+}
 
 //transform class
 #[repr(C)]

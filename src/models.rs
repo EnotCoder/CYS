@@ -2,6 +2,8 @@ use std::fs::File;
 use std::io::{BufRead, BufReader};
 use wgpu::{util::DeviceExt, *};
 
+
+use crate::texture::Texture;
 use crate::Uniforms;
 use crate::Vertex;
 
@@ -15,6 +17,7 @@ pub fn load_obj_simple(path: &str) -> Result<Model_obj, String> {
     let reader = BufReader::new(file);
     
     let mut positions = Vec::new();
+    let mut tex_coords = Vec::new();
     let mut face_indices = Vec::new();
     let mut current_color = [1.0, 1.0, 1.0];
     
@@ -33,30 +36,29 @@ pub fn load_obj_simple(path: &str) -> Result<Model_obj, String> {
                 let z = parts[3].parse::<f32>().unwrap_or(0.0);
                 positions.push([x, y, z]);
             }
-            "usemtl" => {  // Материал/цвет
-                if parts.len() >= 2 && parts[1] == "Color" {
-                    // Парсим цвет из строки "Color 1.0 0.0 1.0"
-                    if parts.len() >= 5 {
-                        let r = parts[2].parse::<f32>().unwrap_or(1.0);
-                        let g = parts[3].parse::<f32>().unwrap_or(1.0);
-                        let b = parts[4].parse::<f32>().unwrap_or(1.0);
-                        current_color = [r, g, b];
-                        println!("Changed color to: RGB({}, {}, {})", r, g, b);
-                    }
-                } else if parts.len() >= 2 && parts[1] == "Color" {
-                    // Альтернативный парсинг (если цвет указан как "Color 1.0 0.0 1.0")
-                    let r = parts[2].parse::<f32>().unwrap_or(1.0);
-                    let g = parts[3].parse::<f32>().unwrap_or(1.0);
-                    let b = parts[4].parse::<f32>().unwrap_or(1.0);
-                    current_color = [r, g, b];
-                    println!("Changed color to: RGB({}, {}, {})", r, g, b);
-                }
+            "vt" => {  // Материал/цвет
+                let u = parts[1].parse::<f32>().unwrap_or(0.0);
+                let v = parts[2].parse::<f32>().unwrap_or(0.0);
+
+                tex_coords.push([u, v]);
+                println!("Loaded UV: ({}, {})", u, v);
             }
             "f" => {  // Грань
                 for i in 1..parts.len() {
                     let face_part = parts[i];
-                    let idx: usize = face_part.split('/').next().unwrap_or("0").parse().unwrap_or(0);
-                    face_indices.push((idx - 1, current_color));  // Сохраняем индекс и цвет
+                    let indices: Vec<&str> = face_part.split('/').collect();
+                    
+                    // Индекс позиции (всегда есть)
+                    let pos_idx = indices[0].parse::<usize>().unwrap_or(0) - 1;
+                    
+                    // Индекс текстурных координат (может отсутствовать)
+                    let tex_idx = if indices.len() > 1 && !indices[1].is_empty() {
+                        Some(indices[1].parse::<usize>().unwrap_or(0) - 1)
+                    } else {
+                        None
+                    };
+                    
+                    face_indices.push((pos_idx, tex_idx, current_color));
                 }
             }
             _ => {}
@@ -65,11 +67,18 @@ pub fn load_obj_simple(path: &str) -> Result<Model_obj, String> {
     
     // Создаём вершины с правильными цветами
     let mut vertices = Vec::new();
-    for (idx, color) in face_indices {
-        let pos = positions[idx];
+    for (pos_idx, tex_idx_opt, color) in face_indices {
+        let pos = positions[pos_idx];
+        
+        // Получаем UV координаты, если они есть
+        let tex = match tex_idx_opt {
+            Some(tex_idx) if tex_idx < tex_coords.len() => tex_coords[tex_idx],
+            _ => [0.0, 0.0],  // Значение по умолчанию, если UV нет
+        };
+        
         vertices.push(Vertex {
             position: [pos[0], pos[1], pos[2]],
-            color: color,  // Используем цвет из материала
+            tex_coord: tex,  // Теперь tex - это [f32; 2], а не Option
         });
     }
     
@@ -89,16 +98,19 @@ pub struct ModelInstance {
     pub index_count: u32,
     pub uniform_buffer: wgpu::Buffer,
     pub bind_group: wgpu::BindGroup,
+    pub texture_bind_group: wgpu::BindGroup,
 }
 
 impl ModelInstance{
     pub fn new(
         path: &str,
         device: &wgpu::Device,
+        queue: &wgpu::Queue,
         translation: [f32; 4],
         translation_base: [f32; 4],
         rotation: [f32; 4],
-        projection: [f32; 16], 
+        projection: [f32; 16],
+        texture_path: &str,
     )-> ModelInstance{
         let model_result = load_obj_simple(path);
 
@@ -113,12 +125,12 @@ impl ModelInstance{
                 eprintln!("Failed to load model: {}", e);
                 
                 let default_vertices = vec![
-                    Vertex { position: [-0.5, 0.5, 0.0], color: [0.0, 0.0, 0.6] },
-                    Vertex { position: [-0.5, -0.5, 0.0], color: [0.0, 0.0, 0.6] },
-                    Vertex { position: [0.5, -0.5, 0.0], color: [0.0, 0.0, 0.6] },
-                    Vertex { position: [0.5, -0.5, 0.0], color: [0.0, 0.0, 1.0] },
-                    Vertex { position: [0.5, 0.5, 0.0], color: [0.0, 0.0, 1.0] },
-                    Vertex { position: [-0.5, 0.5, 0.0], color: [0.0, 0.0, 1.0] },
+                    Vertex { position: [-0.5, 0.5, 0.0], tex_coord: [0.0, 0.0] },
+                    Vertex { position: [-0.5, -0.5, 0.0], tex_coord: [0.0, 0.0] },
+                    Vertex { position: [0.5, -0.5, 0.0], tex_coord: [0.0, 0.0] },
+                    Vertex { position: [0.5, -0.5, 0.0], tex_coord: [0.0, 0.0] },
+                    Vertex { position: [0.5, 0.5, 0.0], tex_coord: [0.0, 0.0] },
+                    Vertex { position: [-0.5, 0.5, 0.0], tex_coord: [0.0, 0.0] },
                 ];
 
                 let default_indices: Vec<u32> = vec![0, 1, 2, 3, 4, 5];
@@ -177,6 +189,46 @@ impl ModelInstance{
             }],
         });
 
+        let texture = Texture::from_path(device, queue, texture_path, "model_texture")
+            .expect("Failed to load texture");
+
+        let t_bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            label: Some("Texture Bind Group Layout"),
+            entries: &[wgpu::BindGroupLayoutEntry {
+                binding: 0,
+                visibility: wgpu::ShaderStages::FRAGMENT,
+                ty: wgpu::BindingType::Texture {
+                    multisampled: false,
+                    view_dimension: wgpu::TextureViewDimension::D2,
+                    sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                },
+                count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 1,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                    count: None,
+                },
+            ],
+        });
+        
+
+        let t_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: Some("Texture Bind Group"),
+            layout: &t_bind_group_layout,
+            entries: &[                
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: wgpu::BindingResource::TextureView(&texture.view),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: wgpu::BindingResource::Sampler(&texture.sampler),
+                },
+            ],
+        });
+
         Self{
             vertices,
             indices,
@@ -188,6 +240,7 @@ impl ModelInstance{
             index_count,
             uniform_buffer,
             bind_group,
+            texture_bind_group: t_bind_group,
         }
     }
 

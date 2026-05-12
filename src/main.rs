@@ -13,31 +13,13 @@ use winit_input_helper::WinitInputHelper;
 mod buffers;
 mod render;
 mod models;
+mod texture;
 
+use texture::*;
 use buffers::*;
 use render::*;
 use models::*;
 
-//triangle info
-#[repr(C)]
-#[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
-struct Vertex {
-    position: [f32; 3],
-    color: [f32; 3],
-}
-
-fn make_triangle(
-    x1: f32, y1: f32, z1: f32,
-    x2: f32, y2: f32, z2: f32,
-    x3: f32, y3: f32, z3: f32,
-    r: f32, g: f32, b: f32,
-) -> [Vertex; 3] {
-    [
-        Vertex { position: [x1, y1, z1], color: [r, g, b] },
-        Vertex { position: [x2, y2, z2], color: [r, g, b] },
-        Vertex { position: [x3, y3, z3], color: [r, g, b] },
-    ]
-}
 
 
 #[tokio::main]
@@ -121,13 +103,13 @@ async fn main() {
     let bind_group = &buffers.bind_groupprojection;
     
     // Создаём модель
-    let block = ModelInstance::new("./models/room.obj", &device, 
+    let block = ModelInstance::new("./models/room.obj", &device, &queue,
         translation, [0.0, 0.0, 0.0, 0.0], 
-        rotation, projection);
+        rotation, projection, "Peter.png");
 
-    let table_model = ModelInstance::new("./models/table.obj", &device, 
+    let table_model = ModelInstance::new("./models/table.obj", &device, &queue,
         translation, [0.0, 0.0, 0.0, 0.0],
-        rotation, projection);
+        rotation, projection, "Peter.png");
 
     let mut models = vec![table_model, block];
 
@@ -158,12 +140,35 @@ async fn main() {
         write_mask: ColorWrites::ALL,
     };
 
+    //texture_bind_gruuo_layout
+    let texture_bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+        label: Some("Texture Bind Group Layout"),
+        entries: &[
+            wgpu::BindGroupLayoutEntry {
+                binding: 0,
+                visibility: wgpu::ShaderStages::FRAGMENT,
+                ty: wgpu::BindingType::Texture {
+                    multisampled: false,
+                    view_dimension: wgpu::TextureViewDimension::D2,
+                    sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                },
+                count: None,
+            },
+            wgpu::BindGroupLayoutEntry {
+                binding: 1,
+                visibility: wgpu::ShaderStages::FRAGMENT,
+                ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                count: None,
+            },
+        ],
+    });
+
 
     //Render pipeline
     //PipelineLayout
     let pipeline_layout = device.create_pipeline_layout(&PipelineLayoutDescriptor {
         label: Some("Pipeline Layout"),
-        bind_group_layouts: &[&bind_group_layout], // группы привязки (текстуры, буферы)
+        bind_group_layouts: &[&bind_group_layout, &texture_bind_group_layout],
         push_constant_ranges: &[], // константы, которые можно быстро обновлять
     });
 
@@ -238,6 +243,7 @@ async fn main() {
     // main loop
     let _ = event_loop.run(|event, event_loop_target| {
 
+        //Input
         let mut needs_update = false;
 
         // Передаём каждое событие в input helper
@@ -271,19 +277,21 @@ async fn main() {
             queue.write_buffer(uniform_buffer, 0, bytemuck::cast_slice(&[uniforms]));
         }
 
+        //Render
 
         match event {
+            //Exit
             Event::WindowEvent {
                 event: WindowEvent::CloseRequested,
                 window_id,
             } if window_id == window_id => {
                 event_loop_target.exit();
             }
-
+            //Redraw window
             Event::AboutToWait => {
                 window.request_redraw();
             }
-
+            //Render
             Event::WindowEvent {
                 event: WindowEvent::RedrawRequested,
                 ..
@@ -294,7 +302,7 @@ async fn main() {
                 );
             }
 
-            // Обработка изменения размера окна
+            //Window resize
             Event::WindowEvent {
                 event: WindowEvent::Resized(new_size),
                 window_id,

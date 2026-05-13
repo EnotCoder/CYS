@@ -11,5 +11,5 @@ git clone https://github.com/EnotCoder/game_wgpu.git
 cd wgpu
 
 #run program
-cargo run
+cargo run --./file.obj
 

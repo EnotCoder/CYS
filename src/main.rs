@@ -21,9 +21,16 @@ use render::*;
 use models::*;
 
 
+use std::env;
 
 #[tokio::main]
 async fn main() {
+
+    let args:Vec<String> = env::args().collect();
+
+    let path = if args.len() > 1{args[1].clone()}
+    else {"models/table.obj".to_string()};
+
     //основной цикл winit
     let event_loop = EventLoop::new().unwrap();
 
@@ -100,7 +107,7 @@ async fn main() {
     
     let bind_group = &buffers.bind_groupprojection;
 
-    let table_model = ModelInstance::new("./models/table.obj", &device, &queue,
+    let table_model = ModelInstance::new(&path, &device, &queue,
         translation, [0.0, 0.0, 0.0, 0.0],
         rotation, projection, "tex/desk.png");
 

@@ -1,6 +1,9 @@
 # 3D model view (TMV) Alpha
 
-<img src="icon.png" width="50%" height="auto">
+<p align="center">
+  <img src="icon.png" width="400" alt="Первая">
+  <img src="v1.png" width="400" alt="Вторая">
+</p>
 
 ```bash
 #install program

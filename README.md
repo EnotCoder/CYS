@@ -1,11 +1,14 @@
-# Название вашего проекта
+# 3D model view (TMV) Alpha
 
-[Краткое описание: 1-2 предложения о том, что это и зачем]
+![Описание картинки](icon.png)
 
-![Пример работы проекта](ссылка_на_ваш_скриншот_или_gif.gif)
+1. install program:
+```bash
+git clone https://github.com/EnotCoder/game_wgpu.git
+cd wgpu
 
-## 🚀 Установка и запуск
 
-1. Клонируйте репозиторий:
-   ```bash
-   git clone https://github.com/ваш_логин/ваш_проект.git
+2. run TMV:
+```bash
+cargo run
+

@@ -7,8 +7,6 @@
 git clone https://github.com/EnotCoder/game_wgpu.git
 cd wgpu
 
-
-2. run TMV:
-```bash
+#run program
 cargo run
 

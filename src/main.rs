@@ -107,11 +107,15 @@ async fn main() {
     
     let bind_group = &buffers.bind_groupprojection;
 
-    let table_model = ModelInstance::new(&path, &device, &queue,
+    let load_model = ModelInstance::new(&path, &device, &queue,
         translation, [0.0, 0.0, 0.0, 0.0],
         rotation, projection, "tex/desk.png");
+    
+    let fon_model = ModelInstance::new("models/fon.obj", &device, &queue,
+        translation, [0.0, 0.0, 15.0, 0.0],
+        rotation, projection, "tex/fon_texture.png");
 
-    let mut models = vec![table_model];
+    let mut models = vec![load_model, fon_model];
 
     //init_model_buffers(&device, &mut models);
 
@@ -243,17 +247,16 @@ async fn main() {
     // main loop
     let _ = event_loop.run(|event, event_loop_target| {
 
+
         //Input
         if input.update(&event) {
-            if input.key_held(KeyCode::KeyS) {
-                if translation[2] < 10.0{
-                    translation[2] += speed
-                }
+            let scroll_delta = input.scroll_diff();
+
+            if scroll_delta.1 > 0.0 && models[0].translation_base[2] < 5.0{
+                models[0].translation_base[2] += 0.5;
             }
-            if input.key_held(KeyCode::KeyW) {
-                if translation[2] > 3.0{
-                    translation[2] -= speed
-                }
+            if scroll_delta.1 < 0.0 && models[0].translation_base[2] > -2.0{
+                models[0].translation_base[2] -= 0.5;
             }
         }
             

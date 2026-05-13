@@ -78,13 +78,11 @@ async fn main() {
     .unwrap();
 
     //init buffers
-    let mut translation = [0.0, -1.0, 10.0, 0.0];
-    let mut model1_base = [0.0, 0.0, 0.0, 0.0];
-    let mut model2_base = [0.0, 0.0, 0.0, 0.0];
-    let mut rotation = [-0.2, 0.0, 0.0, 0.0];
+    let mut translation = [0.0, 0.0, 4.5, 0.0];
+    let rotation = [-0.2, 0.0, 0.0, 0.0];
     let window_size = window.inner_size();
-    let speed = 0.05;
-    let rotation_speed = 0.05;
+    let speed = 0.1;
+    let rotation_speed = 0.01;
 
 
 
@@ -101,17 +99,12 @@ async fn main() {
     let bind_group_layout = &buffers.bind_group_layout;
     
     let bind_group = &buffers.bind_groupprojection;
-    
-    // Создаём модель
-    let block = ModelInstance::new("./models/room.obj", &device, &queue,
-        translation, [0.0, 0.0, 0.0, 0.0], 
-        rotation, projection, "tex/desk.png");
 
     let table_model = ModelInstance::new("./models/table.obj", &device, &queue,
         translation, [0.0, 0.0, 0.0, 0.0],
         rotation, projection, "tex/desk.png");
 
-    let mut models = vec![table_model, block];
+    let mut models = vec![table_model];
 
     //init_model_buffers(&device, &mut models);
 
@@ -244,38 +237,33 @@ async fn main() {
     let _ = event_loop.run(|event, event_loop_target| {
 
         //Input
-        let mut needs_update = false;
-
-        // Передаём каждое событие в input helper
         if input.update(&event) {
-            if input.key_held(KeyCode::KeyA) || input.key_held(KeyCode::ArrowLeft) {
-                models[0].translation_base[0] -= speed;
+            if input.key_held(KeyCode::KeyS) {
+                if translation[2] < 10.0{
+                    translation[2] += speed
+                }
             }
-            if input.key_held(KeyCode::KeyD){
-                models[0].translation_base[0] += speed;
+            if input.key_held(KeyCode::KeyW) {
+                if translation[2] > 3.0{
+                    translation[2] -= speed
+                }
             }
-
-            needs_update = true;
         }
-
-
-        if needs_update {
             
-            for model in &mut models{
-                let new_pos = [
-                    model.translation_base[0] + translation[0],
-                    model.translation_base[1] + translation[1],
-                    model.translation_base[2] + translation[2],
-                    model.translation_base[3] + translation[3],
-                ];
+        for model in &mut models{
+            let new_pos = [
+                model.translation_base[0] + translation[0],
+                model.translation_base[1] + translation[1],
+                model.translation_base[2] + translation[2],
+                model.translation_base[3] + translation[3],
+            ];
 
-                model.translation = new_pos;
-                model.update_transform(&queue, projection);
-            }
-
-            let uniforms = Uniforms { translation, rotation, projection };
-            queue.write_buffer(uniform_buffer, 0, bytemuck::cast_slice(&[uniforms]));
+            model.translation = new_pos;
+            model.update_transform(&queue, projection);
         }
+
+        let uniforms = Uniforms { translation, rotation, projection };
+        queue.write_buffer(uniform_buffer, 0, bytemuck::cast_slice(&[uniforms]));
 
         //Render
 
@@ -300,6 +288,8 @@ async fn main() {
                     &surface,&device,&queue,&render_pipeline,
                     &models,bind_group,&buffers.depth_buffer.view
                 );
+
+                models[0].rotation[1] += rotation_speed;
             }
 
             //Window resize

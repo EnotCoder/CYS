@@ -14,6 +14,12 @@ mod buffers;
 mod render;
 mod models;
 mod texture;
+mod egui_manager;
+mod ui_panels;
+
+use egui_manager::EguiManager;
+use ui_panels::UiState;
+use egui_wgpu::ScreenDescriptor;
 
 
 use texture::*;
@@ -252,6 +258,16 @@ async fn main() {
     //main loop vars
     let mut input = WinitInputHelper::new();
 
+    let mut egui_manager = EguiManager::new(
+        &device,
+        surface_format,
+        None,  // depth format
+        1,     // samples
+        &window,
+    );
+
+    let mut ui_state = UiState::new();
+
     // main loop
     let _ = event_loop.run(|event, event_loop_target| {
 
@@ -304,7 +320,10 @@ async fn main() {
             } => {
                 render(
                     &surface,&device,&queue,&render_pipeline,
-                    &models,bind_group,&buffers.depth_buffer.view
+                    &models,bind_group,&buffers.depth_buffer.view,
+                    &mut egui_manager,
+                    &window,
+                    |ctx| ui_state.render(ctx),
                 );
 
                 models[0].rotation[1] += rotation_speed;

@@ -1,5 +1,7 @@
 use wgpu::{util::DeviceExt, *};
 use crate::ModelInstance;
+use crate::egui_manager::EguiManager;
+use egui_wgpu::ScreenDescriptor;
 
 pub fn render(
     surface: &wgpu::Surface,
@@ -9,13 +11,16 @@ pub fn render(
     models: &Vec<ModelInstance>,
     bind_group: &wgpu::BindGroup,
     depth_view: &wgpu::TextureView,
+    egui_manager: &mut EguiManager,
+    window: &winit::window::Window,
+    run_ui: impl FnOnce(&egui::Context),
 ){
-    let output = match surface.get_current_texture() {
+    let frame = match surface.get_current_texture() {
         Ok(frame) => frame,
         Err(_) => return,
     };
     
-    let view = output.texture.create_view(&wgpu::TextureViewDescriptor::default());
+    let view = frame.texture.create_view(&wgpu::TextureViewDescriptor::default());
     
     let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
         label: Some("Render Encoder"),
@@ -62,7 +67,25 @@ pub fn render(
         }
     }
 
+
+    //UV
+
+    let screen_descriptor = ScreenDescriptor {
+        size_in_pixels: [frame.texture.width(), frame.texture.height()],
+        pixels_per_point: window.scale_factor() as f32,
+    };
+    
+    egui_manager.draw(
+        device,
+        queue,
+        &mut encoder,
+        window,
+        &view,
+        screen_descriptor,
+        run_ui,
+    );
+
     
     queue.submit(std::iter::once(encoder.finish()));
-    output.present();
+    frame.present();
 }

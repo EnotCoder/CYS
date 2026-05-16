@@ -61,6 +61,7 @@ pub fn render(
             render_pass.draw_indexed(0..model.index_count, 0, 0..1);
         }
     }
+
     
     queue.submit(std::iter::once(encoder.finish()));
     output.present();

@@ -15,6 +15,7 @@ mod render;
 mod models;
 mod texture;
 
+
 use texture::*;
 use buffers::*;
 use render::*;
@@ -25,16 +26,23 @@ use std::env;
 
 #[tokio::main]
 async fn main() {
+    //get model path
+    let model_path = {
+        let args:Vec<String> = env::args().collect();
+        if args.len() > 1{args[1].clone()}
+        else {"null".to_string()}
+    };
+    //get texture path
+    let texture_path = {
+        let args:Vec<String> = env::args().collect();
+        if args.len() > 2{args[2].clone()}
+        else {"null".to_string()}
+    };
 
-    let args:Vec<String> = env::args().collect();
 
-    let path = if args.len() > 1{args[1].clone()}
-    else {"models/table.obj".to_string()};
 
     //основной цикл winit
     let event_loop = EventLoop::new().unwrap();
-
-
     //winit window
     let window = WindowBuilder::new()
         .with_title("game")
@@ -107,9 +115,9 @@ async fn main() {
     
     let bind_group = &buffers.bind_groupprojection;
 
-    let load_model = ModelInstance::new(&path, &device, &queue,
+    let load_model = ModelInstance::new(&model_path, &device, &queue,
         translation, [0.0, 0.0, 0.0, 0.0],
-        rotation, projection, "tex/desk.png");
+        rotation, projection, &texture_path);
     
     let fon_model = ModelInstance::new("models/fon.obj", &device, &queue,
         translation, [0.0, 0.0, 15.0, 0.0],

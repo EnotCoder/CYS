@@ -128,10 +128,11 @@ impl ModelInstance{
                 
                 let default_vertices = vec![
                     Vertex { position: [-0.5, 0.5, 0.0], tex_coord: [0.0, 0.0] },
-                    Vertex { position: [-0.5, -0.5, 0.0], tex_coord: [0.0, 0.0] },
-                    Vertex { position: [0.5, -0.5, 0.0], tex_coord: [0.0, 0.0] },
-                    Vertex { position: [0.5, -0.5, 0.0], tex_coord: [0.0, 0.0] },
-                    Vertex { position: [0.5, 0.5, 0.0], tex_coord: [0.0, 0.0] },
+                    Vertex { position: [-0.5, -0.5, 0.0], tex_coord: [0.0, 1.0] },
+                    Vertex { position: [0.5, -0.5, 0.0], tex_coord: [1.0, 1.0] },
+
+                    Vertex { position: [0.5, -0.5, 0.0], tex_coord: [1.0, 1.0] },
+                    Vertex { position: [0.5, 0.5, 0.0], tex_coord: [1.0, 0.0] },
                     Vertex { position: [-0.5, 0.5, 0.0], tex_coord: [0.0, 0.0] },
                 ];
 
@@ -193,8 +194,20 @@ impl ModelInstance{
 
         //texture
 
-        let texture = Texture::from_path(device, queue, texture_path, "model_texture")
-            .expect("Failed to load texture");
+        let texture = match Texture::from_path(device, queue, texture_path, "model_texture") {
+            Ok(t) => t,
+            Err(e) => {
+                
+                match Texture::from_path(device, queue, "tex/null.png", "null_texture") {
+                    Ok(t) => {
+                        t
+                    }
+                    Err(e) => {
+                        panic!("Cannot continue without texture");
+                    }
+                }
+            }
+        };
 
         let t_bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: Some("Texture Bind Group Layout"),

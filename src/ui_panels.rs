@@ -3,12 +3,19 @@ use egui::{Context, Window, Slider, Button, Align2, ProgressBar};
 
 pub struct UiState {
     pub show_panel: bool,
+    pub model_path: String,
+    pub texture_path: String,
 }
 
 impl UiState {
-    pub fn new() -> Self {
+    pub fn new(
+        model_path: String,
+        texture_path: String,
+    ) -> Self {
         Self {
             show_panel: true,
+            model_path,
+            texture_path
         }
     }
     
@@ -22,7 +29,9 @@ impl UiState {
             .default_pos([10.0, 10.0])
             .default_size([280.0, 400.0])
             .show(ctx, |ui| {
-                ui.heading("Model Controls");
+                ui.heading("Version - 0.31\n");
+                ui.heading(format!("Model name is '{}' ", self.model_path));
+                ui.heading(format!("Texture name is '{}' \n", self.texture_path));
             });
     }
 

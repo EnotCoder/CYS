@@ -36,13 +36,13 @@ async fn main() {
     let model_path = {
         let args:Vec<String> = env::args().collect();
         if args.len() > 1{args[1].clone()}
-        else {"null".to_string()}
+        else {"null.obj".to_string()}
     };
     //get texture path
     let texture_path = {
         let args:Vec<String> = env::args().collect();
         if args.len() > 2{args[2].clone()}
-        else {"null".to_string()}
+        else {"null.png".to_string()}
     };
 
 
@@ -267,7 +267,7 @@ async fn main() {
         &window,
     );
 
-    let mut ui_state = UiState::new();
+    let mut ui_state = UiState::new(model_path, texture_path);
 
     // main loop
     let _ = event_loop.run(|event, event_loop_target| {

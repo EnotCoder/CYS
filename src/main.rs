@@ -258,6 +258,7 @@ async fn main() {
     //main loop vars
     let mut input = WinitInputHelper::new();
 
+    //INIT UV
     let mut egui_manager = EguiManager::new(
         &device,
         surface_format,
@@ -281,6 +282,10 @@ async fn main() {
             }
             if scroll_delta.1 < 0.0 && models[0].translation_base[2] > -2.0{
                 models[0].translation_base[2] -= 0.5;
+            }
+
+            if input.key_pressed(KeyCode::F1) {
+                ui_state.toggle_panel();
             }
         }
             

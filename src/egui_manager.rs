@@ -6,9 +6,9 @@ use wgpu::{CommandEncoder, Device, Queue, TextureFormat, TextureView};
 use winit::window::Window;
 
 pub struct EguiManager {
-    pub context: Context,
-    state: State,
-    renderer: Renderer,
+    pub context: Context,      // Контекст egui - "мозг" UI
+    state: State,              // Состояние для связи с winit
+    renderer: Renderer,        // Рендерер для отрисовки UI
 }
 
 impl EguiManager {
@@ -24,13 +24,16 @@ impl EguiManager {
         
         // Настройка визуального стиля
         let visuals = Visuals {
-            window_rounding: egui::Rounding::same(2.0),
-            window_shadow: Shadow::NONE,
+            window_rounding: egui::Rounding::same(5.0),
+            window_shadow: Shadow::NONE, //shadow
             ..Default::default()
         };
         egui_context.set_visuals(visuals);
         
+        //Winit connect
+        
         let state = State::new(egui_context.clone(), id, window, None, None);
+        //Create renderer
         let renderer = Renderer::new(
             device,
             output_color_format,
@@ -44,7 +47,7 @@ impl EguiManager {
             renderer,
         }
     }
-    
+    //принимает событие от winit и обрабатывает
     pub fn handle_input(&mut self, window: &Window, event: &winit::event::WindowEvent) {
         let _ = self.state.on_window_event(window, event);
     }
@@ -60,27 +63,33 @@ impl EguiManager {
         run_ui: F,
     ) where
         F: FnOnce(&Context),
-    {
+    {   
+        //Получение ввода
         let raw_input = self.state.take_egui_input(window);
+        //Обновление контекста и UI
         let full_output = self.context.run(raw_input, |ui| {
             run_ui(&self.context);
         });
         
+        //Обработка платформенного вывода
         self.state
             .handle_platform_output(window, full_output.platform_output);
         
+        //Тесселяция (преобразование в треугольники)
         let tris = self
             .context
             .tessellate(full_output.shapes, full_output.pixels_per_point);
         
+        //Обновление текстур
         for (id, image_delta) in &full_output.textures_delta.set {
             self.renderer
                 .update_texture(device, queue, *id, image_delta);
         }
-        
+        //Обновление буферов
         self.renderer
             .update_buffers(device, queue, encoder, &tris, &screen_descriptor);
         
+        //Создание render pass для UI
         let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                 view: window_surface_view,
@@ -95,10 +104,10 @@ impl EguiManager {
             timestamp_writes: None,
             occlusion_query_set: None,
         });
-        
+        //Рендер UI
         self.renderer.render(&mut render_pass, &tris, &screen_descriptor);
         drop(render_pass);
-        
+        //Очистка текстур
         for id in &full_output.textures_delta.free {
             self.renderer.free_texture(id);
         }

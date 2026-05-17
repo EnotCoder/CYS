@@ -4,7 +4,7 @@ fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
         .add_systems(Startup, setup)
-        .add_systems(Update, (rotate_cube, camera_controls))
+        .add_systems(Update, camera_controls)
         .run();
 }
 
@@ -21,12 +21,12 @@ fn setup(
 ) { 
     //cube
     commands.spawn((
-        Mesh3d(meshes.add(Cuboid::new(1.0, 1.0, 1.0))),
+        Mesh3d(meshes.add(Cuboid::new(5.0, 0.1, 5.0))),
         MeshMaterial3d(materials.add(StandardMaterial {
-            base_color: Color::srgb(0.8, 0.2, 0.3),
+            base_color: Color::srgb(1.0, 0.0, 0.0),
             ..default()
         })),
-        Transform::from_xyz(0.0, 0.0, 0.0),
+        Transform::from_xyz(0.0, -1.5, 0.0),
         RotatingCube,
     ));
     
@@ -47,15 +47,6 @@ fn setup(
     ));
 }
 
-fn rotate_cube(
-    time: Res<Time>,
-    mut query: Query<&mut Transform, With<RotatingCube>>,
-) {
-    // for mut transform in query.iter_mut() {
-    //     transform.rotate_y(1.0 * time.delta_secs());
-    //     transform.rotate_x(0.5 * time.delta_secs());
-    // }
-}
 
 fn camera_controls(
     time: Res<Time>,
@@ -69,6 +60,7 @@ fn camera_controls(
     
     let mut direction = Vec3::ZERO;
     let speed = 5.0;
+    let rotation_speed = 1.0;
 
     let forward = transform.forward().as_vec3();
     let right = transform.right().as_vec3();
@@ -86,16 +78,17 @@ fn camera_controls(
     if keyboard.pressed(KeyCode::KeyD) {
         direction += right;
     }
-    if keyboard.pressed(KeyCode::KeyQ) {
-        direction -= up;
-    }
-    if keyboard.pressed(KeyCode::KeyE) {
-        direction += up;
-    }
     
     if direction != Vec3::ZERO {
         direction = direction.normalize();
         transform.translation += direction * speed * time.delta_secs();
+    }
+
+    if keyboard.pressed(KeyCode::KeyQ) {
+        transform.rotate_y(rotation_speed * time.delta_secs());
+    }
+    if keyboard.pressed(KeyCode::KeyE) {
+        transform.rotate_y(-rotation_speed * time.delta_secs());
     }
 
 }

@@ -272,6 +272,11 @@ async fn main() {
     // main loop
     let _ = event_loop.run(|event, event_loop_target| {
 
+        if let Event::WindowEvent { event, window_id } = &event {
+            if *window_id == window.id() {
+                egui_manager.handle_input(&window, event);
+            }
+        }
 
         //Input
         if input.update(&event) {

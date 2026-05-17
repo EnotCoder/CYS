@@ -65,42 +65,6 @@ pub fn create_perspective_matrix(aspect: f32, fov: f32, near: f32, far: f32) -> 
     ]
 }
 
-// // Функция создания матрицы вращения вокруг оси X
-// pub fn create_rotation_matrix_x(angle_rad: f32) -> [f32; 16] {
-//     let c = angle_rad.cos();
-//     let s = angle_rad.sin();
-//     [
-//         1.0, 0.0, 0.0, 0.0,
-//         0.0, c, -s, 0.0,
-//         0.0, s, c, 0.0,
-//         0.0, 0.0, 0.0, 1.0,
-//     ]
-// }
-
-// // Функция создания матрицы вращения вокруг оси Y
-// pub fn create_rotation_matrix_y(angle_rad: f32) -> [f32; 16] {
-//     let c = angle_rad.cos();
-//     let s = angle_rad.sin();
-//     [
-//         c, 0.0, s, 0.0,
-//         0.0, 1.0, 0.0, 0.0,
-//         -s, 0.0, c, 0.0,
-//         0.0, 0.0, 0.0, 1.0,
-//     ]
-// }
-
-// // Функция создания матрицы вращения вокруг оси Z
-// pub fn create_rotation_matrix_z(angle_rad: f32) -> [f32; 16] {
-//     let c = angle_rad.cos();
-//     let s = angle_rad.sin();
-//     [
-//         c, -s, 0.0, 0.0,
-//         s, c, 0.0, 0.0,
-//         0.0, 0.0, 1.0, 0.0,
-//         0.0, 0.0, 0.0, 1.0,
-//     ]
-// }
-
 pub struct Buffers{
     pub projection: [f32; 16],
     pub uniform_buffer: wgpu::Buffer,

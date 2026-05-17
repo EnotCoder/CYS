@@ -61,7 +61,6 @@ async fn main() {
     let instance = wgpu::Instance::new(InstanceDescriptor::default());
 
     //поверхность
-    //usafe
     let surface = instance.create_surface(&window)
         .expect("Failed to create surface");
 
@@ -75,14 +74,14 @@ async fn main() {
         ..Default::default()
     };
 
+    //запрашиваем физ устройство
     let addapter_future = instance.request_adapter(&addapter_option);
-
+    //ожидаем
     let addapter = pollster::block_on(addapter_future).unwrap();
 
     println!("{}",addapter.get_info().name);
     
-    //device
-    //let device_description = wgpu::DeviceDescriptor::default();
+    //Log device
     let (device, queue) = addapter
     .request_device(
         &DeviceDescriptor { //настройки устройства
@@ -98,14 +97,14 @@ async fn main() {
     .await
     .unwrap();
 
+    let caps = surface.get_capabilities(&addapter);
+    let surface_format = caps.formats[0];
+
     //init buffers
+
     let mut translation = [0.0, 0.0, 4.5, 0.0];
     let rotation = [-0.2, 0.0, 0.0, 0.0];
     let window_size = window.inner_size();
-    let speed = 0.1;
-    let rotation_speed = 0.01;
-
-
 
     let mut buffers = init_buffers(
         window_size,
@@ -118,8 +117,9 @@ async fn main() {
     let uniform_buffer = &buffers.uniform_buffer;
     let depth_stencil = buffers.depth_stencil;
     let bind_group_layout = &buffers.bind_group_layout;
-    
     let bind_group = &buffers.bind_groupprojection;
+
+    //Load main scene
 
     let load_model = ModelInstance::new(&model_path, &device, &queue,
         translation, [0.0, 0.0, 0.0, 0.0],
@@ -127,11 +127,10 @@ async fn main() {
     
     let fon_model = ModelInstance::new("models/fon.obj", &device, &queue,
         translation, [0.0, 0.0, 15.0, 0.0],
-        rotation, projection, "tex/fon_texture.png");
+        [0.0, 0.0, 0.0, 0.0], projection, "tex/fon_texture.png");
 
     let mut models = vec![load_model, fon_model];
 
-    //init_model_buffers(&device, &mut models);
 
     //shaders
     //получаем код шейдера
@@ -141,22 +140,12 @@ async fn main() {
     let description = wgpu::ShaderModuleDescriptor {
         //отладка
         label : None,
-        //.into() - преобразует &str в Cow<'_, str>
+        //.into() - преобразует &str в Cow<'_, str> <- (владеть или читать)
         source : wgpu::ShaderSource::Wgsl(shader_code.into()),
     };
     //Компилирует шейдер для GPU
     let shader_module = device.create_shader_module(description);
 
-    //surface_format
-    let surface_format = TextureFormat::Bgra8UnormSrgb;
-
-    //color_target 
-    // dont use
-    let _color_target = wgpu::ColorTargetState {
-        format: surface_format,
-        blend: Some(BlendState::REPLACE),
-        write_mask: ColorWrites::ALL,
-    };
 
     //texture_bind_gruuo_layout
     let texture_bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
@@ -257,6 +246,8 @@ async fn main() {
 
     //main loop vars
     let mut input = WinitInputHelper::new();
+    let speed = 0.1;
+    let rotation_speed = 0.01;
 
     //INIT UV
     let mut egui_manager = EguiManager::new(

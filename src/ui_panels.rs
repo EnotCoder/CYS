@@ -38,8 +38,13 @@ impl UiState {
             .default_size([280.0, 400.0])
             .resizable(false)
             .movable(false)
+            .title_bar(false)
             .show(ctx, |ui| {
-                ui.heading("Version - 0.36");
+                ui.heading("TMV Alpha");
+
+                ui.separator();
+
+                ui.label("Version - 0.36");
 
                 ui.separator();
 
@@ -72,9 +77,15 @@ impl UiState {
                 .default_size([400.0, 400.0])
                 .resizable(false)
                 .movable(false)
+                .title_bar(false)
                 .show(ctx, |ui| {
-                    ui.heading("F1 - Hide windows");
+                    ui.heading("Info keyboard");
+
+                    ui.separator();
+
+                    ui.label("F1 - Hide windows");
                 });
+
         }
 
         if self.show_effect{
@@ -83,9 +94,15 @@ impl UiState {
                 .default_size([400.0, 400.0])
                 .resizable(false)
                 .movable(false)
+                .title_bar(false)
                 .show(ctx, |ui| {
-                    ui.heading("Soon");
+                    ui.heading("Effect");
+
+                    ui.separator();
+
+                    ui.label("Soon");
                 });
+
         }
     }
 

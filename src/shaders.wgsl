@@ -20,6 +20,7 @@ var my_sampler: sampler;
 struct VertexOutput {
     @builtin(position) position: vec4<f32>,
     @location(0) tex_coord: vec2<f32>,  // Передаём UV координаты вместо цвета
+        @location(1) triangle_color: vec3<f32>,
 };
 
 // Вращение вокруг X
@@ -59,6 +60,7 @@ fn rotate_z(vertex: vec3<f32>, angle: f32) -> vec3<f32> {
 fn vs_main(
     @location(0) position: vec3<f32>,
     @location(1) tex_coord: vec2<f32>,  // Теперь это UV координаты
+    @builtin(vertex_index) vertex_index: u32,
 ) -> VertexOutput {
     var output: VertexOutput;
     
@@ -73,16 +75,26 @@ fn vs_main(
     
     output.position = uniforms.projection * vec4<f32>(world_pos, 1.0);
     output.tex_coord = tex_coord;  // Передаём UV координаты
+    // Номер треугольника = индекс вершины / 3
+    let triangle_id = vertex_index / 3;
+    
+    // Генерируем уникальный цвет для каждого треугольника
+    let r = f32(triangle_id % 3) / 2.0;
+    let g = f32((triangle_id / 3) % 3) / 2.0;
+    let b = f32((triangle_id / 9) % 3) / 2.0;
+    
+    output.triangle_color = vec3<f32>(r, g, b);
     return output;
 }
 
 @fragment
 fn fs_main(
     @location(0) tex_coord: vec2<f32>,  // Получаем UV координаты
+    @location(1) triangle_color: vec3<f32>,
 ) -> @location(0) vec4<f32> {
     if uniforms.use_texture == 1{
         return textureSample(my_texture, my_sampler, tex_coord);
     } else {
-        return vec4<f32>(1.0, 1.0, 1.0, 1.0);
+        return vec4<f32>(triangle_color, 1.0);
     }
 }

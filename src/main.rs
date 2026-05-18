@@ -327,7 +327,7 @@ async fn main() {
                     |ctx| ui_state.render(ctx),
                 );
 
-                models[0].rotation[1] += rotation_speed;
+                models[0].rotation[1] += ui_state.rotation_speed;
             }
 
             //Window resize

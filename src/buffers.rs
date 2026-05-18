@@ -17,6 +17,8 @@ pub struct Uniforms {
     pub translation: [f32; 4],
     pub rotation: [f32; 4],
     pub projection: [f32; 16],
+    pub use_texture: i32,
+    pub _padding: [f32; 3],
 }
 
 //depth buffer class
@@ -88,6 +90,8 @@ pub fn init_buffers(
         translation,
         rotation,
         projection,
+        use_texture: 1,
+        _padding: [0.0; 3],
     };
 
     // Создаём uniform buffer
@@ -104,7 +108,7 @@ pub fn init_buffers(
         entries: &[
             wgpu::BindGroupLayoutEntry {
                 binding: 0,
-                visibility: wgpu::ShaderStages::VERTEX, // Доступен только в вершинном шейдере
+                visibility: wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT, // Доступен только в вершинном шейдере
                 ty: wgpu::BindingType::Buffer {
                     ty: wgpu::BufferBindingType::Uniform,
                     has_dynamic_offset: false,

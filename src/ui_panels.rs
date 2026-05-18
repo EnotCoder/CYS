@@ -7,7 +7,7 @@ pub struct UiState {
     pub texture_path: String,
     pub show_info_keyboard: bool,
     pub show_effect: bool,
-    pub show_texture_model: bool,  
+    pub use_texture: bool,  
     pub rotation_speed: f32,
 }
 
@@ -23,7 +23,7 @@ impl UiState {
             show_info_keyboard: false,
             show_effect: false,
             rotation_speed : 0.02,
-            show_texture_model: false,
+            use_texture: true,
         }
     }
     
@@ -39,7 +39,7 @@ impl UiState {
             .resizable(false)
             .movable(false)
             .show(ctx, |ui| {
-                ui.heading("Version - 0.35");
+                ui.heading("Version - 0.36");
 
                 ui.separator();
 
@@ -63,7 +63,7 @@ impl UiState {
 
                 ui.separator();
 
-                ui.checkbox(&mut self.show_texture_model, "Show_texture_model");
+                ui.checkbox(&mut self.use_texture, "Show_texture_model");
             });
 
         if self.show_info_keyboard {

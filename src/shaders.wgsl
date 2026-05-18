@@ -3,6 +3,7 @@ struct Uniforms {
     translation: vec4<f32>,
     rotation: vec4<f32>,
     projection: mat4x4<f32>,
+    use_texture: i32
 };
 
 @group(0) @binding(0)
@@ -79,6 +80,9 @@ fn vs_main(
 fn fs_main(
     @location(0) tex_coord: vec2<f32>,  // Получаем UV координаты
 ) -> @location(0) vec4<f32> {
-    // Берём цвет из текстуры по UV координатам
-    return textureSample(my_texture, my_sampler, tex_coord);
+    if uniforms.use_texture == 1{
+        return textureSample(my_texture, my_sampler, tex_coord);
+    } else {
+        return vec4<f32>(1.0, 1.0, 1.0, 1.0);
+    }
 }

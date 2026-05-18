@@ -195,7 +195,7 @@ async fn main() {
                     wgpu::VertexAttribute {
                         offset: std::mem::size_of::<[f32; 3]>() as wgpu::BufferAddress,// смещение 8 байт
                         shader_location: 1,  // @location(1) в шейдере
-                        format: wgpu::VertexFormat::Float32x3,  // color: [f32; 3]
+                        format: wgpu::VertexFormat::Float32x2,
                     }
                 ]
             }],
@@ -294,10 +294,12 @@ async fn main() {
             ];
 
             model.translation = new_pos;
-            model.update_transform(&queue, projection);
+            model.update_transform(&queue, projection, 1);
         }
 
-        let uniforms = Uniforms { translation, rotation, projection };
+        models[0].update_transform(&queue, projection, ui_state.use_texture as i32);
+
+        let uniforms = Uniforms { translation, rotation, projection, use_texture: 1 ,_padding: [0.0; 3],};
         queue.write_buffer(uniform_buffer, 0, bytemuck::cast_slice(&[uniforms]));
 
         //Render
@@ -326,7 +328,6 @@ async fn main() {
                     &window,
                     |ctx| ui_state.render(ctx),
                 );
-
                 models[0].rotation[1] += ui_state.rotation_speed;
             }
 

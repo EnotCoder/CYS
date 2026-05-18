@@ -160,7 +160,7 @@ impl ModelInstance{
         });
 
         // Создаём свой uniform buffer для этой модели
-        let uniforms = Uniforms { translation, rotation, projection };
+        let uniforms = Uniforms { translation, rotation, projection, use_texture: 1, _padding: [0.0; 3],};
         let uniform_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Model Uniform Buffer"),
             contents: bytemuck::cast_slice(&[uniforms]),
@@ -172,7 +172,7 @@ impl ModelInstance{
             label: Some("Model Bind Group Layout"),
             entries: &[wgpu::BindGroupLayoutEntry {
                 binding: 0,
-                visibility: wgpu::ShaderStages::VERTEX,
+                visibility: wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
                 ty: wgpu::BindingType::Buffer {
                     ty: wgpu::BufferBindingType::Uniform,
                     has_dynamic_offset: false,
@@ -245,7 +245,7 @@ impl ModelInstance{
                 },
             ],
         });
-
+        
         Self{
             vertices,
             indices,
@@ -261,11 +261,13 @@ impl ModelInstance{
         }
     }
 
-    pub fn update_transform(&self, queue: &wgpu::Queue, projection: [f32; 16]) {
+    pub fn update_transform(&self, queue: &wgpu::Queue, projection: [f32; 16], use_texture:i32) {
         let uniforms = Uniforms { 
             translation: self.translation, 
             rotation: self.rotation, 
-            projection 
+            projection,
+            use_texture,
+            _padding: [0.0; 3],
         };
         queue.write_buffer(&self.uniform_buffer, 0, bytemuck::cast_slice(&[uniforms]));
     }

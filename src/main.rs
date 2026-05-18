@@ -2,7 +2,7 @@ use bevy::prelude::*;
 
 fn main() {
     App::new()
-        .add_plugins(DefaultPlugins)
+        .add_plugins(DefaultPlugins.set(ImagePlugin::default_nearest()))
         .add_systems(Startup, setup)
         .add_systems(Update, camera_controls)
         .run();
@@ -18,12 +18,17 @@ fn setup(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
-) { 
-    //cube
+    asset_server: Res<AssetServer>,
+) {    
+
+    let texture_handle = asset_server.load("box.png");
+
+    //floor
     commands.spawn((
-        Mesh3d(meshes.add(Cuboid::new(5.0, 0.1, 5.0))),
+        Mesh3d(meshes.add(Plane3d::default().mesh().size(5.0, 5.0))),
         MeshMaterial3d(materials.add(StandardMaterial {
-            base_color: Color::srgb(1.0, 0.0, 0.0),
+            base_color_texture: Some(texture_handle),
+            base_color: Color::srgb(1.0, 1.0, 1.0),
             ..default()
         })),
         Transform::from_xyz(0.0, -1.5, 0.0),

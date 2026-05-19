@@ -55,10 +55,12 @@ impl UiState {
                 
                 if ui.button("Info keyboard").clicked() {
                     self.show_info_keyboard = !self.show_info_keyboard;
+                    self.show_effect = false;
                 }
 
                 if ui.button("Effects").clicked() {
                     self.show_effect = !self.show_effect;
+                    self.show_info_keyboard = false;
                 }
 
                 ui.separator();

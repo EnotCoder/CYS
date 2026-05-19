@@ -298,6 +298,7 @@ async fn main() {
         }
 
         models[0].update_transform(&queue, projection, ui_state.use_texture as i32);
+        
 
         let uniforms = Uniforms { translation, rotation, projection, use_texture: 1 ,_padding: [0.0; 3],};
         queue.write_buffer(uniform_buffer, 0, bytemuck::cast_slice(&[uniforms]));

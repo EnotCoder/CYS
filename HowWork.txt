@@ -1,0 +1,24 @@
+main.rs
+
+//Создаём функцию main
+main <- #[tokio::main](
+    // Получение model_path и texture_path
+
+    // Создаём event_loop (для winit окна)
+    event_loop = EventLoop::new().unwrap();
+    
+    // Создаём winit window
+    window = WindowBuilder::new()
+        .with_title("game") Имя программы
+        .with_inner_size(PhysicalSize::new(800, 800)) Размер окна
+        .build(&event_loop) и указываем наш event_loop
+        .unwrap();
+
+    // Создаём instance (экзепляр)
+    //InstanceDescriptor::default() - значит мы выбираем стандартные настройки
+    instance = wgpu::Instance::new(InstanceDescriptor::default());
+
+    // Создаём surface (поверхность окна)
+    surface = instance.create_surface(&window) указываем наше окно
+        .expect("Failed to create surface"); в случае ошибки выводим в консоль
+)   

@@ -97,9 +97,6 @@ async fn main() {
     .await
     .unwrap();
 
-    let caps = surface.get_capabilities(&addapter);
-    let surface_format = caps.formats[0];
-
     //init buffers
 
     let mut translation = [0.0, 0.0, 4.5, 0.0];
@@ -146,7 +143,6 @@ async fn main() {
     //Компилирует шейдер для GPU
     let shader_module = device.create_shader_module(description);
 
-
     //texture_bind_gruuo_layout
     let texture_bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
         label: Some("Texture Bind Group Layout"),
@@ -178,6 +174,9 @@ async fn main() {
         bind_group_layouts: &[&bind_group_layout, &texture_bind_group_layout],
         push_constant_ranges: &[], // константы, которые можно быстро обновлять
     });
+
+    let caps = surface.get_capabilities(&addapter);
+    let surface_format = caps.formats[0];
 
 
     let description = wgpu::RenderPipelineDescriptor {
@@ -243,6 +242,8 @@ async fn main() {
     };
 
     surface.configure(&device, &config);
+
+    ///////////
 
     //main loop vars
     let mut input = WinitInputHelper::new();

@@ -66,7 +66,7 @@ impl Texture {
             address_mode_u: wgpu::AddressMode::Repeat,   // Повторять по U
             address_mode_v: wgpu::AddressMode::Repeat,   // Повторять по V
             address_mode_w: wgpu::AddressMode::Repeat,   // Повторять по W
-            mag_filter: wgpu::FilterMode::Linear,        // Увеличение: линейное
+            mag_filter: wgpu::FilterMode::Nearest,        // Увеличение: линейное
             min_filter: wgpu::FilterMode::Nearest,       // Уменьшение: ближайший
             mipmap_filter: wgpu::FilterMode::Nearest,    // MIP-фильтр
             ..Default::default()

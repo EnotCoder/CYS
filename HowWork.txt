@@ -1,7 +1,7 @@
 *main.rs
 
 //Создаём функцию main
-main <- #[tokio::main](
+async main <- #[tokio::main]( Создаём асинхронную функцию main
 // Получение model_path и texture_path
 
 // Создаём event_loop (для winit окна)

@@ -115,6 +115,7 @@ async fn main() {
     let depth_stencil = buffers.depth_stencil;
     let bind_group_layout = &buffers.bind_group_layout;
     let bind_group = &buffers.bind_groupprojection;
+    let texture_bind_group_layout = &buffers.texture_bind_group_layout;
 
     //Load main scene
 
@@ -142,29 +143,6 @@ async fn main() {
     };
     //Компилирует шейдер для GPU
     let shader_module = device.create_shader_module(description);
-
-    //texture_bind_gruuo_layout
-    let texture_bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-        label: Some("Texture Bind Group Layout"),
-        entries: &[
-            wgpu::BindGroupLayoutEntry {
-                binding: 0,
-                visibility: wgpu::ShaderStages::FRAGMENT,
-                ty: wgpu::BindingType::Texture {
-                    multisampled: false,
-                    view_dimension: wgpu::TextureViewDimension::D2,
-                    sample_type: wgpu::TextureSampleType::Float { filterable: true },
-                },
-                count: None,
-            },
-            wgpu::BindGroupLayoutEntry {
-                binding: 1,
-                visibility: wgpu::ShaderStages::FRAGMENT,
-                ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
-                count: None,
-            },
-        ],
-    });
 
 
     //Render pipeline

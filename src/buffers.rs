@@ -73,6 +73,7 @@ pub struct Buffers{
     pub depth_buffer: DepthBuffer,
     pub depth_stencil: wgpu::DepthStencilState,
     pub bind_group_layout: wgpu::BindGroupLayout,
+    pub texture_bind_group_layout: wgpu::BindGroupLayout,
     pub bind_groupprojection: wgpu::BindGroup,
 }
 
@@ -143,12 +144,36 @@ pub fn init_buffers(
         bias: wgpu::DepthBiasState::default(),
     };
 
+    //texture_bind_gruuo_layout
+    let texture_bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+        label: Some("Texture Bind Group Layout"),
+        entries: &[
+            wgpu::BindGroupLayoutEntry {
+                binding: 0,
+                visibility: wgpu::ShaderStages::FRAGMENT,
+                ty: wgpu::BindingType::Texture {
+                    multisampled: false,
+                    view_dimension: wgpu::TextureViewDimension::D2,
+                    sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                },
+                count: None,
+            },
+            wgpu::BindGroupLayoutEntry {
+                binding: 1,
+                visibility: wgpu::ShaderStages::FRAGMENT,
+                ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                count: None,
+            },
+        ],
+    });
+
     Buffers {
         projection,
         uniform_buffer,
         depth_buffer,
         depth_stencil,
         bind_group_layout,
+        texture_bind_group_layout,
         bind_groupprojection,
     }
 }

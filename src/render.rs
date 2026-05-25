@@ -1,20 +1,21 @@
 use wgpu::{util::DeviceExt, *};
-use crate::ModelInstance;
 use crate::egui_manager::EguiManager;
 use egui_wgpu::ScreenDescriptor;
+use crate::Sprite;
 
-pub fn render(
+// render.rs - добавьте эту функцию
+pub fn render_batched(
     surface: &wgpu::Surface,
     device: &wgpu::Device,
     queue: &wgpu::Queue,
     render_pipeline: &wgpu::RenderPipeline,
-    models: &Vec<ModelInstance>,
+    batcher: &Sprite,
     bind_group: &wgpu::BindGroup,
     depth_view: &wgpu::TextureView,
     egui_manager: &mut EguiManager,
     window: &winit::window::Window,
     run_ui: impl FnOnce(&egui::Context),
-){
+) {
     let frame = match surface.get_current_texture() {
         Ok(frame) => frame,
         Err(_) => return,
@@ -34,10 +35,10 @@ pub fn render(
                 resolve_target: None,
                 ops: wgpu::Operations {
                     load: wgpu::LoadOp::Clear(wgpu::Color {
-                        r: 0.0,
-                        g: 0.0,
-                        b: 0.0,
-                        a: 0.0,
+                        r: 0.1,
+                        g: 0.1,
+                        b: 0.2,
+                        a: 1.0,
                     }),
                     store: wgpu::StoreOp::Store,
                 },
@@ -50,41 +51,26 @@ pub fn render(
                 }),
                 stencil_ops: None,
             }),
-            occlusion_query_set: None,
-            timestamp_writes: None,
+            ..Default::default()
         });
         
         render_pass.set_pipeline(render_pipeline);
         render_pass.set_bind_group(0, bind_group, &[]);
+        render_pass.set_bind_group(1, &batcher.texture_bind_group, &[]);
+        render_pass.set_vertex_buffer(0, batcher.vertex_buffer.slice(..));
+        render_pass.set_index_buffer(batcher.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
         
-        // Рендерим каждую модель
-        for model in models {
-            render_pass.set_bind_group(0, &model.bind_group, &[]);
-            render_pass.set_bind_group(1, &model.texture_bind_group, &[]);
-            render_pass.set_vertex_buffer(0, model.vertex_buffer.slice(..));
-            render_pass.set_index_buffer(model.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
-            render_pass.draw_indexed(0..model.index_count, 0, 0..1);
-        }
+        // ОДИН DRAW CALL ДЛЯ ВСЕХ СПРАЙТОВ!
+        render_pass.draw_indexed(0..batcher.index_count, 0, 0..1);
     }
-
-
-    //UV
-
+    
+    // UI
     let screen_descriptor = ScreenDescriptor {
         size_in_pixels: [frame.texture.width(), frame.texture.height()],
         pixels_per_point: window.scale_factor() as f32,
     };
     
-    egui_manager.draw(
-        device,
-        queue,
-        &mut encoder,
-        window,
-        &view,
-        screen_descriptor,
-        run_ui,
-    );
-
+    egui_manager.draw(device, queue, &mut encoder, window, &view, screen_descriptor, run_ui);
     
     queue.submit(std::iter::once(encoder.finish()));
     frame.present();

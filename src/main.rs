@@ -12,10 +12,10 @@ use winit_input_helper::WinitInputHelper;
 
 mod buffers;
 mod render;
-mod models;
 mod texture;
 mod egui_manager;
 mod ui_panels;
+mod sprite_manager;
 
 use egui_manager::EguiManager;
 use ui_panels::UiState;
@@ -25,28 +25,13 @@ use egui_wgpu::ScreenDescriptor;
 use texture::*;
 use buffers::*;
 use render::*;
-use models::*;
+use sprite_manager::*;
 
 
 use std::env;
 
 #[tokio::main]
 async fn main() {
-    //get model path
-    let model_path = {
-        let args:Vec<String> = env::args().collect();
-        if args.len() > 1{args[1].clone()}
-        else {"null.obj".to_string()}
-    };
-    //get texture path
-    let texture_path = {
-        let args:Vec<String> = env::args().collect();
-        if args.len() > 2{args[2].clone()}
-        else {"null.png".to_string()}
-    };
-
-
-
     //основной цикл winit
     let event_loop = EventLoop::new().unwrap();
     //winit window
@@ -99,8 +84,8 @@ async fn main() {
 
     //init buffers
 
-    let mut translation = [0.0, 0.0, 4.5, 0.0];
-    let rotation = [-0.2, 0.0, 0.0, 0.0];
+    let mut translation = [0.0, 0.0, 0.0, 0.0];
+    let rotation = [0.0, 0.0, 0.0, 0.0];
     let window_size = window.inner_size();
 
     let mut buffers = init_buffers(
@@ -110,24 +95,23 @@ async fn main() {
         &device,
     );
 
-    let mut projection = buffers.projection;
     let uniform_buffer = &buffers.uniform_buffer;
     let depth_stencil = buffers.depth_stencil;
     let bind_group_layout = &buffers.bind_group_layout;
     let bind_group = &buffers.bind_groupprojection;
     let texture_bind_group_layout = &buffers.texture_bind_group_layout;
 
-    //Load main scene
+    // Создаём батчер
+    let mut batcher = Sprite::new(&device, &queue, "tex/floor.png");
 
-    let load_model = ModelInstance::new(&model_path, &device, &queue,
-        translation, [0.0, 0.0, 0.0, 0.0],
-        rotation, projection, &texture_path);
-    
-    let fon_model = ModelInstance::new("models/fon.obj", &device, &queue,
-        translation, [0.0, 0.0, 15.0, 0.0],
-        [0.0, 0.0, 0.0, 0.0], projection, "tex/fon_texture.png");
 
-    let mut models = vec![load_model, fon_model];
+    for i in 0..10 {
+        for j in 0..10 {
+            batcher.add_sprite(i as f32 - 4.5, j as f32 - 4.5, 3.0);
+        }
+    }
+
+    batcher.build_buffers(&device);
 
 
     //shaders
@@ -208,7 +192,7 @@ async fn main() {
 
     let render_pipeline = device.create_render_pipeline(&description);
 
-    let config = SurfaceConfiguration {
+    let mut config = SurfaceConfiguration {
         usage: TextureUsages::RENDER_ATTACHMENT, // использовать как цель рендеринга
         format: surface_format, // формат пикселей (BGRA8)
         width: window_size.width, // ширина окна
@@ -237,7 +221,7 @@ async fn main() {
         &window,
     );
 
-    let mut ui_state = UiState::new(model_path, texture_path);
+    let mut ui_state = UiState::new();
 
     // main loop
     let _ = event_loop.run(|event, event_loop_target| {
@@ -250,36 +234,12 @@ async fn main() {
 
         //Input
         if input.update(&event) {
-            let scroll_delta = input.scroll_diff();
-
-            if scroll_delta.1 > 0.0 && models[0].translation_base[2] < 5.0{
-                models[0].translation_base[2] += 0.5;
-            }
-            if scroll_delta.1 < 0.0 && models[0].translation_base[2] > -2.0{
-                models[0].translation_base[2] -= 0.5;
-            }
-
             if input.key_pressed(KeyCode::F1) {
                 ui_state.toggle_panel();
             }
         }
-            
-        for model in &mut models{
-            let new_pos = [
-                model.translation_base[0] + translation[0],
-                model.translation_base[1] + translation[1],
-                model.translation_base[2] + translation[2],
-                model.translation_base[3] + translation[3],
-            ];
 
-            model.translation = new_pos;
-            model.update_transform(&queue, projection, 1);
-        }
-
-        models[0].update_transform(&queue, projection, ui_state.use_texture as i32);
-        
-
-        let uniforms = Uniforms { translation, rotation, projection, use_texture: 1 ,_padding: [0.0; 3],};
+        let uniforms = Uniforms { translation, rotation, _padding: [0.0; 3],};
         queue.write_buffer(uniform_buffer, 0, bytemuck::cast_slice(&[uniforms]));
 
         //Render
@@ -301,14 +261,13 @@ async fn main() {
                 event: WindowEvent::RedrawRequested,
                 ..
             } => {
-                render(
-                    &surface,&device,&queue,&render_pipeline,
-                    &models,bind_group,&buffers.depth_buffer.view,
+                render_batched(
+                    &surface, &device, &queue, &render_pipeline,
+                    &batcher, bind_group, &buffers.depth_buffer.view,
                     &mut egui_manager,
                     &window,
                     |ctx| ui_state.render(ctx),
                 );
-                models[0].rotation[1] += ui_state.rotation_speed;
             }
 
             //Window resize
@@ -316,24 +275,15 @@ async fn main() {
                 event: WindowEvent::Resized(new_size),
                 window_id,
             } if window_id == window.id() => {
-                // Обновляем конфигурацию surface под новый размер
-                let config = SurfaceConfiguration {
-                    usage: TextureUsages::RENDER_ATTACHMENT,
-                    format: surface_format,
-                    width: new_size.width,
-                    height: new_size.height,
-                    present_mode: PresentMode::Fifo,
-                    alpha_mode: CompositeAlphaMode::Auto,
-                    view_formats: vec![],
-                    desired_maximum_frame_latency: 2,
-                };
+                // Обновляем существующую конфигурацию
+                config.width = new_size.width;
+                config.height = new_size.height;
                 surface.configure(&device, &config);
-
+                
                 buffers.depth_buffer.resize(&device, new_size);
-
-                let new_aspect = new_size.width as f32 / new_size.height as f32;
-                    projection = create_perspective_matrix(new_aspect, 
-                    std::f32::consts::PI / 4.0, 0.1, 100.0);
+                
+                // Запрашиваем перерисовку
+                window.request_redraw();
             }
 
             // Игнорируем все остальные события

@@ -52,24 +52,37 @@ impl Sprite {
         }
     }
     
-    pub fn add_sprite(&mut self, x: f32, y: f32, z: f32) {
+    pub fn add_sprite(&mut self, x: f32, y: f32, z: f32, sprite_x: u32, sprite_y: u32) {
         let base_index = self.vertices.len() as u16;
+        
+        // Размеры атласа
+        let atlas_width = 2.0;
+        let atlas_height = 2.0;
+        
+        // Вычисляем UV координаты для выбранного спрайта
+        let tile_w = 1.0 / atlas_width;   // 0.5
+        let tile_h = 1.0 / atlas_height;  // 0.5
+        
+        let left = sprite_x as f32 * tile_w;
+        let right = (sprite_x as f32 + 1.0) * tile_w;
+        let top = sprite_y as f32 * tile_h;
+        let bottom = (sprite_y as f32 + 1.0) * tile_h;
         
         self.vertices.push(Vertex { 
             position: [-0.5 + x, 0.5 + y, z], 
-            tex_coord: [0.0, 0.0], 
+            tex_coord: [left, top],
         });
         self.vertices.push(Vertex { 
             position: [-0.5 + x, -0.5 + y, z], 
-            tex_coord: [0.0, 1.0], 
+            tex_coord: [left, bottom],
         });
         self.vertices.push(Vertex { 
             position: [0.5 + x, -0.5 + y, z], 
-            tex_coord: [1.0, 1.0], 
+            tex_coord: [right, bottom],
         });
         self.vertices.push(Vertex { 
             position: [0.5 + x, 0.5 + y, z], 
-            tex_coord: [1.0, 0.0], 
+            tex_coord: [right, top],
         });
         
         self.indices.push(base_index);

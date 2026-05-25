@@ -100,19 +100,21 @@ async fn main() {
     let bind_group_layout = &buffers.bind_group_layout;
     let bind_group = &buffers.bind_groupprojection;
     let texture_bind_group_layout = &buffers.texture_bind_group_layout;
+    let projection = buffers.projection;
 
     // Создаём батчер
-    let mut batcher = Sprite::new(&device, &queue, "tex/floor.png");
+    let mut map = Sprite::new(&device, &queue, "tex/floor.png");
 
 
     for i in 0..10 {
         for j in 0..10 {
-            batcher.add_sprite(i as f32 - 4.5, j as f32 - 4.5, 3.0);
+            map.add_sprite(i as f32 - 4.5, j as f32 - 4.5, 50.0, 0,0);
         }
     }
 
-    batcher.build_buffers(&device);
+    map.add_sprite(0.0, 0.0, 10.0, 1,1);
 
+    map.build_buffers(&device);
 
     //shaders
     //получаем код шейдера
@@ -239,7 +241,7 @@ async fn main() {
             }
         }
 
-        let uniforms = Uniforms { translation, rotation, _padding: [0.0; 3],};
+        let uniforms = Uniforms { translation, rotation, projection, _padding: [0.0; 3],};
         queue.write_buffer(uniform_buffer, 0, bytemuck::cast_slice(&[uniforms]));
 
         //Render
@@ -263,7 +265,7 @@ async fn main() {
             } => {
                 render_batched(
                     &surface, &device, &queue, &render_pipeline,
-                    &batcher, bind_group, &buffers.depth_buffer.view,
+                    &map, bind_group, &buffers.depth_buffer.view,
                     &mut egui_manager,
                     &window,
                     |ctx| ui_state.render(ctx),

@@ -31,6 +31,19 @@ struct GameObjects {
     decor: Vec<Sprite>,
 }
 
+struct Object{
+    sprite: Sprite,
+    width: i32,
+    height: i32,
+    name: String,
+}
+
+struct Slot{
+    id: i32,
+    obj: Object,
+    active: bool,
+}
+
 #[tokio::main]
 async fn main() {
     //основной цикл winit
@@ -281,6 +294,26 @@ async fn main() {
 
     let mut mode = 0;
 
+    let mut act_slot:i32 = 0;
+    let mut slots:Vec<Slot> = vec![
+        Slot{
+            id: 1,
+            obj: Object{
+                sprite: Sprite::new(&device, &queue, "tex/decor.png", [0,0], 2),
+                width: 1, height: 1, name: String::from("table"),
+            },
+            active: true,
+        },
+        Slot{
+            id: 1,
+            obj: Object{
+                sprite: Sprite::new(&device, &queue, "tex/decor.png", [1,0], 2),
+                width: 1, height: 1, name: String::from("carpet"),
+            },
+            active: false,
+        },
+    ];
+
     //INIT UV
     let mut egui_manager = EguiManager::new(
         &device,
@@ -290,7 +323,27 @@ async fn main() {
         &window,
     );
 
-    let mut ui_state = UiState::new();
+    let mut ui_state = UiState::new(
+        mode,
+        vec![
+            Slot {
+                id: 1,
+                obj: Object {
+                    sprite: Sprite::new(&device, &queue, "tex/decor.png", [0,0], 2),
+                    width: 1, height: 1, name: String::from("table"),
+                },
+                active: true,
+            },
+            Slot {
+                id: 2,
+                obj: Object {
+                    sprite: Sprite::new(&device, &queue, "tex/decor.png", [1,0], 2),
+                    width: 1, height: 1, name: String::from("carpet"),
+                },
+                active: false,
+            },
+        ],
+    );
 
     // main loop
     let _ = event_loop.run(|event, event_loop_target| {
@@ -307,14 +360,26 @@ async fn main() {
                 match mode{
                     0 => {},
                     1 =>{
-                        let mut block: Sprite = Sprite::new(&device, &queue, "tex/decor.png", [0,0], 2);
+                            let active_slot = &slots[act_slot as usize];
+                            let texture_path = if active_slot.obj.name == "table" {
+                                "tex/decor.png"
+                            } else {
+                                "tex/decor.png"  // или другой путь
+                            };
+                            let frame = if active_slot.obj.name == "table" {
+                                [0, 0]
+                            } else {
+                                [1, 0]
+                            };
+
+                        let mut block: Sprite = Sprite::new(&device, &queue, texture_path, frame, 2);
                         block.translation = game.cursor.translation;
                         block.build_buffers(&device);
 
                         game.decor.push(block);
                     },
                     2 => {
-                        for i in 0..game.map.len(){
+                        for i in 0..game.decor.len(){
                             if game.decor[i].translation == game.cursor.translation{
                                 game.decor.remove(i);
                                 break;
@@ -339,12 +404,32 @@ async fn main() {
                     2 => game.cursor.update_texture(&device, &queue, "./tex/del_cursor.png"),
                     _ => ()
                 }
+
+                ui_state.mode = mode;
             }
 
             if input.key_pressed(KeyCode::KeyW) {
                 if game.cursor.translation[1] < 4.0{
                     game.cursor.translation[1] += 1.0;
                     game.cursor.build_buffers(&device);
+                }
+            }
+
+            if input.key_pressed(KeyCode::KeyQ) {
+                if act_slot >= 0 && (act_slot as usize) < slots.len() {
+                    slots[act_slot as usize].active = false;
+                    ui_state.slots[act_slot as usize].active = false;
+                }
+                
+                if act_slot == 0 {
+                    act_slot = 1;
+                } else {
+                    act_slot = 0;
+                }
+                
+                if act_slot >= 0 && (act_slot as usize) < slots.len() {
+                    slots[act_slot as usize].active = true;
+                    ui_state.slots[act_slot as usize].active = true;
                 }
             }
 

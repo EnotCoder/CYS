@@ -3,6 +3,7 @@ use crate::texture::Texture;
 use crate::Vertex;
 use crate::Uniforms;
 
+
 pub struct Sprite {
     pub vertices: Vec<Vertex>,
     pub indices: Vec<u16>,

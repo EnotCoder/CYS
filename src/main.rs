@@ -105,7 +105,7 @@ async fn main() {
 
     // Создаём блок
 
-    let mut cursor: Sprite = Sprite::new(&device, &queue, "tex/cursor.png", [0,0], 1);
+    let mut cursor: Sprite = Sprite::new(&device, &queue, "./tex/def_cursor.png", [0,0], 1);
     cursor.translation = [4.0,4.0,0.0,1.0];
     cursor.build_buffers(&device);
 
@@ -275,6 +275,12 @@ async fn main() {
     //main loop vars
     let mut input = WinitInputHelper::new();
 
+    //0 - Standart
+    //1 - build
+    //2 - Break
+
+    let mut mode = 0;
+
     //INIT UV
     let mut egui_manager = EguiManager::new(
         &device,
@@ -298,11 +304,41 @@ async fn main() {
         //Input
         if input.update(&event) {
             if input.key_pressed(KeyCode::KeyF) {
-                let mut block: Sprite = Sprite::new(&device, &queue, "tex/decor.png", [0,0], 2);
-                block.translation = game.cursor.translation;
-                block.build_buffers(&device);
+                match mode{
+                    0 => {},
+                    1 =>{
+                        let mut block: Sprite = Sprite::new(&device, &queue, "tex/decor.png", [0,0], 2);
+                        block.translation = game.cursor.translation;
+                        block.build_buffers(&device);
 
-                game.decor.push(block);
+                        game.decor.push(block);
+                    },
+                    2 => {
+                        for i in 0..game.map.len(){
+                            if game.decor[i].translation == game.cursor.translation{
+                                game.decor.remove(i);
+                                break;
+                            }
+                        }
+                    },
+
+                    _ => {} 
+                }
+            }
+
+            if input.key_pressed(KeyCode::Tab) {
+                if mode == 2{
+                    mode = 0
+                }else{
+                    mode += 1;
+                }
+
+                match mode{
+                    0 => game.cursor.update_texture(&device, &queue, "./tex/def_cursor.png"),
+                    1 => game.cursor.update_texture(&device, &queue, "./tex/cursor.png"),
+                    2 => game.cursor.update_texture(&device, &queue, "./tex/del_cursor.png"),
+                    _ => ()
+                }
             }
 
             if input.key_pressed(KeyCode::KeyW) {

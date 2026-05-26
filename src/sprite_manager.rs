@@ -209,4 +209,17 @@ impl Sprite {
             ],
         })
     }
+
+
+    pub fn update_texture(
+        &mut self,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        texture_path: &str,
+    ){
+        let texture = Texture::from_path(device, queue, texture_path, "sprite_texture")
+            .expect("Failed to load texture");
+        
+        self.texture_bind_group = Self::create_texture_bind_group(device, &texture);
+    }
 }

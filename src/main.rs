@@ -306,23 +306,31 @@ async fn main() {
             }
 
             if input.key_pressed(KeyCode::KeyW) {
-                game.cursor.translation[1] += 1.0;
-                game.cursor.build_buffers(&device);
+                if game.cursor.translation[1] < 4.0{
+                    game.cursor.translation[1] += 1.0;
+                    game.cursor.build_buffers(&device);
+                }
             }
 
             if input.key_pressed(KeyCode::KeyS) {
-                game.cursor.translation[1] -= 1.0;
-                game.cursor.build_buffers(&device);
+                if game.cursor.translation[1] > -4.0{
+                    game.cursor.translation[1] -= 1.0;
+                    game.cursor.build_buffers(&device);
+                }
             }
 
             if input.key_pressed(KeyCode::KeyA) {
-                game.cursor.translation[0] -= 1.0;
-                game.cursor.build_buffers(&device);
+                if game.cursor.translation[0] > -4.0{
+                    game.cursor.translation[0] -= 1.0;
+                    game.cursor.build_buffers(&device);
+                }
             }
 
             if input.key_pressed(KeyCode::KeyD) {
-                game.cursor.translation[0] += 1.0;
-                game.cursor.build_buffers(&device);
+                if game.cursor.translation[0] < 4.0{
+                    game.cursor.translation[0] += 1.0;
+                    game.cursor.build_buffers(&device);
+                }
             }
         }
 

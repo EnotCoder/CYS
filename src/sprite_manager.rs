@@ -1,4 +1,4 @@
-use wgpu::{util::DeviceExt, *};
+use wgpu::{util::DeviceExt};
 use crate::texture::Texture;
 use crate::Vertex;
 use crate::Uniforms;
@@ -23,14 +23,15 @@ impl Sprite {
         queue: &wgpu::Queue,
         texture_path: &str,
         texture_frame: [i32; 2],
+        textures_count: i32,
     ) -> Self {
 
         let sprite_x = texture_frame[0];
         let sprite_y = texture_frame[1];
 
         // Размеры атласа
-        let atlas_width = 2.0;
-        let atlas_height = 2.0;
+        let atlas_width = textures_count as f32;
+        let atlas_height = textures_count as f32;
         
         // Вычисляем UV координаты для выбранного спрайта
         let tile_w = 1.0 / atlas_width;   // 0.5
@@ -113,18 +114,7 @@ impl Sprite {
             index_format: wgpu::IndexFormat::Uint16,
         }
     }
-
-    pub fn update_position(&mut self, queue: &wgpu::Queue,) {
-        
-        let uniforms = Uniforms { 
-            translation: self.translation,
-            rotation: self.rotation,
-            _padding: [0.0; 3],
-        };
-        
-        // Обновляем существующий uniform buffer
-        queue.write_buffer(&self.uniform_buffer, 0, bytemuck::cast_slice(&[uniforms]));
-    }
+    
 
     fn create_uniform_bind_group(device: &wgpu::Device, uniform_buffer: &wgpu::Buffer) -> wgpu::BindGroup {
         let layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
@@ -218,53 +208,5 @@ impl Sprite {
                 },
             ],
         })
-    }
-
-    pub fn update_sprite_position(&mut self, sprite_index: usize, new_x: f32, new_y: f32, new_z: f32) {
-        let vertex_index = sprite_index * 4;
-        
-        if vertex_index + 3 < self.vertices.len() {
-            // Получаем текущие UV координаты (они не меняются)
-            let tex_coords = [
-                self.vertices[vertex_index].tex_coord,
-                self.vertices[vertex_index + 1].tex_coord,
-                self.vertices[vertex_index + 2].tex_coord,
-                self.vertices[vertex_index + 3].tex_coord,
-            ];
-            
-            // Обновляем позиции всех 4 вершин спрайта
-            self.vertices[vertex_index] = Vertex {
-                position: [-0.5 + new_x, 0.5 + new_y, new_z],
-                tex_coord: tex_coords[0],
-            };
-            self.vertices[vertex_index + 1] = Vertex {
-                position: [-0.5 + new_x, -0.5 + new_y, new_z],
-                tex_coord: tex_coords[1],
-            };
-            self.vertices[vertex_index + 2] = Vertex {
-                position: [0.5 + new_x, -0.5 + new_y, new_z],
-                tex_coord: tex_coords[2],
-            };
-            self.vertices[vertex_index + 3] = Vertex {
-                position: [0.5 + new_x, 0.5 + new_y, new_z],
-                tex_coord: tex_coords[3],
-            };
-        }
-    }
-    
-    // Обновление буфера после изменения позиций
-    pub fn update_vertex_buffer(&mut self, device: &wgpu::Device) {
-        if !self.vertices.is_empty() {
-            self.vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                label: Some("Sprite Batch Vertex Buffer"),
-                contents: bytemuck::cast_slice(&self.vertices),
-                usage: wgpu::BufferUsages::VERTEX,
-            });
-        }
-    }
-    
-    // Получить количество спрайтов в батчере
-    pub fn sprite_count(&self) -> usize {
-        self.vertices.len() / 4
     }
 }

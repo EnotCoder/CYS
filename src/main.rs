@@ -3,7 +3,7 @@ use winit::{
     event_loop::{EventLoop},
     window::WindowBuilder,
 };
-use wgpu::{util::DeviceExt, *};
+use wgpu::*;
 use winit::dpi::PhysicalSize;
 use tokio;
 
@@ -19,14 +19,11 @@ mod sprite_manager;
 
 use egui_manager::EguiManager;
 use ui_panels::UiState;
-use egui_wgpu::ScreenDescriptor;
 
 
-use texture::*;
 use buffers::*;
 use render::*;
 use sprite_manager::*;
-use std::env;
 
 struct GameObjects {
     cursor: Sprite,
@@ -88,7 +85,7 @@ async fn main() {
 
     //init buffers
 
-    let mut translation = [0.0, 0.0, 0.0, 0.0];
+    let translation = [0.0, 0.0, 0.0, 0.0];
     let rotation = [0.0, 0.0, 0.0, 0.0];
     let window_size = window.inner_size();
  
@@ -108,16 +105,16 @@ async fn main() {
 
     // Создаём блок
 
-    let mut cursor: Sprite = Sprite::new(&device, &queue, "tex/floor.png", [1,0]);
+    let mut cursor: Sprite = Sprite::new(&device, &queue, "tex/cursor.png", [0,0], 1);
     cursor.translation = [4.0,4.0,0.0,1.0];
     cursor.build_buffers(&device);
 
     let mut map:Vec<Sprite> = Vec::new();
-    let mut decor:Vec<Sprite> = Vec::new();
+    let decor:Vec<Sprite> = Vec::new();
 
     for i in 0..10{
         for j in 0..10{
-            let mut block: Sprite = Sprite::new(&device, &queue, "tex/floor.png", [0,0]);
+            let mut block: Sprite = Sprite::new(&device, &queue, "tex/floor.png", [0,0], 2);
             block.translation = [i as f32 - 4.0, j as f32 - 4.0, 0.0, 1.0];
             block.build_buffers(&device);
 
@@ -274,12 +271,9 @@ async fn main() {
 
     surface.configure(&device, &config);
 
-    ///////////
 
     //main loop vars
     let mut input = WinitInputHelper::new();
-    let speed = 0.1;
-    let rotation_speed = 0.01;
 
     //INIT UV
     let mut egui_manager = EguiManager::new(
@@ -291,8 +285,6 @@ async fn main() {
     );
 
     let mut ui_state = UiState::new();
-    let mut last_grid_x = -1;
-    let mut last_grid_y = -1;
 
     // main loop
     let _ = event_loop.run(|event, event_loop_target| {
@@ -306,10 +298,9 @@ async fn main() {
         //Input
         if input.update(&event) {
             if input.key_pressed(KeyCode::KeyF) {
-                let mut block: Sprite = Sprite::new(&device, &queue, "tex/decor.png", [0,0]);
+                let mut block: Sprite = Sprite::new(&device, &queue, "tex/decor.png", [0,0], 2);
                 block.translation = game.cursor.translation;
                 block.build_buffers(&device);
-                block.update_position(&queue);
 
                 game.decor.push(block);
             }
@@ -359,11 +350,11 @@ async fn main() {
             } => {
 
                 let mut opaque_models = vec![];
-                opaque_models.push(&game.cursor);
                 opaque_models.extend(game.map.iter());
 
                 let mut transparent_models = vec![];
                 transparent_models.extend(game.decor.iter());
+                transparent_models.push(&game.cursor);
 
                 render(
                     &surface, &device, &queue, &render_pipeline, &transparent_pipeline,

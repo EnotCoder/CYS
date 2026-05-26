@@ -67,7 +67,7 @@ impl EguiManager {
         //Получение ввода
         let raw_input = self.state.take_egui_input(window);
         //Обновление контекста и UI
-        let full_output = self.context.run(raw_input, |ui| {
+        let full_output = self.context.run(raw_input, |_ui| {
             run_ui(&self.context);
         });
         

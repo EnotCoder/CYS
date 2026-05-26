@@ -1,12 +1,8 @@
 // ui_panels.rs
-use egui::{Context, Window, Slider, Button, Align2, ProgressBar};
+use egui::{Context, Window};
 
 pub struct UiState {
     pub show_panel: bool,
-    pub show_info_keyboard: bool,
-    pub show_effect: bool,
-    pub use_texture: bool,  
-    pub rotation_speed: f32,
 }
 
 impl UiState {
@@ -14,10 +10,6 @@ impl UiState {
     ) -> Self {
         Self {
             show_panel: true,
-            show_info_keyboard: false,
-            show_effect: false,
-            rotation_speed : 0.02,
-            use_texture: true,
         }
     }
     
@@ -34,12 +26,7 @@ impl UiState {
             .movable(false)
             .title_bar(false)
             .show(ctx, |ui| {
-                ui.heading("TMV Alpha");
+                ui.heading("Create your shop (V-Test)");
             });
     }
-
-    pub fn toggle_panel(&mut self) {
-        self.show_panel = !self.show_panel;
-    }
-
 }

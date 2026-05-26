@@ -1,4 +1,4 @@
-use wgpu::{util::DeviceExt, *};
+use wgpu::{util::DeviceExt};
 use winit::dpi::PhysicalSize;
 
 //triangle info

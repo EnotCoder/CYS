@@ -1,9 +1,7 @@
-// texture.rs
-use wgpu::{util::DeviceExt, *};
 use image::GenericImageView;
 
 pub struct Texture {
-    pub texture: wgpu::Texture,      // Сама текстура на GPU
+    pub _texture: wgpu::Texture,      // Сама текстура на GPU
     pub view: wgpu::TextureView,     // Представление текстуры
     pub sampler: wgpu::Sampler,      // Сэмплер (как читать текстуру)
 }
@@ -72,7 +70,7 @@ impl Texture {
             ..Default::default()
         });
         
-        Ok(Self { texture, view, sampler })
+        Ok(Self { _texture: texture, view, sampler })
     }
     
     pub fn from_path(

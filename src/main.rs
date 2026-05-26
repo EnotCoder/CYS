@@ -28,6 +28,12 @@ use render::*;
 use sprite_manager::*;
 use std::env;
 
+struct GameObjects {
+    cursor: Sprite,
+    map: Vec<Sprite>,
+    decor: Vec<Sprite>,
+}
+
 #[tokio::main]
 async fn main() {
     //основной цикл winit
@@ -85,7 +91,7 @@ async fn main() {
     let mut translation = [0.0, 0.0, 0.0, 0.0];
     let rotation = [0.0, 0.0, 0.0, 0.0];
     let window_size = window.inner_size();
-
+ 
     let mut buffers = init_buffers(
         window_size,
         translation,
@@ -95,18 +101,31 @@ async fn main() {
 
     let uniform_buffer = &buffers.uniform_buffer;
     let depth_stencil = buffers.depth_stencil;
+    let transparent_depth_stencil = buffers.transparent_depth_stencil;
     let bind_group_layout = &buffers.bind_group_layout;
     let bind_group = &buffers.bind_groupprojection;
     let texture_bind_group_layout = &buffers.texture_bind_group_layout;
 
     // Создаём блок
-    let mut blocks:Vec<Sprite> = Vec::new();
 
-    let mut block: Sprite = Sprite::new(&device, &queue, "tex/floor.png");
-    block.translation = [4.0,4.0,0.0,1.0];
-    block.build_buffers(&device);
+    let mut cursor: Sprite = Sprite::new(&device, &queue, "tex/floor.png", [1,0]);
+    cursor.translation = [4.0,4.0,0.0,1.0];
+    cursor.build_buffers(&device);
 
-    blocks.push(block);
+    let mut map:Vec<Sprite> = Vec::new();
+    let mut decor:Vec<Sprite> = Vec::new();
+
+    for i in 0..10{
+        for j in 0..10{
+            let mut block: Sprite = Sprite::new(&device, &queue, "tex/floor.png", [0,0]);
+            block.translation = [i as f32 - 4.0, j as f32 - 4.0, 0.0, 1.0];
+            block.build_buffers(&device);
+
+            map.push(block);
+        }
+    }
+
+    let mut game : GameObjects = GameObjects {cursor, map, decor};
 
     //shaders
     //получаем код шейдера
@@ -160,7 +179,18 @@ async fn main() {
         fragment : Some(wgpu::FragmentState {
             targets: &[Some(ColorTargetState {
                 format: surface_format,
-                blend: Some(BlendState::REPLACE),
+                blend: Some(wgpu::BlendState {
+                    color: wgpu::BlendComponent {
+                        src_factor: wgpu::BlendFactor::SrcAlpha,   // источник = альфа
+                        dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha, // фон = 1-альфа
+                        operation: wgpu::BlendOperation::Add,
+                    },
+                    alpha: wgpu::BlendComponent {
+                        src_factor: wgpu::BlendFactor::One,
+                        dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,
+                        operation: wgpu::BlendOperation::Add,
+                    },
+                }),
                 write_mask: ColorWrites::ALL,
             })],
             module : &shader_module,
@@ -184,6 +214,52 @@ async fn main() {
     };
 
     let render_pipeline = device.create_render_pipeline(&description);
+
+    let transparent_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+        label: Some("Transparent Pipeline"),
+        layout: Some(&pipeline_layout),
+        vertex: wgpu::VertexState {
+            module: &shader_module,
+            entry_point: "vs_main",
+            buffers: &[wgpu::VertexBufferLayout {
+                array_stride: std::mem::size_of::<Vertex>() as wgpu::BufferAddress,
+                step_mode: wgpu::VertexStepMode::Vertex,
+                attributes: &[
+                    wgpu::VertexAttribute {
+                        offset: 0,
+                        shader_location: 0,
+                        format: wgpu::VertexFormat::Float32x3,
+                    },
+                    wgpu::VertexAttribute {
+                        offset: std::mem::size_of::<[f32; 3]>() as wgpu::BufferAddress,
+                        shader_location: 1,
+                        format: wgpu::VertexFormat::Float32x2,
+                    }
+                ]
+            }],
+        },
+        fragment: Some(wgpu::FragmentState {
+            module: &shader_module,
+            entry_point: "fs_main",
+            targets: &[Some(wgpu::ColorTargetState {
+                format: surface_format,
+                blend: Some(wgpu::BlendState::ALPHA_BLENDING),  // прозрачные - со смешиванием
+                write_mask: wgpu::ColorWrites::ALL,
+            })],
+        }),
+        primitive: wgpu::PrimitiveState {
+            topology: wgpu::PrimitiveTopology::TriangleList,
+            strip_index_format: None,
+            front_face: wgpu::FrontFace::Ccw,
+            cull_mode: None,
+            unclipped_depth: false,
+            polygon_mode: wgpu::PolygonMode::Fill,
+            conservative: false,
+        },
+        depth_stencil: Some(transparent_depth_stencil),  // ← используем transparent
+        multisample: wgpu::MultisampleState::default(),
+        multiview: None,
+    });
 
     let mut config = SurfaceConfiguration {
         usage: TextureUsages::RENDER_ATTACHMENT, // использовать как цель рендеринга
@@ -229,28 +305,33 @@ async fn main() {
 
         //Input
         if input.update(&event) {
-            if input.key_pressed(KeyCode::F1) {
-                ui_state.toggle_panel();
+            if input.key_pressed(KeyCode::KeyF) {
+                let mut block: Sprite = Sprite::new(&device, &queue, "tex/decor.png", [0,0]);
+                block.translation = game.cursor.translation;
+                block.build_buffers(&device);
+                block.update_position(&queue);
+
+                game.decor.push(block);
             }
 
             if input.key_pressed(KeyCode::KeyW) {
-                blocks[0].translation[1] += 1.0;
-                blocks[0].build_buffers(&device);
+                game.cursor.translation[1] += 1.0;
+                game.cursor.build_buffers(&device);
             }
 
             if input.key_pressed(KeyCode::KeyS) {
-                blocks[0].translation[1] -= 1.0;
-                blocks[0].build_buffers(&device);
+                game.cursor.translation[1] -= 1.0;
+                game.cursor.build_buffers(&device);
             }
 
             if input.key_pressed(KeyCode::KeyA) {
-                blocks[0].translation[0] -= 1.0;
-                blocks[0].build_buffers(&device);
+                game.cursor.translation[0] -= 1.0;
+                game.cursor.build_buffers(&device);
             }
 
             if input.key_pressed(KeyCode::KeyD) {
-                blocks[0].translation[0] += 1.0;
-                blocks[0].build_buffers(&device);
+                game.cursor.translation[0] += 1.0;
+                game.cursor.build_buffers(&device);
             }
         }
 
@@ -276,12 +357,21 @@ async fn main() {
                 event: WindowEvent::RedrawRequested,
                 ..
             } => {
+
+                let mut opaque_models = vec![];
+                opaque_models.push(&game.cursor);
+                opaque_models.extend(game.map.iter());
+
+                let mut transparent_models = vec![];
+                transparent_models.extend(game.decor.iter());
+
                 render(
-                    &surface, &device, &queue, &render_pipeline,
-                    &blocks, bind_group, &buffers.depth_buffer.view,
+                    &surface, &device, &queue, &render_pipeline, &transparent_pipeline,
+                    bind_group, &buffers.depth_buffer.view,
                     &mut egui_manager,
                     &window,
                     |ctx| ui_state.render(ctx),
+                    &opaque_models, &transparent_models
                 );
             }
 

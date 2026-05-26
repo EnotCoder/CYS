@@ -60,6 +60,7 @@ pub struct Buffers{
     pub uniform_buffer: wgpu::Buffer,
     pub depth_buffer: DepthBuffer,
     pub depth_stencil: wgpu::DepthStencilState,
+    pub transparent_depth_stencil: wgpu::DepthStencilState,
     pub bind_group_layout: wgpu::BindGroupLayout,
     pub texture_bind_group_layout: wgpu::BindGroupLayout,
     pub bind_groupprojection: wgpu::BindGroup,
@@ -91,7 +92,7 @@ pub fn init_buffers(
         entries: &[
             wgpu::BindGroupLayoutEntry {
                 binding: 0,
-                visibility: wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT, // Доступен только в вершинном шейдере
+                visibility: wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
                 ty: wgpu::BindingType::Buffer {
                     ty: wgpu::BufferBindingType::Uniform,
                     has_dynamic_offset: false,
@@ -126,6 +127,14 @@ pub fn init_buffers(
         bias: wgpu::DepthBiasState::default(),
     };
 
+    let transparent_depth_stencil = wgpu::DepthStencilState {
+        format: wgpu::TextureFormat::Depth32Float,
+        depth_write_enabled: true,
+        depth_compare: wgpu::CompareFunction::Always,
+        stencil: wgpu::StencilState::default(),
+        bias: wgpu::DepthBiasState::default(),
+    };
+
     //texture_bind_gruuo_layout
     let texture_bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
         label: Some("Texture Bind Group Layout"),
@@ -151,6 +160,7 @@ pub fn init_buffers(
 
     Buffers {
         uniform_buffer,
+        transparent_depth_stencil,
         depth_buffer,
         depth_stencil,
         bind_group_layout,

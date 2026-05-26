@@ -13,7 +13,8 @@ pub struct Sprite {
     pub uniform_bind_group: wgpu::BindGroup,
     pub index_count: u32,
     pub translation: [f32; 4],
-    pub rotation: [f32; 4]
+    pub rotation: [f32; 4],
+    pub index_format: wgpu::IndexFormat,
 }
 
 impl Sprite {
@@ -21,10 +22,11 @@ impl Sprite {
         device: &wgpu::Device,
         queue: &wgpu::Queue,
         texture_path: &str,
+        texture_frame: [i32; 2],
     ) -> Self {
 
-        let sprite_x = 0;
-        let sprite_y = 0;
+        let sprite_x = texture_frame[0];
+        let sprite_y = texture_frame[1];
 
         // Размеры атласа
         let atlas_width = 2.0;
@@ -59,11 +61,9 @@ impl Sprite {
                 tex_coord: [right, top],
             }
         ];
-        let indices: Vec<u16> = vec![
-            0, 1, 2,
-            0, 2, 3,
-        ];
-        
+        let indices: Vec<u16> = vec![0, 1, 2, 2, 3, 0];
+        let index_count = indices.len() as u32;
+
         // Загружаем текстуру
         let texture = Texture::from_path(device, queue, texture_path, "sprite_texture")
             .expect("Failed to load texture");
@@ -98,6 +98,7 @@ impl Sprite {
 
         let uniform_bind_group = Self::create_uniform_bind_group(device, &uniform_buffer);
 
+
         Self {
             translation: [0.0, 0.0, 0.0, 0.0],
             rotation: [0.0, 0.0, 0.0, 0.0],
@@ -107,9 +108,22 @@ impl Sprite {
             texture_bind_group,
             vertex_buffer,
             index_buffer,
-            index_count: 0,
+            index_count,
             uniform_bind_group,
+            index_format: wgpu::IndexFormat::Uint16,
         }
+    }
+
+    pub fn update_position(&mut self, queue: &wgpu::Queue,) {
+        
+        let uniforms = Uniforms { 
+            translation: self.translation,
+            rotation: self.rotation,
+            _padding: [0.0; 3],
+        };
+        
+        // Обновляем существующий uniform buffer
+        queue.write_buffer(&self.uniform_buffer, 0, bytemuck::cast_slice(&[uniforms]));
     }
 
     fn create_uniform_bind_group(device: &wgpu::Device, uniform_buffer: &wgpu::Buffer) -> wgpu::BindGroup {

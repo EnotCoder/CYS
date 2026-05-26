@@ -9,12 +9,15 @@ pub fn render(
     device: &wgpu::Device,
     queue: &wgpu::Queue,
     render_pipeline: &wgpu::RenderPipeline,
-    models: &Vec<Sprite>,
+    transparent_pipeline: &wgpu::RenderPipeline,
+    //models: &[&Sprite],
     bind_group: &wgpu::BindGroup,
     depth_view: &wgpu::TextureView,
     egui_manager: &mut EguiManager,
     window: &winit::window::Window,
     run_ui: impl FnOnce(&egui::Context),
+    opaque_models: &[&Sprite],      // непрозрачные
+    transparent_models: &[&Sprite], // прозрачные
 ) {
     let frame = match surface.get_current_texture() {
         Ok(frame) => frame,
@@ -27,6 +30,7 @@ pub fn render(
         label: Some("Render Encoder"),
     });
     
+    // 1 render
     {
         let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: Some("Render Pass"),
@@ -54,12 +58,53 @@ pub fn render(
             ..Default::default()
         });
         
-        for model in models{
+        for model in opaque_models{
             render_pass.set_pipeline(render_pipeline);
             render_pass.set_bind_group(0, &model.uniform_bind_group, &[]);
             render_pass.set_bind_group(1, &model.texture_bind_group, &[]);
             render_pass.set_vertex_buffer(0, model.vertex_buffer.slice(..));
-            render_pass.set_index_buffer(model.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
+            render_pass.set_index_buffer(model.index_buffer.slice(..), model.index_format );
+            render_pass.draw_indexed(0..model.index_count, 0, 0..1);
+        }
+    }
+    // 2 render
+    {
+        let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+            label: Some("Transparent Pass"),
+            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                view: &view,
+                resolve_target: None,
+                ops: wgpu::Operations {
+                    load: wgpu::LoadOp::Load,  // ← Load, не Clear! Сохраняем то, что уже нарисовано
+                    store: wgpu::StoreOp::Store,
+                },
+            })],
+            depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
+                view: depth_view,
+                depth_ops: Some(wgpu::Operations {
+                    load: wgpu::LoadOp::Load,  // ← Load - сохраняем depth buffer
+                    store: wgpu::StoreOp::Store,
+                }),
+                stencil_ops: None,
+            }),
+            occlusion_query_set: None,
+            timestamp_writes: None,
+        });
+        
+        render_pass.set_pipeline(transparent_pipeline);
+        render_pass.set_bind_group(0, bind_group, &[]);
+        
+        // Для прозрачных объектов - рисуем от дальних к ближним (обратная сортировка по Z)
+        let mut sorted_transparent = transparent_models.to_vec();
+        sorted_transparent.sort_by(|a, b| 
+            b.translation[2].partial_cmp(&a.translation[2]).unwrap()
+        );
+        
+        for model in &sorted_transparent {
+            render_pass.set_bind_group(0, &model.uniform_bind_group, &[]);
+            render_pass.set_bind_group(1, &model.texture_bind_group, &[]);
+            render_pass.set_vertex_buffer(0, model.vertex_buffer.slice(..));
+            render_pass.set_index_buffer(model.index_buffer.slice(..), model.index_format );
             render_pass.draw_indexed(0..model.index_count, 0, 0..1);
         }
     }

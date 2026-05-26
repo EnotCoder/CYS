@@ -15,7 +15,6 @@ pub struct Vertex {
 pub struct Uniforms {
     pub translation: [f32; 4],
     pub rotation: [f32; 4],
-    pub projection: [f32; 16],
     pub _padding: [f32; 3],
 }
 
@@ -57,16 +56,6 @@ impl DepthBuffer {
 }
 
 
-pub fn create_perspective_matrix(aspect: f32, fov: f32, near: f32, far: f32) -> [f32; 16] {
-    let f = 1.0 / (fov * 0.5).tan();
-    [
-        f / aspect, 0.0, 0.0, 0.0,
-        0.0, f, 0.0, 0.0,
-        0.0, 0.0, far / (far - near), 1.0,
-        0.0, 0.0, -far * near / (far - near), 0.0,
-    ]
-}
-
 pub struct Buffers{
     pub uniform_buffer: wgpu::Buffer,
     pub depth_buffer: DepthBuffer,
@@ -74,7 +63,6 @@ pub struct Buffers{
     pub bind_group_layout: wgpu::BindGroupLayout,
     pub texture_bind_group_layout: wgpu::BindGroupLayout,
     pub bind_groupprojection: wgpu::BindGroup,
-    pub projection: [f32; 16],
 }
 
 pub fn init_buffers(
@@ -83,15 +71,9 @@ pub fn init_buffers(
     rotation: [f32;4],
     device: &wgpu::Device,
 ) -> Buffers{
-
-    let aspect = window_size.width as f32 / window_size.height as f32;
-    
-    let projection = create_perspective_matrix(aspect, std::f32::consts::PI / 4.0, 0.1, 100.0);
-
     let uniforms = Uniforms { 
         translation,
         rotation,
-        projection,
         _padding: [0.0; 3],
     };
 
@@ -169,7 +151,6 @@ pub fn init_buffers(
 
     Buffers {
         uniform_buffer,
-        projection,
         depth_buffer,
         depth_stencil,
         bind_group_layout,

@@ -1,24 +1,22 @@
-// Структура uniform (оставляем как есть)
+// Структура uniform (только трансляция)
 struct Uniforms {
     translation: vec4<f32>,
     rotation: vec4<f32>,
-    projection: mat4x4<f32>,
 };
 
 @group(0) @binding(0)
 var<uniform> uniforms: Uniforms;
 
-// Добавляем текстуру и сэмплер во 2-ю группу
+// Текстура и сэмплер
 @group(1) @binding(0)
 var my_texture: texture_2d<f32>;
 
 @group(1) @binding(1)
 var my_sampler: sampler;
 
-// Выходные данные вершинного шейдера
 struct VertexOutput {
     @builtin(position) position: vec4<f32>,
-    @location(0) tex_coord: vec2<f32>,  // Передаём UV координаты вместо цвета
+    @location(0) tex_coord: vec2<f32>,
 };
 
 // Вращение вокруг X
@@ -57,11 +55,11 @@ fn rotate_z(vertex: vec3<f32>, angle: f32) -> vec3<f32> {
 @vertex
 fn vs_main(
     @location(0) position: vec3<f32>,
-    @location(1) tex_coord: vec2<f32>,  // Теперь это UV координаты
+    @location(1) tex_coord: vec2<f32>,
 ) -> VertexOutput {
     var output: VertexOutput;
     
-    // Применяем вращение по всем осям
+    // Применяем вращение
     var rotated = position;
     rotated = rotate_x(rotated, uniforms.rotation.x);
     rotated = rotate_y(rotated, uniforms.rotation.y);
@@ -70,14 +68,17 @@ fn vs_main(
     // Применяем трансляцию
     let world_pos = rotated + uniforms.translation.xyz;
     
-    output.position = uniforms.projection * vec4<f32>(world_pos, 1.0);
-    output.tex_coord = tex_coord;  // Передаём UV координаты
+    let size = 0.223;
+
+    // Без матрицы! Просто передаём координаты
+    output.position = vec4<f32>(world_pos.x * size, world_pos.y * size, 0.0, 1.0);
+    output.tex_coord = tex_coord;
     return output;
 }
 
 @fragment
 fn fs_main(
-    @location(0) tex_coord: vec2<f32>,  // Получаем UV координаты
+    @location(0) tex_coord: vec2<f32>,
 ) -> @location(0) vec4<f32> {
     return textureSample(my_texture, my_sampler, tex_coord);
 }

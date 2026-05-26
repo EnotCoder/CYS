@@ -26,8 +26,6 @@ use texture::*;
 use buffers::*;
 use render::*;
 use sprite_manager::*;
-
-
 use std::env;
 
 #[tokio::main]
@@ -100,21 +98,15 @@ async fn main() {
     let bind_group_layout = &buffers.bind_group_layout;
     let bind_group = &buffers.bind_groupprojection;
     let texture_bind_group_layout = &buffers.texture_bind_group_layout;
-    let projection = buffers.projection;
 
-    // Создаём батчер
-    let mut map = Sprite::new(&device, &queue, "tex/floor.png");
+    // Создаём блок
+    let mut blocks:Vec<Sprite> = Vec::new();
 
+    let mut block: Sprite = Sprite::new(&device, &queue, "tex/floor.png");
+    block.translation = [4.0,4.0,0.0,1.0];
+    block.build_buffers(&device);
 
-    for i in 0..10 {
-        for j in 0..10 {
-            map.add_sprite(i as f32 - 4.5, j as f32 - 4.5, 50.0, 0,0);
-        }
-    }
-
-    map.add_sprite(0.0, 0.0, 10.0, 1,1);
-
-    map.build_buffers(&device);
+    blocks.push(block);
 
     //shaders
     //получаем код шейдера
@@ -138,7 +130,6 @@ async fn main() {
         bind_group_layouts: &[&bind_group_layout, &texture_bind_group_layout],
         push_constant_ranges: &[], // константы, которые можно быстро обновлять
     });
-
     let caps = surface.get_capabilities(&addapter);
     let surface_format = caps.formats[0];
 
@@ -224,6 +215,8 @@ async fn main() {
     );
 
     let mut ui_state = UiState::new();
+    let mut last_grid_x = -1;
+    let mut last_grid_y = -1;
 
     // main loop
     let _ = event_loop.run(|event, event_loop_target| {
@@ -239,9 +232,29 @@ async fn main() {
             if input.key_pressed(KeyCode::F1) {
                 ui_state.toggle_panel();
             }
+
+            if input.key_pressed(KeyCode::KeyW) {
+                blocks[0].translation[1] += 1.0;
+                blocks[0].build_buffers(&device);
+            }
+
+            if input.key_pressed(KeyCode::KeyS) {
+                blocks[0].translation[1] -= 1.0;
+                blocks[0].build_buffers(&device);
+            }
+
+            if input.key_pressed(KeyCode::KeyA) {
+                blocks[0].translation[0] -= 1.0;
+                blocks[0].build_buffers(&device);
+            }
+
+            if input.key_pressed(KeyCode::KeyD) {
+                blocks[0].translation[0] += 1.0;
+                blocks[0].build_buffers(&device);
+            }
         }
 
-        let uniforms = Uniforms { translation, rotation, projection, _padding: [0.0; 3],};
+        let uniforms = Uniforms { translation, rotation, _padding: [0.0; 3],};
         queue.write_buffer(uniform_buffer, 0, bytemuck::cast_slice(&[uniforms]));
 
         //Render
@@ -263,9 +276,9 @@ async fn main() {
                 event: WindowEvent::RedrawRequested,
                 ..
             } => {
-                render_batched(
+                render(
                     &surface, &device, &queue, &render_pipeline,
-                    &map, bind_group, &buffers.depth_buffer.view,
+                    &blocks, bind_group, &buffers.depth_buffer.view,
                     &mut egui_manager,
                     &window,
                     |ctx| ui_state.render(ctx),
@@ -283,7 +296,7 @@ async fn main() {
                 surface.configure(&device, &config);
                 
                 buffers.depth_buffer.resize(&device, new_size);
-                
+
                 // Запрашиваем перерисовку
                 window.request_redraw();
             }

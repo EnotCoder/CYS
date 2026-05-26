@@ -4,12 +4,12 @@ use egui_wgpu::ScreenDescriptor;
 use crate::Sprite;
 
 // render.rs - добавьте эту функцию
-pub fn render_batched(
+pub fn render(
     surface: &wgpu::Surface,
     device: &wgpu::Device,
     queue: &wgpu::Queue,
     render_pipeline: &wgpu::RenderPipeline,
-    batcher: &Sprite,
+    models: &Vec<Sprite>,
     bind_group: &wgpu::BindGroup,
     depth_view: &wgpu::TextureView,
     egui_manager: &mut EguiManager,
@@ -54,14 +54,14 @@ pub fn render_batched(
             ..Default::default()
         });
         
-        render_pass.set_pipeline(render_pipeline);
-        render_pass.set_bind_group(0, bind_group, &[]);
-        render_pass.set_bind_group(1, &batcher.texture_bind_group, &[]);
-        render_pass.set_vertex_buffer(0, batcher.vertex_buffer.slice(..));
-        render_pass.set_index_buffer(batcher.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
-        
-        // ОДИН DRAW CALL ДЛЯ ВСЕХ СПРАЙТОВ!
-        render_pass.draw_indexed(0..batcher.index_count, 0, 0..1);
+        for model in models{
+            render_pass.set_pipeline(render_pipeline);
+            render_pass.set_bind_group(0, &model.uniform_bind_group, &[]);
+            render_pass.set_bind_group(1, &model.texture_bind_group, &[]);
+            render_pass.set_vertex_buffer(0, model.vertex_buffer.slice(..));
+            render_pass.set_index_buffer(model.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
+            render_pass.draw_indexed(0..model.index_count, 0, 0..1);
+        }
     }
     
     // UI

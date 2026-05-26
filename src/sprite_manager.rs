@@ -1,6 +1,7 @@
 use wgpu::{util::DeviceExt, *};
 use crate::texture::Texture;
 use crate::Vertex;
+use crate::Uniforms;
 
 pub struct Sprite {
     pub vertices: Vec<Vertex>,
@@ -8,7 +9,11 @@ pub struct Sprite {
     pub texture_bind_group: wgpu::BindGroup,
     pub vertex_buffer: wgpu::Buffer,
     pub index_buffer: wgpu::Buffer,
+    pub uniform_buffer: wgpu::Buffer,
+    pub uniform_bind_group: wgpu::BindGroup,
     pub index_count: u32,
+    pub translation: [f32; 4],
+    pub rotation: [f32; 4]
 }
 
 impl Sprite {
@@ -17,44 +22,10 @@ impl Sprite {
         queue: &wgpu::Queue,
         texture_path: &str,
     ) -> Self {
-        let vertices: Vec<Vertex> = Vec::new();
-        let indices: Vec<u16> = Vec::new();
-        
-        // Загружаем текстуру
-        let texture = Texture::from_path(device, queue, texture_path, "sprite_texture")
-            .expect("Failed to load texture");
-        
-        let texture_bind_group = Self::create_texture_bind_group(device, &texture);
-        
-        // Создаём пустые буферы (нужно указать тип)
-        let empty_vertices: &[Vertex] = &[];
-        let empty_indices: &[u16] = &[];
-        
-        let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("Sprite Batch Vertex Buffer"),
-            contents: bytemuck::cast_slice(empty_vertices),
-            usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
-        });
-        
-        let index_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("Sprite Batch Index Buffer"),
-            contents: bytemuck::cast_slice(empty_indices),
-            usage: wgpu::BufferUsages::INDEX | wgpu::BufferUsages::COPY_DST,
-        });
-        
-        Self {
-            vertices,
-            indices,
-            texture_bind_group,
-            vertex_buffer,
-            index_buffer,
-            index_count: 0,
-        }
-    }
-    
-    pub fn add_sprite(&mut self, x: f32, y: f32, z: f32, sprite_x: u32, sprite_y: u32) {
-        let base_index = self.vertices.len() as u16;
-        
+
+        let sprite_x = 0;
+        let sprite_y = 0;
+
         // Размеры атласа
         let atlas_width = 2.0;
         let atlas_height = 2.0;
@@ -68,35 +39,118 @@ impl Sprite {
         let top = sprite_y as f32 * tile_h;
         let bottom = (sprite_y as f32 + 1.0) * tile_h;
         
-        self.vertices.push(Vertex { 
-            position: [-0.5 + x, 0.5 + y, z], 
-            tex_coord: [left, top],
-        });
-        self.vertices.push(Vertex { 
-            position: [-0.5 + x, -0.5 + y, z], 
-            tex_coord: [left, bottom],
-        });
-        self.vertices.push(Vertex { 
-            position: [0.5 + x, -0.5 + y, z], 
-            tex_coord: [right, bottom],
-        });
-        self.vertices.push(Vertex { 
-            position: [0.5 + x, 0.5 + y, z], 
-            tex_coord: [right, top],
+
+        // model
+        let vertices: Vec<Vertex> = vec![
+            Vertex { 
+                position: [-0.5, 0.5, 0.0], 
+                tex_coord: [left, top],
+            },
+            Vertex { 
+                position: [-0.5, -0.5, 0.0], 
+                tex_coord: [left, bottom],
+            },
+            Vertex { 
+                position: [0.5, -0.5, 0.0], 
+                tex_coord: [right, bottom],
+            },
+            Vertex { 
+                position: [0.5, 0.5, 0.0], 
+                tex_coord: [right, top],
+            }
+        ];
+        let indices: Vec<u16> = vec![
+            0, 1, 2,
+            0, 2, 3,
+        ];
+        
+        // Загружаем текстуру
+        let texture = Texture::from_path(device, queue, texture_path, "sprite_texture")
+            .expect("Failed to load texture");
+        
+        let texture_bind_group = Self::create_texture_bind_group(device, &texture);
+        
+        
+        let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("Sprite Batch Vertex Buffer"),
+            contents: bytemuck::cast_slice(&vertices),
+            usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
         });
         
-        self.indices.push(base_index);
-        self.indices.push(base_index + 1);
-        self.indices.push(base_index + 2);
-        self.indices.push(base_index);
-        self.indices.push(base_index + 2);
-        self.indices.push(base_index + 3);
+        let index_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("Sprite Batch Index Buffer"),
+            contents: bytemuck::cast_slice(&indices),
+            usage: wgpu::BufferUsages::INDEX | wgpu::BufferUsages::COPY_DST,
+        });
+
+        let uniforms = Uniforms { 
+            translation: [0.0, 0.0, 0.0, 0.0],
+            rotation: [0.0, 0.0, 0.0, 0.0],
+            _padding: [0.0; 3],
+        };
+
+
+        let uniform_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("Uniform Buffer"),
+            contents: bytemuck::cast_slice(&[uniforms]),
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+        });
+
+        let uniform_bind_group = Self::create_uniform_bind_group(device, &uniform_buffer);
+
+        Self {
+            translation: [0.0, 0.0, 0.0, 0.0],
+            rotation: [0.0, 0.0, 0.0, 0.0],
+            uniform_buffer,
+            vertices,
+            indices,
+            texture_bind_group,
+            vertex_buffer,
+            index_buffer,
+            index_count: 0,
+            uniform_bind_group,
+        }
+    }
+
+    fn create_uniform_bind_group(device: &wgpu::Device, uniform_buffer: &wgpu::Buffer) -> wgpu::BindGroup {
+        let layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            label: Some("Uniform Bind Group Layout"),
+            entries: &[wgpu::BindGroupLayoutEntry {
+                binding: 0,
+                visibility: wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
+                ty: wgpu::BindingType::Buffer {
+                    ty: wgpu::BufferBindingType::Uniform,
+                    has_dynamic_offset: false,
+                    min_binding_size: None,
+                },
+                count: None,
+            }],
+        });
+        
+        device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: Some("Uniform Bind Group"),
+            layout: &layout,
+            entries: &[wgpu::BindGroupEntry {
+                binding: 0,
+                resource: uniform_buffer.as_entire_binding(),
+            }],
+        })
     }
     
     pub fn build_buffers(&mut self, device: &wgpu::Device) {
-        if self.vertices.is_empty() {
-            return;
-        }
+        let uniforms = Uniforms { 
+            translation: self.translation,
+            rotation: self.rotation,
+            _padding: [0.0; 3],
+        };
+
+        self.uniform_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("Uniform Buffer"),
+            contents: bytemuck::cast_slice(&[uniforms]),
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+        });
+
+        self.uniform_bind_group = Self::create_uniform_bind_group(device, &self.uniform_buffer);
         
         self.vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Sprite Batch Vertex Buffer"),
@@ -150,5 +204,53 @@ impl Sprite {
                 },
             ],
         })
+    }
+
+    pub fn update_sprite_position(&mut self, sprite_index: usize, new_x: f32, new_y: f32, new_z: f32) {
+        let vertex_index = sprite_index * 4;
+        
+        if vertex_index + 3 < self.vertices.len() {
+            // Получаем текущие UV координаты (они не меняются)
+            let tex_coords = [
+                self.vertices[vertex_index].tex_coord,
+                self.vertices[vertex_index + 1].tex_coord,
+                self.vertices[vertex_index + 2].tex_coord,
+                self.vertices[vertex_index + 3].tex_coord,
+            ];
+            
+            // Обновляем позиции всех 4 вершин спрайта
+            self.vertices[vertex_index] = Vertex {
+                position: [-0.5 + new_x, 0.5 + new_y, new_z],
+                tex_coord: tex_coords[0],
+            };
+            self.vertices[vertex_index + 1] = Vertex {
+                position: [-0.5 + new_x, -0.5 + new_y, new_z],
+                tex_coord: tex_coords[1],
+            };
+            self.vertices[vertex_index + 2] = Vertex {
+                position: [0.5 + new_x, -0.5 + new_y, new_z],
+                tex_coord: tex_coords[2],
+            };
+            self.vertices[vertex_index + 3] = Vertex {
+                position: [0.5 + new_x, 0.5 + new_y, new_z],
+                tex_coord: tex_coords[3],
+            };
+        }
+    }
+    
+    // Обновление буфера после изменения позиций
+    pub fn update_vertex_buffer(&mut self, device: &wgpu::Device) {
+        if !self.vertices.is_empty() {
+            self.vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                label: Some("Sprite Batch Vertex Buffer"),
+                contents: bytemuck::cast_slice(&self.vertices),
+                usage: wgpu::BufferUsages::VERTEX,
+            });
+        }
+    }
+    
+    // Получить количество спрайтов в батчере
+    pub fn sprite_count(&self) -> usize {
+        self.vertices.len() / 4
     }
 }

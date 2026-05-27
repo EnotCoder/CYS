@@ -2,7 +2,6 @@
 use egui::{Context, Window};
 
 use crate::Slot;
-use crate::Object;
 
 pub struct UiState {
     pub show_panel: bool,

@@ -16,6 +16,9 @@ pub struct Sprite {
     pub translation: [f32; 4],
     pub rotation: [f32; 4],
     pub index_format: wgpu::IndexFormat,
+    pub texture_path: String,
+    pub texture_frame: [i32; 2],
+    pub texture_count: [i32; 2],
 }
 
 impl Sprite {
@@ -24,15 +27,15 @@ impl Sprite {
         queue: &wgpu::Queue,
         texture_path: &str,
         texture_frame: [i32; 2],
-        textures_count: i32,
+        texture_count: [i32; 2],
     ) -> Self {
 
         let sprite_x = texture_frame[0];
         let sprite_y = texture_frame[1];
 
         // Размеры атласа
-        let atlas_width = textures_count as f32;
-        let atlas_height = textures_count as f32;
+        let atlas_width = texture_count[0] as f32;
+        let atlas_height = texture_count[1] as f32;
         
         // Вычисляем UV координаты для выбранного спрайта
         let tile_w = 1.0 / atlas_width;   // 0.5
@@ -113,6 +116,9 @@ impl Sprite {
             index_count,
             uniform_bind_group,
             index_format: wgpu::IndexFormat::Uint16,
+            texture_path: texture_path.to_string(),
+            texture_frame,
+            texture_count,
         }
     }
     

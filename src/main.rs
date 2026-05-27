@@ -16,6 +16,7 @@ mod texture;
 mod egui_manager;
 mod ui_panels;
 mod sprite_manager;
+mod slot_object;
 
 use egui_manager::EguiManager;
 use ui_panels::UiState;
@@ -24,25 +25,7 @@ use ui_panels::UiState;
 use buffers::*;
 use render::*;
 use sprite_manager::*;
-
-struct GameObjects {
-    cursor: Sprite,
-    map: Vec<Sprite>,
-    decor: Vec<Sprite>,
-}
-
-struct Object{
-    sprite: Sprite,
-    width: i32,
-    height: i32,
-    name: String,
-}
-
-struct Slot{
-    id: i32,
-    obj: Object,
-    active: bool,
-}
+use slot_object::*;
 
 #[tokio::main]
 async fn main() {
@@ -118,7 +101,7 @@ async fn main() {
 
     // Создаём блок
 
-    let mut cursor: Sprite = Sprite::new(&device, &queue, "./tex/def_cursor.png", [0,0], 1);
+    let mut cursor: Sprite = Sprite::new(&device, &queue, "./tex/def_cursor.png", [0,0], [1,1]);
     cursor.translation = [4.0,4.0,0.0,1.0];
     cursor.build_buffers(&device);
 
@@ -127,7 +110,7 @@ async fn main() {
 
     for i in 0..10{
         for j in 0..10{
-            let mut block: Sprite = Sprite::new(&device, &queue, "tex/floor.png", [0,0], 2);
+            let mut block: Sprite = Sprite::new(&device, &queue, "tex/floor.png", [0,0], [2,2]);
             block.translation = [i as f32 - 4.0, j as f32 - 4.0, 0.0, 1.0];
             block.build_buffers(&device);
 
@@ -135,7 +118,7 @@ async fn main() {
         }
     }
 
-    let mut game : GameObjects = GameObjects {cursor, map, decor};
+    let mut game : GameObjects = GameObjects {cursor, map, decor, groups: Vec::new(),};
 
     //shaders
     //получаем код шейдера
@@ -299,16 +282,24 @@ async fn main() {
         Slot{
             id: 1,
             obj: Object{
-                sprite: Sprite::new(&device, &queue, "tex/decor.png", [0,0], 2),
+                sprite: Sprite::new(&device, &queue, "tex/decor.png", [0,0], [2,2]),
                 width: 1, height: 1, name: String::from("table"),
             },
             active: true,
         },
         Slot{
-            id: 1,
+            id: 2,
             obj: Object{
-                sprite: Sprite::new(&device, &queue, "tex/decor.png", [1,0], 2),
+                sprite: Sprite::new(&device, &queue, "tex/decor.png", [1,0], [2,2]),
                 width: 1, height: 1, name: String::from("carpet"),
+            },
+            active: false,
+        },
+        Slot{
+            id: 3,
+            obj: Object{
+                sprite: Sprite::new(&device, &queue, "tex/light.png", [0,0], [1,1]),
+                width: 1, height: 2, name: String::from("lamp"),
             },
             active: false,
         },
@@ -329,7 +320,7 @@ async fn main() {
             Slot {
                 id: 1,
                 obj: Object {
-                    sprite: Sprite::new(&device, &queue, "tex/decor.png", [0,0], 2),
+                    sprite: Sprite::new(&device, &queue, "tex/decor.png", [0,0], [2,2]),
                     width: 1, height: 1, name: String::from("table"),
                 },
                 active: true,
@@ -337,8 +328,16 @@ async fn main() {
             Slot {
                 id: 2,
                 obj: Object {
-                    sprite: Sprite::new(&device, &queue, "tex/decor.png", [1,0], 2),
+                    sprite: Sprite::new(&device, &queue, "tex/decor.png", [1,0], [2,2]),
                     width: 1, height: 1, name: String::from("carpet"),
+                },
+                active: false,
+            },
+            Slot{
+                id: 3,
+                obj: Object{
+                    sprite: Sprite::new(&device, &queue, "tex/light.png", [0,0], [1,2]),
+                    width: 1, height: 2, name: String::from("lamp"),
                 },
                 active: false,
             },
@@ -357,37 +356,15 @@ async fn main() {
         //Input
         if input.update(&event) {
             if input.key_pressed(KeyCode::KeyF) {
-                match mode{
+                match mode {
                     0 => {},
-                    1 =>{
-                            let active_slot = &slots[act_slot as usize];
-                            let texture_path = if active_slot.obj.name == "table" {
-                                "tex/decor.png"
-                            } else {
-                                "tex/decor.png"  // или другой путь
-                            };
-                            let frame = if active_slot.obj.name == "table" {
-                                [0, 0]
-                            } else {
-                                [1, 0]
-                            };
-
-                        let mut block: Sprite = Sprite::new(&device, &queue, texture_path, frame, 2);
-                        block.translation = game.cursor.translation;
-                        block.build_buffers(&device);
-
-                        game.decor.push(block);
+                    1 => {
+                        add(&device, &queue, &mut game, &mut slots, act_slot);
                     },
                     2 => {
-                        for i in 0..game.decor.len(){
-                            if game.decor[i].translation == game.cursor.translation{
-                                game.decor.remove(i);
-                                break;
-                            }
-                        }
+                       remove(&mut game); 
                     },
-
-                    _ => {} 
+                    _ => {}
                 }
             }
 
@@ -408,28 +385,28 @@ async fn main() {
                 ui_state.mode = mode;
             }
 
-            if input.key_pressed(KeyCode::KeyW) {
-                if game.cursor.translation[1] < 4.0{
-                    game.cursor.translation[1] += 1.0;
-                    game.cursor.build_buffers(&device);
-                }
-            }
-
             if input.key_pressed(KeyCode::KeyQ) {
                 if act_slot >= 0 && (act_slot as usize) < slots.len() {
                     slots[act_slot as usize].active = false;
                     ui_state.slots[act_slot as usize].active = false;
                 }
                 
-                if act_slot == 0 {
-                    act_slot = 1;
-                } else {
+                if act_slot == 2 {
                     act_slot = 0;
+                } else {
+                    act_slot += 1;
                 }
                 
                 if act_slot >= 0 && (act_slot as usize) < slots.len() {
                     slots[act_slot as usize].active = true;
                     ui_state.slots[act_slot as usize].active = true;
+                }
+            }
+
+            if input.key_pressed(KeyCode::KeyW) {
+                if game.cursor.translation[1] < 4.0{
+                    game.cursor.translation[1] += 1.0;
+                    game.cursor.build_buffers(&device);
                 }
             }
 

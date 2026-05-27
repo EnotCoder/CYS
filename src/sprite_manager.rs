@@ -30,6 +30,7 @@ impl Sprite {
         texture_count: [i32; 2],
     ) -> Self {
 
+        
         let sprite_x = texture_frame[0];
         let sprite_y = texture_frame[1];
 

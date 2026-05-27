@@ -101,7 +101,7 @@ async fn main() {
 
     // Создаём блок
 
-    let mut cursor: Sprite = Sprite::new(&device, &queue, "./tex/def_cursor.png", [0,0], [1,1]);
+    let mut cursor: Sprite = Sprite::new(&device, &queue, "./tex/cursor/def_cursor.png", [0,0], [1,1]);
     cursor.translation = [4.0,4.0,0.0,1.0];
     cursor.build_buffers(&device);
 
@@ -282,15 +282,15 @@ async fn main() {
         Slot{
             id: 1,
             obj: Object{
-                sprite: Sprite::new(&device, &queue, "tex/decor.png", [0,0], [2,2]),
-                width: 1, height: 1, name: String::from("table"),
+                sprite: Sprite::new(&device, &queue, "tex/decor/table.png", [1,0], [2,1]),
+                width: 2, height: 1, name: String::from("table"),
             },
             active: true,
         },
         Slot{
             id: 2,
             obj: Object{
-                sprite: Sprite::new(&device, &queue, "tex/decor.png", [1,0], [2,2]),
+                sprite: Sprite::new(&device, &queue, "tex/decor/carpet.png", [0,0], [2,2]),
                 width: 1, height: 1, name: String::from("carpet"),
             },
             active: false,
@@ -298,8 +298,8 @@ async fn main() {
         Slot{
             id: 3,
             obj: Object{
-                sprite: Sprite::new(&device, &queue, "tex/light.png", [0,0], [1,1]),
-                width: 1, height: 2, name: String::from("lamp"),
+                sprite: Sprite::new(&device, &queue, "tex/decor/sign.png", [0,0], [1,1]),
+                width: 1, height: 1, name: String::from("lamp"),
             },
             active: false,
         },
@@ -320,15 +320,15 @@ async fn main() {
             Slot {
                 id: 1,
                 obj: Object {
-                    sprite: Sprite::new(&device, &queue, "tex/decor.png", [0,0], [2,2]),
-                    width: 1, height: 1, name: String::from("table"),
+                    sprite: Sprite::new(&device, &queue, "tex/decor/table.png", [0,0], [2,1]),
+                    width: 2, height: 1, name: String::from("table"),
                 },
                 active: true,
             },
             Slot {
                 id: 2,
                 obj: Object {
-                    sprite: Sprite::new(&device, &queue, "tex/decor.png", [1,0], [2,2]),
+                    sprite: Sprite::new(&device, &queue, "tex/decor/carpet.png", [0,0], [2,2]),
                     width: 1, height: 1, name: String::from("carpet"),
                 },
                 active: false,
@@ -336,8 +336,8 @@ async fn main() {
             Slot{
                 id: 3,
                 obj: Object{
-                    sprite: Sprite::new(&device, &queue, "tex/light.png", [0,0], [1,2]),
-                    width: 1, height: 2, name: String::from("lamp"),
+                    sprite: Sprite::new(&device, &queue, "tex/decor/sign.png", [0,0], [1,1]),
+                    width: 1, height: 1, name: String::from("lamp"),
                 },
                 active: false,
             },
@@ -376,9 +376,9 @@ async fn main() {
                 }
 
                 match mode{
-                    0 => game.cursor.update_texture(&device, &queue, "./tex/def_cursor.png"),
-                    1 => game.cursor.update_texture(&device, &queue, "./tex/cursor.png"),
-                    2 => game.cursor.update_texture(&device, &queue, "./tex/del_cursor.png"),
+                    0 => game.cursor.update_texture(&device, &queue, "tex/cursor/def_cursor.png"),
+                    1 => game.cursor.update_texture(&device, &queue, "tex/cursor/cursor.png"),
+                    2 => game.cursor.update_texture(&device, &queue, "tex/cursor/del_cursor.png"),
                     _ => ()
                 }
 

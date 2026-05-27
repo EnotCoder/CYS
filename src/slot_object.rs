@@ -48,10 +48,12 @@ pub fn add(
         // Создаём блоки для каждой клетки
         for i in 0..width {
             for j in 0..height {
+                let frame = &active_slot.obj.sprite.texture_frame;
+
                 let mut block = Sprite::new(
                     &device, &queue,
                     &active_slot.obj.sprite.texture_path,
-                    active_slot.obj.sprite.texture_frame,
+                    [width-1-i + frame[0], height-j-1 + frame[1]],
                     active_slot.obj.sprite.texture_count,
                 );
                 block.translation = [

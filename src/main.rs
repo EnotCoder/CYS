@@ -7,7 +7,6 @@ use wgpu::*;
 use winit::dpi::PhysicalSize;
 use tokio;
 
-use winit::keyboard::KeyCode;
 use winit_input_helper::WinitInputHelper;
 
 mod buffers;
@@ -17,6 +16,7 @@ mod egui_manager;
 mod ui_panels;
 mod sprite_manager;
 mod slot_object;
+mod input;
 
 use egui_manager::EguiManager;
 use ui_panels::UiState;
@@ -26,6 +26,7 @@ use buffers::*;
 use render::*;
 use sprite_manager::*;
 use slot_object::*;
+use input::*;
 
 #[tokio::main]
 async fn main() {
@@ -355,81 +356,13 @@ async fn main() {
 
         //Input
         if input.update(&event) {
-            if input.key_pressed(KeyCode::KeyF) {
-                match mode {
-                    0 => {},
-                    1 => {
-                        add(&device, &queue, &mut game, &mut slots, act_slot);
-                    },
-                    2 => {
-                       remove(&mut game); 
-                    },
-                    _ => {}
-                }
-            }
-
-            if input.key_pressed(KeyCode::Tab) {
-                if mode == 2{
-                    mode = 0
-                }else{
-                    mode += 1;
-                }
-
-                match mode{
-                    0 => game.cursor.update_texture(&device, &queue, "tex/cursor/def_cursor.png"),
-                    1 => game.cursor.update_texture(&device, &queue, "tex/cursor/cursor.png"),
-                    2 => game.cursor.update_texture(&device, &queue, "tex/cursor/del_cursor.png"),
-                    _ => ()
-                }
-
-                ui_state.mode = mode;
-            }
-
-            if input.key_pressed(KeyCode::KeyQ) {
-                if act_slot >= 0 && (act_slot as usize) < slots.len() {
-                    slots[act_slot as usize].active = false;
-                    ui_state.slots[act_slot as usize].active = false;
-                }
-                
-                if act_slot == 2 {
-                    act_slot = 0;
-                } else {
-                    act_slot += 1;
-                }
-                
-                if act_slot >= 0 && (act_slot as usize) < slots.len() {
-                    slots[act_slot as usize].active = true;
-                    ui_state.slots[act_slot as usize].active = true;
-                }
-            }
-
-            if input.key_pressed(KeyCode::KeyW) {
-                if game.cursor.translation[1] < 4.0{
-                    game.cursor.translation[1] += 1.0;
-                    game.cursor.build_buffers(&device);
-                }
-            }
-
-            if input.key_pressed(KeyCode::KeyS) {
-                if game.cursor.translation[1] > -4.0{
-                    game.cursor.translation[1] -= 1.0;
-                    game.cursor.build_buffers(&device);
-                }
-            }
-
-            if input.key_pressed(KeyCode::KeyA) {
-                if game.cursor.translation[0] > -4.0{
-                    game.cursor.translation[0] -= 1.0;
-                    game.cursor.build_buffers(&device);
-                }
-            }
-
-            if input.key_pressed(KeyCode::KeyD) {
-                if game.cursor.translation[0] < 4.0{
-                    game.cursor.translation[0] += 1.0;
-                    game.cursor.build_buffers(&device);
-                }
-            }
+            let (new_act_slot, new_mode) = do_input(
+                &device, &queue, &input,
+                &mut game, &mut slots, act_slot, mode,
+                &mut ui_state,
+            );
+            act_slot = new_act_slot;
+            mode = new_mode;
         }
 
         let uniforms = Uniforms { translation, rotation, _padding: [0.0; 3],};

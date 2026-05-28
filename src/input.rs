@@ -57,7 +57,7 @@ pub fn do_input(
             ui_state.slots[new_act_slot as usize].active = false;
         }
         
-        if new_act_slot == 2 {
+        if new_act_slot == 4 {
             new_act_slot = 0;
         } else {
             new_act_slot += 1;

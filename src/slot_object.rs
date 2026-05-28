@@ -66,7 +66,7 @@ pub fn add(
                 ];
                 block.build_buffers(&device);
                 
-                let mut index;
+                let index;
                 if act_slot == 1{
                     game.carpets.push(block);
                     index = game.carpets.len()-1;

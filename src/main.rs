@@ -82,8 +82,8 @@ async fn main() {
         Slot{
             id: 1,
             obj: Object{
-                sprite: Sprite::new(&wgpu_app.device, &wgpu_app.queue, "tex/decor/table.png", [1,0], [2,1]),
-                width: 2, height: 1, name: String::from("table"),
+                sprite: Sprite::new(&wgpu_app.device, &wgpu_app.queue, "tex/decor/box.png", [0,0], [1,1]),
+                width: 1, height: 1, name: String::from("box"),
             },
             active: true,
         },
@@ -98,8 +98,24 @@ async fn main() {
         Slot{
             id: 3,
             obj: Object{
-                sprite: Sprite::new(&wgpu_app.device, &wgpu_app.queue, "tex/decor/sign.png", [0,0], [1,1]),
+                sprite: Sprite::new(&wgpu_app.device, &wgpu_app.queue, "logo.png", [0,0], [1,1]),
                 width: 1, height: 1, name: String::from("lamp"),
+            },
+            active: false,
+        },
+        Slot{
+            id: 4,
+            obj: Object{
+                sprite: Sprite::new(&wgpu_app.device, &wgpu_app.queue, "tex/decor/table.png", [1,0], [2,1]),
+                width: 2, height: 1, name: String::from("table"),
+            },
+            active: false,
+        },
+        Slot{
+            id: 5,
+            obj: Object{
+                sprite: Sprite::new(&wgpu_app.device, &wgpu_app.queue, "tex/decor/rack.png", [0,0], [1,2]),
+                width: 1, height: 2, name: String::from("rack"),
             },
             active: false,
         },
@@ -120,9 +136,8 @@ async fn main() {
             Slot {
                 id: 1,
                 obj: Object {
-                    sprite: Sprite::new(&wgpu_app.device, &wgpu_app.queue, 
-                        "tex/decor/table.png", [0,0], [2,1]),
-                    width: 2, height: 1, name: String::from("table"),
+                    sprite: Sprite::new(&wgpu_app.device, &wgpu_app.queue, "tex/decor/box.png", [0,0], [1,1]),
+                    width: 1, height: 1, name: String::from("box"),
                 },
                 active: true,
             },
@@ -139,6 +154,22 @@ async fn main() {
                 obj: Object{
                     sprite: Sprite::new(&wgpu_app.device, &wgpu_app.queue, "tex/decor/sign.png", [0,0], [1,1]),
                     width: 1, height: 1, name: String::from("lamp"),
+                },
+                active: false,
+            },
+            Slot{
+                id: 4,
+                obj: Object{
+                    sprite: Sprite::new(&wgpu_app.device, &wgpu_app.queue, "tex/decor/table.png", [1,0], [2,1]),
+                    width: 2, height: 1, name: String::from("table"),
+                },
+                active: false,
+            },
+            Slot{
+                id: 5,
+                obj: Object{
+                    sprite: Sprite::new(&wgpu_app.device, &wgpu_app.queue, "tex/decor/rack.png", [0,0], [1,2]),
+                    width: 1, height: 2, name: String::from("rack"),
                 },
                 active: false,
             },

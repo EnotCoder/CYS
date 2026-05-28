@@ -12,12 +12,14 @@ pub struct GroupInfo {
     pub height: i32,
     pub pos_x: i32,
     pub pos_y: i32,
+    pub is_carpet: bool,
 }
 
 pub struct GameObjects {
     pub cursor: Sprite,
     pub map: Vec<Sprite>,
     pub decor: Vec<Sprite>,
+    pub carpets: Vec<Sprite>,
     pub groups: Vec<GroupInfo>,
 }
 
@@ -42,7 +44,7 @@ pub fn add(
     let height = active_slot.obj.height;
     
     // Проверяем можно ли поставить объект
-    if can_place_object(&game, cursor_x, cursor_y, width, height) {
+    if can_place_object(&game, cursor_x, cursor_y, width, height, act_slot) {
         let mut block_indices = Vec::new();
         
         // Создаём блоки для каждой клетки
@@ -64,12 +66,26 @@ pub fn add(
                 ];
                 block.build_buffers(&device);
                 
-                let index = game.decor.len();
-                game.decor.push(block);
+                let mut index;
+                if act_slot == 1{
+                    game.carpets.push(block);
+                    index = game.carpets.len()-1;
+                }else{
+                    game.decor.push(block);
+                    index = game.decor.len()-1;
+                }
                 block_indices.push(index);
             }
         }
         
+        let is_carpet = {
+            if act_slot == 1{
+                true
+            }else{
+                false
+            }
+        };
+
         // Сохраняем информацию о группе для удаления
         game.groups.push(GroupInfo {
             blocks: block_indices,
@@ -77,7 +93,9 @@ pub fn add(
             height,
             pos_x: cursor_x,
             pos_y: cursor_y,
+            is_carpet
         });
+        
     }
 }
 
@@ -106,7 +124,11 @@ pub fn remove(
         indices_to_remove.sort_by(|a, b| b.cmp(a));  // сортируем по убыванию
         
         for index in &indices_to_remove {
-            game.decor.remove(*index);
+            if group.is_carpet{
+                game.carpets.remove(*index);
+            }else{
+                game.decor.remove(*index);
+            }
         }
         
         // Обновляем индексы в оставшихся группах
@@ -124,7 +146,7 @@ pub fn remove(
     }
 }
 
-pub fn can_place_object(game: &GameObjects, x: i32, y: i32, width: i32, height: i32) -> bool {
+pub fn can_place_object(game: &GameObjects, x: i32, y: i32, width: i32, height: i32, act_slot: i32) -> bool {
     // Проверка границ
     if x < -4 || x + width > 5 || y < -4 || y + height > 5 {
         return false;
@@ -136,20 +158,30 @@ pub fn can_place_object(game: &GameObjects, x: i32, y: i32, width: i32, height: 
             let check_x = x + i;
             let check_y = y + j;
             
-            // Проверяем существующие группы
-            for group in &game.groups {
-                if check_x >= group.pos_x && check_x < group.pos_x + group.width &&
-                   check_y >= group.pos_y && check_y < group.pos_y + group.height {
-                    return false;
+            if act_slot == 1{
+                for carpet in &game.carpets {
+                    let dx = (carpet.translation[0] - check_x as f32).abs();
+                    let dy = (carpet.translation[1] - check_y as f32).abs();
+                    if dx < 0.5 && dy < 0.5 {
+                        return false;
+                    }
                 }
-            }
-            
-            // Проверяем отдельные блоки
-            for decor in &game.decor {
-                let dx = (decor.translation[0] - check_x as f32).abs();
-                let dy = (decor.translation[1] - check_y as f32).abs();
-                if dx < 0.5 && dy < 0.5 {
-                    return false;
+            }else{
+                // Проверяем существующие группы
+                for group in &game.groups {
+                    if check_x >= group.pos_x && check_x < group.pos_x + group.width &&
+                    check_y >= group.pos_y && check_y < group.pos_y + group.height && !group.is_carpet{
+                        return false;
+                    }
+                }
+                
+                // Проверяем отдельные блоки
+                for decor in &game.decor {
+                    let dx = (decor.translation[0] - check_x as f32).abs();
+                    let dy = (decor.translation[1] - check_y as f32).abs();
+                    if dx < 0.5 && dy < 0.5 {
+                        return false;
+                    }
                 }
             }
         }

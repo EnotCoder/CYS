@@ -56,6 +56,7 @@ async fn main() {
 
     let mut map:Vec<Sprite> = Vec::new();
     let decor:Vec<Sprite> = Vec::new();
+    let carpets:Vec<Sprite> = Vec::new();
 
     for i in 0..10{
         for j in 0..10{
@@ -67,7 +68,7 @@ async fn main() {
         }
     }
 
-    let mut game : GameObjects = GameObjects {cursor, map, decor, groups: Vec::new()};
+    let mut game : GameObjects = GameObjects {cursor, map, carpets, decor, groups: Vec::new()};
 
     //main loop vars
     let mut input = WinitInputHelper::new();
@@ -189,6 +190,7 @@ async fn main() {
             } => {
 
                 let mut opaque_models = vec![];
+                opaque_models.extend(game.carpets.iter());
                 opaque_models.extend(game.map.iter());
 
                 let mut transparent_models = vec![];

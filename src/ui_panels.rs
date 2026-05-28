@@ -27,14 +27,14 @@ impl UiState {
         }
         
         // Главное окно управления
-        Window::new("TMV Alpha")
+        Window::new("CYS Pre-Alpha")
             .default_pos([10.0, 10.0])
             .default_size([280.0, 400.0])
             .resizable(false)
             .movable(false)
             .title_bar(false)
             .show(ctx, |ui| {
-                ui.heading("Create your shop (V-Test)");
+                ui.heading("Create your shop (V-Pre Alpha)");
                 ui.separator();
                 ui.label(format!("Gamemode is {}",self.mode));
                 ui.separator();

@@ -4,6 +4,10 @@ struct Uniforms {
     rotation: vec4<f32>,
 };
 
+struct Size {
+    map_size: f32,
+};
+
 @group(0) @binding(0)
 var<uniform> uniforms: Uniforms;
 
@@ -13,6 +17,9 @@ var my_texture: texture_2d<f32>;
 
 @group(1) @binding(1)
 var my_sampler: sampler;
+
+@group(2) @binding(0)
+var<uniform> size_uniform: Size;
 
 struct VertexOutput {
     @builtin(position) position: vec4<f32>,
@@ -68,7 +75,7 @@ fn vs_main(
     // Применяем трансляцию
     let world_pos = rotated + uniforms.translation.xyz;
     
-    let size = 0.223;
+    let size = 0.223 * size_uniform.map_size;
 
     // Без матрицы! Просто передаём координаты
     output.position = vec4<f32>(world_pos.x * size, world_pos.y * size, 0.0, 1.0);

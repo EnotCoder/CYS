@@ -18,6 +18,8 @@ pub fn render(
     run_ui: impl FnOnce(&egui::Context),
     opaque_models: &[&Sprite],      // непрозрачные
     transparent_models: &[&Sprite], // прозрачные
+
+    size_bind_group: &wgpu::BindGroup,
 ) {
     let frame = match surface.get_current_texture() {
         Ok(frame) => frame,
@@ -62,6 +64,7 @@ pub fn render(
             render_pass.set_pipeline(render_pipeline);
             render_pass.set_bind_group(0, &model.uniform_bind_group, &[]);
             render_pass.set_bind_group(1, &model.texture_bind_group, &[]);
+            render_pass.set_bind_group(2, &size_bind_group, &[]);
             render_pass.set_vertex_buffer(0, model.vertex_buffer.slice(..));
             render_pass.set_index_buffer(model.index_buffer.slice(..), model.index_format );
             render_pass.draw_indexed(0..model.index_count, 0, 0..1);
@@ -103,6 +106,7 @@ pub fn render(
         for model in &sorted_transparent {
             render_pass.set_bind_group(0, &model.uniform_bind_group, &[]);
             render_pass.set_bind_group(1, &model.texture_bind_group, &[]);
+            render_pass.set_bind_group(2, &size_bind_group, &[]);
             render_pass.set_vertex_buffer(0, model.vertex_buffer.slice(..));
             render_pass.set_index_buffer(model.index_buffer.slice(..), model.index_format );
             render_pass.draw_indexed(0..model.index_count, 0, 0..1);

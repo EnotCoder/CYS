@@ -5,7 +5,6 @@ use winit::{
 };
 use winit::dpi::PhysicalSize;
 use tokio;
-
 use winit_input_helper::WinitInputHelper;
 
 mod buffers;
@@ -29,6 +28,7 @@ use slot_object::*;
 use input::*;
 use init::*;
 
+
 #[tokio::main]
 async fn main() {
 
@@ -42,6 +42,7 @@ async fn main() {
         .unwrap();
 
     let mut wgpu_app = WgpuApp::new(&window).await;
+
 
     //поверхность
     let surface = wgpu_app.instance.create_surface(&window)
@@ -58,8 +59,8 @@ async fn main() {
     let decor:Vec<Sprite> = Vec::new();
     let carpets:Vec<Sprite> = Vec::new();
 
-    for i in 0..10{
-        for j in 0..10{
+    for i in 0..9{
+        for j in 0..9{
             let mut block: Sprite = Sprite::new(&wgpu_app.device, &wgpu_app.queue, "tex/floor.png", [0,0], [2,2]);
             block.translation = [i as f32 - 4.0, j as f32 - 4.0, 0.0, 1.0];
             block.build_buffers(&wgpu_app.device);
@@ -176,6 +177,8 @@ async fn main() {
         ],
     );
 
+    let mut map_size:f32 = 1.0;
+
     // main loop
     let _ = event_loop.run(|event, event_loop_target| {
 
@@ -187,18 +190,22 @@ async fn main() {
 
         //Input
         if input.update(&event) {
-            let (new_act_slot, new_mode) = do_input(
+            let (new_act_slot, new_mode, new_size) = do_input(
                 &wgpu_app.device, &wgpu_app.queue, &input,
                 &mut game, &mut slots, act_slot, mode,
-                &mut ui_state,
+                &mut ui_state, map_size,
             );
             act_slot = new_act_slot;
             mode = new_mode;
+            map_size = new_size;
         }
 
         let uniforms = Uniforms { translation: [0.0, 0.0, 0.0, 0.0], 
             rotation: [0.0, 0.0, 0.0, 0.0], _padding: [0.0; 3],};
         wgpu_app.queue.write_buffer(&wgpu_app.uniform_buffer, 0, bytemuck::cast_slice(&[uniforms]));
+
+        let size = Size{map_size};
+        wgpu_app.queue.write_buffer(&wgpu_app.size_buffer, 0, bytemuck::cast_slice(&[size]));
 
         //Render
 
@@ -235,7 +242,8 @@ async fn main() {
                     &mut egui_manager,
                     &window,
                     |ctx| ui_state.render(ctx),
-                    &opaque_models, &transparent_models
+                    &opaque_models, &transparent_models,
+                    &wgpu_app.size_bind_group,
                 );
             }
 

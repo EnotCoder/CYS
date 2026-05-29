@@ -1,9 +1,15 @@
 use winit::window::Window;
 use wgpu::*;
-
+use wgpu::util::DeviceExt;
 use crate::init_buffers;
 use crate::Vertex;
 use crate::DepthBuffer;
+
+#[repr(C)]
+#[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
+pub struct Size {
+    pub map_size: f32,
+}
 
 #[allow(dead_code)]
 pub struct WgpuApp {
@@ -14,6 +20,7 @@ pub struct WgpuApp {
 
     pub uniform_buffer: wgpu::Buffer,
     pub depth_stencil: wgpu::DepthStencilState,
+    pub size_buffer: wgpu::Buffer,
     pub transparent_depth_stencil: wgpu::DepthStencilState,
     pub bind_group_layout: wgpu::BindGroupLayout,
     pub bind_group: wgpu::BindGroup,
@@ -23,6 +30,8 @@ pub struct WgpuApp {
     pub render_pipeline: wgpu::RenderPipeline,
     pub transparent_pipeline: wgpu::RenderPipeline,
     pub config: wgpu::SurfaceConfiguration,
+
+    pub size_bind_group: wgpu::BindGroup,
 }
 
 impl WgpuApp{
@@ -106,11 +115,51 @@ impl WgpuApp{
         let shader_module = device.create_shader_module(description);
 
 
+        let map_size = 1.0;
+
+        let size = Size{map_size};
+
+        // Создаём uniform buffer
+        let size_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("Uniform Buffer"),
+            contents: bytemuck::bytes_of(&size),
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+        });
+
+
+        // Создаём bind group layout (описывает доступ к uniform буферу в шейдере)
+        let bind_group_layout_0 = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            label: Some("Bind Group Layout"),
+            entries: &[
+                wgpu::BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: wgpu::ShaderStages::VERTEX,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Uniform,
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                },
+            ],
+        });
+
+        let size_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: Some("Bind Group"),
+            layout: &bind_group_layout_0,
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: size_buffer.as_entire_binding(),
+                },
+            ],
+        });
+
         //Render pipeline
         //PipelineLayout
         let pipeline_layout = device.create_pipeline_layout(&PipelineLayoutDescriptor {
             label: Some("Pipeline Layout"),
-            bind_group_layouts: &[&bind_group_layout, &texture_bind_group_layout],
+            bind_group_layouts: &[&bind_group_layout, &texture_bind_group_layout, &bind_group_layout_0],
             push_constant_ranges: &[], // константы, которые можно быстро обновлять
         });
         let caps = surface.get_capabilities(&addapter);
@@ -245,6 +294,7 @@ impl WgpuApp{
             surface_format,
 
             uniform_buffer,
+            size_buffer,
             depth_stencil,
             transparent_depth_stencil,
             bind_group_layout,
@@ -255,6 +305,7 @@ impl WgpuApp{
             render_pipeline,
             transparent_pipeline,
             config,
+            size_bind_group,
         }
     }
 }

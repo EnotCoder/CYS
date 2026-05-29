@@ -16,10 +16,21 @@ pub fn do_input(
     act_slot: i32,
     mode: i32,
     ui_state: &mut UiState,
-) -> (i32, i32) {
+    map_size: f32,
+) -> (i32, i32, f32) {
 
+    let mut new_size = map_size;
     let mut new_mode = mode;
     let mut new_act_slot = act_slot;
+
+    let scroll = input.scroll_diff();
+    if scroll != (0.0, 0.0) {
+        if scroll.1 > 0.0 && map_size < 1.0{
+            new_size += 0.1;
+        } else if scroll.1 < 0.0 && map_size > 0.4{
+            new_size -= 0.1;
+        }
+    }
 
     if input.key_pressed(KeyCode::KeyF) {
         match mode {
@@ -97,5 +108,5 @@ pub fn do_input(
         }
     }
 
-    (new_act_slot, new_mode)
+    (new_act_slot, new_mode, new_size)
 }

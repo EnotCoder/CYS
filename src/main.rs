@@ -284,8 +284,15 @@ fn get_map(
         }
 
         for i in 0..parts.len(){
-            let mut block: Sprite = Sprite::new(&wgpu_app.device, &wgpu_app.queue, "tex/floor.png", [0,0], [2,2]);
-            block.translation = [i as f32 - 4.0, j as f32 - 4.0, 0.0, 1.0];
+
+            let tex_path = match parts[i] {
+                "1" => "tex/floor.png",
+                "0" => "tex/grass.png",
+                _ => "tex/floor.png",
+            };
+
+            let mut block: Sprite = Sprite::new(&wgpu_app.device, &wgpu_app.queue, tex_path, [0,0], [2,2]);
+            block.translation = [i as f32 - 11.0, j as f32 - 11.0, 0.0, 1.0];
             block.build_buffers(&wgpu_app.device);
 
             map.push(block);

@@ -7,6 +7,9 @@ use winit::dpi::PhysicalSize;
 use tokio;
 use winit_input_helper::WinitInputHelper;
 
+use std::fs::File;
+use std::io::{BufRead, BufReader};
+
 mod buffers;
 mod render;
 mod texture;
@@ -59,15 +62,7 @@ async fn main() {
     let decor:Vec<Sprite> = Vec::new();
     let carpets:Vec<Sprite> = Vec::new();
 
-    for i in 0..9{
-        for j in 0..9{
-            let mut block: Sprite = Sprite::new(&wgpu_app.device, &wgpu_app.queue, "tex/floor.png", [0,0], [2,2]);
-            block.translation = [i as f32 - 4.0, j as f32 - 4.0, 0.0, 1.0];
-            block.build_buffers(&wgpu_app.device);
-
-            map.push(block);
-        }
-    }
+    let _ = get_map(&wgpu_app, &mut map);
 
     let mut game : GameObjects = GameObjects {cursor, map, carpets, decor, groups: Vec::new()};
 
@@ -268,4 +263,36 @@ async fn main() {
         }
     });
 
+}
+
+fn get_map(
+    wgpu_app: &WgpuApp,
+    map: &mut Vec<Sprite>,
+) -> Result<(), Box<dyn std::error::Error>>{
+    let file = File::open("map.txt")?;
+    let reader = BufReader::new(file);
+
+
+    let mut j = 0;
+
+    for line in reader.lines() {
+        let line = line?;
+        let parts: Vec<&str> = line.split_whitespace().collect();
+
+        if parts.is_empty() {
+            continue;
+        }
+
+        for i in 0..parts.len(){
+            let mut block: Sprite = Sprite::new(&wgpu_app.device, &wgpu_app.queue, "tex/floor.png", [0,0], [2,2]);
+            block.translation = [i as f32 - 4.0, j as f32 - 4.0, 0.0, 1.0];
+            block.build_buffers(&wgpu_app.device);
+
+            map.push(block);
+        }
+
+        j += 1;
+    }
+
+    Ok(())
 }

@@ -26,9 +26,9 @@ pub fn do_input(
     let scroll = input.scroll_diff();
     if scroll != (0.0, 0.0) {
         if scroll.1 > 0.0 && map_size < 1.0{
-            new_size += 0.1;
+            new_size += 0.2;
         } else if scroll.1 < 0.0 && map_size > 0.4{
-            new_size -= 0.1;
+            new_size -= 0.2;
         }
     }
 

@@ -1,6 +1,6 @@
 <h1 align="center">Create your Shop (CYS)</h1>
 
-<p align="center">
+<p>
   <img src="logo.png" width="400" alt="Первая">
 </p>
 

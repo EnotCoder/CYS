@@ -288,14 +288,20 @@ fn get_map(
             let (tex_path, tex_pos, tex_cut) = match parts[i] {
                 "0" => ("tex/grass.png", [0,0], [2,2]),
                 "1" => ("tex/floor.png", [0,0], [2,2]),
-                "2" => ("tex/wall.png",  [0,0], [2,3]),
-                "3" => ("tex/wall.png",  [0,1], [2,3]),
+                "2" => ("tex/wall.png",  [0,0], [2,5]),
+                "3" => ("tex/wall.png",  [0,1], [2,5]),
                 
-                "4" => ("tex/wall.png",  [1,0], [2,3]), //door 01
-                "5" => ("tex/wall.png",  [1,1], [2,3]), //door 02
+                "4" => ("tex/wall.png",  [1,0], [2,5]), //door 01
+                "5" => ("tex/wall.png",  [1,1], [2,5]), //door 02
 
-                "6" => ("tex/wall.png",  [0,2], [2,3]), //wall left
-                "7" => ("tex/wall.png",  [1,2], [2,3]), //wall right
+                "6" => ("tex/wall.png",  [0,2], [2,5]), //wall left
+                "7" => ("tex/wall.png",  [1,2], [2,5]), //wall right
+
+                "8" => ("tex/wall.png",  [0,3], [2,5]),
+                "8.1" => ("tex/wall.png",  [0,4], [2,5]),
+
+                "9" => ("tex/wall.png",  [1,3], [2,5]),
+                "9.1" => ("tex/wall.png",  [1,4], [2,5]),
                 _ =>   ("tex/floor.png", [0,0], [2,2]),
             };
 

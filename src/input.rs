@@ -27,7 +27,7 @@ pub fn do_input(
     if scroll != (0.0, 0.0) {
         if scroll.1 > 0.0 && map_size < 1.0{
             new_size += 0.2;
-        } else if scroll.1 < 0.0 && map_size > 0.4{
+        } else if scroll.1 < 0.0 && map_size > 0.5{
             new_size -= 0.2;
         }
     }

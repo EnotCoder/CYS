@@ -102,7 +102,7 @@ impl WgpuApp{
 
         //shaders
         //получаем код шейдера
-        let shader_code = include_str!(".././src/shaders.wgsl");
+        let shader_code = include_str!("shaders.wgsl");
         //shader object
         //описание шейдера
         let description = wgpu::ShaderModuleDescriptor {

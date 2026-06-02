@@ -10,27 +10,22 @@ use winit_input_helper::WinitInputHelper;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 
-mod buffers;
-mod render;
-mod texture;
+mod api_components;
+use api_components::*;
+
 mod egui_manager;
 mod ui_panels;
 mod sprite_manager;
 mod slot_object;
 mod input;
-mod init;
+
 
 use egui_manager::EguiManager;
 use ui_panels::UiState;
 
-
-use buffers::*;
-use render::*;
 use sprite_manager::*;
 use slot_object::*;
 use input::*;
-use init::*;
-
 
 #[tokio::main]
 async fn main() {
@@ -265,10 +260,14 @@ async fn main() {
 
 }
 
+const WORLD_OFFSET_X: f32 = -11.0;
+const WORLD_OFFSET_Y: f32 = 11.0;
+
 fn get_map(
     wgpu_app: &WgpuApp,
     map: &mut Vec<Sprite>,
 ) -> Result<(), Box<dyn std::error::Error>>{
+
     let file = File::open("map.txt")?;
     let reader = BufReader::new(file);
 
@@ -305,8 +304,11 @@ fn get_map(
                 _ =>   ("tex/floor.png", [0,0], [2,2]),
             };
 
+            let x = i as f32 + WORLD_OFFSET_X;
+            let y = -(j as f32) + WORLD_OFFSET_Y;
+
             let mut block: Sprite = Sprite::new(&wgpu_app.device, &wgpu_app.queue, tex_path, tex_pos, tex_cut);
-            block.translation = [i as f32 - 11.0, -j as f32 + 11.0, 0.0, 1.0];
+            block.translation = [x, y, 0.0, 1.0];
             block.build_buffers(&wgpu_app.device);
 
             map.push(block);

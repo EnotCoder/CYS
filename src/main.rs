@@ -204,7 +204,7 @@ async fn main() {
             Event::WindowEvent {
                 event: WindowEvent::CloseRequested,
                 window_id,
-            } if window_id == window_id => {
+            } if window_id == window.id() => {
                 event_loop_target.exit();
             }
             //Redraw window

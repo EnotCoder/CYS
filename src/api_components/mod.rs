@@ -7,4 +7,3 @@ pub mod texture;
 pub use buffers::*;
 pub use init::*;
 pub use render::*;
-pub use texture::*;

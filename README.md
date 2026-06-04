@@ -15,7 +15,8 @@
   <strong>Update history:</strong>
   <small><br>
   "Hello, world" Update - This is first update where i added basic gameplay.<br>
-  "Map" Update - Big map update (not finished).<br>
-  ....<br>
+  "Map" Update - This is Big map update.<br>
+  "Adventure" Update - This is big items update (not finished).<br>
+  ...<br>
   </small>
 </p>

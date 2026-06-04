@@ -24,19 +24,40 @@ pub struct Object{
 
 //game
 pub struct Ui{
-    pub mode_icon: Sprite
+    pub mode_icon: Sprite,
+    pub slots_icons: Vec<Sprite>,
+    pub cursor_slot: Sprite,
 }
 
 impl Ui{
-    pub fn new(device: &wgpu::Device, queue: &wgpu::Queue) -> Self{
+    pub fn new(device: &wgpu::Device, queue: &wgpu::Queue, slots: Vec<Slot>) -> Self{
         let mut mode_icon = 
-            Sprite::new(&device, &queue, "tex/ui/standart_mode.png", [0,0], [1,1]);
+            Sprite::new(&device, &queue, "tex/ui/mode/standart_mode.png", [0,0], [1,1]);
 
         mode_icon.translation = [4.0, 4.0, 0.0, 1.0];
         mode_icon.build_buffers(&device);
 
+        let mut slots_icons: Vec<Sprite> = vec![];
+
+        
+        let mut index = 0;
+        for slot in slots{
+            slots_icons.push(slot.obj.sprite);
+
+            slots_icons[index as usize].translation = [-4.0 + index as f32, -4.0, 0.0, 1.0];
+            slots_icons[index as usize].build_buffers(&device);
+
+            index += 1;
+        }
+
+        let mut cursor_slot = Sprite::new(&device, &queue, "tex/cursor/def_cursor.png", [0,0], [1,1]);
+        cursor_slot.translation = [-4.0, -4.0, 0.0, 1.0];
+        cursor_slot.build_buffers(&device);
+
         Self {
             mode_icon,
+            slots_icons,
+            cursor_slot,
         }
     }
 }

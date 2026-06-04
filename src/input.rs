@@ -60,9 +60,9 @@ pub fn do_input(
         }
 
         match new_mode{
-            0 => game.ui.mode_icon.update_texture(&device, &queue, "tex/ui/standart_mode.png"),
-            1 => game.ui.mode_icon.update_texture(&device, &queue, "tex/ui/build_mode.png"),
-            2 => game.ui.mode_icon.update_texture(&device, &queue, "tex/ui/del_mode.png"),
+            0 => game.ui.mode_icon.update_texture(&device, &queue, "tex/ui/mode/standart_mode.png"),
+            1 => game.ui.mode_icon.update_texture(&device, &queue, "tex/ui/mode/build_mode.png"),
+            2 => game.ui.mode_icon.update_texture(&device, &queue, "tex/ui/mode/del_mode.png"),
             _ => ()
         }
     }
@@ -75,9 +75,13 @@ pub fn do_input(
         
         if new_act_slot == 4 {
             new_act_slot = 0;
+            game.ui.cursor_slot.translation[0] = -4.0;
         } else {
             new_act_slot += 1;
+            game.ui.cursor_slot.translation[0] += 1.0;
         }
+
+        game.ui.cursor_slot.build_buffers(&device);
         
         if new_act_slot >= 0 && (new_act_slot as usize) < slots.len() {
             slots[new_act_slot as usize].active = true;

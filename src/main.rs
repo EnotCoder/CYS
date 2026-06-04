@@ -66,7 +66,7 @@ async fn main() {
     let carpets:Vec<Sprite> = Vec::new();
 
     //My UI
-    let ui: Ui = Ui::new(&wgpu_app.device, &wgpu_app.queue);
+    let ui: Ui = Ui::new(&wgpu_app.device, &wgpu_app.queue, get_slot_vec(&wgpu_app));
 
     //game struct
     let mut game : GameObjects = GameObjects {cursor, map, carpets, decor, groups: Vec::new(), ui};
@@ -155,6 +155,8 @@ async fn main() {
 
                 let mut ui_model = vec![];
                 ui_model.push(&game.ui.mode_icon);
+                ui_model.extend(game.ui.slots_icons.iter());
+                ui_model.push(&game.ui.cursor_slot);
 
                 render(
                     &surface, &wgpu_app.device, &wgpu_app.queue,

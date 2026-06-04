@@ -32,11 +32,6 @@ impl UiState {
             .title_bar(false)
             .show(ctx, |ui| {
                 ui.heading("Create your shop (V-Pre Alpha)");
-                ui.separator();
-                for slot in &self.slots{
-                    ui.label(format!("{}: {}, active is {}", slot.id, slot.obj.name, slot.active));
-                }   
-
             });
     }
 }

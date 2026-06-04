@@ -66,13 +66,7 @@ async fn main() {
     let carpets:Vec<Sprite> = Vec::new();
 
     //My UI
-    let mut ui: Vec<Sprite> = Vec::new();
-    ui.push(
-        Sprite::new(&wgpu_app.device, &wgpu_app.queue, "tex/ui/standart_mode.png", [0,0], [1,1])
-    );
-
-    ui[0].translation = [4.0, 4.0, 0.0, 1.0];
-    ui[0].build_buffers(&wgpu_app.device);
+    let ui: Ui = Ui::new(&wgpu_app.device, &wgpu_app.queue);
 
     //game struct
     let mut game : GameObjects = GameObjects {cursor, map, carpets, decor, groups: Vec::new(), ui};
@@ -155,7 +149,7 @@ async fn main() {
                 let mut transparent_models = vec![];
                 transparent_models.extend(game.decor.iter());
                 transparent_models.push(&game.cursor);
-                transparent_models.extend(game.ui.iter());
+                transparent_models.push(&game.ui.mode_icon);
 
                 render(
                     &surface, &wgpu_app.device, &wgpu_app.queue, &wgpu_app.render_pipeline, 

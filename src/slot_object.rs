@@ -15,20 +15,39 @@ pub struct GroupInfo {
     pub is_carpet: bool,
 }
 
+pub struct Object{
+    pub sprite: Sprite,
+    pub width: i32,
+    pub height: i32,
+    pub name: String,
+}
+
+//game
+pub struct Ui{
+    pub mode_icon: Sprite
+}
+
+impl Ui{
+    pub fn new(device: &wgpu::Device, queue: &wgpu::Queue) -> Self{
+        let mut mode_icon = 
+            Sprite::new(&device, &queue, "tex/ui/standart_mode.png", [0,0], [1,1]);
+
+        mode_icon.translation = [4.0, 4.0, 0.0, 1.0];
+        mode_icon.build_buffers(&device);
+
+        Self {
+            mode_icon,
+        }
+    }
+}
+
 pub struct GameObjects {
     pub cursor: Sprite,
     pub map: Vec<Sprite>,
     pub decor: Vec<Sprite>,
     pub carpets: Vec<Sprite>,
     pub groups: Vec<GroupInfo>,
-    pub ui: Vec<Sprite>,
-}
-
-pub struct Object{
-    pub sprite: Sprite,
-    pub width: i32,
-    pub height: i32,
-    pub name: String,
+    pub ui: Ui,
 }
 
 pub fn add(

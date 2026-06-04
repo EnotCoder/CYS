@@ -71,48 +71,7 @@ async fn main() {
     //slots
 
     let mut act_slot:i32 = 0;
-    let mut slots:Vec<Slot> = vec![
-        Slot{
-            id: 1,
-            obj: Object{
-                sprite: Sprite::new(&wgpu_app.device, &wgpu_app.queue, "tex/decor/box.png", [0,0], [1,1]),
-                width: 1, height: 1, name: String::from("box"),
-            },
-            active: true,
-        },
-        Slot{
-            id: 2,
-            obj: Object{
-                sprite: Sprite::new(&wgpu_app.device, &wgpu_app.queue, "tex/decor/carpet.png", [0,0], [2,2]),
-                width: 1, height: 1, name: String::from("carpet"),
-            },
-            active: false,
-        },
-        Slot{
-            id: 3,
-            obj: Object{
-                sprite: Sprite::new(&wgpu_app.device, &wgpu_app.queue, "logo.png", [0,0], [1,1]),
-                width: 1, height: 1, name: String::from("lamp"),
-            },
-            active: false,
-        },
-        Slot{
-            id: 4,
-            obj: Object{
-                sprite: Sprite::new(&wgpu_app.device, &wgpu_app.queue, "tex/decor/table.png", [1,0], [2,1]),
-                width: 2, height: 1, name: String::from("table"),
-            },
-            active: false,
-        },
-        Slot{
-            id: 5,
-            obj: Object{
-                sprite: Sprite::new(&wgpu_app.device, &wgpu_app.queue, "tex/decor/rack.png", [0,0], [1,2]),
-                width: 1, height: 2, name: String::from("rack"),
-            },
-            active: false,
-        },
-    ];
+    let mut slots:Vec<Slot> = get_slot_vec(&wgpu_app);
 
     //main loop vars
     let mut input = WinitInputHelper::new();

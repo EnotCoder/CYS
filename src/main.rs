@@ -122,6 +122,9 @@ async fn main() {
         let size = Size{map_size};
         wgpu_app.queue.write_buffer(&wgpu_app.size_buffer, 0, bytemuck::cast_slice(&[size]));
 
+        let ui_uniforms = UiUniforms { size: 1.0, _padding: [0.0; 3]  };  // всегда 1.0 (не меняется)
+        wgpu_app.queue.write_buffer(&wgpu_app.ui_uniform_buffer, 0, bytemuck::cast_slice(&[ui_uniforms]));
+
         //Render
 
         match event {
@@ -149,18 +152,24 @@ async fn main() {
                 let mut transparent_models = vec![];
                 transparent_models.extend(game.decor.iter());
                 transparent_models.push(&game.cursor);
-                transparent_models.push(&game.ui.mode_icon);
+
+                let mut ui_model = vec![];
+                ui_model.push(&game.ui.mode_icon);
 
                 render(
-                    &surface, &wgpu_app.device, &wgpu_app.queue, &wgpu_app.render_pipeline, 
+                    &surface, &wgpu_app.device, &wgpu_app.queue,
+                    &wgpu_app.render_pipeline,
                     &wgpu_app.transparent_pipeline,
                     &wgpu_app.depth_buffer.view,
                     &mut egui_manager,
                     &window,
                     |ctx| ui_state.render(ctx),
-                    &opaque_models, &transparent_models,
+                    &opaque_models,
+                    &transparent_models,
+                    &ui_model,
                     &wgpu_app.bind_group,
                     &wgpu_app.size_bind_group,
+                    &wgpu_app.ui_bind_group,
                 );
             }
 

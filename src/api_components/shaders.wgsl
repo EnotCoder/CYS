@@ -8,6 +8,10 @@ struct Size {
     map_size: f32,
 };
 
+struct UiUniforms {
+    scale: f32,
+}
+
 @group(0) @binding(0)
 var<uniform> uniforms: Uniforms;
 
@@ -20,6 +24,9 @@ var my_sampler: sampler;
 
 @group(2) @binding(0)
 var<uniform> size_uniform: Size;
+
+@group(2) @binding(0)
+var<uniform> ui_uniforms: UiUniforms;
 
 struct VertexOutput {
     @builtin(position) position: vec4<f32>,

@@ -14,11 +14,14 @@ pub fn render(
     egui_manager: &mut EguiManager,
     window: &winit::window::Window,
     run_ui: impl FnOnce(&egui::Context),
+
     opaque_models: &[&Sprite],      // непрозрачные
     transparent_models: &[&Sprite], // прозрачные
+    ui_model: &[&Sprite],
 
     bind_group: &wgpu::BindGroup,
     size_bind_group: &wgpu::BindGroup,
+    ui_bind_group: &wgpu::BindGroup, 
 ) {
     let frame = match surface.get_current_texture() {
         Ok(frame) => frame,
@@ -106,6 +109,20 @@ pub fn render(
             render_pass.set_bind_group(0, &model.uniform_bind_group, &[]);
             render_pass.set_bind_group(1, &model.texture_bind_group, &[]);
             render_pass.set_bind_group(2, &size_bind_group, &[]);
+            render_pass.set_vertex_buffer(0, model.vertex_buffer.slice(..));
+            render_pass.set_index_buffer(model.index_buffer.slice(..), model.index_format );
+            render_pass.draw_indexed(0..model.index_count, 0, 0..1);
+        }
+
+        let ui_transparent = ui_model.to_vec();
+        sorted_transparent.sort_by(|a, b| 
+            b.translation[2].partial_cmp(&a.translation[2]).unwrap()
+        );
+
+        for model in &ui_transparent {
+            render_pass.set_bind_group(0, &model.uniform_bind_group, &[]);
+            render_pass.set_bind_group(1, &model.texture_bind_group, &[]);
+            render_pass.set_bind_group(2, &ui_bind_group, &[]);
             render_pass.set_vertex_buffer(0, model.vertex_buffer.slice(..));
             render_pass.set_index_buffer(model.index_buffer.slice(..), model.index_format );
             render_pass.draw_indexed(0..model.index_count, 0, 0..1);

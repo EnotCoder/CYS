@@ -5,18 +5,15 @@ use crate::Slot;
 
 pub struct UiState {
     pub show_panel: bool,
-    pub mode: i32,
     pub slots: Vec<Slot>,
 }
 
 impl UiState {
     pub fn new(
-        mode: i32,
         slots: Vec<Slot>,
     ) -> Self {
         Self {
             show_panel: true,
-            mode,
             slots,
         }
     }
@@ -35,8 +32,6 @@ impl UiState {
             .title_bar(false)
             .show(ctx, |ui| {
                 ui.heading("Create your shop (V-Pre Alpha)");
-                ui.separator();
-                ui.label(format!("Gamemode is {}",self.mode));
                 ui.separator();
                 for slot in &self.slots{
                     ui.label(format!("{}: {}, active is {}", slot.id, slot.obj.name, slot.active));

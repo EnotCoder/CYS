@@ -10,8 +10,6 @@ pub fn render(
     queue: &wgpu::Queue,
     render_pipeline: &wgpu::RenderPipeline,
     transparent_pipeline: &wgpu::RenderPipeline,
-    //models: &[&Sprite],
-    bind_group: &wgpu::BindGroup,
     depth_view: &wgpu::TextureView,
     egui_manager: &mut EguiManager,
     window: &winit::window::Window,
@@ -19,6 +17,7 @@ pub fn render(
     opaque_models: &[&Sprite],      // непрозрачные
     transparent_models: &[&Sprite], // прозрачные
 
+    bind_group: &wgpu::BindGroup,
     size_bind_group: &wgpu::BindGroup,
 ) {
     let frame = match surface.get_current_texture() {

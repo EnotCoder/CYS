@@ -21,6 +21,7 @@ pub struct GameObjects {
     pub decor: Vec<Sprite>,
     pub carpets: Vec<Sprite>,
     pub groups: Vec<GroupInfo>,
+    pub ui: Vec<Sprite>,
 }
 
 pub struct Object{

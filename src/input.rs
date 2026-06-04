@@ -59,7 +59,12 @@ pub fn do_input(
             _ => ()
         }
 
-        ui_state.mode = new_mode;
+        match new_mode{
+            0 => game.ui[0].update_texture(&device, &queue, "tex/ui/standart_mode.png"),
+            1 => game.ui[0].update_texture(&device, &queue, "tex/ui/build_mode.png"),
+            2 => game.ui[0].update_texture(&device, &queue, "tex/ui/del_mode.png"),
+            _ => ()
+        }
     }
 
     if input.key_pressed(KeyCode::KeyQ) {

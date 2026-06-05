@@ -92,7 +92,7 @@ async fn main() {
         get_slot_vec(&wgpu_app),
     );
 
-    let mut map_size:f32 = 1.0;
+    let mut map_size:f32 = 0.8;
 
     // main loop
     let _ = event_loop.run(|event, event_loop_target| {
@@ -202,7 +202,6 @@ async fn main() {
 fn get_slot_vec(wgpu_app: &WgpuApp) -> Vec<Slot>{
     vec![
         Slot {
-            id: 1,
             obj: Object {
                 sprite: Sprite::new(&wgpu_app.device, &wgpu_app.queue, "tex/decor/box.png", [0,0], [1,1]),
                 width: 1, height: 1, name: String::from("box"),
@@ -210,7 +209,6 @@ fn get_slot_vec(wgpu_app: &WgpuApp) -> Vec<Slot>{
             active: true,
         },
         Slot {
-            id: 2,
             obj: Object {
                 sprite: Sprite::new(&wgpu_app.device, &wgpu_app.queue, "tex/decor/carpet.png", [0,0], [2,2]),
                 width: 1, height: 1, name: String::from("carpet"),
@@ -218,15 +216,13 @@ fn get_slot_vec(wgpu_app: &WgpuApp) -> Vec<Slot>{
             active: false,
         },
         Slot{
-            id: 3,
             obj: Object{
                 sprite: Sprite::new(&wgpu_app.device, &wgpu_app.queue, "tex/decor/sign.png", [0,0], [1,1]),
-                width: 1, height: 1, name: String::from("lamp"),
+                width: 1, height: 1, name: String::from("sing"),
             },
             active: false,
         },
         Slot{
-            id: 4,
             obj: Object{
                 sprite: Sprite::new(&wgpu_app.device, &wgpu_app.queue, "tex/decor/table.png", [1,0], [2,1]),
                 width: 2, height: 1, name: String::from("table"),
@@ -234,7 +230,6 @@ fn get_slot_vec(wgpu_app: &WgpuApp) -> Vec<Slot>{
             active: false,
         },
         Slot{
-            id: 5,
             obj: Object{
                 sprite: Sprite::new(&wgpu_app.device, &wgpu_app.queue, "tex/decor/rack.png", [0,0], [1,2]),
                 width: 1, height: 2, name: String::from("rack"),

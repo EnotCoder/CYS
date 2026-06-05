@@ -1,7 +1,6 @@
 use crate::Sprite;
 
 pub struct Slot{
-    pub id: i32,
     pub obj: Object,
     pub active: bool,
 }
@@ -34,7 +33,7 @@ impl Ui{
         let mut mode_icon = 
             Sprite::new(&device, &queue, "tex/ui/mode/standart_mode.png", [0,0], [1,1]);
 
-        mode_icon.translation = [4.0, 4.0, 0.0, 1.0];
+        mode_icon.translation = [4.0, -4.0, 0.0, 1.0];
         mode_icon.build_buffers(&device);
 
         let mut slots_icons: Vec<Sprite> = vec![];
@@ -42,7 +41,9 @@ impl Ui{
         
         let mut index = 0;
         for slot in slots{
-            slots_icons.push(slot.obj.sprite);
+            slots_icons.push(Sprite::new(&device, &queue, 
+                &format!("tex/ui/icon_slots/{}.png",slot.obj.name), 
+                [0,0], [1,1]));
 
             slots_icons[index as usize].translation = [-4.0 + index as f32, -4.0, 0.0, 1.0];
             slots_icons[index as usize].build_buffers(&device);
@@ -50,7 +51,8 @@ impl Ui{
             index += 1;
         }
 
-        let mut cursor_slot = Sprite::new(&device, &queue, "tex/cursor/def_cursor.png", [0,0], [1,1]);
+        let mut cursor_slot = Sprite::new(&device, &queue, 
+            "tex/ui/icon_slots/cursor.png", [0,0], [1,1]);
         cursor_slot.translation = [-4.0, -4.0, 0.0, 1.0];
         cursor_slot.build_buffers(&device);
 

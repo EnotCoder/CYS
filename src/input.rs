@@ -3,7 +3,6 @@ use winit_input_helper::WinitInputHelper;
 
 use crate::GameObjects;
 use crate::Slot;
-use crate::UiState;
 use crate::add;
 use crate::remove;
 
@@ -15,7 +14,6 @@ pub fn do_input(
     slots: &mut Vec<Slot>,
     act_slot: i32,
     mode: i32,
-    ui_state: &mut UiState,
     map_size: f32,
 ) -> (i32, i32, f32) {
 
@@ -70,7 +68,6 @@ pub fn do_input(
     if input.key_pressed(KeyCode::KeyQ) {
         if new_act_slot >= 0 && (new_act_slot as usize) < slots.len() {
             slots[new_act_slot as usize].active = false;
-            ui_state.slots[new_act_slot as usize].active = false;
         }
         
         if new_act_slot == 4 {
@@ -85,7 +82,6 @@ pub fn do_input(
         
         if new_act_slot >= 0 && (new_act_slot as usize) < slots.len() {
             slots[new_act_slot as usize].active = true;
-            ui_state.slots[new_act_slot as usize].active = true;
         }
     }
 

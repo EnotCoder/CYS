@@ -11,23 +11,14 @@ use std::fs::File;
 use std::io::{BufRead, BufReader};
 
 mod api_components;
-
-mod egui_manager;
-mod ui_panels;
 mod sprite_manager;
 mod slot_object;
 mod input;
 
-
 use api_components::*;
-use egui_manager::EguiManager;
-use ui_panels::UiState;
-
 use sprite_manager::*;
 use slot_object::*;
 use input::*;
-
-
 
 #[tokio::main]
 async fn main() {
@@ -80,35 +71,16 @@ async fn main() {
     let mut input = WinitInputHelper::new();
     let mut mode = 0;
 
-    let mut egui_manager = EguiManager::new(
-        &wgpu_app.device,
-        wgpu_app.surface_format,
-        None,  // depth format
-        1,     // samples
-        &window,
-    );
-
-    let mut ui_state = UiState::new(
-        get_slot_vec(&wgpu_app),
-    );
-
     let mut map_size:f32 = 0.8;
 
     // main loop
     let _ = event_loop.run(|event, event_loop_target| {
-
-        if let Event::WindowEvent { event, window_id } = &event {
-            if *window_id == window.id() {
-                egui_manager.handle_input(&window, event);
-            }
-        }
-
         //Input
         if input.update(&event) {
             let (new_act_slot, new_mode, new_size) = do_input(
                 &wgpu_app.device, &wgpu_app.queue, &input,
                 &mut game, &mut slots, act_slot, mode,
-                &mut ui_state, map_size,
+                map_size,
             );
             act_slot = new_act_slot;
             mode = new_mode;
@@ -163,9 +135,6 @@ async fn main() {
                     &wgpu_app.render_pipeline,
                     &wgpu_app.transparent_pipeline,
                     &wgpu_app.depth_buffer.view,
-                    &mut egui_manager,
-                    &window,
-                    |ctx| ui_state.render(ctx),
                     &opaque_models,
                     &transparent_models,
                     &ui_model,

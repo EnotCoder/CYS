@@ -1,9 +1,9 @@
 use image::GenericImageView;
 
 pub struct Texture {
-    pub _texture: wgpu::Texture,      // Сама текстура на GPU
-    pub view: wgpu::TextureView,     // Представление текстуры
-    pub sampler: wgpu::Sampler,      // Сэмплер (как читать текстуру)
+    pub _texture: wgpu::Texture,
+    pub view: wgpu::TextureView,
+    pub sampler: wgpu::Sampler,
 }
 
 impl Texture {
@@ -13,33 +13,27 @@ impl Texture {
         bytes: &[u8],
         label: &str,
     ) -> Result<Self, Box<dyn std::error::Error>> {
-        // 1. Загружаем изображение из байтов с помощью библиотеки image
         let img = image::load_from_memory(bytes)?;
-        // 2. Конвертируем в формат RGBA8 (32 бита на пиксель: R,G,B,A)
         let rgba = img.to_rgba8();
-        // 3. Получаем размеры изображения
         let dimensions = img.dimensions();
         
-        // 4. Создаём размер текстуры
         let size = wgpu::Extent3d {
             width: dimensions.0,
             height: dimensions.1,
-            depth_or_array_layers: 1,  // 2D текстура, не массив
+            depth_or_array_layers: 1,
         };
         
-        // 5. Создаём текстуру на GPU
         let texture = device.create_texture(&wgpu::TextureDescriptor {
             label: Some(label),
             size,
-            mip_level_count: 1,              // Без MIP-уровней (пока)
-            sample_count: 1,                 // Без мультисэмплинга
-            dimension: wgpu::TextureDimension::D2,  // 2D текстура
-            format: wgpu::TextureFormat::Rgba8UnormSrgb,  // Формат RGBA8
+            mip_level_count: 1,
+            sample_count: 1,
+            dimension: wgpu::TextureDimension::D2,
+            format: wgpu::TextureFormat::Rgba8UnormSrgb,
             usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
             view_formats: &[],
         });
         
-        // 6. Записываем данные пикселей в текстуру
         queue.write_texture(
             wgpu::ImageCopyTexture {
                 texture: &texture,
@@ -47,26 +41,23 @@ impl Texture {
                 origin: wgpu::Origin3d::ZERO,
                 aspect: wgpu::TextureAspect::All,
             },
-            &rgba,  // Данные пикселей
+            &rgba,
             wgpu::ImageDataLayout {
                 offset: 0,
-                bytes_per_row: Some(4 * dimensions.0),  // 4 байта на пиксель * ширина
+                bytes_per_row: Some(4 * dimensions.0),
                 rows_per_image: Some(dimensions.1),
             },
             size,
         );
         
-        // 7. Создаём представление текстуры (способ доступа)
         let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
-        
-        // 8. Создаём сэмплер (определяет как текстура накладывается)
         let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
-            address_mode_u: wgpu::AddressMode::Repeat,   // Повторять по U
-            address_mode_v: wgpu::AddressMode::Repeat,   // Повторять по V
-            address_mode_w: wgpu::AddressMode::Repeat,   // Повторять по W
-            mag_filter: wgpu::FilterMode::Nearest,        // Увеличение: линейное
-            min_filter: wgpu::FilterMode::Nearest,       // Уменьшение: ближайший
-            mipmap_filter: wgpu::FilterMode::Nearest,    // MIP-фильтр
+            address_mode_u: wgpu::AddressMode::Repeat,
+            address_mode_v: wgpu::AddressMode::Repeat,
+            address_mode_w: wgpu::AddressMode::Repeat,
+            mag_filter: wgpu::FilterMode::Nearest,
+            min_filter: wgpu::FilterMode::Nearest,
+            mipmap_filter: wgpu::FilterMode::Nearest,
             ..Default::default()
         });
         
@@ -78,8 +69,42 @@ impl Texture {
         queue: &wgpu::Queue,
         path: &str,
         label: &str,
-    ) -> Result<Self, Box<dyn std::error::Error>> {
-        let bytes = std::fs::read(path)?;
-        Self::from_bytes(device, queue, &bytes, label)
+    ) -> Self {
+        match std::fs::read(path) {
+            Ok(bytes) => {
+                match Self::from_bytes(device, queue, &bytes, label) {
+                    Ok(texture) => texture,
+                    Err(e) => {
+                        eprintln!("Failed to decode texture '{}': {}, loading null.png", path, e);
+                        Self::load_null(device, queue, label)
+                    }
+                }
+            }
+            Err(e) => {
+                eprintln!("Failed to read texture '{}': {}, loading null.png", path, e);
+                Self::load_null(device, queue, label)
+            }
+        }
+    }
+    
+    fn load_null(
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        original_label: &str,
+    ) -> Self {
+        let null_path = "tex/null.png";
+        match std::fs::read(null_path) {
+            Ok(bytes) => {
+                match Self::from_bytes(device, queue, &bytes, &format!("{}_fallback", original_label)) {
+                    Ok(texture) => texture,
+                    Err(e) => {
+                        panic!("Critical error: null.png exists but failed to decode: {}", e);
+                    }
+                }
+            }
+            Err(e) => {
+                panic!("Critical error: null.png not found at '{}': {}", null_path, e);
+            }
+        }
     }
 }

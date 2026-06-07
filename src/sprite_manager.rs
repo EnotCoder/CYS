@@ -71,8 +71,7 @@ impl Sprite {
         let index_count = indices.len() as u32;
 
         // Загружаем текстуру
-        let texture = Texture::from_path(device, queue, texture_path, "sprite_texture")
-            .expect("Failed to load texture");
+        let texture = Texture::from_path(device, queue, texture_path, "sprite_texture");
         
         let texture_bind_group = Self::create_texture_bind_group(device, &texture);
         
@@ -225,8 +224,7 @@ impl Sprite {
         queue: &wgpu::Queue,
         texture_path: &str,
     ){
-        let texture = Texture::from_path(device, queue, texture_path, "sprite_texture")
-            .expect("Failed to load texture");
+        let texture = Texture::from_path(device, queue, texture_path, "sprite_texture");
         
         self.texture_bind_group = Self::create_texture_bind_group(device, &texture);
     }

@@ -78,7 +78,7 @@ pub fn do_input(
             game.ui.cursor_slot.translation[0] += 1.0;
         }
 
-        game.ui.cursor_slot.build_buffers(&device);
+        game.ui.cursor_slot.build_buffers(&queue); 
         
         if new_act_slot >= 0 && (new_act_slot as usize) < slots.len() {
             slots[new_act_slot as usize].active = true;
@@ -88,28 +88,28 @@ pub fn do_input(
     if input.key_pressed(KeyCode::KeyW) {
         if game.cursor.translation[1] < 4.0{
             game.cursor.translation[1] += 1.0;
-            game.cursor.build_buffers(&device);
+            game.cursor.build_buffers(&queue); 
         }
     }
 
     if input.key_pressed(KeyCode::KeyS) {
         if game.cursor.translation[1] > -4.0{
             game.cursor.translation[1] -= 1.0;
-            game.cursor.build_buffers(&device);
+            game.cursor.build_buffers(&queue); 
         }
     }
 
     if input.key_pressed(KeyCode::KeyA) {
         if game.cursor.translation[0] > -4.0{
             game.cursor.translation[0] -= 1.0;
-            game.cursor.build_buffers(&device);
+            game.cursor.build_buffers(&queue); 
         }
     }
 
     if input.key_pressed(KeyCode::KeyD) {
         if game.cursor.translation[0] < 4.0{
             game.cursor.translation[0] += 1.0;
-            game.cursor.build_buffers(&device);
+            game.cursor.build_buffers(&queue); 
         }
     }
 

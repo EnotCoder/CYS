@@ -20,6 +20,8 @@ use sprite_manager::*;
 use slot_object::*;
 use input::*;
 
+
+
 #[tokio::main]
 async fn main() {
 
@@ -44,7 +46,7 @@ async fn main() {
         "tex/cursor/def_cursor.png", [0,0], [1,1]);
         
     cursor.translation = [0.0,0.0,0.0,1.0];
-    cursor.build_buffers(&wgpu_app.device);
+    cursor.build_buffers(&wgpu_app.queue);
 
     let mut map:Vec<Sprite> = Vec::new();
 
@@ -219,7 +221,7 @@ fn get_map(
     let file = File::open("map.txt")?;
     let reader = BufReader::new(file);
 
-
+    
     let mut j = 0;
 
     for line in reader.lines() {
@@ -257,7 +259,7 @@ fn get_map(
 
             let mut block: Sprite = Sprite::new(&wgpu_app.device, &wgpu_app.queue, tex_path, tex_pos, tex_cut);
             block.translation = [x, y, 0.0, 1.0];
-            block.build_buffers(&wgpu_app.device);
+            block.build_buffers(&wgpu_app.queue);
 
             map.push(block);
         }

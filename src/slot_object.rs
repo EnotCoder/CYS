@@ -34,7 +34,7 @@ impl Ui{
             Sprite::new(&device, &queue, "tex/ui/mode/standart_mode.png", [0,0], [1,1]);
 
         mode_icon.translation = [4.0, -4.0, 0.0, 1.0];
-        mode_icon.build_buffers(&device);
+        mode_icon.build_buffers(&queue);  // ← изменено
 
         let mut slots_icons: Vec<Sprite> = vec![];
 
@@ -46,7 +46,7 @@ impl Ui{
                 [0,0], [1,1]));
 
             slots_icons[index as usize].translation = [-4.0 + index as f32, -4.0, 0.0, 1.0];
-            slots_icons[index as usize].build_buffers(&device);
+            slots_icons[index as usize].build_buffers(&queue);  // ← изменено
 
             index += 1;
         }
@@ -54,7 +54,7 @@ impl Ui{
         let mut cursor_slot = Sprite::new(&device, &queue, 
             "tex/ui/icon_slots/cursor.png", [0,0], [1,1]);
         cursor_slot.translation = [-4.0, -4.0, 0.0, 1.0];
-        cursor_slot.build_buffers(&device);
+        cursor_slot.build_buffers(&queue);  // ← изменено
 
         Self {
             mode_icon,
@@ -107,7 +107,7 @@ pub fn add(
                     0.1,
                     1.0
                 ];
-                block.build_buffers(&device);
+                block.build_buffers(&queue);
                 
                 let index;
                 if act_slot == 1{

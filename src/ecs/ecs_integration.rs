@@ -59,7 +59,7 @@ impl EcsAdapter {
             .build()
     }
     
-    pub fn _add_carpet(&mut self, x: f32, y: f32, width: i32, height: i32, texture_path: &str) -> u32 {
+    pub fn add_carpet(&mut self, x: f32, y: f32, width: i32, height: i32, texture_path: &str) -> u32 {
         let group_id = self.next_group_id;
         self.next_group_id += 1;
         
@@ -67,7 +67,7 @@ impl EcsAdapter {
             for j in 0..height {
                 self.world.create_entity()
                     .with(Transform {
-                        position: [x + i as f32, y + j as f32, 0.0],
+                        position: [x + i as f32, y + j as f32, 1.0],
                         rotation: [0.0, 0.0, 0.0, 1.0],
                         scale: [1.0, 1.0, 1.0],
                     })
@@ -85,7 +85,7 @@ impl EcsAdapter {
         group_id
     }
     
-    pub fn _add_cursor(&mut self, x: f32, y: f32, texture_path: &str) -> specs::Entity {
+    pub fn add_cursor(&mut self, x: f32, y: f32, texture_path: &str) -> specs::Entity {
         self.world.create_entity()
             .with(Transform {
                 position: [x, y, 2.0],
@@ -117,11 +117,13 @@ impl EcsAdapter {
             .build()
     }
     
-    pub fn get_sprites_by_layer(&self) -> (Vec<SpriteRenderData>, Vec<SpriteRenderData>, Vec<SpriteRenderData>, Vec<SpriteRenderData>) {
+    pub fn get_sprites_by_layer(&self) 
+    -> (Vec<SpriteRenderData>, Vec<SpriteRenderData>, Vec<SpriteRenderData>, Vec<SpriteRenderData>, Vec<SpriteRenderData>) {
         let transforms = self.world.read_storage::<Transform>();
         let sprites = self.world.read_storage::<SpriteComponent>();
         
         let mut map_sprites = Vec::new();
+        let mut carpet_sprites = Vec::new();
         let mut decor_sprites = Vec::new();
         let mut cursor_sprites = Vec::new();
         let mut ui_sprites = Vec::new();
@@ -135,17 +137,18 @@ impl EcsAdapter {
                 z_index: sprite.z_index,
             };
             
-            let z = transform.position[2] as i32;
+            let z = transform.position[2];
             match z {
-                0 => map_sprites.push(data),
-                1 => decor_sprites.push(data),
-                2 => cursor_sprites.push(data),
-                3 => ui_sprites.push(data),
+                0.0 => map_sprites.push(data),
+                1.0 => carpet_sprites.push(data),
+                1.5 => decor_sprites.push(data),
+                2.0 => cursor_sprites.push(data),
+                3.0 => ui_sprites.push(data),
                 _ => decor_sprites.push(data),
             }
         }
         
-        (map_sprites, decor_sprites, cursor_sprites, ui_sprites)
+        (map_sprites, carpet_sprites, decor_sprites, cursor_sprites, ui_sprites)
     }
     
     pub fn update_sprite_texture(&mut self, entity: specs::Entity, texture_path: &str) {
@@ -188,7 +191,7 @@ impl EcsAdapter {
         self.next_group_id += 1;
         
         let mut entities = Vec::new();
-        let z = if is_carpet { 0.0 } else { 1.0 };
+        let z = if is_carpet { 1.0 } else { 1.5 };
         let z_index = if is_carpet { 0 } else { 1 };
         
         for i in 0..width {
@@ -269,7 +272,6 @@ impl EcsAdapter {
         None
     }
     
-    // Проверка возможности размещения объекта
     pub fn can_place_at(&self, x: i32, y: i32, width: i32, height: i32, is_carpet: bool) -> bool {
         // Проверка границ
         if x < -4 || x + width > 5 || y < -4 || y + height > 5 {
@@ -286,20 +288,22 @@ impl EcsAdapter {
                 let check_y = y + j;
                 
                 for (transform, group_comp) in (&transforms, &group_components).join() {
-                    let dx = (transform.position[0] - check_x as f32).abs();
-                    let dy = (transform.position[1] - check_y as f32).abs();
+                    let tx = transform.position[0] as i32;
+                    let ty = transform.position[1] as i32;
                     
-                    if dx < 0.5 && dy < 0.5 {
-                        if is_carpet {
-                            // Ковры могут перекрывать только другие ковры?
-                            if let Some(group) = groups_resource.groups.get(&group_comp.group_id) {
-                                if group.is_carpet {
+                    if tx == check_x && ty == check_y {
+                        if let Some(existing_group) = groups_resource.groups.get(&group_comp.group_id) {
+                            if is_carpet {
+                                // Ковёр можно ставить куда угодно (разрешаем)
+                                continue;
+                            } else {
+                                // Декор можно ставить только на ковёр
+                                if !existing_group.is_carpet {
+                                    // Это декор - нельзя ставить декор на декор
                                     return false;
                                 }
+                                // Это ковёр - разрешаем ставить декор
                             }
-                        } else {
-                            // Декор не может перекрывать другой декор
-                            return false;
                         }
                     }
                 }

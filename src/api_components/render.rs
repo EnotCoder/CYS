@@ -11,6 +11,7 @@ pub fn render(
     transparent_pipeline: &wgpu::RenderPipeline,
     depth_view: &wgpu::TextureView,
     map_sprites: &[SpriteRenderData],
+    carpet_sprites: &[SpriteRenderData],
     decor_sprites: &[SpriteRenderData],
     cursor_sprites: &[SpriteRenderData],
     ui_sprites: &[SpriteRenderData],
@@ -30,96 +31,7 @@ pub fn render(
         label: Some("Render Encoder"),
     });
     
-    // СНАЧАЛА создаём все спрайты (без рендер пасса)
-    // Для карты
-    for sprite_data in map_sprites {
-        let key = format!(
-            "map_{}_{}_{}_{:?}_{:?}",
-            sprite_data.position[0],
-            sprite_data.position[1],
-            sprite_data.texture_path,
-            sprite_data.texture_frame,
-            sprite_data.texture_count
-        );
-        if !sprite_cache.contains_key(&key) {
-            let sprite = Sprite::new(
-                device,
-                queue,
-                &sprite_data.texture_path,
-                sprite_data.texture_frame,
-                sprite_data.texture_count,
-            );
-            sprite_cache.insert(key, sprite);
-        }
-    }
-    
-    // Для декора
-    for sprite_data in decor_sprites {
-        let key = format!(
-            "decor_{}_{}_{}_{:?}_{:?}",
-            sprite_data.position[0],
-            sprite_data.position[1],
-            sprite_data.texture_path,
-            sprite_data.texture_frame,
-            sprite_data.texture_count
-        );
-        if !sprite_cache.contains_key(&key) {
-            let sprite = Sprite::new(
-                device,
-                queue,
-                &sprite_data.texture_path,
-                sprite_data.texture_frame,
-                sprite_data.texture_count,
-            );
-            sprite_cache.insert(key, sprite);
-        }
-    }
-    
-    // Для курсора
-    for sprite_data in cursor_sprites {
-        let key = format!(
-            "cursor_{}_{}_{}_{:?}_{:?}",
-            sprite_data.position[0],
-            sprite_data.position[1],
-            sprite_data.texture_path,
-            sprite_data.texture_frame,
-            sprite_data.texture_count
-        );
-        if !sprite_cache.contains_key(&key) {
-            let sprite = Sprite::new(
-                device,
-                queue,
-                &sprite_data.texture_path,
-                sprite_data.texture_frame,
-                sprite_data.texture_count,
-            );
-            sprite_cache.insert(key, sprite);
-        }
-    }
-    
-    // Для UI
-    for sprite_data in ui_sprites {
-        let key = format!(
-            "ui_{}_{}_{}_{:?}_{:?}",
-            sprite_data.position[0],
-            sprite_data.position[1],
-            sprite_data.texture_path,
-            sprite_data.texture_frame,
-            sprite_data.texture_count
-        );
-        if !sprite_cache.contains_key(&key) {
-            let sprite = Sprite::new(
-                device,
-                queue,
-                &sprite_data.texture_path,
-                sprite_data.texture_frame,
-                sprite_data.texture_count,
-            );
-            sprite_cache.insert(key, sprite);
-        }
-    }
-    
-    // 1. Рендер карты (непрозрачные объекты)
+    // 1. Рендер карты (непрозрачные объекты, z=0)
     {
         let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: Some("Opaque Pass"),
@@ -159,9 +71,33 @@ pub fn render(
                 sprite_data.texture_frame,
                 sprite_data.texture_count
             );
+            
+            // СНАЧАЛА создаём спрайт, если нужно (мутабельный borrow)
+            if !sprite_cache.contains_key(&key) {
+                let new_sprite = Sprite::new(
+                    device,
+                    queue,
+                    &sprite_data.texture_path,
+                    sprite_data.texture_frame,
+                    sprite_data.texture_count,
+                );
+                sprite_cache.insert(key.clone(), new_sprite);
+            }
+        }
+        
+        // ПОТОМ получаем и рисуем (только immutable borrow)
+        for sprite_data in map_sprites {
+            let key = format!(
+                "map_{}_{}_{}_{:?}_{:?}",
+                sprite_data.position[0],
+                sprite_data.position[1],
+                sprite_data.texture_path,
+                sprite_data.texture_frame,
+                sprite_data.texture_count
+            );
+            
             let sprite = sprite_cache.get(&key).unwrap();
             
-            // Обновляем uniform буфер для позиции
             let uniforms = Uniforms {
                 translation: [
                     sprite_data.position[0],
@@ -183,10 +119,10 @@ pub fn render(
         }
     }
     
-    // 2. Рендер декора и курсора (прозрачные объекты)
+    // 2. Рендер ковров (прозрачные, z=0.5)
     {
         let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-            label: Some("Transparent Pass"),
+            label: Some("Carpet Pass"),
             color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                 view: &view,
                 resolve_target: None,
@@ -209,46 +145,40 @@ pub fn render(
         
         render_pass.set_pipeline(transparent_pipeline);
         
-        for sprite_data in decor_sprites {
+        // Сначала создаём все спрайты
+        for sprite_data in carpet_sprites {
             let key = format!(
-                "decor_{}_{}_{}_{:?}_{:?}",
+                "carpet_{}_{}_{}_{:?}_{:?}",
                 sprite_data.position[0],
                 sprite_data.position[1],
                 sprite_data.texture_path,
                 sprite_data.texture_frame,
                 sprite_data.texture_count
             );
-            let sprite = sprite_cache.get(&key).unwrap();
             
-            let uniforms = Uniforms {
-                translation: [
-                    sprite_data.position[0],
-                    sprite_data.position[1],
-                    sprite_data.position[2],
-                    1.0,
-                ],
-                rotation: [0.0, 0.0, 0.0, 1.0],
-                _padding: [0.0; 3],
-            };
-            queue.write_buffer(&sprite.uniform_buffer, 0, bytemuck::cast_slice(&[uniforms]));
-            
-            render_pass.set_bind_group(0, &sprite.uniform_bind_group, &[]);
-            render_pass.set_bind_group(1, &sprite.texture_bind_group, &[]);
-            render_pass.set_bind_group(2, size_bind_group, &[]);
-            render_pass.set_vertex_buffer(0, sprite.vertex_buffer.slice(..));
-            render_pass.set_index_buffer(sprite.index_buffer.slice(..), sprite.index_format);
-            render_pass.draw_indexed(0..sprite.index_count, 0, 0..1);
+            if !sprite_cache.contains_key(&key) {
+                let new_sprite = Sprite::new(
+                    device,
+                    queue,
+                    &sprite_data.texture_path,
+                    sprite_data.texture_frame,
+                    sprite_data.texture_count,
+                );
+                sprite_cache.insert(key, new_sprite);
+            }
         }
         
-        for sprite_data in cursor_sprites {
+        // Потом рисуем
+        for sprite_data in carpet_sprites {
             let key = format!(
-                "cursor_{}_{}_{}_{:?}_{:?}",
+                "carpet_{}_{}_{}_{:?}_{:?}",
                 sprite_data.position[0],
                 sprite_data.position[1],
                 sprite_data.texture_path,
                 sprite_data.texture_frame,
                 sprite_data.texture_count
             );
+            
             let sprite = sprite_cache.get(&key).unwrap();
             
             let uniforms = Uniforms {
@@ -272,7 +202,173 @@ pub fn render(
         }
     }
     
-    // 3. Рендер UI
+    // 3. Рендер декора (прозрачные, z=1.0)
+    {
+        let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+            label: Some("Decor Pass"),
+            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                view: &view,
+                resolve_target: None,
+                ops: wgpu::Operations {
+                    load: wgpu::LoadOp::Load,
+                    store: wgpu::StoreOp::Store,
+                },
+            })],
+            depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
+                view: depth_view,
+                depth_ops: Some(wgpu::Operations {
+                    load: wgpu::LoadOp::Load,
+                    store: wgpu::StoreOp::Store,
+                }),
+                stencil_ops: None,
+            }),
+            occlusion_query_set: None,
+            timestamp_writes: None,
+        });
+        
+        render_pass.set_pipeline(transparent_pipeline);
+        
+        // Сначала создаём все спрайты
+        for sprite_data in decor_sprites {
+            let key = format!(
+                "decor_{}_{}_{}_{:?}_{:?}",
+                sprite_data.position[0],
+                sprite_data.position[1],
+                sprite_data.texture_path,
+                sprite_data.texture_frame,
+                sprite_data.texture_count
+            );
+            
+            if !sprite_cache.contains_key(&key) {
+                let new_sprite = Sprite::new(
+                    device,
+                    queue,
+                    &sprite_data.texture_path,
+                    sprite_data.texture_frame,
+                    sprite_data.texture_count,
+                );
+                sprite_cache.insert(key, new_sprite);
+            }
+        }
+        
+        // Потом рисуем
+        for sprite_data in decor_sprites {
+            let key = format!(
+                "decor_{}_{}_{}_{:?}_{:?}",
+                sprite_data.position[0],
+                sprite_data.position[1],
+                sprite_data.texture_path,
+                sprite_data.texture_frame,
+                sprite_data.texture_count
+            );
+            
+            let sprite = sprite_cache.get(&key).unwrap();
+            
+            let uniforms = Uniforms {
+                translation: [
+                    sprite_data.position[0],
+                    sprite_data.position[1],
+                    sprite_data.position[2],
+                    1.0,
+                ],
+                rotation: [0.0, 0.0, 0.0, 1.0],
+                _padding: [0.0; 3],
+            };
+            queue.write_buffer(&sprite.uniform_buffer, 0, bytemuck::cast_slice(&[uniforms]));
+            
+            render_pass.set_bind_group(0, &sprite.uniform_bind_group, &[]);
+            render_pass.set_bind_group(1, &sprite.texture_bind_group, &[]);
+            render_pass.set_bind_group(2, size_bind_group, &[]);
+            render_pass.set_vertex_buffer(0, sprite.vertex_buffer.slice(..));
+            render_pass.set_index_buffer(sprite.index_buffer.slice(..), sprite.index_format);
+            render_pass.draw_indexed(0..sprite.index_count, 0, 0..1);
+        }
+    }
+    
+    // 4. Рендер курсора (z=2.0)
+    {
+        let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+            label: Some("Cursor Pass"),
+            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                view: &view,
+                resolve_target: None,
+                ops: wgpu::Operations {
+                    load: wgpu::LoadOp::Load,
+                    store: wgpu::StoreOp::Store,
+                },
+            })],
+            depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
+                view: depth_view,
+                depth_ops: Some(wgpu::Operations {
+                    load: wgpu::LoadOp::Load,
+                    store: wgpu::StoreOp::Store,
+                }),
+                stencil_ops: None,
+            }),
+            occlusion_query_set: None,
+            timestamp_writes: None,
+        });
+        
+        render_pass.set_pipeline(transparent_pipeline);
+        
+        // Сначала создаём все спрайты
+        for sprite_data in cursor_sprites {
+            let key = format!(
+                "cursor_{}_{}_{}_{:?}_{:?}",
+                sprite_data.position[0],
+                sprite_data.position[1],
+                sprite_data.texture_path,
+                sprite_data.texture_frame,
+                sprite_data.texture_count
+            );
+            
+            if !sprite_cache.contains_key(&key) {
+                let new_sprite = Sprite::new(
+                    device,
+                    queue,
+                    &sprite_data.texture_path,
+                    sprite_data.texture_frame,
+                    sprite_data.texture_count,
+                );
+                sprite_cache.insert(key, new_sprite);
+            }
+        }
+        
+        // Потом рисуем
+        for sprite_data in cursor_sprites {
+            let key = format!(
+                "cursor_{}_{}_{}_{:?}_{:?}",
+                sprite_data.position[0],
+                sprite_data.position[1],
+                sprite_data.texture_path,
+                sprite_data.texture_frame,
+                sprite_data.texture_count
+            );
+            
+            let sprite = sprite_cache.get(&key).unwrap();
+            
+            let uniforms = Uniforms {
+                translation: [
+                    sprite_data.position[0],
+                    sprite_data.position[1],
+                    sprite_data.position[2],
+                    1.0,
+                ],
+                rotation: [0.0, 0.0, 0.0, 1.0],
+                _padding: [0.0; 3],
+            };
+            queue.write_buffer(&sprite.uniform_buffer, 0, bytemuck::cast_slice(&[uniforms]));
+            
+            render_pass.set_bind_group(0, &sprite.uniform_bind_group, &[]);
+            render_pass.set_bind_group(1, &sprite.texture_bind_group, &[]);
+            render_pass.set_bind_group(2, size_bind_group, &[]);
+            render_pass.set_vertex_buffer(0, sprite.vertex_buffer.slice(..));
+            render_pass.set_index_buffer(sprite.index_buffer.slice(..), sprite.index_format);
+            render_pass.draw_indexed(0..sprite.index_count, 0, 0..1);
+        }
+    }
+    
+    // 5. Рендер UI (z=3.0)
     {
         let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: Some("UI Pass"),
@@ -298,6 +394,7 @@ pub fn render(
         
         render_pass.set_pipeline(transparent_pipeline);
         
+        // Сначала создаём все спрайты
         for sprite_data in ui_sprites {
             let key = format!(
                 "ui_{}_{}_{}_{:?}_{:?}",
@@ -307,6 +404,30 @@ pub fn render(
                 sprite_data.texture_frame,
                 sprite_data.texture_count
             );
+            
+            if !sprite_cache.contains_key(&key) {
+                let new_sprite = Sprite::new(
+                    device,
+                    queue,
+                    &sprite_data.texture_path,
+                    sprite_data.texture_frame,
+                    sprite_data.texture_count,
+                );
+                sprite_cache.insert(key, new_sprite);
+            }
+        }
+        
+        // Потом рисуем
+        for sprite_data in ui_sprites {
+            let key = format!(
+                "ui_{}_{}_{}_{:?}_{:?}",
+                sprite_data.position[0],
+                sprite_data.position[1],
+                sprite_data.texture_path,
+                sprite_data.texture_frame,
+                sprite_data.texture_count
+            );
+            
             let sprite = sprite_cache.get(&key).unwrap();
             
             let uniforms = Uniforms {

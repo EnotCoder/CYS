@@ -65,11 +65,10 @@ pub fn add(
     let path = &active_slot.path;
     let texture_frame = active_slot.texture_frame;
     let texture_count = active_slot.texture_count;
-    let is_carpet = false;
+    let is_carpet = active_slot.name == "carpet";
     
-    // Проверяем можно ли поставить объект
+    // Единый вызов для всех объектов
     if ecs.can_place_at(cursor_x, cursor_y, width, height, is_carpet) {
-        // Создаём групповой объект
         ecs.add_group_object(
             cursor_x as f32,
             cursor_y as f32,

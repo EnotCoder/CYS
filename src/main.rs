@@ -107,7 +107,7 @@ async fn main() {
                 event: WindowEvent::RedrawRequested,
                 ..
             } => {
-                let (map_sprites, decor_sprites, cursor_sprites, ui_sprites) = ecs.get_sprites_by_layer();
+                let (map_sprites, carpet_sprites, decor_sprites, cursor_sprites, ui_sprites) = ecs.get_sprites_by_layer();
                 
                 render(
                     &surface,
@@ -117,6 +117,7 @@ async fn main() {
                     &wgpu_app.transparent_pipeline,
                     &wgpu_app.depth_buffer.view,
                     &map_sprites,
+                    &carpet_sprites, 
                     &decor_sprites,
                     &cursor_sprites,
                     &ui_sprites,

@@ -11,7 +11,7 @@ pub struct Object{
     pub width: i32,
     pub height: i32,
     pub name: String,
-    pub texture_path: String,
+    pub path: String,
     pub texture_frame: [i32; 2],
     pub texture_count: [i32; 2],
 }
@@ -50,18 +50,21 @@ pub struct Object{
 // }
 
 
-pub fn Add(
+pub fn add(
     ecs: &mut EcsAdapter,
-    //slots: &mut Vec<Slot>,
+    slots: &mut Vec<Slot>,
     act_slot: i32,
     cursor_entity: Entity,
 ){
-    //let active_slot = &slots[act_slot as usize];
+    let active_slot = &slots[act_slot as usize].obj;
     let (cursor_x, cursor_y) = ecs.get_transform_position(cursor_entity);
     let cursor_x = cursor_x as i32;
     let cursor_y = cursor_y as i32;
-    let width = 2;
-    let height = 1;
+    let width = active_slot.width;
+    let height = active_slot.height;
+    let path = &active_slot.path;
+    let texture_frame = active_slot.texture_frame;
+    let texture_count = active_slot.texture_count;
     let is_carpet = false;
     
     // Проверяем можно ли поставить объект
@@ -72,15 +75,15 @@ pub fn Add(
             cursor_y as f32,
             width,
             height,
-            "tex/decor/box.png",
-            [0,0],
-            [1,1],
+            path,
+            texture_frame,
+            texture_count,
             is_carpet,
         );
     }
 }
 
-pub fn Remove(
+pub fn remove(
     ecs: &mut EcsAdapter,
     cursor_entity: Entity,
 ) -> bool {

@@ -43,7 +43,7 @@ impl EcsAdapter {
         }
     }
     
-    pub fn add_decor(&mut self, x: f32, y: f32, texture_path: &str) -> specs::Entity {
+    pub fn _add_decor(&mut self, x: f32, y: f32, texture_path: &str) -> specs::Entity {
         self.world.create_entity()
             .with(Transform {
                 position: [x, y, 1.0],
@@ -59,7 +59,7 @@ impl EcsAdapter {
             .build()
     }
     
-    pub fn add_carpet(&mut self, x: f32, y: f32, width: i32, height: i32, texture_path: &str) -> u32 {
+    pub fn _add_carpet(&mut self, x: f32, y: f32, width: i32, height: i32, texture_path: &str) -> u32 {
         let group_id = self.next_group_id;
         self.next_group_id += 1;
         
@@ -85,7 +85,7 @@ impl EcsAdapter {
         group_id
     }
     
-    pub fn add_cursor(&mut self, x: f32, y: f32, texture_path: &str) -> specs::Entity {
+    pub fn _add_cursor(&mut self, x: f32, y: f32, texture_path: &str) -> specs::Entity {
         self.world.create_entity()
             .with(Transform {
                 position: [x, y, 2.0],
@@ -101,7 +101,7 @@ impl EcsAdapter {
             .build()
     }
     
-    pub fn add_ui(&mut self, x: f32, y: f32, texture_path: &str) -> specs::Entity {
+    pub fn _add_ui(&mut self, x: f32, y: f32, texture_path: &str) -> specs::Entity {
         self.world.create_entity()
             .with(Transform {
                 position: [x, y, 3.0],

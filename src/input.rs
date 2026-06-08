@@ -5,14 +5,14 @@ use crate::EcsAdapter;
 use crate::Slot;
 use specs::*;
 
-use crate::{Add, Remove};
+use crate::{add, remove};
 
 pub fn do_input(
     device: &wgpu::Device,
     queue: &wgpu::Queue,
     input: &WinitInputHelper,
     ecs: &mut EcsAdapter,
-    //slots: &mut Vec<Slot>,
+    slots: &mut Vec<Slot>,
     act_slot: i32,
     mode: i32,
     map_size: f32,
@@ -36,10 +36,10 @@ pub fn do_input(
         match mode {
             0 => {},
             1 => {
-                Add(ecs, act_slot, cursor_entity);
+                add(ecs, slots, act_slot, cursor_entity);
             },
             2 => {
-                Remove(ecs, cursor_entity);
+                remove(ecs, cursor_entity);
             },
             _ => {}
         }
@@ -68,17 +68,17 @@ pub fn do_input(
     }
 
     if input.key_pressed(KeyCode::KeyQ) {
-        // if new_act_slot >= 0 && (new_act_slot as usize) < slots.len() {
-        //     slots[new_act_slot as usize].active = false;
-        // }
-        
-        // if new_act_slot == 4 {
-        //     new_act_slot = 0;
-        //     game.ui.cursor_slot.translation[0] = -4.0;
-        // } else {
-        //     new_act_slot += 1;
-        //     game.ui.cursor_slot.translation[0] += 1.0;
-        // }
+        if new_act_slot >= 0 && (new_act_slot as usize) < slots.len() {
+            slots[new_act_slot as usize].active = false;
+        }
+
+        if new_act_slot == 4 {
+            new_act_slot = 0;
+            //game.ui.cursor_slot.translation[0] = -4.0;
+        } else {
+            new_act_slot += 1;
+            //game.ui.cursor_slot.translation[0] += 1.0;
+        }
 
         // game.ui.cursor_slot.build_buffers(&queue); 
         

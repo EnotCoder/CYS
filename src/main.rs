@@ -56,7 +56,7 @@ async fn main() {
     //slots
 
     let mut act_slot:i32 = 0;
-    //let mut slots:Vec<Slot> = get_slot_vec(&wgpu_app);
+    let mut slots:Vec<Slot> = get_slot_vec(&wgpu_app);
 
     //main loop vars
     let mut input = WinitInputHelper::new();
@@ -70,7 +70,7 @@ async fn main() {
         if input.update(&event) {
             let (new_act_slot, new_mode, new_size) = do_input(
                 &wgpu_app.device, &wgpu_app.queue, &input,
-                &mut ecs, act_slot, mode,
+                &mut ecs, &mut slots, act_slot, mode,
                 map_size, cursor_entity
             );
             act_slot = new_act_slot;
@@ -152,45 +152,50 @@ async fn main() {
 }
 
 
-// fn get_slot_vec(wgpu_app: &WgpuApp) -> Vec<Slot>{
-//     vec![
-//         Slot {
-//             obj: Object {
-//                 sprite: Sprite::new(&wgpu_app.device, &wgpu_app.queue, "tex/decor/box.png", [0,0], [1,1]),
-//                 width: 1, height: 1, name: String::from("box"),
-//             },
-//             active: true,
-//         },
-//         Slot {
-//             obj: Object {
-//                 sprite: Sprite::new(&wgpu_app.device, &wgpu_app.queue, "tex/decor/carpet.png", [0,0], [2,2]),
-//                 width: 1, height: 1, name: String::from("carpet"),
-//             },
-//             active: false,
-//         },
-//         Slot{
-//             obj: Object{
-//                 sprite: Sprite::new(&wgpu_app.device, &wgpu_app.queue, "tex/decor/sign.png", [0,0], [1,1]),
-//                 width: 1, height: 1, name: String::from("sing"),
-//             },
-//             active: false,
-//         },
-//         Slot{
-//             obj: Object{
-//                 sprite: Sprite::new(&wgpu_app.device, &wgpu_app.queue, "tex/decor/table.png", [1,0], [2,1]),
-//                 width: 2, height: 1, name: String::from("table"),
-//             },
-//             active: false,
-//         },
-//         Slot{
-//             obj: Object{
-//                 sprite: Sprite::new(&wgpu_app.device, &wgpu_app.queue, "tex/decor/rack.png", [0,0], [1,2]),
-//                 width: 1, height: 2, name: String::from("rack"),
-//             },
-//             active: false,
-//         },
-//     ]
-// }
+fn get_slot_vec(wgpu_app: &WgpuApp) -> Vec<Slot>{
+    vec![
+        Slot {
+            obj: Object {
+                width: 1, height: 1, name: String::from("box"), 
+                path: String::from("tex/decor/box.png"),
+                texture_frame: [0, 0], texture_count: [1, 1],
+            },
+            active: true,
+        },
+        Slot {
+            obj: Object {
+                width: 1, height: 1, name: String::from("carpet"),
+                path: String::from("tex/decor/carpet.png"),
+                texture_frame: [0, 0], texture_count: [2, 2],
+            },
+            active: false,
+        },
+        Slot{
+            obj: Object {
+                width: 1, height: 1, name: String::from("sign"),
+                path: String::from("tex/decor/sign.png"),
+                texture_frame: [0, 0], texture_count: [1, 1],
+            },
+            active: false,
+        },
+        Slot{
+            obj: Object {
+                width: 1, height: 2, name: String::from("rack"),
+                path: String::from("tex/decor/rack.png"),
+                texture_frame: [0, 1], texture_count: [1, 2],
+            },
+            active: false,
+        },
+        Slot{
+            obj: Object {
+                width: 2, height: 1, name: String::from("table"),
+                path: String::from("tex/decor/table.png"),
+                texture_frame: [0, 0], texture_count: [2, 1],
+            },
+            active: false,
+        },
+    ]
+}
 
 const WORLD_OFFSET_X: f32 = -11.0;
 const WORLD_OFFSET_Y: f32 = 11.0;

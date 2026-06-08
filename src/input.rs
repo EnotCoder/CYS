@@ -1,20 +1,22 @@
 use winit::keyboard::KeyCode;
 use winit_input_helper::WinitInputHelper;
 
-use crate::GameObjects;
+use crate::EcsAdapter;
 use crate::Slot;
-use crate::add;
-use crate::remove;
+use specs::*;
+
+use crate::{Add, Remove};
 
 pub fn do_input(
     device: &wgpu::Device,
     queue: &wgpu::Queue,
     input: &WinitInputHelper,
-    game: &mut GameObjects,
-    slots: &mut Vec<Slot>,
+    ecs: &mut EcsAdapter,
+    //slots: &mut Vec<Slot>,
     act_slot: i32,
     mode: i32,
     map_size: f32,
+    cursor_entity: Entity,
 ) -> (i32, i32, f32) {
 
     let mut new_size = map_size;
@@ -34,10 +36,10 @@ pub fn do_input(
         match mode {
             0 => {},
             1 => {
-                add(&device, &queue, game, slots, act_slot);
+                Add(ecs, act_slot, cursor_entity);
             },
             2 => {
-                remove(game); 
+                Remove(ecs, cursor_entity);
             },
             _ => {}
         }
@@ -51,65 +53,64 @@ pub fn do_input(
         }
 
         match new_mode{
-            0 => game.cursor.update_texture(&device, &queue, "tex/cursor/def_cursor.png"),
-            1 => game.cursor.update_texture(&device, &queue, "tex/cursor/cursor.png"),
-            2 => game.cursor.update_texture(&device, &queue, "tex/cursor/del_cursor.png"),
+            0 => ecs.update_sprite_texture(cursor_entity, "tex/cursor/def_cursor.png"),
+            1 => ecs.update_sprite_texture(cursor_entity, "tex/cursor/cursor.png"),
+            2 => ecs.update_sprite_texture(cursor_entity, "tex/cursor/del_cursor.png"),
             _ => ()
         }
 
-        match new_mode{
-            0 => game.ui.mode_icon.update_texture(&device, &queue, "tex/ui/mode/standart_mode.png"),
-            1 => game.ui.mode_icon.update_texture(&device, &queue, "tex/ui/mode/build_mode.png"),
-            2 => game.ui.mode_icon.update_texture(&device, &queue, "tex/ui/mode/del_mode.png"),
-            _ => ()
-        }
+        // match new_mode{
+        //     0 => ecs.update_sprite_texture(entity, "tex/ui/mode/standart_mode.png"),
+        //     1 => ecs.update_sprite_texture(entity, "tex/ui/mode/build_mode.png"),
+        //     2 => ecs.update_sprite_texture(entity, "tex/ui/mode/del_mode.png"),
+        //     _ => ()
+        // }
     }
 
     if input.key_pressed(KeyCode::KeyQ) {
-        if new_act_slot >= 0 && (new_act_slot as usize) < slots.len() {
-            slots[new_act_slot as usize].active = false;
-        }
+        // if new_act_slot >= 0 && (new_act_slot as usize) < slots.len() {
+        //     slots[new_act_slot as usize].active = false;
+        // }
         
-        if new_act_slot == 4 {
-            new_act_slot = 0;
-            game.ui.cursor_slot.translation[0] = -4.0;
-        } else {
-            new_act_slot += 1;
-            game.ui.cursor_slot.translation[0] += 1.0;
-        }
+        // if new_act_slot == 4 {
+        //     new_act_slot = 0;
+        //     game.ui.cursor_slot.translation[0] = -4.0;
+        // } else {
+        //     new_act_slot += 1;
+        //     game.ui.cursor_slot.translation[0] += 1.0;
+        // }
 
-        game.ui.cursor_slot.build_buffers(&queue); 
+        // game.ui.cursor_slot.build_buffers(&queue); 
         
-        if new_act_slot >= 0 && (new_act_slot as usize) < slots.len() {
-            slots[new_act_slot as usize].active = true;
-        }
+        // if new_act_slot >= 0 && (new_act_slot as usize) < slots.len() {
+        //     slots[new_act_slot as usize].active = true;
+        // }
     }
 
+    let (x, y) = ecs.get_transform_position(cursor_entity);
+    let speed = 1.0;
+
     if input.key_pressed(KeyCode::KeyW) {
-        if game.cursor.translation[1] < 4.0{
-            game.cursor.translation[1] += 1.0;
-            game.cursor.build_buffers(&queue); 
+        if y < 4.0{
+            ecs.update_transform_position(cursor_entity, x, y + speed);
         }
     }
 
     if input.key_pressed(KeyCode::KeyS) {
-        if game.cursor.translation[1] > -4.0{
-            game.cursor.translation[1] -= 1.0;
-            game.cursor.build_buffers(&queue); 
+        if y > -4.0{
+            ecs.update_transform_position(cursor_entity, x, y - speed);
         }
     }
 
     if input.key_pressed(KeyCode::KeyA) {
-        if game.cursor.translation[0] > -4.0{
-            game.cursor.translation[0] -= 1.0;
-            game.cursor.build_buffers(&queue); 
+        if x > -4.0{
+            ecs.update_transform_position(cursor_entity, x - speed, y);
         }
     }
 
     if input.key_pressed(KeyCode::KeyD) {
-        if game.cursor.translation[0] < 4.0{
-            game.cursor.translation[0] += 1.0;
-            game.cursor.build_buffers(&queue); 
+        if x < 4.0{
+            ecs.update_transform_position(cursor_entity, x + speed, y); 
         }
     }
 

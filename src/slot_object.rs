@@ -15,40 +15,6 @@ pub struct Object{
     pub texture_frame: [i32; 2],
     pub texture_count: [i32; 2],
 }
-// pub fn new(device: &wgpu::Device, queue: &wgpu::Queue, slots: Vec<Slot>) -> Self{
-//     let mut mode_icon = 
-//         Sprite::new(&device, &queue, "tex/ui/mode/standart_mode.png", [0,0], [1,1]);
-
-//     mode_icon.translation = [4.0, -4.0, 0.0, 1.0];
-//     mode_icon.build_buffers(&queue);  // ← изменено
-
-//     let mut slots_icons: Vec<Sprite> = vec![];
-
-    
-//     let mut index = 0;
-//     for slot in slots{
-//         slots_icons.push(Sprite::new(&device, &queue, 
-//             &format!("tex/ui/icon_slots/{}.png",slot.obj.name), 
-//             [0,0], [1,1]));
-
-//         slots_icons[index as usize].translation = [-4.0 + index as f32, -4.0, 0.0, 1.0];
-//         slots_icons[index as usize].build_buffers(&queue);  // ← изменено
-
-//         index += 1;
-//     }
-
-//     let mut cursor_slot = Sprite::new(&device, &queue, 
-//         "tex/ui/icon_slots/cursor.png", [0,0], [1,1]);
-//     cursor_slot.translation = [-4.0, -4.0, 0.0, 1.0];
-//     cursor_slot.build_buffers(&queue);  // ← изменено
-
-//     Self {
-//         mode_icon,
-//         slots_icons,
-//         cursor_slot,
-//     }
-// }
-
 
 pub fn add(
     ecs: &mut EcsAdapter,
@@ -96,4 +62,50 @@ pub fn remove(
     } else {
         false
     }
+}
+
+
+pub fn get_slot_vec() -> Vec<Slot>{
+    vec![
+        Slot {
+            obj: Object {
+                width: 1, height: 1, name: String::from("box"), 
+                path: String::from("tex/decor/box.png"),
+                texture_frame: [0, 0], texture_count: [1, 1],
+            },
+            active: true,
+        },
+        Slot {
+            obj: Object {
+                width: 1, height: 1, name: String::from("carpet"),
+                path: String::from("tex/decor/carpet.png"),
+                texture_frame: [0, 0], texture_count: [2, 2],
+            },
+            active: false,
+        },
+        Slot{
+            obj: Object {
+                width: 1, height: 1, name: String::from("sign"),
+                path: String::from("tex/decor/sign.png"),
+                texture_frame: [0, 0], texture_count: [1, 1],
+            },
+            active: false,
+        },
+        Slot{
+            obj: Object {
+                width: 1, height: 2, name: String::from("rack"),
+                path: String::from("tex/decor/rack.png"),
+                texture_frame: [0, 1], texture_count: [1, 2],
+            },
+            active: false,
+        },
+        Slot{
+            obj: Object {
+                width: 2, height: 1, name: String::from("table"),
+                path: String::from("tex/decor/table.png"),
+                texture_frame: [0, 0], texture_count: [2, 1],
+            },
+            active: false,
+        },
+    ]
 }

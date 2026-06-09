@@ -51,12 +51,12 @@ async fn main() {
     let cursor_entity = ecs.add_cursor(0.0, 0.0, "tex/cursor/def_cursor.png");
 
     load_map_to_ecs(&mut ecs);
-
+    let (icon_button) = get_uv_ecs(&mut ecs);
 
     //slots
 
     let mut act_slot:i32 = 0;
-    let mut slots:Vec<Slot> = get_slot_vec(&wgpu_app);
+    let mut slots:Vec<Slot> = get_slot_vec();
 
     //main loop vars
     let mut input = WinitInputHelper::new();
@@ -71,7 +71,10 @@ async fn main() {
             let (new_act_slot, new_mode, new_size) = do_input(
                 &wgpu_app.device, &wgpu_app.queue, &input,
                 &mut ecs, &mut slots, act_slot, mode,
-                map_size, cursor_entity
+                map_size, 
+                
+                cursor_entity,
+                icon_button,
             );
             act_slot = new_act_slot;
             mode = new_mode;
@@ -152,52 +155,6 @@ async fn main() {
 
 }
 
-
-fn get_slot_vec(wgpu_app: &WgpuApp) -> Vec<Slot>{
-    vec![
-        Slot {
-            obj: Object {
-                width: 1, height: 1, name: String::from("box"), 
-                path: String::from("tex/decor/box.png"),
-                texture_frame: [0, 0], texture_count: [1, 1],
-            },
-            active: true,
-        },
-        Slot {
-            obj: Object {
-                width: 1, height: 1, name: String::from("carpet"),
-                path: String::from("tex/decor/carpet.png"),
-                texture_frame: [0, 0], texture_count: [2, 2],
-            },
-            active: false,
-        },
-        Slot{
-            obj: Object {
-                width: 1, height: 1, name: String::from("sign"),
-                path: String::from("tex/decor/sign.png"),
-                texture_frame: [0, 0], texture_count: [1, 1],
-            },
-            active: false,
-        },
-        Slot{
-            obj: Object {
-                width: 1, height: 2, name: String::from("rack"),
-                path: String::from("tex/decor/rack.png"),
-                texture_frame: [0, 1], texture_count: [1, 2],
-            },
-            active: false,
-        },
-        Slot{
-            obj: Object {
-                width: 2, height: 1, name: String::from("table"),
-                path: String::from("tex/decor/table.png"),
-                texture_frame: [0, 0], texture_count: [2, 1],
-            },
-            active: false,
-        },
-    ]
-}
-
 const WORLD_OFFSET_X: f32 = -11.0;
 const WORLD_OFFSET_Y: f32 = 11.0;
 
@@ -252,4 +209,15 @@ fn load_map_to_ecs(ecs: &mut EcsAdapter) {
         
         j += 1;
     }
+}
+
+fn get_uv_ecs(
+    ecs: &mut EcsAdapter
+) -> (specs::Entity) {
+    let icon_mode = ecs.add_ui(
+        4.0, -4.0,
+        "tex/ui/mode/standart_mode.png",
+    );
+
+    (icon_mode)
 }

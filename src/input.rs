@@ -16,7 +16,9 @@ pub fn do_input(
     act_slot: i32,
     mode: i32,
     map_size: f32,
+
     cursor_entity: Entity,
+    icon_button: Entity,
 ) -> (i32, i32, f32) {
 
     let mut new_size = map_size;
@@ -59,12 +61,12 @@ pub fn do_input(
             _ => ()
         }
 
-        // match new_mode{
-        //     0 => ecs.update_sprite_texture(entity, "tex/ui/mode/standart_mode.png"),
-        //     1 => ecs.update_sprite_texture(entity, "tex/ui/mode/build_mode.png"),
-        //     2 => ecs.update_sprite_texture(entity, "tex/ui/mode/del_mode.png"),
-        //     _ => ()
-        // }
+        match new_mode{
+            0 => ecs.update_sprite_texture(icon_button, "tex/ui/mode/standart_mode.png"),
+            1 => ecs.update_sprite_texture(icon_button, "tex/ui/mode/build_mode.png"),
+            2 => ecs.update_sprite_texture(icon_button, "tex/ui/mode/del_mode.png"),
+            _ => ()
+        }
     }
 
     if input.key_pressed(KeyCode::KeyQ) {

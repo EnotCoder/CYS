@@ -43,22 +43,6 @@ impl EcsAdapter {
         }
     }
     
-    pub fn _add_decor(&mut self, x: f32, y: f32, texture_path: &str) -> specs::Entity {
-        self.world.create_entity()
-            .with(Transform {
-                position: [x, y, 1.0],
-                rotation: [0.0, 0.0, 0.0, 1.0],
-                scale: [1.0, 1.0, 1.0],
-            })
-            .with(SpriteComponent {
-                texture_path: texture_path.to_string(),
-                texture_frame: [0, 0],
-                texture_count: [1, 1],
-                z_index: 1,
-            })
-            .build()
-    }
-    
     pub fn add_carpet(&mut self, x: f32, y: f32, width: i32, height: i32, texture_path: &str) -> u32 {
         let group_id = self.next_group_id;
         self.next_group_id += 1;
@@ -101,7 +85,7 @@ impl EcsAdapter {
             .build()
     }
     
-    pub fn _add_ui(&mut self, x: f32, y: f32, texture_path: &str) -> specs::Entity {
+    pub fn add_ui(&mut self, x: f32, y: f32, texture_path: &str) -> specs::Entity {
         self.world.create_entity()
             .with(Transform {
                 position: [x, y, 3.0],

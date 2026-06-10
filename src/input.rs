@@ -8,8 +8,6 @@ use specs::*;
 use crate::{add, remove};
 
 pub fn do_input(
-    device: &wgpu::Device,
-    queue: &wgpu::Queue,
     input: &WinitInputHelper,
     ecs: &mut EcsAdapter,
     slots: &mut Vec<Slot>,

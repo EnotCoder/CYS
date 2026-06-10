@@ -1,4 +1,3 @@
-use crate::Sprite;
 use crate::EcsAdapter;
 use specs::*;
 

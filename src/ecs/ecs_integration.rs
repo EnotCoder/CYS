@@ -1,7 +1,7 @@
 use specs::{World, WorldExt, Builder, Join};
 use std::collections::HashMap;
 use crate::Sprite;
-use crate::ecs::components::{Transform, SpriteComponent, GroupMember};
+use crate::ecs::components::{Transform, SpriteComponent};
 use crate::GroupComponent;
 use crate::GroupInfoResource;
 use crate::GroupInfo;
@@ -13,7 +13,6 @@ pub struct SpriteRenderData {
     pub texture_path: String,
     pub texture_frame: [i32; 2],
     pub texture_count: [i32; 2],
-    pub z_index: i32,
 }
 
 pub struct EcsAdapter {
@@ -28,12 +27,10 @@ impl EcsAdapter {
         
         world.register::<Transform>();
         world.register::<SpriteComponent>();
-        world.register::<GroupMember>();
         world.register::<GroupComponent>();
 
         world.insert(GroupInfoResource {
             groups: HashMap::new(),
-            next_group_id: 1,
         });
         
         Self {
@@ -43,44 +40,15 @@ impl EcsAdapter {
         }
     }
     
-    pub fn add_carpet(&mut self, x: f32, y: f32, width: i32, height: i32, texture_path: &str) -> u32 {
-        let group_id = self.next_group_id;
-        self.next_group_id += 1;
-        
-        for i in 0..width {
-            for j in 0..height {
-                self.world.create_entity()
-                    .with(Transform {
-                        position: [x + i as f32, y + j as f32, 1.0],
-                        rotation: [0.0, 0.0, 0.0, 1.0],
-                        scale: [1.0, 1.0, 1.0],
-                    })
-                    .with(SpriteComponent {
-                        texture_path: texture_path.to_string(),
-                        texture_frame: [i, j],
-                        texture_count: [width, height],
-                        z_index: 0,
-                    })
-                    .with(GroupMember { group_id })
-                    .build();
-            }
-        }
-        
-        group_id
-    }
-    
     pub fn add_cursor(&mut self, x: f32, y: f32, texture_path: &str) -> specs::Entity {
         self.world.create_entity()
             .with(Transform {
                 position: [x, y, 2.0],
-                rotation: [0.0, 0.0, 0.0, 1.0],
-                scale: [1.0, 1.0, 1.0],
             })
             .with(SpriteComponent {
                 texture_path: texture_path.to_string(),
                 texture_frame: [0, 0],
                 texture_count: [1, 1],
-                z_index: 2,
             })
             .build()
     }
@@ -89,14 +57,11 @@ impl EcsAdapter {
         self.world.create_entity()
             .with(Transform {
                 position: [x, y, 3.0],
-                rotation: [0.0, 0.0, 0.0, 1.0],
-                scale: [1.0, 1.0, 1.0],
             })
             .with(SpriteComponent {
                 texture_path: texture_path.to_string(),
                 texture_frame: [0, 0],
                 texture_count: [1, 1],
-                z_index: 3,
             })
             .build()
     }
@@ -118,7 +83,6 @@ impl EcsAdapter {
                 texture_path: sprite.texture_path.clone(),
                 texture_frame: sprite.texture_frame,
                 texture_count: sprite.texture_count,
-                z_index: sprite.z_index,
             };
             
             let z = transform.position[2];
@@ -176,25 +140,20 @@ impl EcsAdapter {
         
         let mut entities = Vec::new();
         let z = if is_carpet { 1.0 } else { 1.5 };
-        let z_index = if is_carpet { 0 } else { 1 };
         
         for i in 0..width {
             for j in 0..height {
                 let entity = self.world.create_entity()
                     .with(Transform {
                         position: [x + i as f32, y + j as f32, z],
-                        rotation: [0.0, 0.0, 0.0, 1.0],
-                        scale: [1.0, 1.0, 1.0],
                     })
                     .with(SpriteComponent {
                         texture_path: texture_path.to_string(),
                         texture_frame: [texture_base_frame[0] + i, texture_base_frame[1] + j],
                         texture_count,
-                        z_index,
                     })
                     .with(GroupComponent {
                         group_id,
-                        is_leader: i == 0 && j == 0, // первый блок - лидер
                     })
                     .build();
                 entities.push(entity);
@@ -225,7 +184,7 @@ impl EcsAdapter {
         
         if let Some(group) = group_to_delete {
             // Удаляем все сущности группы
-            let mut entities = self.world.entities();
+            let entities = self.world.entities();
             let mut transforms = self.world.write_storage::<Transform>();
             let mut sprites = self.world.write_storage::<SpriteComponent>();
             let mut group_components = self.world.write_storage::<GroupComponent>();

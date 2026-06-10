@@ -20,7 +20,6 @@ use api_components::*;
 use sprite_manager::*;
 use slot_object::*;
 use input::*;
-use components::*;
 use ecs::*;
 
 use specs::{WorldExt, Builder};
@@ -51,7 +50,7 @@ async fn main() {
     let cursor_entity = ecs.add_cursor(0.0, 0.0, "tex/cursor/def_cursor.png");
 
     load_map_to_ecs(&mut ecs);
-    let (icon_button) = get_uv_ecs(&mut ecs);
+    let icon_button = get_uv_ecs(&mut ecs);
 
     //slots
 
@@ -69,12 +68,10 @@ async fn main() {
         //Input
         if input.update(&event) {
             let (new_act_slot, new_mode, new_size) = do_input(
-                &wgpu_app.device, &wgpu_app.queue, &input,
-                &mut ecs, &mut slots, act_slot, mode,
-                map_size, 
-                
-                cursor_entity,
-                icon_button,
+                &input, &mut ecs,
+                &mut slots, act_slot, 
+                mode, map_size, 
+                cursor_entity, icon_button,
             );
             act_slot = new_act_slot;
             mode = new_mode;
@@ -195,14 +192,11 @@ fn load_map_to_ecs(ecs: &mut EcsAdapter) {
             ecs.world.create_entity()
                 .with(Transform {
                     position: [x, y, 0.0],
-                    rotation: [0.0, 0.0, 0.0, 1.0],
-                    scale: [1.0, 1.0, 1.0],
                 })
                 .with(SpriteComponent {
                     texture_path: tex_path.to_string(),
                     texture_frame: tex_pos,
                     texture_count: tex_cut,
-                    z_index: 0,
                 })
                 .build();
         }
@@ -213,11 +207,11 @@ fn load_map_to_ecs(ecs: &mut EcsAdapter) {
 
 fn get_uv_ecs(
     ecs: &mut EcsAdapter
-) -> (specs::Entity) {
+) -> specs::Entity {
     let icon_mode = ecs.add_ui(
         4.0, -4.0,
         "tex/ui/mode/standart_mode.png",
     );
 
-    (icon_mode)
+    icon_mode
 }

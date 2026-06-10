@@ -10,14 +10,7 @@ pub struct Sprite {
     pub uniform_buffer: wgpu::Buffer,
     pub uniform_bind_group: wgpu::BindGroup,
     pub index_count: u32,
-    pub translation: [f32; 4],
-    pub rotation: [f32; 4],
     pub index_format: wgpu::IndexFormat,
-    pub texture_path: String,
-    pub texture_frame: [i32; 2],
-    pub texture_count: [i32; 2],
-    // Добавляем texture для корректного управления временем жизни
-    texture: Option<Texture>,
     buffers_initialized: bool,
 }
 
@@ -93,8 +86,6 @@ impl Sprite {
         let uniform_bind_group = Self::create_uniform_bind_group(device, &uniform_buffer);
 
         Self {
-            translation: [0.0, 0.0, 0.0, 0.0],
-            rotation: [0.0, 0.0, 0.0, 0.0],
             uniform_buffer,
             texture_bind_group,
             vertex_buffer,
@@ -102,10 +93,6 @@ impl Sprite {
             index_count,
             uniform_bind_group,
             index_format: wgpu::IndexFormat::Uint16,
-            texture_path: texture_path.to_string(),
-            texture_frame,
-            texture_count,
-            texture: Some(texture),
             buffers_initialized: true,
         }
     }
@@ -133,21 +120,6 @@ impl Sprite {
                 resource: uniform_buffer.as_entire_binding(),
             }],
         })
-    }
-    
-    pub fn update_buffers(&mut self, queue: &wgpu::Queue) {
-        let uniforms = Uniforms { 
-            translation: self.translation,
-            rotation: self.rotation,
-            _padding: [0.0; 3],
-        };
-        
-        queue.write_buffer(&self.uniform_buffer, 0, bytemuck::cast_slice(&[uniforms]));
-    }
-    
-    // Исправленный метод build_buffers
-    pub fn build_buffers(&mut self, queue: &wgpu::Queue) {
-        self.update_buffers(queue);
     }
     
     fn create_texture_bind_group(device: &wgpu::Device, texture: &Texture) -> wgpu::BindGroup {
@@ -187,19 +159,5 @@ impl Sprite {
                 },
             ],
         })
-    }
-
-    // Исправленная версия update_texture с правильным освобождением ресурсов
-    pub fn update_texture(
-        &mut self,
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
-        texture_path: &str,
-    ) {
-        // Старая текстура будет автоматически удалена при замене в Option
-        let new_texture = Texture::from_path(device, queue, texture_path, "sprite_texture");
-        self.texture_bind_group = Self::create_texture_bind_group(device, &new_texture);
-        self.texture = Some(new_texture);
-        self.texture_path = texture_path.to_string();
     }
 }

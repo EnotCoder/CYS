@@ -7,6 +7,11 @@ use specs::*;
 
 use crate::{add, remove};
 
+use std::time::{Instant, Duration};
+
+static mut LAST_MOVE_TIME: Option<Instant> = None;
+const MOVE_DELAY: Duration = Duration::from_millis(150);
+
 pub fn do_input(
     input: &WinitInputHelper,
     ecs: &mut EcsAdapter,
@@ -89,28 +94,44 @@ pub fn do_input(
 
     let (x, y) = ecs.get_transform_position(cursor_entity);
     let speed = 1.0;
-
-    if input.key_pressed(KeyCode::KeyW) {
-        if y < 4.0{
+    
+    //move
+    let now = Instant::now();
+    let can_move = unsafe {
+        if let Some(last_time) = LAST_MOVE_TIME {
+            now.duration_since(last_time) >= MOVE_DELAY
+        } else {
+            true
+        }
+    };
+    
+    if can_move {
+        let mut moved = false;
+        
+        if input.key_held(KeyCode::KeyW) && y < 4.0 {
             ecs.update_transform_position(cursor_entity, x, y + speed);
+            moved = true;
         }
-    }
-
-    if input.key_pressed(KeyCode::KeyS) {
-        if y > -4.0{
+        
+        if input.key_held(KeyCode::KeyS) && y > -4.0 {
             ecs.update_transform_position(cursor_entity, x, y - speed);
+            moved = true;
         }
-    }
-
-    if input.key_pressed(KeyCode::KeyA) {
-        if x > -4.0{
+        
+        if input.key_held(KeyCode::KeyA) && x > -4.0 {
             ecs.update_transform_position(cursor_entity, x - speed, y);
+            moved = true;
         }
-    }
-
-    if input.key_pressed(KeyCode::KeyD) {
-        if x < 4.0{
-            ecs.update_transform_position(cursor_entity, x + speed, y); 
+        
+        if input.key_held(KeyCode::KeyD) && x < 4.0 {
+            ecs.update_transform_position(cursor_entity, x + speed, y);
+            moved = true;
+        }
+        
+        if moved {
+            unsafe {
+                LAST_MOVE_TIME = Some(now);
+            }
         }
     }
 

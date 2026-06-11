@@ -237,7 +237,9 @@ impl EcsAdapter {
                     if tx == check_x && ty == check_y {
                         if let Some(existing_group) = groups_resource.groups.get(&group_comp.group_id) {
                             if is_carpet {
-                                // Ковёр можно ставить куда угодно (разрешаем)
+                                if existing_group.is_carpet {
+                                    return false;
+                                }
                                 continue;
                             } else {
                                 // Декор можно ставить только на ковёр

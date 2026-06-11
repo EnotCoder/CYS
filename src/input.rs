@@ -105,6 +105,7 @@ pub fn do_input(
         }
     };
     
+    
     if can_move {
         let mut moved = false;
         
@@ -132,8 +133,27 @@ pub fn do_input(
             unsafe {
                 LAST_MOVE_TIME = Some(now);
             }
+
+            update_cursor_texture(ecs, cursor_entity, new_mode, new_act_slot);
         }
     }
 
+    //Err cursor 
+    update_cursor_texture(ecs, cursor_entity, new_mode, new_act_slot);
+
     (new_act_slot, new_mode, new_size)
+}
+
+fn update_cursor_texture(ecs: &mut EcsAdapter, cursor_entity: Entity, mode: i32, new_act_slot:i32) {
+    if mode == 1 {
+        let (x, y) = ecs.get_transform_position(cursor_entity);
+
+        let is_carpet = new_act_slot == 1;
+
+        if ecs.can_place_at(x as i32, y as i32, 1, 1, is_carpet) {
+            ecs.update_sprite_texture(cursor_entity, "tex/cursor/cursor.png");
+        } else {
+            ecs.update_sprite_texture(cursor_entity, "tex/cursor/err cursor.png");
+        }
+    }
 }

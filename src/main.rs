@@ -179,9 +179,10 @@ fn load_map_to_ecs(ecs: &mut EcsAdapter) {
         
         for i in 0..parts.len() {
             let (tex_path, tex_pos, tex_cut) = match parts[i] {
-                "0" => ("tex/grass.png", [0, 0], [2, 2]),
-                "0.1" => ("tex/grass.png", [1, 0], [2, 2]),
-                "0.2" => ("tex/grass.png", [0, 1], [2, 2]),
+                "0" => ("tex/grass.png", [0, 0], [3, 2]),
+                "0.1" => ("tex/grass.png", [1, 0], [3, 2]),
+                "0.2" => ("tex/grass.png", [0, 1], [3, 2]),
+                "0.3" => ("tex/grass.png", [2, 1], [3, 2]),
                 "1" => ("tex/floor.png", [0, 0], [2, 2]),
                 "2" => ("tex/wall.png", [0, 0], [2, 5]),
                 "3" => ("tex/wall.png", [0, 1], [2, 5]),

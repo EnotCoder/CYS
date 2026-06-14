@@ -29,15 +29,15 @@ pub fn do_input(
     let mut new_mode = mode;
     let mut new_act_slot = act_slot;
 
-    //Scroll with mousze
-    // let scroll = input.scroll_diff();
-    // if scroll != (0.0, 0.0) {
-    //     if scroll.1 > 0.0 && map_size < 0.8{
-    //         new_size += 0.2;
-    //     } else if scroll.1 < 0.0 && map_size > 0.5{
-    //         new_size -= 0.2;
-    //     }
-    // }
+    //Scroll with mouse
+    let scroll = input.scroll_diff();
+    if scroll != (0.0, 0.0) {
+        if scroll.1 > 0.0 && map_size < 0.8{
+            new_size += 0.2;
+        } else if scroll.1 < 0.0 && map_size > 0.5{
+            new_size -= 0.2;
+        }
+    }
 
     //Scroll with keyboard
     if input.key_pressed(KeyCode::KeyK) && map_size < 0.8{

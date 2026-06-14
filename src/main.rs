@@ -50,18 +50,24 @@ async fn main() {
     let cursor_entity = ecs.add_cursor(0.0, 0.0, "tex/cursor/def_cursor.png");
 
     load_map_to_ecs(&mut ecs);
-    let icon_button = get_uv_ecs(&mut ecs);
 
     //slots
 
     let mut act_slot:i32 = 0;
     let mut slots:Vec<Slot> = get_slot_vec();
 
+    let (icon_button, icons_slot_cursor) = get_uv_ecs(&mut ecs, &slots);
+
     //main loop vars
     let mut input = WinitInputHelper::new();
     let mut mode = 0;
 
     let mut map_size:f32 = 0.8;
+
+    let window_size = (
+        window.inner_size().width as f32,
+        window.inner_size().height as f32
+    );
 
     // main loop
     let _ = event_loop.run(|event, event_loop_target| {
@@ -70,8 +76,10 @@ async fn main() {
             let (new_act_slot, new_mode, new_size) = do_input(
                 &input, &mut ecs,
                 &mut slots, act_slot, 
-                mode, map_size, 
-                cursor_entity, icon_button,
+                mode, map_size, window_size,
+                cursor_entity, 
+                //ui
+                icon_button, icons_slot_cursor,
             );
             act_slot = new_act_slot;
             mode = new_mode;
@@ -172,6 +180,8 @@ fn load_map_to_ecs(ecs: &mut EcsAdapter) {
         for i in 0..parts.len() {
             let (tex_path, tex_pos, tex_cut) = match parts[i] {
                 "0" => ("tex/grass.png", [0, 0], [2, 2]),
+                "0.1" => ("tex/grass.png", [1, 0], [2, 2]),
+                "0.2" => ("tex/grass.png", [0, 1], [2, 2]),
                 "1" => ("tex/floor.png", [0, 0], [2, 2]),
                 "2" => ("tex/wall.png", [0, 0], [2, 5]),
                 "3" => ("tex/wall.png", [0, 1], [2, 5]),
@@ -206,12 +216,27 @@ fn load_map_to_ecs(ecs: &mut EcsAdapter) {
 }
 
 fn get_uv_ecs(
-    ecs: &mut EcsAdapter
-) -> specs::Entity {
+    ecs: &mut EcsAdapter,
+    slots: &Vec<Slot>,
+) -> (specs::Entity, specs::Entity) {
     let icon_mode = ecs.add_ui(
         4.0, -4.0,
         "tex/ui/mode/standart_mode.png",
     );
 
-    icon_mode
+    //inventory
+    for i in 0..6{
+        ecs.add_ui(
+            -4.0 + i as f32, -4.0,
+            &format!("tex/ui/icon_slots/{}.png", &slots[i].obj.name).to_string(),
+        );
+        //icons_slots.push(icon);
+    }
+
+    let icons_slot_cursor = ecs.add_ui(
+        -4.0, -4.0,
+        "tex/ui/icon_slots/cursor.png",
+    );
+
+    (icon_mode, icons_slot_cursor)
 }

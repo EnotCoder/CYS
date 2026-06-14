@@ -30,7 +30,7 @@ pub fn add(
     let path = &active_slot.path;
     let texture_frame = active_slot.texture_frame;
     let texture_count = active_slot.texture_count;
-    let is_carpet = active_slot.name == "carpet";
+    let is_carpet = active_slot.name == "carpet" || active_slot.name == "red_carpet";
     
     // Единый вызов для всех объектов
     if ecs.can_place_at(cursor_x, cursor_y, width, height, is_carpet) {
@@ -90,7 +90,7 @@ pub fn get_slot_vec() -> Vec<Slot>{
             },
             active: false,
         },
-        Slot{
+        Slot {
             obj: Object {
                 width: 1, height: 2, name: String::from("rack"),
                 path: String::from("tex/decor/rack.png"),
@@ -103,6 +103,14 @@ pub fn get_slot_vec() -> Vec<Slot>{
                 width: 2, height: 1, name: String::from("table"),
                 path: String::from("tex/decor/table.png"),
                 texture_frame: [0, 0], texture_count: [2, 1],
+            },
+            active: false,
+        },
+        Slot{
+            obj: Object {
+                width: 1, height: 1, name: String::from("red_carpet"),
+                path: String::from("tex/decor/carpet.png"),
+                texture_frame: [1, 0], texture_count: [2, 2],
             },
             active: false,
         },

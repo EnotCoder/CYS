@@ -41,6 +41,7 @@ pub fn add(ecs: &mut EcsAdapter, slots: &mut Vec<Slot>, act_slot: i32, cursor_en
         active_slot.height,
         is_carpet,
     ) {
+        ecs.clear_cursor_preview();
         ecs.add_group_object(
             cursor_x as i32,
             cursor_y as i32,

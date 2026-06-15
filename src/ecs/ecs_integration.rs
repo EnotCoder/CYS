@@ -256,12 +256,12 @@ impl EcsAdapter {
                 let entity = self
                     .world
                     .create_entity()
-                    .with(Transform {
+                     .with(Transform {
                         position: [(x + i) as f32, (y + j) as f32, z],
                     })
                     .with(SpriteComponent {
                         texture_path: texture_path.to_string(),
-                        texture_frame: [base_frame[0] + i, base_frame[1] + j],
+                        texture_frame: [(base_frame[0] + i) % tex_count[0], (base_frame[1] + j) % tex_count[1]],
                         texture_count: tex_count,
                     })
                     .with(GroupComponent { group_id })

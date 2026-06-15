@@ -69,6 +69,12 @@ async fn main() {
     let mut map_size: f32 = 0.8;
 
     let _ = event_loop.run(|event, event_loop_target| {
+        // Размер окна (нужен для конвертации координат мыши)
+        let window_size = (
+            window.inner_size().width as f32,
+            window.inner_size().height as f32,
+        );
+
         // -- Ввод --
         if input.update(&event) {
             (act_slot, mode, map_size) = do_input(
@@ -78,6 +84,7 @@ async fn main() {
                 act_slot,
                 mode,
                 map_size,
+                window_size,
                 cursor_entity,
                 icon_button,
                 icons_slot_cursor,

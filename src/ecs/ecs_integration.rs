@@ -24,6 +24,8 @@ pub struct EcsAdapter {
     pub sprite_cache: HashMap<String, Sprite>,
     /// Счётчик group_id (увеличивается)
     pub next_group_id: u32,
+    /// Временные сущности превью курсора (показывают размер объекта)
+    pub cursor_preview: Vec<specs::Entity>,
 }
 
 impl EcsAdapter {
@@ -43,6 +45,7 @@ impl EcsAdapter {
             world,
             sprite_cache: HashMap::new(),
             next_group_id: 1,
+            cursor_preview: Vec::new(),
         }
     }
 
@@ -61,6 +64,58 @@ impl EcsAdapter {
                 texture_count: [1, 1],
             })
             .build()
+    }
+
+    // ====================================================================
+    //  update_cursor_preview: Показывает размер объекта под курсором
+    //  Создаёт дополнительные спрайты на каждую клетку занимаемой площади.
+    // ====================================================================
+    pub fn update_cursor_preview(
+        &mut self,
+        cursor_x: f32,
+        cursor_y: f32,
+        width: i32,
+        height: i32,
+        valid: bool,
+    ) {
+        self.clear_cursor_preview();
+
+        let tex = if valid { "tex/cursor/cursor.png" } else { "tex/cursor/err cursor.png" };
+
+        for i in 0..width {
+            for j in 0..height {
+                if i == 0 && j == 0 {
+                    continue;
+                }
+                let entity = self.world
+                    .create_entity()
+                    .with(Transform {
+                        position: [cursor_x + i as f32, cursor_y + j as f32, 2.0],
+                    })
+                    .with(SpriteComponent {
+                        texture_path: tex.to_string(),
+                        texture_frame: [0, 0],
+                        texture_count: [1, 1],
+                    })
+                    .build();
+                self.cursor_preview.push(entity);
+            }
+        }
+    }
+
+    // ====================================================================
+    //  clear_cursor_preview: Удаляет превью-спрайты курсора
+    // ====================================================================
+    pub fn clear_cursor_preview(&mut self) {
+        let entities = self.world.entities();
+        let mut transforms = self.world.write_storage::<Transform>();
+        let mut sprites = self.world.write_storage::<SpriteComponent>();
+        for &entity in &self.cursor_preview {
+            transforms.remove(entity);
+            sprites.remove(entity);
+            let _ = entities.delete(entity);
+        }
+        self.cursor_preview.clear();
     }
 
     // ====================================================================
@@ -201,12 +256,12 @@ impl EcsAdapter {
                 let entity = self
                     .world
                     .create_entity()
-                    .with(Transform {
+                     .with(Transform {
                         position: [(x + i) as f32, (y + j) as f32, z],
                     })
                     .with(SpriteComponent {
                         texture_path: texture_path.to_string(),
-                        texture_frame: [base_frame[0] + i, base_frame[1] + j],
+                        texture_frame: [(base_frame[0] + i) % tex_count[0], (base_frame[1] + j) % tex_count[1]],
                         texture_count: tex_count,
                     })
                     .with(GroupComponent { group_id })

@@ -12,6 +12,7 @@ mod sprite_manager;
 mod slot_object;
 mod input;
 mod ecs;
+mod text_renderer;
 
 use api_components::*;
 use sprite_manager::*;
@@ -63,7 +64,14 @@ async fn main() {
     let mut slots: Vec<Slot> = get_slot_vec();
     let (icon_button, icons_slot_cursor) = get_uv_ecs(&mut ecs, &slots);
 
-    // === 5. Главный цикл ===
+    // === 5. Текст (UI) ===
+    let mut text_renderer = text_renderer::TextRenderer::new("font.otf");
+    text_renderer.add_text(
+        &mut ecs, &wgpu_app.device, &wgpu_app.queue,
+        "Pre alpha", 128.0, -3.0, 3.8, 2.0, 10.0, 10.0,
+    );
+
+    // === 6. Главный цикл ===
     let mut input = winit_input_helper::WinitInputHelper::new();
     let mut mode: i32 = 0;
     let mut map_size: f32 = 0.8;

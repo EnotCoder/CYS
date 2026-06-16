@@ -291,14 +291,38 @@
         }
 
         .feature-icon {
-            font-size: 2.5rem;
-            margin-bottom: 1rem;
             display: inline-block;
+            margin-bottom: 1rem;
             transition: transform 0.3s ease;
+        }
+
+        .feature-icon img {
+            display: block;
+            width: 32px;
+            height: auto;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
         }
 
         .feature-card:hover .feature-icon {
             transform: scale(1.2) rotate(-5deg);
+        }
+
+        .game-icon {
+            display: inline-block;
+            width: 20px;
+            height: auto;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+            vertical-align: middle;
+        }
+        .game-icon-sm {
+            display: inline-block;
+            width: 16px;
+            height: auto;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+            vertical-align: middle;
         }
 
         .feature-card h3 {
@@ -497,6 +521,85 @@
             border-top: 1px solid var(--border);
             color: var(--text-secondary);
             animation: fade-in-up 0.8s ease 0.7s both;
+        }
+
+        /* Reviews */
+        .review-section {
+            background: var(--bg-card);
+            backdrop-filter: blur(12px);
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin: 2rem 0;
+            border: 1px solid var(--border);
+            transition: all 0.3s ease;
+            animation: fade-in-up 0.8s ease 0.65s both;
+        }
+        .review-section:hover {
+            border-color: var(--card-hover-border);
+            box-shadow: 0 8px 30px var(--glow);
+        }
+        .review-textarea {
+            width: 100%;
+            min-height: 100px;
+            background: var(--input-bg);
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 0.8rem;
+            font-family: inherit;
+            font-size: 0.95rem;
+            resize: vertical;
+            transition: border-color 0.3s ease;
+        }
+        .review-textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--glow);
+        }
+        .review-submit {
+            margin-top: 0.8rem;
+            background: var(--gradient-1);
+            color: white;
+            border: none;
+            padding: 0.6rem 1.5rem;
+            border-radius: 10px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .review-submit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+        .review-submit:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .review-list {
+            margin-top: 1rem;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .review-item {
+            padding: 0.8rem;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+        .review-item:last-child {
+            border-bottom: none;
+        }
+        .review-item .review-date {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-top: 0.3rem;
+        }
+        .review-empty {
+            color: var(--text-secondary);
+            text-align: center;
+            padding: 1rem;
+            font-style: italic;
         }
 
         .badge {
@@ -813,7 +916,7 @@
 
             <div style="margin-top: 1.5rem;">
                 <a href="https://github.com/EnotCoder/CYS.git" class="btn btn-github" target="_blank" rel="noopener noreferrer">
-                    ⭐ View on GitHub
+                    <img class="game-icon-sm" src="tex/ui/mode/standart_mode.png" alt=""> View on GitHub
                 </a>
             </div>
         </div>
@@ -824,7 +927,7 @@
             <p>For now, it is my favorite project. I use <strong>winit</strong> for window management and <strong>wgpu</strong> for rendering graphics.</p>
             <p>The game is in <strong>pre-Alpha</strong> stage, and I'm actively developing it!</p>
             <p style="margin-top: 1rem;">
-                <strong>🔗 Repository:</strong>
+                <strong><img class="game-icon-sm" src="tex/ui/icon_slots/box.png" alt=""> Repository:</strong>
                 <a href="https://github.com/EnotCoder/CYS.git" target="_blank">github.com/EnotCoder/CYS</a>
             </p>
         </div>
@@ -833,32 +936,32 @@
         <h2>🎮 Game Features</h2>
         <div class="features-grid">
             <div class="feature-card">
-                <div class="feature-icon">🏗️</div>
+                <div class="feature-icon"><img src="tex/decor/table.png" alt="Building"></div>
                 <h3>Grid-Based Building</h3>
                 <p>Place and remove objects on a 9x9 grid system with precise positioning</p>
             </div>
             <div class="feature-card">
-                <div class="feature-icon">🔄</div>
+                <div class="feature-icon"><img src="tex/ui/mode/standart_mode.png" alt="Modes"></div>
                 <h3>Multiple Modes</h3>
                 <p>Switch between Standard, Build, and Delete modes for different actions</p>
             </div>
             <div class="feature-card">
-                <div class="feature-icon">📦</div>
+                <div class="feature-icon"><img src="tex/ui/icon_slots/box.png" alt="Inventory"></div>
                 <h3>6 Inventory Slots</h3>
                 <p>Different objects with varying sizes (1x1, 1x2, 2x1) to decorate your shop</p>
             </div>
             <div class="feature-card">
-                <div class="feature-icon">🧩</div>
+                <div class="feature-icon"><img src="tex/decor/carpet.png" alt="Carpet"></div>
                 <h3>Carpet System</h3>
                 <p>Decor objects can only be placed on carpets - strategic placement required!</p>
             </div>
             <div class="feature-card">
-                <div class="feature-icon">🖱️</div>
+                <div class="feature-icon"><img src="tex/cursor/def_cursor.png" alt="Controls"></div>
                 <h3>Mouse & Keyboard</h3>
                 <p>Scroll to zoom, WASD to move cursor, and intuitive key bindings</p>
             </div>
             <div class="feature-card">
-                <div class="feature-icon">🎨</div>
+                <div class="feature-icon"><img src="tex/decor/sign.png" alt="Sprites"></div>
                 <h3>Sprite Atlas Support</h3>
                 <p>Objects can use multi-frame textures from texture atlases</p>
             </div>
@@ -868,7 +971,7 @@
 
         <!-- Controls -->
         <div class="controls-section">
-            <h2>🎮 Controls</h2>
+            <h2>🖱️ Controls</h2>
             <div class="controls-grid">
                 <div class="control-item">
                     <span class="control-key">W / A / S / D</span>
@@ -901,24 +1004,24 @@
         <h2>🔄 Game Modes</h2>
         <div class="features-grid">
             <div class="feature-card">
-                <div class="feature-icon">⭐</div>
+                <div class="feature-icon"><img src="tex/ui/mode/standart_mode.png" alt="Standard"></div>
                 <h3>Standard Mode (0)</h3>
                 <p>Default cursor - no building action. Navigate and plan your shop layout.</p>
             </div>
             <div class="feature-card">
-                <div class="feature-icon">🟢</div>
+                <div class="feature-icon"><img src="tex/cursor/cursor.png" alt="Build"></div>
                 <h3>Build Mode (1)</h3>
                 <p>Green/Red cursor - place objects from active slot. Red means invalid position.</p>
             </div>
             <div class="feature-card">
-                <div class="feature-icon">🗑️</div>
+                <div class="feature-icon"><img src="tex/cursor/del_cursor.png" alt="Delete"></div>
                 <h3>Delete Mode (2)</h3>
                 <p>Delete cursor - remove objects under cursor from your shop.</p>
             </div>
         </div>
 
         <!-- Objects -->
-        <h2>📦 Available Objects</h2>
+        <h2><img class="game-icon" src="tex/ui/icon_slots/box.png" alt=""> Available Objects</h2>
         <table class="object-table">
             <thead>
                 <tr>
@@ -929,12 +1032,12 @@
                 </tr>
             </thead>
             <tbody>
-                <tr><td>0</td><td>📦 Box</td><td>1x1</td><td>Decor</td></tr>
-                <tr><td>1</td><td>🟫 Carpet</td><td>1x1</td><td>Carpet</td></tr>
-                <tr><td>2</td><td>📝 Sign</td><td>1x1</td><td>Decor</td></tr>
-                <tr><td>3</td><td>🗄️ Rack</td><td>1x2</td><td>Decor</td></tr>
-                <tr><td>4</td><td>🪵 Table</td><td>2x1</td><td>Decor</td></tr>
-                <tr><td>5</td><td>🔴 Red Carpet</td><td>1x1</td><td>Carpet</td></tr>
+                <tr><td>0</td><td><img class="game-icon-sm" src="tex/ui/icon_slots/box.png" alt=""> Box</td><td>1x1</td><td>Decor</td></tr>
+                <tr><td>1</td><td><img class="game-icon-sm" src="tex/ui/icon_slots/carpet.png" alt=""> Carpet</td><td>1x1</td><td>Carpet</td></tr>
+                <tr><td>2</td><td><img class="game-icon-sm" src="tex/ui/icon_slots/sign.png" alt=""> Sign</td><td>1x1</td><td>Decor</td></tr>
+                <tr><td>3</td><td><img class="game-icon-sm" src="tex/ui/icon_slots/rack.png" alt=""> Rack</td><td>1x2</td><td>Decor</td></tr>
+                <tr><td>4</td><td><img class="game-icon-sm" src="tex/ui/icon_slots/table.png" alt=""> Table</td><td>2x1</td><td>Decor</td></tr>
+                <tr><td>5</td><td><img class="game-icon-sm" src="tex/ui/icon_slots/red_carpet.png" alt=""> Red Carpet</td><td>1x1</td><td>Carpet</td></tr>
             </tbody>
         </table>
 
@@ -953,7 +1056,7 @@
         </div>
 
 
-        <h2>🔧 Building & Running</h2>
+        <h2>🔧 Building &amp; Running</h2>
         <div class="terminal-window">
             <div class="terminal-titlebar">
                 <div class="terminal-dots">
@@ -994,7 +1097,7 @@
                     <span class="terminal-output">Loading map.txt ...</span>
                 </div>
                 <div class="terminal-line">
-                    <span class="terminal-output">Game started! 🎮</span>
+                    <span class="terminal-output">Game started! <img class="game-icon-sm" src="tex/characters/player.png" alt=""></span>
                 </div>
                 <div class="terminal-line">
                     <span class="terminal-prompt">$</span>
@@ -1018,7 +1121,7 @@
         <h2>📋 Recent Updates</h2>
         <div class="features-grid">
             <div class="feature-card">
-                <div class="feature-icon">🔧</div>
+                <div class="feature-icon"><img src="tex/cursor/cursor.png" alt="Fix"></div>
                 <h3>Version 0.1.0-alpha</h3>
                 <p>• Fixed sprite rendering pipeline<br>
                 • Improved ECS integration<br>
@@ -1026,7 +1129,7 @@
                 • Enhanced cursor movement with cooldown</p>
             </div>
             <div class="feature-card">
-                <div class="feature-icon">🚀</div>
+                <div class="feature-icon"><img src="tex/characters/player.png" alt="Future"></div>
                 <h3>Planned Features</h3>
                 <p>• Save/load shop layouts<br>
                 • More decorative items<br>
@@ -1035,12 +1138,24 @@
             </div>
         </div>
 
+        <!-- Reviews -->
+        <div class="review-section">
+            <h2>💬 Leave a Review</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 1rem;">Your feedback helps improve the game!</p>
+            <textarea class="review-textarea" id="reviewInput" placeholder="Share your thoughts about CYS..." maxlength="1000"></textarea>
+            <br>
+            <button class="review-submit" id="reviewSubmit">Submit Review</button>
+            <div class="review-list" id="reviewList">
+                <div class="review-empty">No reviews yet. Be the first!</div>
+            </div>
+        </div>
+
         <!-- Footer -->
         <div class="footer">
-            <p>Made with ❤️ using Rust and wgpu</p>
+            <p>Made with <img class="game-icon-sm" src="tex/cursor/def_cursor.png" alt="love"> using Rust and wgpu</p>
             <p>
                 <a href="https://github.com/EnotCoder/CYS.git" target="_blank">
-                    🔗 github.com/EnotCoder/CYS
+                    <img class="game-icon-sm" src="tex/ui/icon_slots/box.png" alt=""> github.com/EnotCoder/CYS
                 </a>
             </p>
             <p>This is an open-source project - contributions and suggestions are welcome!</p>
@@ -1085,6 +1200,58 @@
             particle.style.opacity = Math.random() * 0.5 + 0.1;
             particlesContainer.appendChild(particle);
         }
+
+        // Reviews
+        const REVIEWS_KEY = 'cys_reviews';
+        const reviewInput = document.getElementById('reviewInput');
+        const reviewSubmit = document.getElementById('reviewSubmit');
+        const reviewList = document.getElementById('reviewList');
+
+        function loadReviews() {
+            const reviews = JSON.parse(localStorage.getItem(REVIEWS_KEY) || '[]');
+            if (reviews.length === 0) {
+                reviewList.innerHTML = '<div class="review-empty">No reviews yet. Be the first!</div>';
+                return;
+            }
+            reviewList.innerHTML = reviews.map(r =>
+                `<div class="review-item">
+                    ${escapeHtml(r.text)}
+                    <div class="review-date">${r.date}</div>
+                </div>`
+            ).join('');
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        reviewSubmit.addEventListener('click', () => {
+            const text = reviewInput.value.trim();
+            if (!text) return;
+
+            reviewSubmit.disabled = true;
+            const reviews = JSON.parse(localStorage.getItem(REVIEWS_KEY) || '[]');
+            reviews.unshift({
+                text: text,
+                date: new Date().toLocaleDateString('en-US', {
+                    year: 'numeric', month: 'short', day: 'numeric'
+                })
+            });
+            localStorage.setItem(REVIEWS_KEY, JSON.stringify(reviews));
+            reviewInput.value = '';
+            loadReviews();
+            reviewSubmit.disabled = false;
+        });
+
+        reviewInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                reviewSubmit.click();
+            }
+        });
+
+        loadReviews();
     </script>
 </body>
 </html>

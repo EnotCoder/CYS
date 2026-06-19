@@ -136,6 +136,41 @@ impl EcsAdapter {
     }
 
     // ====================================================================
+    //  add_ui_sized: UI-элемент с произвольным размером
+    // ====================================================================
+    pub fn add_ui_sized(
+        &mut self,
+        x: f32,
+        y: f32,
+        width: f32,
+        height: f32,
+        texture_path: &str,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+    ) -> specs::Entity {
+        let entity = self.world
+            .create_entity()
+            .with(Transform {
+                position: [x, y, 3.0],
+            })
+            .with(SpriteComponent {
+                texture_path: texture_path.to_string(),
+                texture_frame: [0, 0],
+                texture_count: [1, 1],
+            })
+            .build();
+
+        let tex = crate::Texture::from_path(device, queue, texture_path, "ui_sized");
+        let sprite = crate::Sprite::from_texture(device, &tex, texture_path, width, height);
+
+        let frame_key = format!("{:?}_{:?}", [0, 0], [1, 1]);
+        let key = format!("ui_{}_{}_{}_{}", x, y, texture_path, frame_key);
+        self.sprite_cache.insert(key, sprite);
+
+        entity
+    }
+
+    // ====================================================================
     //  get_sprites_by_layer: Группирует все спрайты по слоям (z)
     //
     //  Слои:

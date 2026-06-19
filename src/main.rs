@@ -1,6 +1,6 @@
 use winit::{
     event::{Event, WindowEvent},
-    event_loop::EventLoop,
+    event_loop::{ControlFlow, EventLoop},
     window::WindowBuilder,
     dpi::PhysicalSize,
 };
@@ -34,6 +34,7 @@ const EMPTY_UNIFORMS: Uniforms = Uniforms {
 #[tokio::main]
 async fn main() {
     let event_loop = EventLoop::new().unwrap();
+    event_loop.set_control_flow(ControlFlow::Poll);
     let window = WindowBuilder::new()
         .with_title("CYS — Create your Shop")
         .with_inner_size(PhysicalSize::new(800, 800))
@@ -57,42 +58,7 @@ async fn main() {
             window.inner_size().height as f32,
         );
 
-        if input.update(&event) {
-            if let Some(scene) = scene_manager.scenes.get_mut(&scene_manager.current) {
-                let action = scene.update(
-                    &mut scene_manager.ecs,
-                    &input,
-                    window_size,
-                    &mut text_renderer,
-                    &wgpu_app.device,
-                    &wgpu_app.queue,
-                );
-                match action {
-                    scene::SceneAction::Switch(name) => {
-                        scene_manager.switch_to(&name, &mut text_renderer);
-                    }
-                    scene::SceneAction::None => {}
-                }
-            }
-        }
-
-        wgpu_app
-            .queue
-            .write_buffer(&wgpu_app.uniform_buffer, 0, bytemuck::cast_slice(&[EMPTY_UNIFORMS]));
-
-        let ms = scene_manager.scenes.get(&scene_manager.current).unwrap().map_size();
-        let size_data = Size { map_size: ms };
-        wgpu_app
-            .queue
-            .write_buffer(&wgpu_app.size_buffer, 0, bytemuck::cast_slice(&[size_data]));
-
-        let ui_uniforms = UiUniforms {
-            size: 1.0,
-            _padding: [0.0; 3],
-        };
-        wgpu_app
-            .queue
-            .write_buffer(&wgpu_app.ui_uniform_buffer, 0, bytemuck::cast_slice(&[ui_uniforms]));
+        input.update(&event);
 
         match event {
             Event::WindowEvent {
@@ -106,6 +72,45 @@ async fn main() {
                 event: WindowEvent::RedrawRequested,
                 ..
             } => {
+                let action = {
+                    let scene = scene_manager.scenes.get_mut(&scene_manager.current).unwrap();
+                    scene.update(
+                        &mut scene_manager.ecs,
+                        &input,
+                        window_size,
+                        &mut text_renderer,
+                        &wgpu_app.device,
+                        &wgpu_app.queue,
+                    )
+                };
+                match action {
+                    scene::SceneAction::Switch(name) => {
+                        scene_manager.switch_to(&name, &mut text_renderer);
+                    }
+                    scene::SceneAction::Quit => {
+                        event_loop_target.exit();
+                    }
+                    scene::SceneAction::None => {}
+                }
+
+                wgpu_app
+                    .queue
+                    .write_buffer(&wgpu_app.uniform_buffer, 0, bytemuck::cast_slice(&[EMPTY_UNIFORMS]));
+
+                let ms = scene_manager.scenes.get(&scene_manager.current).unwrap().map_size();
+                let size_data = Size { map_size: ms };
+                wgpu_app
+                    .queue
+                    .write_buffer(&wgpu_app.size_buffer, 0, bytemuck::cast_slice(&[size_data]));
+
+                let ui_uniforms = UiUniforms {
+                    size: 1.0,
+                    _padding: [0.0; 3],
+                };
+                wgpu_app
+                    .queue
+                    .write_buffer(&wgpu_app.ui_uniform_buffer, 0, bytemuck::cast_slice(&[ui_uniforms]));
+
                 let (map_sprites, carpet_sprites, decor_sprites, cursor_sprites, ui_sprites) =
                     scene_manager.scenes.get(&scene_manager.current).unwrap().sprites(&scene_manager.ecs);
 

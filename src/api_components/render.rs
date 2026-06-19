@@ -79,7 +79,7 @@ fn render_group(
 
     // --- Настройка load operations ---
     let color_load = if clear_color {
-        wgpu::LoadOp::Clear(wgpu::Color { r: 0.1, g: 0.1, b: 0.2, a: 1.0 })
+        wgpu::LoadOp::Clear(wgpu::Color { r: 0.0, g: 0.0, b: 0.0, a: 1.0 })
     } else {
         wgpu::LoadOp::Load
     };

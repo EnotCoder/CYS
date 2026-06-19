@@ -6,6 +6,7 @@ use specs::WorldExt;
 
 pub enum SceneAction {
     Switch(String),
+    Quit,
     None,
 }
 

@@ -1,52 +1,52 @@
 use crate::scene::{Scene, SceneAction};
-use specs::{WorldExt, Builder};
 
 pub struct MenuScene {
     ready: bool,
-    text_entity: Option<specs::Entity>,
 }
 
 impl MenuScene {
     pub fn new() -> Self {
-        MenuScene { ready: false, text_entity: None }
+        MenuScene { ready: false }
+    }
+
+    fn setup_content(&mut self, ecs: &mut crate::EcsAdapter, text_renderer: &mut crate::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) {
+        crate::load_map_to_ecs(ecs);
+
+        //name 
+        ecs.add_ui_sized(0.0, 2.0, 2.5, 2.5, "tex/game_name.png", device, queue);
+
+        //black_panel
+        ecs.add_ui_sized(0.0, -1.0, 2.5, 2.5, "tex/black.png", device, queue);
+
+        //Play && Quit
+        text_renderer.add_text(
+            ecs, device, queue,
+            "Space to play", 48.0, 0.0, -0.5, 2.0, 2.0, [200, 200, 200],
+        );
+
+        text_renderer.add_text(
+            ecs, device, queue,
+            "Esc to quit", 48.0, 0.0, -1.5, 2.0, 2.0, [200, 200, 200],
+        );
     }
 }
 
 impl Scene for MenuScene {
-    fn on_enter(&mut self, ecs: &mut crate::EcsAdapter, _text_renderer: &mut crate::text_renderer::TextRenderer) {
+    fn on_enter(&mut self, _ecs: &mut crate::EcsAdapter, _text_renderer: &mut crate::text_renderer::TextRenderer) {
         self.ready = false;
-        self.text_entity = None;
-
-        ecs.world
-            .create_entity()
-            .with(crate::Transform {
-                position: [0.0, 0.0, 0.0],
-            })
-            .with(crate::SpriteComponent {
-                texture_path: "tex/menu.png".to_string(),
-                texture_frame: [0, 0],
-                texture_count: [1, 1],
-            })
-            .build();
     }
 
     fn update(&mut self, ecs: &mut crate::EcsAdapter, input: &winit_input_helper::WinitInputHelper, _window_size: (f32, f32), text_renderer: &mut crate::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) -> SceneAction {
         if !self.ready {
             self.ready = true;
-
-            let tex = crate::Texture::from_path(device, queue, "tex/menu.png", "menu");
-            let sprite = crate::Sprite::from_texture(device, &tex, "menu", 12.0, 12.0);
-            ecs.sprite_cache.insert("map_0_0_tex/menu.png_[0, 0]_[1, 1]".to_string(), sprite);
-
-            let entity = text_renderer.add_text(
-                ecs, device, queue,
-                "Press space to play", 48.0, 0.0, -2.0, 3.0, 2.0, [200, 200, 200],
-            );
-            self.text_entity = Some(entity);
+            self.setup_content(ecs, text_renderer, device, queue);
         }
 
         if input.key_pressed(winit::keyboard::KeyCode::Space) {
             return SceneAction::Switch("game".to_string());
+        }
+        if input.key_pressed(winit::keyboard::KeyCode::Escape) {
+            return SceneAction::Quit;
         }
 
         SceneAction::None

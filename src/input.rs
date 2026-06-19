@@ -3,7 +3,8 @@ use winit_input_helper::WinitInputHelper;
 use std::cell::Cell;
 use std::time::{Instant, Duration};
 
-use crate::{EcsAdapter, Slot, add, remove};
+use crate::{EcsAdapter, Slot};
+use crate::slot_object::{add, remove};
 use specs::Entity;
 
 // === Константы ===

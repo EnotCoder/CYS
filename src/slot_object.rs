@@ -69,7 +69,56 @@ pub fn remove(ecs: &mut EcsAdapter, cursor_entity: Entity) -> bool {
 }
 
 // ========================================================================
-//  get_slot_vec: Возвращает начальный набор предметов (6 слотов)
+//  make_slot: Создаёт слот по имени предмета
+// ========================================================================
+pub fn make_slot(name: &str) -> Slot {
+    match name {
+        "box" => Slot {
+            obj: Object {
+                width: 1, height: 1, name: String::from("box"),
+                path: String::from("tex/decor/box.png"),
+                texture_frame: [0, 0], texture_count: [1, 1],
+            },
+            active: true,
+        },
+        "carpet" => Slot {
+            obj: Object {
+                width: 1, height: 1, name: String::from("carpet"),
+                path: String::from("tex/decor/carpet.png"),
+                texture_frame: [0, 0], texture_count: [2, 2],
+            },
+            active: true,
+        },
+        "sign" => Slot {
+            obj: Object {
+                width: 1, height: 1, name: String::from("sign"),
+                path: String::from("tex/decor/sign.png"),
+                texture_frame: [0, 0], texture_count: [1, 1],
+            },
+            active: true,
+        },
+        "rack" => Slot {
+            obj: Object {
+                width: 1, height: 2, name: String::from("rack"),
+                path: String::from("tex/decor/rack.png"),
+                texture_frame: [0, 1], texture_count: [1, 2],
+            },
+            active: true,
+        },
+        "table" => Slot {
+            obj: Object {
+                width: 2, height: 1, name: String::from("table"),
+                path: String::from("tex/decor/table.png"),
+                texture_frame: [0, 0], texture_count: [2, 1],
+            },
+            active: true,
+        },
+        _ => make_slot("box"),
+    }
+}
+
+// ========================================================================
+//  get_slot_vec: Возвращает начальный набор предметов (5 слотов)
 // ========================================================================
 pub fn get_slot_vec() -> Vec<Slot> {
     vec![
@@ -115,14 +164,6 @@ pub fn get_slot_vec() -> Vec<Slot> {
             },
             active: false,
         },
-        Slot {
-            obj: Object {
-                width: 1, height: 1, name: String::from("red_carpet"),
-                path: String::from("tex/decor/carpet.png"),
-                // Красный ковёр — второй кадр в атласе carpet.png (col=1, row=0)
-                texture_frame: [1, 0], texture_count: [2, 2],
-            },
-            active: false,
-        },
+
     ]
 }

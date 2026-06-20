@@ -40,6 +40,7 @@ pub fn do_input(
     cursor_entity: Entity,
     icon_button: Entity,
     icons_slot_cursor: Entity,
+    inventory_mode: bool,
 ) -> (i32, i32, f32) {
     let mut new_size = map_size;
     let mut new_mode = mode;
@@ -62,8 +63,8 @@ pub fn do_input(
         new_mode = cycle_mode(new_mode, ecs, cursor_entity, icon_button);
     }
 
-    // 4. Переключение слота (только Q)
-    if input.key_pressed(KeyCode::KeyQ) {
+    // 4. Переключение слота (только Q) — не в режиме инвентаря
+    if !inventory_mode && input.key_pressed(KeyCode::KeyQ) {
         new_act_slot = cycle_slot(new_act_slot, slots, ecs, icons_slot_cursor);
     }
 
@@ -132,11 +133,12 @@ fn cycle_mode(mode: i32, ecs: &mut EcsAdapter, cursor: Entity, icon: Entity) -> 
 //  Переключение слота: 0→1→...→5→0
 // ========================================================================
 fn cycle_slot(slot: i32, slots: &mut [Slot], ecs: &mut EcsAdapter, cursor: Entity) -> i32 {
+    let max_slot = slots.len() as i32 - 1;
     if (slot as usize) < slots.len() {
         slots[slot as usize].active = false;
     }
 
-    let new_slot = if slot == 5 {
+    let new_slot = if slot >= max_slot {
         ecs.update_transform_position(cursor, -4.0, -4.0);
         0
     } else {

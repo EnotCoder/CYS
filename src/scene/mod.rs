@@ -87,7 +87,7 @@ impl SceneManager {
 
         let entity = text_renderer.add_text(
             &mut self.ecs, device, queue,
-            &fps_text, 24.0, 3.5, 3.8, 1.5, 1.0, [0, 255, 0],
+            &fps_text, 64.0, 3.5, 3.8, 1.0, 4.0, [255, 255, 255],
         );
 
         self.fps_entity = Some(entity);

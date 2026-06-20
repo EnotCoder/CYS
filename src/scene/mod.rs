@@ -21,6 +21,9 @@ pub struct SceneManager {
     pub ecs: crate::EcsAdapter,
     pub scenes: HashMap<String, Box<dyn Scene>>,
     pub current: String,
+    fps_entity: Option<specs::Entity>,
+    fps_sprite_key: Option<String>,
+    current_fps_text: String,
 }
 
 impl SceneManager {
@@ -34,7 +37,14 @@ impl SceneManager {
         let game = game_scene::GameScene::new();
         scenes.insert("game".to_string(), Box::new(game));
 
-        let mut sm = SceneManager { ecs, scenes, current: "menu".to_string() };
+        let mut sm = SceneManager {
+            ecs,
+            scenes,
+            current: "menu".to_string(),
+            fps_entity: None,
+            fps_sprite_key: None,
+            current_fps_text: String::new(),
+        };
         if let Some(scene) = sm.scenes.get_mut(&sm.current) {
             scene.on_enter(&mut sm.ecs, text_renderer);
         }
@@ -47,6 +57,44 @@ impl SceneManager {
             scene.on_enter(&mut self.ecs, text_renderer);
             self.current = name.to_string();
         }
+    }
+
+    pub fn update_fps(
+        &mut self,
+        fps: u32,
+        text_renderer: &mut crate::text_renderer::TextRenderer,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+    ) {
+        let fps_text = format!("FPS: {}", fps);
+
+        if fps_text == self.current_fps_text {
+            if let Some(entity) = self.fps_entity {
+                if self.ecs.world.entities().is_alive(entity) {
+                    return;
+                }
+            }
+        }
+
+        if let Some(entity) = self.fps_entity.take() {
+            let _ = self.ecs.world.entities().delete(entity);
+            self.ecs.world.write_storage::<crate::Transform>().remove(entity);
+            self.ecs.world.write_storage::<crate::SpriteComponent>().remove(entity);
+        }
+        if let Some(key) = self.fps_sprite_key.take() {
+            self.ecs.sprite_cache.remove(&key);
+        }
+
+        let entity = text_renderer.add_text(
+            &mut self.ecs, device, queue,
+            &fps_text, 24.0, 3.5, 3.8, 1.5, 1.0, [0, 255, 0],
+        );
+
+        self.fps_entity = Some(entity);
+        self.fps_sprite_key = Some(crate::text_renderer::TextRenderer::sprite_cache_key(
+            3.5, 3.8, &fps_text, 24.0, 1.0, [0, 255, 0],
+        ));
+        self.current_fps_text = fps_text;
     }
 
     fn clear_ecs_world(&mut self) {

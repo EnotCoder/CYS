@@ -6,6 +6,7 @@ use winit::{
 };
 use std::fs::File;
 use std::io::{BufRead, BufReader};
+use std::time::Instant;
 
 mod api_components;
 mod sprite_manager;
@@ -52,6 +53,10 @@ async fn main() {
 
     let mut input = winit_input_helper::WinitInputHelper::new();
 
+    let mut last_fps_time = Instant::now();
+    let mut frame_count = 0u32;
+    let mut fps = 0u32;
+
     let _ = event_loop.run(|event, event_loop_target| {
         let window_size = (
             window.inner_size().width as f32,
@@ -92,6 +97,15 @@ async fn main() {
                     }
                     scene::SceneAction::None => {}
                 }
+
+                frame_count += 1;
+                let elapsed = last_fps_time.elapsed();
+                if elapsed >= std::time::Duration::from_secs(1) {
+                    fps = (frame_count as f64 / elapsed.as_secs_f64()).round() as u32;
+                    frame_count = 0;
+                    last_fps_time = Instant::now();
+                }
+                scene_manager.update_fps(fps, &mut text_renderer, &wgpu_app.device, &wgpu_app.queue);
 
                 wgpu_app
                     .queue

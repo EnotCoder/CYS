@@ -171,6 +171,29 @@ impl EcsAdapter {
     }
 
     // ====================================================================
+    //  add_button: Создаёт кнопку с фоном и текстом
+    // ====================================================================
+    pub fn add_button(
+        &mut self,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        x: f32,
+        y: f32,
+        width: f32,
+        height: f32,
+        text: &str,
+        font_size: f32,
+        text_renderer: &mut crate::text_renderer::TextRenderer,
+    ) -> (specs::Entity, specs::Entity) {
+        let bg = self.add_ui_sized(x, y, width, height, "tex/black.png", device, queue);
+        let label = text_renderer.add_text(
+            self, device, queue,
+            text, font_size, x, y + 0.05, width * 0.75, 1.0, [220, 220, 220],
+        );
+        (bg, label)
+    }
+
+    // ====================================================================
     //  get_sprites_by_layer: Группирует все спрайты по слоям (z)
     //
     //  Слои:

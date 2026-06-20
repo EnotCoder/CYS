@@ -31,7 +31,7 @@ pub fn add(ecs: &mut EcsAdapter, slots: &mut Vec<Slot>, act_slot: i32, cursor_en
     let (cursor_x, cursor_y) = ecs.get_transform_position(cursor_entity);
 
     // Определяем, является ли объект ковром (по имени)
-    let is_carpet = matches!(active_slot.name.as_str(), "carpet" | "red_carpet");
+    let is_carpet = matches!(active_slot.name.as_str(), "carpet" | "red_carpet" | "green_carpet");
 
     // Проверяем возможность размещения и создаём группу
     if ecs.can_place_at(
@@ -113,12 +113,28 @@ pub fn make_slot(name: &str) -> Slot {
             },
             active: true,
         },
+        "red_carpet" => Slot {
+            obj: Object {
+                width: 1, height: 1, name: String::from("red_carpet"),
+                path: String::from("tex/decor/carpet.png"),
+                texture_frame: [1, 0], texture_count: [2, 2],
+            },
+            active: true,
+        },
+        "green_carpet" => Slot {
+            obj: Object {
+                width: 1, height: 1, name: String::from("green_carpet"),
+                path: String::from("tex/decor/carpet.png"),
+                texture_frame: [0, 1], texture_count: [2, 2],
+            },
+            active: true,
+        },
         _ => make_slot("box"),
     }
 }
 
 // ========================================================================
-//  get_slot_vec: Возвращает начальный набор предметов (5 слотов)
+//  get_slot_vec: Возвращает начальный набор предметов (5 слотов на панели)
 // ========================================================================
 pub fn get_slot_vec() -> Vec<Slot> {
     vec![

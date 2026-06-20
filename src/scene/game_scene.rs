@@ -2,7 +2,11 @@ use specs::{WorldExt, Builder};
 use crate::scene::{Scene, SceneAction};
 use crate::text_renderer::TextRenderer;
 
-const INV_ITEMS: &[&str] = &["box", "carpet", "sign", "rack", "table"];
+const INV_ITEMS: &[&str] = &["box", "sign", "rack", "table", "carpet", "red_carpet", "green_carpet"];
+
+fn slot_texture(name: &str) -> String {
+    format!("tex/ui/icon_slots/{}.png", name)
+}
 
 pub struct GameScene {
     loaded: bool,
@@ -96,10 +100,11 @@ impl GameScene {
     }
 
     fn show_inventory(&mut self, ecs: &mut crate::EcsAdapter) {
-        for row in 0..5 {
+        for row in (0..5).rev() {
             for col in 0..5 {
-                let tex = if row == 4 && col < INV_ITEMS.len() {
-                    format!("tex/ui/icon_slots/{}.png", INV_ITEMS[col])
+                let item_idx = (4 - row) * 5 + col;
+                let tex = if item_idx < INV_ITEMS.len() {
+                    slot_texture(INV_ITEMS[item_idx])
                 } else {
                     "tex/ui/icon_slots/null.png".to_string()
                 };
@@ -157,17 +162,19 @@ impl GameScene {
     }
 
     fn transfer_from_inventory(&mut self, ecs: &mut crate::EcsAdapter) {
-        if self.inv_selected < 20 {
+        let row = self.inv_selected / 5;
+        let col = self.inv_selected % 5;
+        let item_idx = ((4 - row) * 5 + col) as usize;
+        if item_idx >= INV_ITEMS.len() {
             return;
         }
-        let item_idx = (self.inv_selected - 20) as usize;
         let name = INV_ITEMS[item_idx];
         let new_slot = crate::slot_object::make_slot(name);
         let a = self.act_slot as usize;
         if a < self.slots.len() {
             self.slots[a] = new_slot;
             if a < self.slot_entities.len() {
-                let path = format!("tex/ui/icon_slots/{}.png", name);
+                let path = slot_texture(name);
                 ecs.update_sprite_texture(self.slot_entities[a], &path);
             }
         }

@@ -218,7 +218,7 @@ fn handle_mouse_movement(
 fn update_cursor_validity(ecs: &mut EcsAdapter, cursor: Entity, slots: &[Slot], act_slot: i32) {
     let (x, y) = ecs.get_transform_position(cursor);
     let slot = &slots[act_slot as usize];
-    let is_carpet = matches!(slot.obj.name.as_str(), "carpet" | "red_carpet");
+    let is_carpet = matches!(slot.obj.name.as_str(), "carpet" | "red_carpet" | "green_carpet");
 
     if ecs.can_place_at(x as i32, y as i32, slot.obj.width, slot.obj.height, is_carpet) {
         ecs.update_sprite_texture(cursor, "tex/cursor/cursor.png");
@@ -238,7 +238,7 @@ fn update_cursor_preview(ecs: &mut EcsAdapter, mode: i32, slots: &[Slot], act_sl
 
     let slot = &slots[act_slot as usize];
     let (cx, cy) = ecs.get_transform_position(cursor);
-    let is_carpet = matches!(slot.obj.name.as_str(), "carpet" | "red_carpet");
+    let is_carpet = matches!(slot.obj.name.as_str(), "carpet" | "red_carpet" | "green_carpet");
     let valid = ecs.can_place_at(cx as i32, cy as i32, slot.obj.width, slot.obj.height, is_carpet);
     ecs.update_cursor_preview(cx, cy, slot.obj.width, slot.obj.height, valid);
 }

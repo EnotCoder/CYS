@@ -173,7 +173,7 @@ pub(crate) fn load_map_to_ecs(ecs: &mut EcsAdapter) {
 
         for (i, token) in parts.iter().enumerate() {
             let (tex_path, tex_pos, tex_count) = match *token {
-                "." | "0.1" | "0.2" | "0.3" => grass_frame(token),
+                "." | "1" | "2" | "3" => grass_frame(token),
                 "0" => ("tex/floor.png", [0, 0], [2, 2]),
                 token if ["/","|","(",")","{","}","=","-","&","^"].contains(&token) => {
                     wall_frame(token)
@@ -202,9 +202,9 @@ pub(crate) fn load_map_to_ecs(ecs: &mut EcsAdapter) {
 fn grass_frame(code: &str) -> (&str, [i32; 2], [i32; 2]) {
     match code {
         "." => ("tex/grass.png", [0, 0], [3, 2]),
-        "0.1" => ("tex/grass.png", [1, 0], [3, 2]),
-        "0.2" => ("tex/grass.png", [0, 1], [3, 2]),
-        "0.3" => ("tex/grass.png", [2, 1], [3, 2]),
+        "1" => ("tex/grass.png", [0, 1], [3, 2]),
+        "3" => ("tex/grass.png", [2, 1], [3, 2]),
+        "2" => ("tex/grass.png", [1, 1], [3, 2]),
         _ => ("tex/grass.png", [0, 0], [3, 2]),
     }
 }

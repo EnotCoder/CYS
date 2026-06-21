@@ -32,6 +32,7 @@ const ALL_OBJECTS: &[Object] = &[
     Object { width: 2, height: 1, name: "table",        path: "tex/decor/table.png",  texture_frame: [0, 0], texture_count: [2, 1] },
     Object { width: 1, height: 1, name: "red_carpet",   path: "tex/decor/carpet.png", texture_frame: [1, 0], texture_count: [2, 2] },
     Object { width: 1, height: 1, name: "green_carpet", path: "tex/decor/carpet.png", texture_frame: [0, 1], texture_count: [2, 2] },
+    Object { width: 2, height: 2, name: "cassa", path: "tex/decor/cassa.png", texture_frame: [0, 1], texture_count: [2, 2] },
 ];
 
 const INITIAL_SLOTS: [&str; SLOT_COUNT] = ["box", "carpet", "sign", "rack", "table"];

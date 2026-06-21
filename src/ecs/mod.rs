@@ -1,5 +1,8 @@
 pub mod components;
-pub mod ecs_integration;
+pub mod adapter;
+pub mod cursor;
+pub mod group;
+pub mod placement;
 
 pub use components::*;
-pub use ecs_integration::*;
+pub use adapter::*;

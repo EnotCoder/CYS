@@ -1,7 +1,6 @@
 use winit::window::Window;
 use wgpu::*;
 use wgpu::util::DeviceExt;
-use crate::init_buffers;
 use crate::Vertex;
 use crate::DepthBuffer;
 
@@ -44,316 +43,279 @@ pub struct WgpuApp {
     pub ui_bind_group: wgpu::BindGroup,
 }
 
-impl WgpuApp{
-    pub async fn new(
-        window: &Window,
-    ) -> Self{
-        //instance (экземпляр)
-        //with defalt settings
+impl WgpuApp {
+    pub async fn new(window: &Window) -> Self {
         let instance = wgpu::Instance::new(InstanceDescriptor::default());
-
-        //поверхность
         let surface = instance.create_surface(window)
             .expect("Failed to create surface");
 
-        //addapter/physical_device
+        let adapter = Self::request_adapter(&instance, &surface).await;
+        let (device, queue) = Self::request_device(&adapter).await;
+        let surface_format = Self::pick_format(&surface, &adapter);
 
-        //опции выбора видеокарты
-        let addapter_option = wgpu::RequestAdapterOptions {
-            //выбирает адаптер, совместимый с этой поверхностью (обычно дискретная видеокарта)
-            compatible_surface : Some(&surface),
-            //всё остальное поумолчанию
-            ..Default::default()
-        };
-
-        //запрашиваем физ устройство
-        let addapter_future = instance.request_adapter(&addapter_option);
-        //ожидаем
-        let addapter = pollster::block_on(addapter_future).unwrap();
-
-        println!("{}",addapter.get_info().name);
-        
-        //Log device
-        let (device, queue) = addapter
-        .request_device(
-            &DeviceDescriptor { //настройки устройства
-                //какие плагины необходимы
-                required_features: Features::empty(),
-                //минимальные требования
-                required_limits: Limits::default(),
-                //Отладка
-                label: None,
-            },
-            None,
-        )
-        .await
-        .unwrap();
-
-        //init buffers
-
+        let window_size = window.inner_size();
         let translation = [0.0, 0.0, 0.0, 0.0];
         let rotation = [0.0, 0.0, 0.0, 0.0];
-        let window_size = window.inner_size();
-    
-        let buffers = init_buffers(
-            window_size,
-            translation,
-            rotation,
-            &device,
+
+        let buffers = crate::init_buffers(window_size, translation, rotation, &device);
+        let shader_module = Self::load_shader(&device);
+
+        let size_buffer = Self::create_size_buffer(&device);
+        let size_bind_group_layout = Self::create_single_bind_group_layout(&device, "Size Bind Group Layout");
+        let size_bind_group = Self::create_bind_group(&device, &size_bind_group_layout, &size_buffer, "Size Bind Group");
+
+        let ui_uniform_buffer = Self::create_ui_buffer(&device);
+        let ui_bind_group_layout = Self::create_single_bind_group_layout(&device, "UI Bind Group Layout");
+        let ui_bind_group = Self::create_bind_group(&device, &ui_bind_group_layout, &ui_uniform_buffer, "UI Bind Group");
+
+        let pipeline_layout = device.create_pipeline_layout(&PipelineLayoutDescriptor {
+            label: Some("Pipeline Layout"),
+            bind_group_layouts: &[
+                &buffers.bind_group_layout,
+                &buffers.texture_bind_group_layout,
+                &size_bind_group_layout,
+            ],
+            push_constant_ranges: &[],
+        });
+
+        let render_pipeline = Self::create_render_pipeline(
+            &device, &pipeline_layout, &shader_module,
+            surface_format, &buffers.depth_stencil,
+        );
+        let transparent_pipeline = Self::create_transparent_pipeline(
+            &device, &pipeline_layout, &shader_module,
+            surface_format, &buffers.transparent_depth_stencil,
         );
 
-        let uniform_buffer = buffers.uniform_buffer;
-        let depth_stencil = buffers.depth_stencil;
-        let depth_buffer = buffers.depth_buffer;
-        let transparent_depth_stencil = buffers.transparent_depth_stencil;
-        let bind_group_layout = buffers.bind_group_layout;
-        let bind_group = buffers.bind_groupprojection;
-        let texture_bind_group_layout = buffers.texture_bind_group_layout;
+        let config = surface_config(surface_format, window_size.width, window_size.height);
+        surface.configure(&device, &config);
 
-        //shaders
-        //получаем код шейдера
-        let shader_code = include_str!("shaders.wgsl");
-        //shader object
-        //описание шейдера
-        let description = wgpu::ShaderModuleDescriptor {
-            //отладка
-            label : None,
-            //.into() - преобразует &str в Cow<'_, str> <- (владеть или читать)
-            source : wgpu::ShaderSource::Wgsl(shader_code.into()),
-        };
-        //Компилирует шейдер для GPU
-        let shader_module = device.create_shader_module(description);
+        Self {
+            instance,
+            device,
+            queue,
+            surface_format,
+            uniform_buffer: buffers.uniform_buffer,
+            depth_stencil: buffers.depth_stencil,
+            transparent_depth_stencil: buffers.transparent_depth_stencil,
+            bind_group_layout: buffers.bind_group_layout,
+            bind_group: buffers.bind_groupprojection,
+            texture_bind_group_layout: buffers.texture_bind_group_layout,
+            depth_buffer: buffers.depth_buffer,
+            render_pipeline,
+            transparent_pipeline,
+            config,
+            size_buffer,
+            size_bind_group,
+            ui_uniform_buffer,
+            ui_bind_group,
+        }
+    }
 
+    // --- Приватные helper'ы ---
 
-        let map_size = 1.0;
+    async fn request_adapter(instance: &wgpu::Instance, surface: &wgpu::Surface<'_>) -> wgpu::Adapter {
+        let adapter = instance.request_adapter(&RequestAdapterOptions {
+            compatible_surface: Some(surface),
+            ..Default::default()
+        }).await.unwrap();
+        println!("{}", adapter.get_info().name);
+        adapter
+    }
 
-        let size = Size{map_size};
-
-        // Создаём uniform buffer
-        let size_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("Uniform Buffer"),
-            contents: bytemuck::bytes_of(&size),
-            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
-        });
-
-
-        // Создаём bind group layout (описывает доступ к uniform буферу в шейдере)
-        let bind_group_layout_0 = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            label: Some("Bind Group Layout"),
-            entries: &[
-                wgpu::BindGroupLayoutEntry {
-                    binding: 0,
-                    visibility: wgpu::ShaderStages::VERTEX,
-                    ty: wgpu::BindingType::Buffer {
-                        ty: wgpu::BufferBindingType::Uniform,
-                        has_dynamic_offset: false,
-                        min_binding_size: None,
-                    },
-                    count: None,
+    async fn request_device(adapter: &wgpu::Adapter) -> (wgpu::Device, wgpu::Queue) {
+        adapter
+            .request_device(
+                &DeviceDescriptor {
+                    required_features: Features::empty(),
+                    required_limits: Limits::default(),
+                    label: None,
                 },
-            ],
-        });
+                None,
+            )
+            .await
+            .unwrap()
+    }
 
-        let size_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            label: Some("Bind Group"),
-            layout: &bind_group_layout_0,
-            entries: &[
-                wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: size_buffer.as_entire_binding(),
-                },
-            ],
-        });
+    fn pick_format(surface: &wgpu::Surface, adapter: &wgpu::Adapter) -> wgpu::TextureFormat {
+        surface.get_capabilities(adapter).formats[0]
+    }
 
+    fn load_shader(device: &wgpu::Device) -> wgpu::ShaderModule {
+        let code = include_str!("shaders.wgsl");
+        device.create_shader_module(ShaderModuleDescriptor {
+            label: None,
+            source: ShaderSource::Wgsl(code.into()),
+        })
+    }
 
-        //ui buffer
-        let ui_uniforms = UiUniforms { size: 1.0, _padding: [0.0; 3] };
-
-        let ui_uniform_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor{
-            label: Some("UI_Buffer"),
-            contents: bytemuck::cast_slice(&[ui_uniforms]),
-            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
-        });
-
-        let ui_bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            label: Some("UI Bind Group Layout"),
-            entries: &[wgpu::BindGroupLayoutEntry {
+    fn create_single_bind_group_layout(device: &wgpu::Device, label: &str) -> wgpu::BindGroupLayout {
+        device.create_bind_group_layout(&BindGroupLayoutDescriptor {
+            label: Some(label),
+            entries: &[BindGroupLayoutEntry {
                 binding: 0,
-                visibility: wgpu::ShaderStages::VERTEX,
-                ty: wgpu::BindingType::Buffer {
-                    ty: wgpu::BufferBindingType::Uniform,
+                visibility: ShaderStages::VERTEX,
+                ty: BindingType::Buffer {
+                    ty: BufferBindingType::Uniform,
                     has_dynamic_offset: false,
                     min_binding_size: None,
                 },
                 count: None,
             }],
-        });
+        })
+    }
 
-        let ui_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            label: Some("UI Bind Group"),
-            layout: &ui_bind_group_layout,
-            entries: &[wgpu::BindGroupEntry {
+    fn create_bind_group(device: &wgpu::Device, layout: &wgpu::BindGroupLayout, buffer: &wgpu::Buffer, label: &str) -> wgpu::BindGroup {
+        device.create_bind_group(&BindGroupDescriptor {
+            label: Some(label),
+            layout,
+            entries: &[BindGroupEntry {
                 binding: 0,
-                resource: ui_uniform_buffer.as_entire_binding(),
-            }]
-        });
+                resource: buffer.as_entire_binding(),
+            }],
+        })
+    }
 
-        //Render pipeline
-        //PipelineLayout
-        let pipeline_layout = device.create_pipeline_layout(&PipelineLayoutDescriptor {
-            label: Some("Pipeline Layout"),
-            bind_group_layouts: &[&bind_group_layout, &texture_bind_group_layout, 
-                &bind_group_layout_0],
-            push_constant_ranges: &[], // константы, которые можно быстро обновлять
-        });
-        let caps = surface.get_capabilities(&addapter);
-        let surface_format = caps.formats[0];
+    fn create_size_buffer(device: &wgpu::Device) -> wgpu::Buffer {
+        let size = Size { map_size: 1.0 };
+        device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("Size Buffer"),
+            contents: bytemuck::bytes_of(&size),
+            usage: BufferUsages::UNIFORM | BufferUsages::COPY_DST,
+        })
+    }
 
+    fn create_ui_buffer(device: &wgpu::Device) -> wgpu::Buffer {
+        let ui_uniforms = UiUniforms { size: 1.0, _padding: [0.0; 3] };
+        device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("UI_Buffer"),
+            contents: bytemuck::cast_slice(&[ui_uniforms]),
+            usage: BufferUsages::UNIFORM | BufferUsages::COPY_DST,
+        })
+    }
 
-        let description = wgpu::RenderPipelineDescriptor {
-            label : Some("Render Pipeline"),
-            vertex : wgpu::VertexState {
-                buffers: &[wgpu::VertexBufferLayout {
-                    array_stride: std::mem::size_of::<Vertex>() as wgpu::BufferAddress,
-                    step_mode: wgpu::VertexStepMode::Vertex,
-                    attributes: &[
-                        wgpu::VertexAttribute {
-                            offset: 0,// смещение на 0 байт
-                            shader_location: 0,  // @location(0) в шейдере
-                            format: wgpu::VertexFormat::Float32x3,  // position: [f32; 2]
-                        },
-                        wgpu::VertexAttribute {
-                            offset: std::mem::size_of::<[f32; 3]>() as wgpu::BufferAddress,// смещение 8 байт
-                            shader_location: 1,  // @location(1) в шейдере
-                            format: wgpu::VertexFormat::Float32x2,
-                        }
-                    ]
-                }],
-                module : &shader_module,
-                entry_point : "vs_main",
+    fn create_render_pipeline(
+        device: &wgpu::Device,
+        layout: &wgpu::PipelineLayout,
+        shader: &wgpu::ShaderModule,
+        format: wgpu::TextureFormat,
+        depth_stencil: &wgpu::DepthStencilState,
+    ) -> wgpu::RenderPipeline {
+        device.create_render_pipeline(&RenderPipelineDescriptor {
+            label: Some("Render Pipeline"),
+            layout: Some(layout),
+            vertex: VertexState {
+                buffers: &[vertex_buffer_layout()],
+                module: shader,
+                entry_point: "vs_main",
             },
-
-            fragment : Some(wgpu::FragmentState {
+            fragment: Some(FragmentState {
                 targets: &[Some(ColorTargetState {
-                    format: surface_format,
+                    format,
                     blend: Some(wgpu::BlendState {
-                        color: wgpu::BlendComponent {
-                            src_factor: wgpu::BlendFactor::SrcAlpha,   // источник = альфа
-                            dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha, // фон = 1-альфа
-                            operation: wgpu::BlendOperation::Add,
+                        color: BlendComponent {
+                            src_factor: BlendFactor::SrcAlpha,
+                            dst_factor: BlendFactor::OneMinusSrcAlpha,
+                            operation: BlendOperation::Add,
                         },
-                        alpha: wgpu::BlendComponent {
-                            src_factor: wgpu::BlendFactor::One,
-                            dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,
-                            operation: wgpu::BlendOperation::Add,
+                        alpha: BlendComponent {
+                            src_factor: BlendFactor::One,
+                            dst_factor: BlendFactor::OneMinusSrcAlpha,
+                            operation: BlendOperation::Add,
                         },
                     }),
                     write_mask: ColorWrites::ALL,
                 })],
-                module : &shader_module,
-                entry_point : "fs_main",
-            }),
-            
-            primitive: PrimitiveState {
-                topology: PrimitiveTopology::TriangleList, // список треугольников
-                strip_index_format: None, // не используем полоски
-                front_face: FrontFace::Ccw, // против часовой стрелки = лицевая
-                cull_mode: None, // не отсекаем грани
-                unclipped_depth: false,
-                polygon_mode: PolygonMode::Fill, // заливаем цветом (не каркасный режим)
-                conservative: false, // не использовать консервативный растеризатор
-            },
-
-            layout : Some(&pipeline_layout),
-            depth_stencil: Some(depth_stencil.clone()),
-            multisample : Default::default(),
-            multiview : None,
-        };
-
-        let render_pipeline = device.create_render_pipeline(&description);
-
-        let transparent_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-            label: Some("Transparent Pipeline"),
-            layout: Some(&pipeline_layout),
-            vertex: wgpu::VertexState {
-                module: &shader_module,
-                entry_point: "vs_main",
-                buffers: &[wgpu::VertexBufferLayout {
-                    array_stride: std::mem::size_of::<Vertex>() as wgpu::BufferAddress,
-                    step_mode: wgpu::VertexStepMode::Vertex,
-                    attributes: &[
-                        wgpu::VertexAttribute {
-                            offset: 0,
-                            shader_location: 0,
-                            format: wgpu::VertexFormat::Float32x3,
-                        },
-                        wgpu::VertexAttribute {
-                            offset: std::mem::size_of::<[f32; 3]>() as wgpu::BufferAddress,
-                            shader_location: 1,
-                            format: wgpu::VertexFormat::Float32x2,
-                        }
-                    ]
-                }],
-            },
-            fragment: Some(wgpu::FragmentState {
-                module: &shader_module,
+                module: shader,
                 entry_point: "fs_main",
-                targets: &[Some(wgpu::ColorTargetState {
-                    format: surface_format,
-                    blend: Some(wgpu::BlendState::ALPHA_BLENDING),  // прозрачные - со смешиванием
-                    write_mask: wgpu::ColorWrites::ALL,
-                })],
             }),
-            primitive: wgpu::PrimitiveState {
-                topology: wgpu::PrimitiveTopology::TriangleList,
+            primitive: PrimitiveState {
+                topology: PrimitiveTopology::TriangleList,
                 strip_index_format: None,
-                front_face: wgpu::FrontFace::Ccw,
+                front_face: FrontFace::Ccw,
                 cull_mode: None,
                 unclipped_depth: false,
-                polygon_mode: wgpu::PolygonMode::Fill,
+                polygon_mode: PolygonMode::Fill,
                 conservative: false,
             },
-            depth_stencil: Some(transparent_depth_stencil.clone()),  // ← используем transparent
-            multisample: wgpu::MultisampleState::default(),
+            depth_stencil: Some(depth_stencil.clone()),
+            multisample: Default::default(),
             multiview: None,
-        });
+        })
+    }
 
-        let config = SurfaceConfiguration {
-            usage: TextureUsages::RENDER_ATTACHMENT, // использовать как цель рендеринга
-            format: surface_format, // формат пикселей (BGRA8)
-            width: window_size.width, // ширина окна
-            height: window_size.height, // высота окна
-            present_mode: PresentMode::Fifo, //вертикальная синхронизация
-            alpha_mode: CompositeAlphaMode::Auto, // альфа-канал автоматический
-            view_formats: vec![], // дополнительные форматы для текстур
-            desired_maximum_frame_latency: 2, // задержка кадров (2 = баланс)
-        };
+    fn create_transparent_pipeline(
+        device: &wgpu::Device,
+        layout: &wgpu::PipelineLayout,
+        shader: &wgpu::ShaderModule,
+        format: wgpu::TextureFormat,
+        depth_stencil: &wgpu::DepthStencilState,
+    ) -> wgpu::RenderPipeline {
+        device.create_render_pipeline(&RenderPipelineDescriptor {
+            label: Some("Transparent Pipeline"),
+            layout: Some(layout),
+            vertex: VertexState {
+                buffers: &[vertex_buffer_layout()],
+                module: shader,
+                entry_point: "vs_main",
+            },
+            fragment: Some(FragmentState {
+                targets: &[Some(ColorTargetState {
+                    format,
+                    blend: Some(wgpu::BlendState::ALPHA_BLENDING),
+                    write_mask: ColorWrites::ALL,
+                })],
+                module: shader,
+                entry_point: "fs_main",
+            }),
+            primitive: PrimitiveState {
+                topology: PrimitiveTopology::TriangleList,
+                strip_index_format: None,
+                front_face: FrontFace::Ccw,
+                cull_mode: None,
+                unclipped_depth: false,
+                polygon_mode: PolygonMode::Fill,
+                conservative: false,
+            },
+            depth_stencil: Some(depth_stencil.clone()),
+            multisample: MultisampleState::default(),
+            multiview: None,
+        })
+    }
+}
 
-        surface.configure(&device, &config);
-        
-        Self{
-            instance,
-            device,
-            queue,
-            surface_format,
+// ========================================================================
+//  Вспомогательные функции на уровне модуля
+// ========================================================================
 
-            uniform_buffer,
-            size_buffer,
-            depth_stencil,
-            transparent_depth_stencil,
-            bind_group_layout,
-            bind_group,
-            texture_bind_group_layout,
-            depth_buffer,
+fn vertex_buffer_layout() -> VertexBufferLayout<'static> {
+    VertexBufferLayout {
+        array_stride: std::mem::size_of::<Vertex>() as wgpu::BufferAddress,
+        step_mode: VertexStepMode::Vertex,
+        attributes: &[
+            VertexAttribute {
+                offset: 0,
+                shader_location: 0,
+                format: VertexFormat::Float32x3,
+            },
+            VertexAttribute {
+                offset: std::mem::size_of::<[f32; 3]>() as wgpu::BufferAddress,
+                shader_location: 1,
+                format: VertexFormat::Float32x2,
+            },
+        ],
+    }
+}
 
-            render_pipeline,
-            transparent_pipeline,
-            config,
-            size_bind_group,
-
-            ui_uniform_buffer,
-            ui_bind_group,
-
-        }
+fn surface_config(format: wgpu::TextureFormat, width: u32, height: u32) -> SurfaceConfiguration {
+    SurfaceConfiguration {
+        usage: TextureUsages::RENDER_ATTACHMENT,
+        format,
+        width,
+        height,
+        present_mode: PresentMode::Fifo,
+        alpha_mode: CompositeAlphaMode::Auto,
+        view_formats: vec![],
+        desired_maximum_frame_latency: 2,
     }
 }

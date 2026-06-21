@@ -1,6 +1,6 @@
-use crate::scene::{Scene, SceneAction};
+use crate::scene::scene_trait::{Scene, SceneAction};
+use crate::constants::SHADER_SCALE;
 
-const SHADER_SCALE: f32 = 0.223;
 const BTN_X: f32 = 0.0;
 const BTN_Y: f32 = -0.5;
 const BTN_W: f32 = 2.0;
@@ -9,6 +9,7 @@ const QUIT_X: f32 = 0.0;
 const QUIT_Y: f32 = -1.5;
 const QUIT_W: f32 = 2.0;
 const QUIT_H: f32 = 0.8;
+const MENU_MAP_SIZE: f32 = 0.8;
 
 pub struct MenuScene {
     ready: bool,
@@ -21,17 +22,8 @@ impl MenuScene {
 
     fn setup_content(&mut self, ecs: &mut crate::EcsAdapter, text_renderer: &mut crate::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) {
         crate::load_map_to_ecs(ecs);
-
-        //name 
         ecs.add_ui_sized(0.0, 2.0, 2.5, 2.5, "tex/game_name.png", device, queue);
-
-        //black_panel
-        //ecs.add_ui_sized(0.0, -1.0, 2.5, 2.5, "tex/black.png", device, queue);
-
-        //Play button
         ecs.add_button(device, queue, BTN_X, BTN_Y, BTN_W, BTN_H, "Play", 48.0, text_renderer);
-
-        //Quit button
         ecs.add_button(device, queue, QUIT_X, QUIT_Y, QUIT_W, QUIT_H, "Quit", 48.0, text_renderer);
     }
 
@@ -40,7 +32,7 @@ impl MenuScene {
             return false;
         }
         let Some((mx, my)) = input.cursor() else { return false };
-        let scale = SHADER_SCALE * 0.8;
+        let scale = SHADER_SCALE * MENU_MAP_SIZE;
         let wx = ((mx / window_size.0) * 2.0 - 1.0) / scale;
         let wy = (1.0 - (my / window_size.1) * 2.0) / scale;
         wx >= bx - bw / 2.0 && wx <= bx + bw / 2.0
@@ -73,7 +65,6 @@ impl Scene for MenuScene {
         if input.key_pressed(winit::keyboard::KeyCode::Escape) || Self::is_quit_clicked(input, window_size) {
             return SceneAction::Quit;
         }
-
         SceneAction::None
     }
 
@@ -81,5 +72,5 @@ impl Scene for MenuScene {
         ecs.get_sprites_by_layer()
     }
 
-    fn map_size(&self) -> f32 { 0.8 }
+    fn map_size(&self) -> f32 { MENU_MAP_SIZE }
 }

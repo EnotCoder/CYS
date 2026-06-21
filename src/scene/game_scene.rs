@@ -1,12 +1,7 @@
 use specs::{WorldExt, Builder};
-use crate::scene::{Scene, SceneAction};
+use crate::scene::scene_trait::{Scene, SceneAction};
 use crate::text_renderer::TextRenderer;
-
-const INV_ITEMS: &[&str] = &["box", "sign", "rack", "table", "carpet", "red_carpet", "green_carpet"];
-
-fn slot_texture(name: &str) -> String {
-    format!("tex/ui/icon_slots/{}.png", name)
-}
+use crate::constants::*;
 
 pub struct GameScene {
     loaded: bool,
@@ -51,11 +46,12 @@ impl GameScene {
         }
     }
 
+    // ====================================================================
+    //  Загрузка / выгрузка
+    // ====================================================================
+
     fn show_loading(&mut self, ecs: &mut crate::EcsAdapter, text_renderer: &mut crate::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) {
-        let entity = text_renderer.add_text(
-            ecs, device, queue,
-            "Loading...", 64.0, 0.0, 0.0, 4.0, 2.0, [200, 200, 200],
-        );
+        let entity = text_renderer.add_text(ecs, device, queue, "Loading...", 64.0, 0.0, 0.0, 4.0, 2.0, [200, 200, 200]);
         self.loading_text = Some(entity);
         self.loading_sprite_key = Some(TextRenderer::sprite_cache_key(0.0, 0.0, "Loading...", 48.0, 2.0, [200, 200, 200]));
     }
@@ -76,40 +72,43 @@ impl GameScene {
 
         self.slots = crate::slot_object::get_slot_vec();
 
-        text_renderer.add_text(
-            ecs, device, queue,
-            "Pre alpha", 128.0, -3.0, 3.8, 2.0, 4.0, [255, 255, 255],
-        );
+        text_renderer.add_text(ecs, device, queue, "Pre alpha", 128.0, -3.0, 3.8, 2.0, 4.0, [255, 255, 255]);
 
-        let icon_mode = ecs.add_ui(4.0, -4.0, "tex/ui/mode/standart_mode.png");
+        let icon_mode = ecs.add_ui(4.0, SLOT_BAR_Y, MODE_ICON_TEX[0]);
 
         for (i, slot) in self.slots.iter().enumerate() {
             let ent = ecs.add_ui(
-                -4.0 + i as f32,
-                -4.0,
+                GRID_MIN + i as f32, SLOT_BAR_Y,
                 &format!("tex/ui/icon_slots/{}.png", slot.obj.name),
             );
             self.slot_entities.push(ent);
         }
 
-        let icons_slot_cursor = ecs.add_ui(-4.0, -4.0, "tex/ui/icon_slots/cursor.png");
-
+        let icons_slot_cursor = ecs.add_ui(GRID_MIN, SLOT_BAR_Y, "tex/ui/icon_slots/cursor.png");
         self.icon_mode = Some(icon_mode);
         self.icons_slot_cursor = Some(icons_slot_cursor);
-        self.cursor_entity = Some(ecs.add_cursor(0.0, 0.0, "tex/cursor/def_cursor.png"));
+        self.cursor_entity = Some(ecs.add_cursor(0.0, 0.0, CURSOR_TEX[0]));
+    }
+
+    // ====================================================================
+    //  Инвентарь
+    // ====================================================================
+
+    fn slot_texture(name: &str) -> String {
+        format!("tex/ui/icon_slots/{}.png", name)
     }
 
     fn show_inventory(&mut self, ecs: &mut crate::EcsAdapter) {
-        for row in (0..5).rev() {
-            for col in 0..5 {
-                let item_idx = (4 - row) * 5 + col;
+        for row in (0..INVENTORY_ROWS).rev() {
+            for col in 0..INVENTORY_COLS {
+                let item_idx = ((INVENTORY_ROWS - 1 - row) * INVENTORY_COLS + col) as usize;
                 let tex = if item_idx < INV_ITEMS.len() {
-                    slot_texture(INV_ITEMS[item_idx])
+                    Self::slot_texture(INV_ITEMS[item_idx])
                 } else {
                     "tex/ui/icon_slots/null.png".to_string()
                 };
                 let ent = ecs.add_ui(
-                    -4.0 + col as f32,
+                    GRID_MIN + col as f32,
                     -3.0 + row as f32,
                     &tex,
                 );
@@ -143,7 +142,7 @@ impl GameScene {
 
     fn enter_inventory(&mut self, ecs: &mut crate::EcsAdapter) {
         self.show_inventory(ecs);
-        let new_cursor = Self::make_cursor_entity(ecs, -4.0, 1.0, 3.0);
+        let new_cursor = Self::make_cursor_entity(ecs, GRID_MIN, 1.0, Z_UI);
         self.inv_cursor_entity = Some(new_cursor);
         self.inventory_open = true;
         self.inventory_mode = true;
@@ -162,9 +161,9 @@ impl GameScene {
     }
 
     fn transfer_from_inventory(&mut self, ecs: &mut crate::EcsAdapter) {
-        let row = self.inv_selected / 5;
-        let col = self.inv_selected % 5;
-        let item_idx = ((4 - row) * 5 + col) as usize;
+        let row = self.inv_selected / INVENTORY_COLS;
+        let col = self.inv_selected % INVENTORY_COLS;
+        let item_idx = ((INVENTORY_ROWS - 1 - row) * INVENTORY_COLS + col) as usize;
         if item_idx >= INV_ITEMS.len() {
             return;
         }
@@ -174,11 +173,46 @@ impl GameScene {
         if a < self.slots.len() {
             self.slots[a] = new_slot;
             if a < self.slot_entities.len() {
-                let path = slot_texture(name);
+                let path = Self::slot_texture(name);
                 ecs.update_sprite_texture(self.slot_entities[a], &path);
             }
         }
         self.exit_inventory(ecs);
+    }
+
+    fn handle_inventory_input(&mut self, ecs: &mut crate::EcsAdapter, input: &winit_input_helper::WinitInputHelper) {
+        if input.key_pressed(winit::keyboard::KeyCode::KeyE) {
+            if self.inventory_open {
+                self.exit_inventory(ecs);
+            } else {
+                self.enter_inventory(ecs);
+            }
+        }
+
+        if !self.inventory_mode {
+            return;
+        }
+
+        if input.key_pressed(winit::keyboard::KeyCode::KeyQ) {
+            let col = self.inv_selected % INVENTORY_COLS;
+            let row = self.inv_selected / INVENTORY_ROWS;
+            self.inv_selected = if col < INVENTORY_COLS - 1 {
+                self.inv_selected + 1
+            } else if row > 0 {
+                (row - 1) * INVENTORY_COLS
+            } else {
+                20
+            };
+            let col = self.inv_selected % INVENTORY_COLS;
+            let row = self.inv_selected / INVENTORY_ROWS;
+            if let Some(inv_cursor) = self.inv_cursor_entity {
+                ecs.update_transform_position(inv_cursor, GRID_MIN + col as f32, -3.0 + row as f32);
+            }
+        }
+
+        if input.key_pressed(winit::keyboard::KeyCode::Enter) {
+            self.transfer_from_inventory(ecs);
+        }
     }
 }
 
@@ -220,51 +254,14 @@ impl Scene for GameScene {
         let icons_slot_cursor = self.icons_slot_cursor.unwrap();
 
         let result = crate::input::do_input(
-            input,
-            ecs,
-            &mut self.slots,
-            self.act_slot,
-            self.mode,
-            self.map_size,
-            window_size,
-            cursor,
-            icon_mode,
-            icons_slot_cursor,
-            self.inventory_mode,
+            input, ecs, &mut self.slots, self.act_slot, self.mode, self.map_size,
+            window_size, cursor, icon_mode, icons_slot_cursor, self.inventory_mode,
         );
         self.act_slot = result.0;
         self.mode = result.1;
         self.map_size = result.2;
 
-        if input.key_pressed(winit::keyboard::KeyCode::KeyE) {
-            if self.inventory_open {
-                self.exit_inventory(ecs);
-            } else {
-                self.enter_inventory(ecs);
-            }
-        }
-
-        if self.inventory_mode {
-            if input.key_pressed(winit::keyboard::KeyCode::KeyQ) {
-                let col = self.inv_selected % 5;
-                let row = self.inv_selected / 5;
-                self.inv_selected = if col < 4 {
-                    self.inv_selected + 1
-                } else if row > 0 {
-                    (row - 1) * 5
-                } else {
-                    20
-                };
-                let col = self.inv_selected % 5;
-                let row = self.inv_selected / 5;
-                if let Some(inv_cursor) = self.inv_cursor_entity {
-                    ecs.update_transform_position(inv_cursor, -4.0 + col as f32, -3.0 + row as f32);
-                }
-            }
-            if input.key_pressed(winit::keyboard::KeyCode::Enter) {
-                self.transfer_from_inventory(ecs);
-            }
-        }
+        self.handle_inventory_input(ecs, input);
 
         SceneAction::None
     }

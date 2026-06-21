@@ -4,10 +4,6 @@ use winit::{
     window::WindowBuilder,
     dpi::PhysicalSize,
 };
-use std::fs::File;
-use std::io::{BufRead, BufReader};
-use std::time::Instant;
-
 mod api_components;
 mod sprite_manager;
 mod slot_object;
@@ -15,16 +11,18 @@ mod input;
 mod ecs;
 mod text_renderer;
 mod scene;
+mod map_loader;
+mod fps;
+mod constants;
+
+pub use map_loader::load_map_to_ecs;
 
 use api_components::*;
 use sprite_manager::*;
 use slot_object::Slot;
 use ecs::*;
+use fps::FpsCounter;
 
-use specs::{WorldExt, Builder};
-
-const WORLD_OFFSET_X: f32 = -11.0;
-const WORLD_OFFSET_Y: f32 = 11.0;
 const EMPTY_UNIFORMS: Uniforms = Uniforms {
     translation: [0.0; 4],
     rotation: [0.0; 4],
@@ -49,12 +47,8 @@ async fn main() {
 
     let mut text_renderer = text_renderer::TextRenderer::new("font.otf");
     let mut scene_manager = scene::SceneManager::new(&mut text_renderer);
-
     let mut input = winit_input_helper::WinitInputHelper::new();
-
-    let mut last_fps_time = Instant::now();
-    let mut frame_count = 0u32;
-    let mut fps = 0u32;
+    let mut fps_counter = FpsCounter::new();
 
     let _ = event_loop.run(|event, event_loop_target| {
         let window_size = (
@@ -97,13 +91,7 @@ async fn main() {
                     scene::SceneAction::None => {}
                 }
 
-                frame_count += 1;
-                let elapsed = last_fps_time.elapsed();
-                if elapsed >= std::time::Duration::from_secs(1) {
-                    fps = (frame_count as f64 / elapsed.as_secs_f64()).round() as u32;
-                    frame_count = 0;
-                    last_fps_time = Instant::now();
-                }
+                let fps = fps_counter.tick();
                 scene_manager.update_fps(fps, &mut text_renderer, &wgpu_app.device, &wgpu_app.queue);
 
                 wgpu_app
@@ -160,69 +148,3 @@ async fn main() {
         }
     });
 }
-
-pub(crate) fn load_map_to_ecs(ecs: &mut EcsAdapter) {
-    let file = File::open("map.txt").expect("map.txt not found!");
-    let reader = BufReader::new(file);
-
-    for (j, line) in reader.lines().flatten().enumerate() {
-        let parts: Vec<&str> = line.split_whitespace().collect();
-        if parts.is_empty() {
-            continue;
-        }
-
-        for (i, token) in parts.iter().enumerate() {
-            let (tex_path, tex_pos, tex_count) = match *token {
-                "." | "1" | "2" | "3" => grass_frame(token),
-                "0" => ("tex/floor.png", [0, 0], [2, 2]),
-                token if ["/","|","(",")","{","}","=","-","&","^"].contains(&token) => {
-                    wall_frame(token)
-                }
-                _ => ("tex/floor.png", [0, 0], [2, 2]),
-            };
-
-            let x = i as f32 + WORLD_OFFSET_X;
-            let y = -(j as f32) + WORLD_OFFSET_Y;
-
-            ecs.world
-                .create_entity()
-                .with(Transform {
-                    position: [x, y, 0.0],
-                })
-                .with(SpriteComponent {
-                    texture_path: tex_path.to_string(),
-                    texture_frame: tex_pos,
-                    texture_count: tex_count,
-                })
-                .build();
-        }
-    }
-}
-
-fn grass_frame(code: &str) -> (&str, [i32; 2], [i32; 2]) {
-    match code {
-        "." => ("tex/grass.png", [0, 0], [3, 2]),
-        "1" => ("tex/grass.png", [0, 1], [3, 2]),
-        "3" => ("tex/grass.png", [2, 1], [3, 2]),
-        "2" => ("tex/grass.png", [1, 1], [3, 2]),
-        _ => ("tex/grass.png", [0, 0], [3, 2]),
-    }
-}
-
-fn wall_frame(code: &str) -> (&str, [i32; 2], [i32; 2]) {
-    let (col, row): (i32, i32) = match code {
-        "=" => (0, 0),
-        "-" => (0, 1),
-        "^" => (1, 0),
-        "&" => (1, 1),
-        "/" => (0, 2),
-        "|" => (1, 2),
-        "(" => (0, 3),
-        "{" => (0, 4),
-        ")" => (1, 3),
-        "}" => (1, 4),
-        _ => (0, 0),
-    };
-    ("tex/wall.png", [col, row], [2, 5])
-}
-

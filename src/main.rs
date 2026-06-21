@@ -25,7 +25,6 @@ use specs::{WorldExt, Builder};
 
 const WORLD_OFFSET_X: f32 = -11.0;
 const WORLD_OFFSET_Y: f32 = 11.0;
-
 const EMPTY_UNIFORMS: Uniforms = Uniforms {
     translation: [0.0; 4],
     rotation: [0.0; 4],

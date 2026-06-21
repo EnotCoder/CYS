@@ -12,7 +12,7 @@ use specs::Entity;
 const MOVE_DELAY: Duration = Duration::from_millis(150);
 /// Мин. и макс. приближение карты
 const MIN_ZOOM: f32 = 0.5;
-const MAX_ZOOM: f32 = 0.8;
+const MAX_ZOOM: f32 = 1.0;
 /// Шаг зума за одно колёсико / нажатие
 const ZOOM_STEP: f32 = 0.2;
 /// Границы игрового поля (grid 9x9: -4..5)

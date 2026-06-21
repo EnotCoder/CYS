@@ -38,7 +38,7 @@ impl GameScene {
             slots: Vec::new(),
             act_slot: 0,
             mode: 0,
-            map_size: 0.8,
+            map_size: 1.0,
             cursor_entity: None,
             icon_mode: None,
             icons_slot_cursor: None,
@@ -191,7 +191,7 @@ impl Scene for GameScene {
         self.slots = Vec::new();
         self.act_slot = 0;
         self.mode = 0;
-        self.map_size = 0.8;
+        self.map_size = 1.0;
         self.cursor_entity = None;
         self.icon_mode = None;
         self.icons_slot_cursor = None;

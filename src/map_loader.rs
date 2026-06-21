@@ -42,11 +42,17 @@ pub fn load_map_to_ecs(ecs: &mut EcsAdapter) {
 
 fn token_to_texture(token: &str) -> (&str, [i32; 2], [i32; 2]) {
     match token {
-        "." => ("tex/grass.png", [0, 0], [3, 2]),
-        "1" => ("tex/grass.png", [0, 1], [3, 2]),
-        "2" => ("tex/grass.png", [1, 1], [3, 2]),
-        "3" => ("tex/grass.png", [2, 1], [3, 2]),
+        "." => ("tex/grass.png", [0, 0], [4, 2]),
+        "+" => ("tex/grass.png", [3, 1], [4, 2]),
+        "1" => ("tex/grass.png", [0, 1], [4, 2]),
+        "2" => ("tex/grass.png", [1, 1], [4, 2]),
+        "3" => ("tex/grass.png", [2, 1], [4, 2]),
+        "4" => ("tex/grass.png", [1, 0], [4, 2]),
+        "5" => ("tex/grass.png", [2, 0], [4, 2]),
+        "6" => ("tex/grass.png", [3, 0], [4, 2]),
         "0" => ("tex/floor.png", [0, 0], [2, 2]),
+        "@" => ("tex/floor.png", [1, 0], [2, 2]),
+        "*" => ("tex/floor.png", [1, 1], [2, 2]),
         "=" => ("tex/wall.png", [0, 0], [2, 5]),
         "-" => ("tex/wall.png", [0, 1], [2, 5]),
         "^" => ("tex/wall.png", [1, 0], [2, 5]),

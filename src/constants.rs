@@ -21,9 +21,9 @@ pub const Z_UI: f32 = 3.0;
 pub const SHADER_SCALE: f32 = 0.223;
 
 // === Зум ===
-pub const ZOOM_MIN: f32 = 0.5;
+pub const ZOOM_MIN: f32 = 0.4;
 pub const ZOOM_MAX: f32 = 1.0;
-pub const ZOOM_STEP: f32 = 0.2;
+pub const ZOOM_STEP: f32 = 0.1;
 
 // === Курсор ===
 pub const CURSOR_MOVE_DELAY_MS: u64 = 150;

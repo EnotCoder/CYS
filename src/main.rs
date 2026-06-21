@@ -173,9 +173,9 @@ pub(crate) fn load_map_to_ecs(ecs: &mut EcsAdapter) {
 
         for (i, token) in parts.iter().enumerate() {
             let (tex_path, tex_pos, tex_count) = match *token {
-                "0" | "0.1" | "0.2" | "0.3" => grass_frame(token),
-                "1" => ("tex/floor.png", [0, 0], [2, 2]),
-                token if ["2","3","4","5","6","7","8","9","8.1","9.1"].contains(&token) => {
+                "." | "0.1" | "0.2" | "0.3" => grass_frame(token),
+                "0" => ("tex/floor.png", [0, 0], [2, 2]),
+                token if ["/","|","(",")","{","}","=","-","&","^"].contains(&token) => {
                     wall_frame(token)
                 }
                 _ => ("tex/floor.png", [0, 0], [2, 2]),
@@ -201,7 +201,7 @@ pub(crate) fn load_map_to_ecs(ecs: &mut EcsAdapter) {
 
 fn grass_frame(code: &str) -> (&str, [i32; 2], [i32; 2]) {
     match code {
-        "0" => ("tex/grass.png", [0, 0], [3, 2]),
+        "." => ("tex/grass.png", [0, 0], [3, 2]),
         "0.1" => ("tex/grass.png", [1, 0], [3, 2]),
         "0.2" => ("tex/grass.png", [0, 1], [3, 2]),
         "0.3" => ("tex/grass.png", [2, 1], [3, 2]),
@@ -211,16 +211,16 @@ fn grass_frame(code: &str) -> (&str, [i32; 2], [i32; 2]) {
 
 fn wall_frame(code: &str) -> (&str, [i32; 2], [i32; 2]) {
     let (col, row): (i32, i32) = match code {
-        "2" => (0, 0),
-        "3" => (0, 1),
-        "4" => (1, 0),
-        "5" => (1, 1),
-        "6" => (0, 2),
-        "7" => (1, 2),
-        "8" => (0, 3),
-        "8.1" => (0, 4),
-        "9" => (1, 3),
-        "9.1" => (1, 4),
+        "=" => (0, 0),
+        "-" => (0, 1),
+        "^" => (1, 0),
+        "&" => (1, 1),
+        "/" => (0, 2),
+        "|" => (1, 2),
+        "(" => (0, 3),
+        "{" => (0, 4),
+        ")" => (1, 3),
+        "}" => (1, 4),
         _ => (0, 0),
     };
     ("tex/wall.png", [col, row], [2, 5])

@@ -39,8 +39,8 @@ pub fn do_input(
             let scale_factor = SHADER_SCALE;
             let wx = ((mx / window_size.0) * 2.0 - 1.0) * aspect / scale_factor;
             let wy = (1.0 - (my / window_size.1) * 2.0) / scale_factor;
-            let col = (wx - GRID_MIN + 0.5) as i32;
-            (wy - SLOT_BAR_Y).abs() < 0.5 && col >= 0 && col < slots.len() as i32
+            let col = (wx - GRID_MIN_X + TILE_HALF) as i32;
+            (wy - SLOT_BAR_Y).abs() < TILE_HALF && col >= 0 && col < slots.len() as i32
         });
         if !skip {
             match mode {
@@ -119,8 +119,8 @@ fn handle_mouse_movement(
     let world_x = ((mouse_x / window_size.0) * 2.0 - 1.0) * aspect / scale_factor;
     let world_y = (1.0 - (mouse_y / window_size.1) * 2.0) / scale_factor;
 
-    let grid_x = (world_x + 0.5).floor().clamp(GRID_MIN, GRID_MAX);
-    let grid_y = (world_y + 0.5).floor().clamp(GRID_MIN, GRID_MAX);
+    let grid_x = (world_x + TILE_HALF).floor().clamp(GRID_MIN_X, GRID_MAX_X);
+    let grid_y = (world_y + TILE_HALF).floor().clamp(GRID_MIN_Y, GRID_MAX_Y);
 
     let (cur_x, cur_y) = ecs.get_transform_position(cursor);
     if (cur_x - grid_x).abs() < 0.01 && (cur_y - grid_y).abs() < 0.01 {

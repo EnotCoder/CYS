@@ -6,9 +6,14 @@
 pub const WORLD_OFFSET_X: f32 = -15.0;
 pub const WORLD_OFFSET_Y: f32 = 11.0;
 
-// === Игровое поле (grid 9x9) ===
-pub const GRID_MIN: f32 = -4.0;
-pub const GRID_MAX: f32 = 4.0;
+// === Игровое поле (13x9) ===
+pub const GRID_COLS: i32 = 13;
+pub const GRID_ROWS: i32 = 9;
+pub const GRID_MIN_X: f32 = -(GRID_COLS / 2) as f32;
+pub const GRID_MAX_X: f32 = (GRID_COLS / 2) as f32;
+pub const GRID_MIN_Y: f32 = -(GRID_ROWS / 2) as f32;
+pub const GRID_MAX_Y: f32 = (GRID_ROWS / 2) as f32;
+pub const TILE_HALF: f32 = 0.5;
 
 // === Слои (z) ===
 pub const Z_MAP: f32 = 0.0;
@@ -31,7 +36,12 @@ pub const CURSOR_MOVE_DELAY_MS: u64 = 150;
 // === Слоты ===
 pub const SLOT_COUNT: usize = 5;
 
+// === Слот-бар ===
+pub const SLOT_BAR_Y: f32 = -4.0;
+
 // === Инвентарь ===
+pub const INVENTORY_BASE_Y: f32 = SLOT_BAR_Y + 1.0;
+pub const INVENTORY_TOP_Y: f32 = INVENTORY_BASE_Y + (INVENTORY_ROWS - 1) as f32;
 pub const INVENTORY_ROWS: i32 = 5;
 pub const INVENTORY_COLS: i32 = 5;
 pub const INV_REGULAR: &[&str] = &["box", "sign", "rack", "table", "cassa", "ice_cream"];
@@ -55,6 +65,3 @@ pub const MODE_ICON_TEX: [&str; 3] = [
 
 // === Пути к текстурам ковров ===
 pub const CARPET_NAMES: [&str; 5] = ["carpet", "red_carpet", "green_carpet", "white_carpet", "black_carpet"];
-
-// === Слот-бар ===
-pub const SLOT_BAR_Y: f32 = -4.0;

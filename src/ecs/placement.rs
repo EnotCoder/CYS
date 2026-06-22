@@ -2,13 +2,14 @@ use specs::{WorldExt, Join};
 use crate::ecs::adapter::EcsAdapter;
 use crate::ecs::components::Transform;
 use crate::GroupComponent;
+use crate::constants::*;
 
 impl EcsAdapter {
     // ====================================================================
     //  can_place_at: Проверяет, можно ли разместить объект.
     //
     //  Правила:
-    //   - Объект не должен выходить за границы поля (-4..5)
+    //   - Объект не должен выходить за границы поля
     //   - Ковёр нельзя ставить на другой ковёр
     //   - Декор можно ставить только на ковёр
     //   - Декор нельзя ставить на другой декор
@@ -19,7 +20,9 @@ impl EcsAdapter {
         width: i32, height: i32,
         is_carpet: bool,
     ) -> bool {
-        if x < -4 || x + width > 5 || y < -4 || y + height > 5 {
+        if x < GRID_MIN_X as i32 || x + width > GRID_MAX_X as i32 + 1
+            || y < GRID_MIN_Y as i32 || y + height > GRID_MAX_Y as i32 + 1
+        {
             return false;
         }
 

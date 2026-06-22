@@ -76,19 +76,19 @@ impl GameScene {
 
         self.slots = crate::slot_object::get_slot_vec();
 
-        text_renderer.add_text(ecs, device, queue, "Pre alpha", 128.0, -4.0, 4.0, 2.0, 4.0, [255, 255, 255]);
+        text_renderer.add_text(ecs, device, queue, "Pre alpha", 128.0, GRID_MIN_X, GRID_MAX_Y, 2.0, 4.0, [255, 255, 255]);
 
-        let icon_mode = ecs.add_ui(4.0, SLOT_BAR_Y, MODE_ICON_TEX[0]);
+        let icon_mode = ecs.add_ui(GRID_MAX_X, SLOT_BAR_Y, MODE_ICON_TEX[0]);
 
         for (i, slot) in self.slots.iter().enumerate() {
             let ent = ecs.add_ui(
-                GRID_MIN + i as f32, SLOT_BAR_Y,
+                GRID_MIN_X + i as f32, SLOT_BAR_Y,
                 &format!("tex/ui/icon_slots/{}.png", slot.obj.name),
             );
             self.slot_entities.push(ent);
         }
 
-        let icons_slot_cursor = ecs.add_ui(GRID_MIN, SLOT_BAR_Y, "tex/ui/icon_slots/cursor.png");
+        let icons_slot_cursor = ecs.add_ui(GRID_MIN_X, SLOT_BAR_Y, "tex/ui/icon_slots/cursor.png");
         self.icon_mode = Some(icon_mode);
         self.icons_slot_cursor = Some(icons_slot_cursor);
         self.cursor_entity = Some(ecs.add_cursor(0.0, 0.0, CURSOR_TEX[0]));
@@ -117,8 +117,8 @@ impl GameScene {
                     "tex/ui/icon_slots/null.png".to_string()
                 };
                 let ent = ecs.add_ui(
-                    GRID_MIN + col as f32,
-                    -3.0 + row as f32,
+                    GRID_MIN_X + col as f32,
+                    INVENTORY_BASE_Y + row as f32,
                     &tex,
                 );
                 self.inventory_slots.push(ent);
@@ -141,7 +141,7 @@ impl GameScene {
     fn show_tabs(&mut self, ecs: &mut crate::EcsAdapter) {
         let tab_textures = ["tex/ui/icon_slots/box.png", "tex/ui/icon_slots/carpet.png"];
         for (i, tex) in tab_textures.iter().enumerate() {
-            let ent = ecs.add_ui(GRID_MIN + i as f32, INV_TAB_Y, tex);
+            let ent = ecs.add_ui(GRID_MIN_X + i as f32, INV_TAB_Y, tex);
             self.inv_tab_entities.push(ent);
         }
         self.update_tab_cursor(ecs);
@@ -160,11 +160,10 @@ impl GameScene {
     }
 
     fn update_tab_cursor(&self, ecs: &mut crate::EcsAdapter) {
-        // обновляем позицию курсора инвентаря на новый таб
         if let Some(cursor) = self.inv_cursor_entity {
             let col = self.inv_selected % INVENTORY_COLS;
             let row = self.inv_selected / INVENTORY_COLS;
-            ecs.update_transform_position(cursor, GRID_MIN + col as f32, -3.0 + row as f32);
+            ecs.update_transform_position(cursor, GRID_MIN_X + col as f32, INVENTORY_BASE_Y + row as f32);
         }
     }
 
@@ -184,7 +183,7 @@ impl GameScene {
         self.inv_selected = 20;
         self.show_inventory(ecs);
         self.show_tabs(ecs);
-        let new_cursor = Self::make_cursor_entity(ecs, GRID_MIN, 1.0, Z_UI);
+                    let new_cursor = Self::make_cursor_entity(ecs, GRID_MIN_X, INVENTORY_TOP_Y, Z_UI);
         self.inv_cursor_entity = Some(new_cursor);
         self.inventory_open = true;
         self.inventory_mode = true;
@@ -246,8 +245,8 @@ impl GameScene {
 
         if self.inventory_mode {
             // Клик по табам (y = INV_TAB_Y)
-            let tcol = (wx - GRID_MIN + 0.5) as i32;
-            if (wy - INV_TAB_Y).abs() < 0.5 && (tcol == 0 || tcol == 1) {
+            let tcol = (wx - GRID_MIN_X + TILE_HALF) as i32;
+            if (wy - INV_TAB_Y).abs() < TILE_HALF && (tcol == 0 || tcol == 1) {
                 let new_tab = tcol;
                 if new_tab != self.inventory_tab {
                     self.inventory_tab = new_tab;
@@ -259,7 +258,7 @@ impl GameScene {
                         ecs.world.write_storage::<crate::Transform>().remove(old);
                         ecs.world.write_storage::<crate::SpriteComponent>().remove(old);
                     }
-                    let new_cursor = Self::make_cursor_entity(ecs, GRID_MIN, 1.0, Z_UI);
+        let new_cursor = Self::make_cursor_entity(ecs, GRID_MIN_X, INVENTORY_TOP_Y, Z_UI);
                     self.inv_cursor_entity = Some(new_cursor);
                     self.inv_selected = 20;
                     self.update_tab_cursor(ecs);
@@ -268,8 +267,8 @@ impl GameScene {
             }
 
             // Клик по инвентарю
-            let col = (wx - GRID_MIN + 0.5) as i32;
-            let row = (wy + 3.0 + 0.5) as i32;
+            let col = (wx - GRID_MIN_X + TILE_HALF) as i32;
+            let row = (wy - INVENTORY_BASE_Y + TILE_HALF) as i32;
             if col >= 0 && col < INVENTORY_COLS && row >= 0 && row < INVENTORY_ROWS {
                 let idx = row * INVENTORY_COLS + col;
                 if idx == self.inv_selected {
@@ -279,8 +278,8 @@ impl GameScene {
                     if let Some(inv_cursor) = self.inv_cursor_entity {
                         ecs.update_transform_position(
                             inv_cursor,
-                            GRID_MIN + col as f32,
-                            -3.0 + row as f32,
+                            GRID_MIN_X + col as f32,
+                            INVENTORY_BASE_Y + row as f32,
                         );
                     }
                 }
@@ -289,8 +288,8 @@ impl GameScene {
         }
 
         // Клик по слотам на панели (y = SLOT_BAR_Y)
-        let col = (wx - GRID_MIN + 0.5) as i32;
-        if (wy - SLOT_BAR_Y).abs() < 0.5 && col >= 0 && col < self.slots.len() as i32 {
+        let col = (wx - GRID_MIN_X + TILE_HALF) as i32;
+        if (wy - SLOT_BAR_Y).abs() < TILE_HALF && col >= 0 && col < self.slots.len() as i32 {
             let target = col;
             if target != self.act_slot {
                 if let Some(cursor) = self.icons_slot_cursor {
@@ -300,7 +299,7 @@ impl GameScene {
                     }
                     self.act_slot = target;
                     self.slots[target as usize].active = true;
-                    ecs.update_transform_position(cursor, GRID_MIN + col as f32, SLOT_BAR_Y);
+                    ecs.update_transform_position(cursor, GRID_MIN_X + col as f32, SLOT_BAR_Y);
                 }
             }
         }

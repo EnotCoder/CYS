@@ -35,7 +35,8 @@ pub const SLOT_COUNT: usize = 5;
 pub const INVENTORY_ROWS: i32 = 5;
 pub const INVENTORY_COLS: i32 = 5;
 pub const INV_ITEMS: &[&str] = &["box", "sign", "rack", "table", "cassa", 
-"carpet", "red_carpet", "green_carpet", "white_carpet", "black_carpet"];
+"carpet", "red_carpet", "green_carpet", "white_carpet", "black_carpet",
+"ice_cream"];
 
 // === Текстуры курсора по режимам ===
 pub const CURSOR_TEX: [&str; 3] = [

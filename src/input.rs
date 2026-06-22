@@ -40,8 +40,7 @@ pub fn do_input(
             let wx = ((mx / window_size.0) * 2.0 - 1.0) * aspect / scale_factor;
             let wy = (1.0 - (my / window_size.1) * 2.0) / scale_factor;
             let col = (wx - GRID_MIN + 0.5) as i32;
-            let row = (wy - SLOT_BAR_Y + 0.5) as i32;
-            col >= 0 && col < slots.len() as i32 && row == 0
+            (wy - SLOT_BAR_Y).abs() < 0.5 && col >= 0 && col < slots.len() as i32
         });
         if !skip {
             match mode {

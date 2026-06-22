@@ -31,6 +31,7 @@ pub fn do_input(
     let mut new_size = map_size;
     let mut new_mode = mode;
     let mut new_act_slot = act_slot;
+    let aspect = window_size.0 / window_size.1;
 
     new_size = handle_zoom(input, new_size);
 
@@ -50,7 +51,7 @@ pub fn do_input(
         new_act_slot = cycle_slot(new_act_slot, slots, ecs, icons_slot_cursor);
     }
 
-    handle_mouse_movement(input, ecs, cursor_entity, new_mode, slots, new_act_slot, new_size, window_size);
+    handle_mouse_movement(input, ecs, cursor_entity, new_mode, slots, new_act_slot, new_size, window_size, aspect);
 
     if new_mode == 1 {
         update_cursor_validity(ecs, cursor_entity, slots, new_act_slot);
@@ -124,11 +125,12 @@ fn handle_mouse_movement(
     act_slot: i32,
     map_size: f32,
     window_size: (f32, f32),
+    aspect: f32,
 ) {
     let Some((mouse_x, mouse_y)) = input.cursor() else { return };
 
     let scale_factor = SHADER_SCALE * map_size;
-    let world_x = ((mouse_x / window_size.0) * 2.0 - 1.0) / scale_factor;
+    let world_x = ((mouse_x / window_size.0) * 2.0 - 1.0) * aspect / scale_factor;
     let world_y = (1.0 - (mouse_y / window_size.1) * 2.0) / scale_factor;
 
     let grid_x = (world_x + 0.5).floor().clamp(GRID_MIN, GRID_MAX);

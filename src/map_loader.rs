@@ -48,6 +48,7 @@ fn token_to_texture(token: &str) -> (&str, [i32; 2], [i32; 2]) {
         "*" => ("tex/grass.png", [2, 2], [4, 4]),
         "m" => ("tex/grass.png", [3, 2], [4, 4]),
         "~" => ("tex/grass.png", [1, 2], [4, 4]),
+        "l" => ("tex/grass.png", [0, 3], [4, 4]),
         //shadow
         "1" => ("tex/grass.png", [0, 1], [4, 4]),
         "2" => ("tex/grass.png", [1, 1], [4, 4]),

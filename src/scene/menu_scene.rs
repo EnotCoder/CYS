@@ -32,8 +32,9 @@ impl MenuScene {
             return false;
         }
         let Some((mx, my)) = input.cursor() else { return false };
+        let aspect = window_size.0 / window_size.1;
         let scale = SHADER_SCALE * MENU_MAP_SIZE;
-        let wx = ((mx / window_size.0) * 2.0 - 1.0) / scale;
+        let wx = ((mx / window_size.0) * 2.0 - 1.0) * aspect / scale;
         let wy = (1.0 - (my / window_size.1) * 2.0) / scale;
         wx >= bx - bw / 2.0 && wx <= bx + bw / 2.0
             && wy >= by - bh / 2.0 && wy <= by + bh / 2.0

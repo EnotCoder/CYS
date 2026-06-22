@@ -8,13 +8,15 @@ use crate::DepthBuffer;
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct Size {
     pub map_size: f32,
+    pub aspect: f32,
 }
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct UiUniforms {
     pub size: f32,
-    pub _padding: [f32; 3],
+    pub aspect: f32,
+    pub _padding: [f32; 2],
 }
 
 #[allow(dead_code)]
@@ -177,7 +179,7 @@ impl WgpuApp {
     }
 
     fn create_size_buffer(device: &wgpu::Device) -> wgpu::Buffer {
-        let size = Size { map_size: 1.0 };
+        let size = Size { map_size: 1.0, aspect: 1.0 };
         device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Size Buffer"),
             contents: bytemuck::bytes_of(&size),
@@ -186,7 +188,7 @@ impl WgpuApp {
     }
 
     fn create_ui_buffer(device: &wgpu::Device) -> wgpu::Buffer {
-        let ui_uniforms = UiUniforms { size: 1.0, _padding: [0.0; 3] };
+        let ui_uniforms = UiUniforms { size: 1.0, aspect: 1.0, _padding: [0.0; 2] };
         device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("UI_Buffer"),
             contents: bytemuck::cast_slice(&[ui_uniforms]),

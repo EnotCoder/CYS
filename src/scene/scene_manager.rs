@@ -69,12 +69,12 @@ impl SceneManager {
 
         let entity = text_renderer.add_text(
             &mut self.ecs, device, queue,
-            &fps_text, 64.0, 3.5, 3.8, 1.0, 4.0, [255, 255, 255],
+            &fps_text, 64.0, 5.0, 4.0, 1.0, 4.0, [255, 255, 255],
         );
 
         self.fps_entity = Some(entity);
         self.fps_sprite_key = Some(crate::text_renderer::TextRenderer::sprite_cache_key(
-            3.5, 3.8, &fps_text, 24.0, 1.0, [0, 255, 0],
+            5.0, 4.0, &fps_text, 24.0, 1.0, [0, 255, 0],
         ));
         self.current_fps_text = fps_text;
     }

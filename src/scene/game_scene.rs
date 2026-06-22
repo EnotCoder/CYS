@@ -72,7 +72,7 @@ impl GameScene {
 
         self.slots = crate::slot_object::get_slot_vec();
 
-        text_renderer.add_text(ecs, device, queue, "Pre alpha", 128.0, -3.0, 3.8, 2.0, 4.0, [255, 255, 255]);
+        text_renderer.add_text(ecs, device, queue, "Pre alpha", 128.0, -4.0, 4.0, 2.0, 4.0, [255, 255, 255]);
 
         let icon_mode = ecs.add_ui(4.0, SLOT_BAR_Y, MODE_ICON_TEX[0]);
 

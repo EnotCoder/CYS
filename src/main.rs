@@ -35,7 +35,7 @@ async fn main() {
     event_loop.set_control_flow(ControlFlow::Poll);
     let window = WindowBuilder::new()
         .with_title("CYS — Create your Shop")
-        .with_inner_size(PhysicalSize::new(800, 800))
+        .with_inner_size(PhysicalSize::new(1000, 800))
         .build(&event_loop)
         .unwrap();
 
@@ -99,14 +99,16 @@ async fn main() {
                     .write_buffer(&wgpu_app.uniform_buffer, 0, bytemuck::cast_slice(&[EMPTY_UNIFORMS]));
 
                 let ms = scene_manager.scenes.get(&scene_manager.current).unwrap().map_size();
-                let size_data = Size { map_size: ms };
+                let aspect = window_size.0 / window_size.1;
+                let size_data = Size { map_size: ms, aspect };
                 wgpu_app
                     .queue
                     .write_buffer(&wgpu_app.size_buffer, 0, bytemuck::cast_slice(&[size_data]));
 
                 let ui_uniforms = UiUniforms {
                     size: 1.0,
-                    _padding: [0.0; 3],
+                    aspect,
+                    _padding: [0.0; 2],
                 };
                 wgpu_app
                     .queue

@@ -6,6 +6,7 @@ struct Uniforms {
 
 struct Size {
     map_size: f32,
+    aspect: f32,
 };
 
 @group(0) @binding(0)
@@ -78,7 +79,7 @@ fn vs_main(
     let size = 0.223 * size_uniform.map_size;
 
     // Без матрицы! Просто передаём координаты
-    output.position = vec4<f32>(world_pos.x * size, world_pos.y * size, 0.0, 1.0);
+    output.position = vec4<f32>(world_pos.x * size / size_uniform.aspect, world_pos.y * size, 0.0, 1.0);
     output.tex_coord = tex_coord;
     return output;
 }

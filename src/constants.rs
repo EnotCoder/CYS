@@ -32,6 +32,10 @@ pub const ZOOM_STEP: f32 = 0.1;
 
 // === Курсор ===
 pub const CURSOR_MOVE_DELAY_MS: u64 = 150;
+pub const EPSILON: f32 = 0.01;
+
+// === Спрайты/анимация ===
+pub const TEXEL_EPSILON: f32 = 0.001;
 
 // === Слоты ===
 pub const SLOT_COUNT: usize = 5;
@@ -41,11 +45,19 @@ pub const SLOT_BAR_Y: f32 = -4.0;
 pub const SLOT_BAR_X: f32 = -5.0;
 pub const ICON_MODE_X: f32 = 5.0;
 
+// === Текст (цвета, размеры) ===
+pub const WHITE: [u8; 3] = [255, 255, 255];
+pub const GRAY: [u8; 3] = [200, 200, 200];
+pub const GREEN: [u8; 3] = [0, 255, 0];
+pub const BTN_TEXT_COLOR: [u8; 3] = [220, 220, 220];
+
 // === Инвентарь ===
 pub const INVENTORY_BASE_Y: f32 = SLOT_BAR_Y + 1.0;
 pub const INVENTORY_TOP_Y: f32 = INVENTORY_BASE_Y + (INVENTORY_ROWS - 1) as f32;
 pub const INVENTORY_ROWS: i32 = 5;
 pub const INVENTORY_COLS: i32 = 5;
+pub const INV_NONE: i32 = 20;
+pub const TAB_TEX: [&str; 2] = ["tex/ui/icon_slots/box.png", "tex/ui/icon_slots/carpet.png"];
 pub const INV_REGULAR: &[&str] = &["box", "sign", "rack", "table", "cassa", "ice_cream"];
 pub const INV_CARPETS: &[&str] = &["carpet", "red_carpet", "green_carpet", "white_carpet", "black_carpet"];
 pub const INV_TAB_Y: f32 = 2.0;

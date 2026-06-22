@@ -1,0 +1,218 @@
+use specs::{WorldExt, Builder, Entity};
+use crate::EcsAdapter;
+use crate::constants::*;
+
+// ========================================================================
+//  Inventory — управление инвентарём (сетка, табы, курсор)
+// ========================================================================
+
+pub struct Inventory {
+    pub open: bool,
+    pub mode: bool,
+    pub selected: i32,
+    pub tab: i32,
+    grid_entities: Vec<Entity>,
+    pub cursor_entity: Option<Entity>,
+    tab_entities: Vec<Entity>,
+}
+
+impl Inventory {
+    pub fn new() -> Self {
+        Self {
+            open: false,
+            mode: false,
+            selected: INV_NONE,
+            tab: 0,
+            grid_entities: Vec::new(),
+            cursor_entity: None,
+            tab_entities: Vec::new(),
+        }
+    }
+
+    pub fn reset(&mut self) {
+        self.open = false;
+        self.mode = false;
+        self.selected = INV_NONE;
+        self.tab = 0;
+        self.grid_entities.clear();
+        self.cursor_entity = None;
+        self.tab_entities.clear();
+    }
+
+    // ================================================================
+    //  Открытие / закрытие
+    // ================================================================
+
+    pub fn enter(&mut self, ecs: &mut EcsAdapter) {
+        self.tab = 0;
+        self.selected = INV_NONE;
+        self.show_grid(ecs);
+        self.show_tabs(ecs);
+        self.cursor_entity = Some(Self::make_cursor(ecs, SLOT_BAR_X, INVENTORY_TOP_Y));
+        self.open = true;
+        self.mode = true;
+    }
+
+    pub fn exit(&mut self, ecs: &mut EcsAdapter) {
+        self.hide_grid(ecs);
+        self.hide_tabs(ecs);
+        self.open = false;
+        self.mode = false;
+        if let Some(old) = self.cursor_entity.take() {
+            ecs.delete_entity(old);
+        }
+    }
+
+    // ================================================================
+    //  Предметы текущей вкладки
+    // ================================================================
+
+    pub fn items(&self) -> &'static [&'static str] {
+        if self.tab == 0 { INV_REGULAR } else { INV_CARPETS }
+    }
+
+    // ================================================================
+    //  Получение имени предмета под курсором
+    // ================================================================
+
+    pub fn selected_item_name(&self) -> Option<&'static str> {
+        let row = self.selected / INVENTORY_COLS;
+        let col = self.selected % INVENTORY_COLS;
+        let item_idx = ((INVENTORY_ROWS - 1 - row) * INVENTORY_COLS + col) as usize;
+        self.items().get(item_idx).copied()
+    }
+
+    // ================================================================
+    //  Переключение вкладки
+    // ================================================================
+
+    pub fn switch_tab(&mut self, new_tab: i32, ecs: &mut EcsAdapter) {
+        self.tab = new_tab;
+        self.hide_grid(ecs);
+        self.show_grid(ecs);
+        if let Some(old) = self.cursor_entity.take() {
+            ecs.delete_entity(old);
+        }
+        self.cursor_entity = Some(Self::make_cursor(ecs, SLOT_BAR_X, INVENTORY_TOP_Y));
+        self.selected = INV_NONE;
+        self.update_cursor(ecs);
+    }
+
+    // ================================================================
+    //  Перенос предмета на панель
+    // ================================================================
+
+    pub fn transfer_to_slot(
+        &mut self,
+        ecs: &mut EcsAdapter,
+        act_slot: usize,
+        hotbar_slots: &mut [crate::slot_object::Slot],
+        hotbar_entities: &[Entity],
+    ) {
+        let Some(name) = self.selected_item_name() else { return };
+        let new_slot = crate::slot_object::make_slot(name);
+        if act_slot < hotbar_slots.len() {
+            hotbar_slots[act_slot] = new_slot;
+            if act_slot < hotbar_entities.len() {
+                let path = Self::slot_texture(name);
+                ecs.update_sprite_texture(hotbar_entities[act_slot], &path);
+            }
+        }
+        self.exit(ecs);
+    }
+
+    // ================================================================
+    //  Обработка клика по сетке инвентаря
+    //  Возвращает true, если нужно сделать transfer
+    // ================================================================
+
+    pub fn handle_grid_click(&mut self, col: i32, row: i32, ecs: &mut EcsAdapter) -> bool {
+        if col < 0 || col >= INVENTORY_COLS || row < 0 || row >= INVENTORY_ROWS {
+            return false;
+        }
+        let idx = row * INVENTORY_COLS + col;
+        if idx == self.selected {
+            return true;
+        }
+        self.selected = idx;
+        self.update_cursor(ecs);
+        false
+    }
+
+    // ================================================================
+    //  Рендер сетки
+    // ================================================================
+
+    fn show_grid(&mut self, ecs: &mut EcsAdapter) {
+        let items = self.items();
+        for row in (0..INVENTORY_ROWS).rev() {
+            for col in 0..INVENTORY_COLS {
+                let item_idx = ((INVENTORY_ROWS - 1 - row) * INVENTORY_COLS + col) as usize;
+                let tex = if item_idx < items.len() {
+                    Self::slot_texture(items[item_idx])
+                } else {
+                    "tex/ui/icon_slots/null.png".to_string()
+                };
+                let ent = ecs.add_ui(
+                    SLOT_BAR_X + col as f32,
+                    INVENTORY_BASE_Y + row as f32,
+                    &tex,
+                );
+                self.grid_entities.push(ent);
+            }
+        }
+    }
+
+    fn hide_grid(&mut self, ecs: &mut EcsAdapter) {
+        let removed: Vec<Entity> = self.grid_entities.drain(..).collect();
+        ecs.delete_entities(&removed);
+    }
+
+    // ================================================================
+    //  Рендер табов
+    // ================================================================
+
+    fn show_tabs(&mut self, ecs: &mut EcsAdapter) {
+        for (i, tex) in TAB_TEX.iter().enumerate() {
+            let ent = ecs.add_ui(SLOT_BAR_X + i as f32, INV_TAB_Y, tex);
+            self.tab_entities.push(ent);
+        }
+        self.update_cursor(ecs);
+    }
+
+    fn hide_tabs(&mut self, ecs: &mut EcsAdapter) {
+        let removed: Vec<Entity> = self.tab_entities.drain(..).collect();
+        ecs.delete_entities(&removed);
+    }
+
+    // ================================================================
+    //  Курсор инвентаря
+    // ================================================================
+
+    fn update_cursor(&self, ecs: &mut EcsAdapter) {
+        if let Some(cursor) = self.cursor_entity {
+            let col = self.selected % INVENTORY_COLS;
+            let row = self.selected / INVENTORY_COLS;
+            ecs.update_transform_position(cursor, SLOT_BAR_X + col as f32, INVENTORY_BASE_Y + row as f32);
+        }
+    }
+
+    fn make_cursor(ecs: &mut EcsAdapter, x: f32, y: f32) -> Entity {
+        ecs.world.create_entity()
+            .with(crate::Transform { position: [x, y, Z_UI] })
+            .with(crate::SpriteComponent {
+                texture_path: "tex/ui/icon_slots/cursor.png".to_string(),
+                texture_frame: [0, 0],
+                texture_count: [1, 1],
+            })
+            .build()
+    }
+
+    // ================================================================
+    //  Утилиты
+    // ================================================================
+
+    fn slot_texture(name: &str) -> String {
+        format!("tex/ui/icon_slots/{}.png", name)
+    }
+}

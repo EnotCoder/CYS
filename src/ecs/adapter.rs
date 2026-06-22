@@ -4,7 +4,7 @@ use specs::Join;
 use crate::Sprite;
 use crate::ecs::components::{Transform, SpriteComponent};
 use crate::{GroupComponent, GroupInfoResource};
-use crate::constants::Z_UI;
+use crate::constants::*;
 
 // ========================================================================
 //  SpriteRenderData — плоские данные для рендера (без привязки к ECS)
@@ -71,6 +71,22 @@ impl EcsAdapter {
     }
 
     // ====================================================================
+    //  Удаление entity
+    // ====================================================================
+
+    pub fn delete_entity(&self, entity: specs::Entity) {
+        let _ = self.world.entities().delete(entity);
+        self.world.write_storage::<Transform>().remove(entity);
+        self.world.write_storage::<SpriteComponent>().remove(entity);
+    }
+
+    pub fn delete_entities(&self, entities: &[specs::Entity]) {
+        for &ent in entities {
+            self.delete_entity(ent);
+        }
+    }
+
+    // ====================================================================
     //  Создание UI-элементов
     // ====================================================================
 
@@ -129,7 +145,7 @@ impl EcsAdapter {
         let bg = self.add_ui_sized(x, y, width, height, "tex/black.png", device, queue);
         let label = text_renderer.add_text(
             self, device, queue,
-            text, font_size, x, y + 0.05, width * 0.75, 1.0, [220, 220, 220],
+            text, font_size, x, y + 0.05, width * 0.75, 1.0, BTN_TEXT_COLOR,
         );
         (bg, label)
     }

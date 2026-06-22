@@ -123,7 +123,7 @@ fn handle_mouse_movement(
     let grid_y = (world_y + TILE_HALF).floor().clamp(GRID_MIN_Y, GRID_MAX_Y);
 
     let (cur_x, cur_y) = ecs.get_transform_position(cursor);
-    if (cur_x - grid_x).abs() < 0.01 && (cur_y - grid_y).abs() < 0.01 {
+    if (cur_x - grid_x).abs() < EPSILON && (cur_y - grid_y).abs() < EPSILON {
         return;
     }
 

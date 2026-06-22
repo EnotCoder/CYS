@@ -13,6 +13,7 @@ mod text_renderer;
 mod scene;
 mod map_loader;
 mod fps;
+mod inventory;
 mod constants;
 
 pub use map_loader::load_map_to_ecs;

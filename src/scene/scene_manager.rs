@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use specs::WorldExt;
 use crate::scene::scene_trait::Scene;
+use crate::constants::*;
 
 pub struct SceneManager {
     pub ecs: crate::EcsAdapter,
@@ -59,9 +60,7 @@ impl SceneManager {
         }
 
         if let Some(entity) = self.fps_entity.take() {
-            let _ = self.ecs.world.entities().delete(entity);
-            self.ecs.world.write_storage::<crate::Transform>().remove(entity);
-            self.ecs.world.write_storage::<crate::SpriteComponent>().remove(entity);
+            self.ecs.delete_entity(entity);
         }
         if let Some(key) = self.fps_sprite_key.take() {
             self.ecs.sprite_cache.remove(&key);
@@ -69,12 +68,12 @@ impl SceneManager {
 
         let entity = text_renderer.add_text(
             &mut self.ecs, device, queue,
-            &fps_text, 64.0, 5.0, 4.0, 1.0, 4.0, [255, 255, 255],
+            &fps_text, 64.0, 5.0, 4.0, 1.0, 4.0, WHITE,
         );
 
         self.fps_entity = Some(entity);
         self.fps_sprite_key = Some(crate::text_renderer::TextRenderer::sprite_cache_key(
-            5.0, 4.0, &fps_text, 24.0, 1.0, [0, 255, 0],
+            5.0, 4.0, &fps_text, 24.0, 1.0, GREEN,
         ));
         self.current_fps_text = fps_text;
     }

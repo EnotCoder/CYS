@@ -44,7 +44,7 @@ impl Sprite {
         
         // Отступ в долях texel'а — чтобы на границах атласа не было грязи
         // (ClampToEdge + небольшой inset убирает серые линии между тайлами)
-        let eps = 0.001;
+        let eps = crate::constants::TEXEL_EPSILON;
         let left   = sprite_x as f32 * tile_w + eps;
         let right  = (sprite_x as f32 + 1.0) * tile_w - eps;
         let top    = sprite_y as f32 * tile_h + eps;
@@ -109,11 +109,13 @@ impl Sprite {
     ) -> Self {
         let hw = world_w / 2.0;
         let hh = world_h / 2.0;
+        let eps = crate::constants::TEXEL_EPSILON;
+        let inv_eps = 1.0 - eps;
         let vertices: Vec<Vertex> = vec![
-            Vertex { position: [-hw, hh, 0.0], tex_coord: [0.001, 0.001] },
-            Vertex { position: [-hw, -hh, 0.0], tex_coord: [0.001, 0.999] },
-            Vertex { position: [hw, -hh, 0.0], tex_coord: [0.999, 0.999] },
-            Vertex { position: [hw, hh, 0.0], tex_coord: [0.999, 0.001] },
+            Vertex { position: [-hw, hh, 0.0], tex_coord: [eps, eps] },
+            Vertex { position: [-hw, -hh, 0.0], tex_coord: [eps, inv_eps] },
+            Vertex { position: [hw, -hh, 0.0], tex_coord: [inv_eps, inv_eps] },
+            Vertex { position: [hw, hh, 0.0], tex_coord: [inv_eps, eps] },
         ];
         let indices: Vec<u16> = vec![0, 1, 2, 2, 3, 0];
         let index_count = indices.len() as u32;

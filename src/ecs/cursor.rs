@@ -57,14 +57,7 @@ impl EcsAdapter {
     //  clear_cursor_preview: Удаляет превью-спрайты курсора
     // ====================================================================
     pub fn clear_cursor_preview(&mut self) {
-        let entities = self.world.entities();
-        let mut transforms = self.world.write_storage::<Transform>();
-        let mut sprites = self.world.write_storage::<SpriteComponent>();
-        for &entity in &self.cursor_preview {
-            transforms.remove(entity);
-            sprites.remove(entity);
-            let _ = entities.delete(entity);
-        }
+        self.delete_entities(&self.cursor_preview);
         self.cursor_preview.clear();
     }
 }

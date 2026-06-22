@@ -25,21 +25,30 @@ pub fn do_input(
     window_size: (f32, f32),
     cursor_entity: Entity,
     icon_button: Entity,
-    icons_slot_cursor: Entity,
+    _icons_slot_cursor: Entity,
     inventory_mode: bool,
 ) -> (i32, i32, f32) {
     let mut new_size = map_size;
     let mut new_mode = mode;
-    let mut new_act_slot = act_slot;
     let aspect = window_size.0 / window_size.1;
 
     new_size = handle_zoom(input, new_size);
 
     if input.key_pressed(KeyCode::KeyF) || input.mouse_pressed(0) {
-        match mode {
-            1 => add(ecs, slots, act_slot, cursor_entity),
-            2 => { remove(ecs, cursor_entity); }
-            _ => {}
+        let skip = inventory_mode || input.cursor().map_or(false, |(mx, my)| {
+            let scale_factor = SHADER_SCALE;
+            let wx = ((mx / window_size.0) * 2.0 - 1.0) * aspect / scale_factor;
+            let wy = (1.0 - (my / window_size.1) * 2.0) / scale_factor;
+            let col = (wx - GRID_MIN + 0.5) as i32;
+            let row = (wy - SLOT_BAR_Y + 0.5) as i32;
+            col >= 0 && col < slots.len() as i32 && row == 0
+        });
+        if !skip {
+            match mode {
+                1 => add(ecs, slots, act_slot, cursor_entity),
+                2 => { remove(ecs, cursor_entity); }
+                _ => {}
+            }
         }
     }
 
@@ -47,19 +56,15 @@ pub fn do_input(
         new_mode = cycle_mode(new_mode, ecs, cursor_entity, icon_button);
     }
 
-    if !inventory_mode && input.key_pressed(KeyCode::KeyQ) {
-        new_act_slot = cycle_slot(new_act_slot, slots, ecs, icons_slot_cursor);
-    }
-
-    handle_mouse_movement(input, ecs, cursor_entity, new_mode, slots, new_act_slot, new_size, window_size, aspect);
+    handle_mouse_movement(input, ecs, cursor_entity, new_mode, slots, act_slot, new_size, window_size, aspect);
 
     if new_mode == 1 {
-        update_cursor_validity(ecs, cursor_entity, slots, new_act_slot);
+        update_cursor_validity(ecs, cursor_entity, slots, act_slot);
     }
 
-    update_cursor_preview(ecs, new_mode, slots, new_act_slot, cursor_entity);
+    update_cursor_preview(ecs, new_mode, slots, act_slot, cursor_entity);
 
-    (new_act_slot, new_mode, new_size)
+    (act_slot, new_mode, new_size)
 }
 
 // ========================================================================
@@ -95,24 +100,6 @@ fn cycle_mode(mode: i32, ecs: &mut EcsAdapter, cursor: Entity, icon: Entity) -> 
 // ========================================================================
 //  Переключение слота на панели
 // ========================================================================
-fn cycle_slot(slot: i32, slots: &mut [Slot], ecs: &mut EcsAdapter, cursor: Entity) -> i32 {
-    let max_slot = slots.len() as i32 - 1;
-    if (slot as usize) < slots.len() {
-        slots[slot as usize].active = false;
-    }
-
-    let new_slot = if slot >= max_slot {
-        ecs.update_transform_position(cursor, GRID_MIN, SLOT_BAR_Y);
-        0
-    } else {
-        let (x, _) = ecs.get_transform_position(cursor);
-        ecs.update_transform_position(cursor, x + 1.0, SLOT_BAR_Y);
-        slot + 1
-    };
-
-    new_slot
-}
-
 // ========================================================================
 //  Движение курсора за мышью
 // ========================================================================

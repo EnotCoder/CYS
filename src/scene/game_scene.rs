@@ -180,7 +180,7 @@ impl GameScene {
         self.exit_inventory(ecs);
     }
 
-    fn handle_inventory_input(&mut self, ecs: &mut crate::EcsAdapter, input: &winit_input_helper::WinitInputHelper) {
+    fn handle_inventory_input(&mut self, ecs: &mut crate::EcsAdapter, input: &winit_input_helper::WinitInputHelper, window_size: (f32, f32)) {
         if input.key_pressed(winit::keyboard::KeyCode::KeyE) {
             if self.inventory_open {
                 self.exit_inventory(ecs);
@@ -189,29 +189,58 @@ impl GameScene {
             }
         }
 
-        if !self.inventory_mode {
+        let scale_factor = crate::constants::SHADER_SCALE;
+        let aspect = window_size.0 / window_size.1;
+
+        let click = input.mouse_pressed(0);
+        if !click {
             return;
         }
 
-        if input.key_pressed(winit::keyboard::KeyCode::KeyQ) {
-            let col = self.inv_selected % INVENTORY_COLS;
-            let row = self.inv_selected / INVENTORY_ROWS;
-            self.inv_selected = if col < INVENTORY_COLS - 1 {
-                self.inv_selected + 1
-            } else if row > 0 {
-                (row - 1) * INVENTORY_COLS
-            } else {
-                20
-            };
-            let col = self.inv_selected % INVENTORY_COLS;
-            let row = self.inv_selected / INVENTORY_ROWS;
-            if let Some(inv_cursor) = self.inv_cursor_entity {
-                ecs.update_transform_position(inv_cursor, GRID_MIN + col as f32, -3.0 + row as f32);
+        let Some((mx, my)) = input.cursor() else { return };
+        let wx = ((mx / window_size.0) * 2.0 - 1.0) * aspect / scale_factor;
+        let wy = (1.0 - (my / window_size.1) * 2.0) / scale_factor;
+
+        if self.inventory_mode {
+            // Клик по инвентарю
+            let col = (wx - GRID_MIN + 0.5) as i32;
+            let row = (wy + 3.0 + 0.5) as i32;
+            if col >= 0 && col < INVENTORY_COLS && row >= 0 && row < INVENTORY_ROWS {
+                let idx = row * INVENTORY_COLS + col;
+                if idx == self.inv_selected {
+                    // Повторный клик — перенос
+                    self.transfer_from_inventory(ecs);
+                } else {
+                    // Выбор слота
+                    self.inv_selected = idx;
+                    if let Some(inv_cursor) = self.inv_cursor_entity {
+                        ecs.update_transform_position(
+                            inv_cursor,
+                            GRID_MIN + col as f32,
+                            -3.0 + row as f32,
+                        );
+                    }
+                }
+                return;
             }
         }
 
-        if input.key_pressed(winit::keyboard::KeyCode::Enter) {
-            self.transfer_from_inventory(ecs);
+        // Клик по слотам на панели (y = SLOT_BAR_Y)
+        let col = (wx - GRID_MIN + 0.5) as i32;
+        let row = (wy - SLOT_BAR_Y + 0.5) as i32;
+        if col >= 0 && col < self.slots.len() as i32 && row == 0 {
+            let target = col;
+            if target != self.act_slot {
+                if let Some(cursor) = self.icons_slot_cursor {
+                    let old = self.act_slot as usize;
+                    if old < self.slots.len() {
+                        self.slots[old].active = false;
+                    }
+                    self.act_slot = target;
+                    self.slots[target as usize].active = true;
+                    ecs.update_transform_position(cursor, GRID_MIN + col as f32, SLOT_BAR_Y);
+                }
+            }
         }
     }
 }
@@ -261,7 +290,7 @@ impl Scene for GameScene {
         self.mode = result.1;
         self.map_size = result.2;
 
-        self.handle_inventory_input(ecs, input);
+        self.handle_inventory_input(ecs, input, window_size);
 
         SceneAction::None
     }

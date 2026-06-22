@@ -59,7 +59,11 @@ pub const INVENTORY_COLS: i32 = 5;
 pub const INV_NONE: i32 = 20;
 pub const TAB_TEX: [&str; 2] = ["tex/ui/icon_slots/box.png", "tex/ui/icon_slots/carpet.png"];
 pub const INV_REGULAR: &[&str] = &["box", "sign", "rack", "table", "cassa", "ice_cream"];
-pub const INV_CARPETS: &[&str] = &["carpet", "red_carpet", "green_carpet", "white_carpet", "black_carpet"];
+pub const INV_CARPETS: &[&str] = 
+&[
+    "carpet", "red_carpet", "green_carpet", "white_carpet", "black_carpet", 
+    "iron_panel", "gold_panel", "diamond_panel"
+];
 pub const INV_TAB_Y: f32 = 2.0;
 
 // === Текстуры курсора по режимам ===

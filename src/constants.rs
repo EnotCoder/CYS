@@ -34,7 +34,8 @@ pub const SLOT_COUNT: usize = 5;
 // === Инвентарь ===
 pub const INVENTORY_ROWS: i32 = 5;
 pub const INVENTORY_COLS: i32 = 5;
-pub const INV_ITEMS: &[&str] = &["box", "sign", "rack", "table", "carpet", "red_carpet", "green_carpet", "cassa"];
+pub const INV_ITEMS: &[&str] = &["box", "sign", "rack", "table", "cassa", 
+"carpet", "red_carpet", "green_carpet", "white_carpet", "black_carpet"];
 
 // === Текстуры курсора по режимам ===
 pub const CURSOR_TEX: [&str; 3] = [
@@ -52,7 +53,7 @@ pub const MODE_ICON_TEX: [&str; 3] = [
 ];
 
 // === Пути к текстурам ковров ===
-pub const CARPET_NAMES: [&str; 3] = ["carpet", "red_carpet", "green_carpet"];
+pub const CARPET_NAMES: [&str; 5] = ["carpet", "red_carpet", "green_carpet", "white_carpet", "black_carpet"];
 
 // === Слот-бар ===
 pub const SLOT_BAR_Y: f32 = -4.0;

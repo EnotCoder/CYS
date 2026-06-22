@@ -39,7 +39,7 @@ pub fn do_input(
             let scale_factor = SHADER_SCALE;
             let wx = ((mx / window_size.0) * 2.0 - 1.0) * aspect / scale_factor;
             let wy = (1.0 - (my / window_size.1) * 2.0) / scale_factor;
-            let col = (wx - GRID_MIN_X + TILE_HALF) as i32;
+            let col = (wx - SLOT_BAR_X + TILE_HALF) as i32;
             (wy - SLOT_BAR_Y).abs() < TILE_HALF && col >= 0 && col < slots.len() as i32
         });
         if !skip {

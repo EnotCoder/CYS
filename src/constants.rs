@@ -38,6 +38,8 @@ pub const SLOT_COUNT: usize = 5;
 
 // === Слот-бар ===
 pub const SLOT_BAR_Y: f32 = -4.0;
+pub const SLOT_BAR_X: f32 = -5.0;
+pub const ICON_MODE_X: f32 = 5.0;
 
 // === Инвентарь ===
 pub const INVENTORY_BASE_Y: f32 = SLOT_BAR_Y + 1.0;

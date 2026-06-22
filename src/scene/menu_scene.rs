@@ -69,8 +69,9 @@ impl Scene for MenuScene {
         SceneAction::None
     }
 
-    fn sprites(&self, ecs: &crate::EcsAdapter) -> (Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>) {
-        ecs.get_sprites_by_layer()
+    fn sprites(&self, ecs: &crate::EcsAdapter) -> (Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>) {
+        let r = ecs.get_sprites_by_layer();
+        (r.0, r.1, r.2, r.3, r.4, r.5)
     }
 
     fn map_size(&self) -> f32 { MENU_MAP_SIZE }

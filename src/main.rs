@@ -14,6 +14,7 @@ mod scene;
 mod map_loader;
 mod fps;
 mod inventory;
+mod pathfinding;
 mod constants;
 
 pub use map_loader::load_map_to_ecs;
@@ -115,7 +116,7 @@ async fn main() {
                     .queue
                     .write_buffer(&wgpu_app.ui_uniform_buffer, 0, bytemuck::cast_slice(&[ui_uniforms]));
 
-                let (map_sprites, carpet_sprites, decor_sprites, cursor_sprites, ui_sprites) =
+                let (map_sprites, carpet_sprites, decor_sprites, npc_sprites, cursor_sprites, ui_sprites) =
                     scene_manager.scenes.get(&scene_manager.current).unwrap().sprites(&scene_manager.ecs);
 
                 render(
@@ -128,6 +129,7 @@ async fn main() {
                     &map_sprites,
                     &carpet_sprites,
                     &decor_sprites,
+                    &npc_sprites,
                     &cursor_sprites,
                     &ui_sprites,
                     &wgpu_app.size_bind_group,

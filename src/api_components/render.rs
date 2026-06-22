@@ -4,14 +4,15 @@ use crate::Uniforms;
 use std::collections::HashMap;
 
 // ========================================================================
-//  render: Главная функция рендера. Рисует 5 слоёв в правильном порядке.
+//  render: Главная функция рендера. Рисует слои в правильном порядке.
 //
 //  Порядок слоёв:
 //    1. map    (z=0.0)  — первый, очищает экран и depth buffer
 //    2. carpet (z=1.0)  — ковры
 //    3. decor  (z=1.5)  — декорации
-//    4. cursor (z=2.0)  — курсор
-//    5. ui     (z=3.0)  — UI (использует отдельный ui_bind_group)
+//    4. npc    (z=1.8)  — NPC / персонажи
+//    5. cursor (z=2.0)  — курсор
+//    6. ui     (z=3.0)  — UI (использует отдельный ui_bind_group)
 // ========================================================================
 pub fn render(
     surface: &wgpu::Surface,
@@ -23,13 +24,13 @@ pub fn render(
     map_sprites: &[SpriteRenderData],
     carpet_sprites: &[SpriteRenderData],
     decor_sprites: &[SpriteRenderData],
+    npc_sprites: &[SpriteRenderData],
     cursor_sprites: &[SpriteRenderData],
     ui_sprites: &[SpriteRenderData],
     size_bind_group: &wgpu::BindGroup,
     ui_bind_group: &wgpu::BindGroup,
     sprite_cache: &mut HashMap<String, Sprite>,
 ) {
-    // Получаем кадр для рисования
     let frame = match surface.get_current_texture() {
         Ok(frame) => frame,
         Err(_) => return,
@@ -40,13 +41,14 @@ pub fn render(
         label: Some("Render Encoder"),
     });
 
-    // Слои: map — с очисткой, остальные — поверх
     render_group(device, queue, render_pipeline, map_sprites, depth_view, sprite_cache,
         &mut encoder, &view, size_bind_group, "map", true);
     render_group(device, queue, transparent_pipeline, carpet_sprites, depth_view, sprite_cache,
         &mut encoder, &view, size_bind_group, "carpet", false);
     render_group(device, queue, transparent_pipeline, decor_sprites, depth_view, sprite_cache,
         &mut encoder, &view, size_bind_group, "decor", false);
+    render_group(device, queue, transparent_pipeline, npc_sprites, depth_view, sprite_cache,
+        &mut encoder, &view, size_bind_group, "npc", false);
     render_group(device, queue, transparent_pipeline, cursor_sprites, depth_view, sprite_cache,
         &mut encoder, &view, size_bind_group, "cursor", false);
     render_group(device, queue, transparent_pipeline, ui_sprites, depth_view, sprite_cache,

@@ -162,6 +162,7 @@ impl EcsAdapter {
         Vec<SpriteRenderData>,
         Vec<SpriteRenderData>,
         Vec<SpriteRenderData>,
+        Vec<SpriteRenderData>,
     ) {
         let transforms = self.world.read_storage::<Transform>();
         let sprites = self.world.read_storage::<SpriteComponent>();
@@ -169,6 +170,7 @@ impl EcsAdapter {
         let mut map_sprites = Vec::with_capacity(100);
         let mut carpet_sprites = Vec::with_capacity(20);
         let mut decor_sprites = Vec::with_capacity(20);
+        let mut npc_sprites = Vec::with_capacity(5);
         let mut cursor_sprites = Vec::with_capacity(1);
         let mut ui_sprites = Vec::with_capacity(10);
 
@@ -187,6 +189,8 @@ impl EcsAdapter {
                 carpet_sprites.push(data);
             } else if z == crate::constants::Z_DECOR {
                 decor_sprites.push(data);
+            } else if z == crate::constants::Z_NPC {
+                npc_sprites.push(data);
             } else if z == crate::constants::Z_CURSOR {
                 cursor_sprites.push(data);
             } else {
@@ -194,6 +198,6 @@ impl EcsAdapter {
             }
         }
 
-        (map_sprites, carpet_sprites, decor_sprites, cursor_sprites, ui_sprites)
+        (map_sprites, carpet_sprites, decor_sprites, npc_sprites, cursor_sprites, ui_sprites)
     }
 }

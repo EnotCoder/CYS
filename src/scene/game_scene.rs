@@ -1,7 +1,19 @@
+use std::collections::HashSet;
+use specs::{WorldExt, Builder};
 use crate::scene::scene_trait::{Scene, SceneAction};
 use crate::text_renderer::TextRenderer;
 use crate::constants::*;
 use crate::inventory::Inventory;
+use crate::pathfinding::{Node, find_path};
+
+fn patrol_route() -> Vec<Node> {
+    vec![
+        Node::new(10, -5),
+        Node::new(10, -11),
+        Node::new(3, -11),
+        Node::new(3, -8),
+    ]
+}
 
 pub struct GameScene {
     loaded: bool,
@@ -17,6 +29,14 @@ pub struct GameScene {
     icons_slot_cursor: Option<specs::Entity>,
     slot_entities: Vec<specs::Entity>,
     inventory: Inventory,
+    npc_entity: Option<specs::Entity>,
+    npc_walkable: HashSet<Node>,
+    npc_pos: (f32, f32),
+    npc_path: Vec<Node>,
+    npc_path_index: usize,
+    npc_patrol_index: usize,
+    npc_pause: f64,
+    last_frame: std::time::Instant,
 }
 
 impl GameScene {
@@ -35,6 +55,14 @@ impl GameScene {
             icons_slot_cursor: None,
             slot_entities: Vec::new(),
             inventory: Inventory::new(),
+            npc_entity: None,
+            npc_walkable: HashSet::new(),
+            npc_pos: (0.0, 0.0),
+            npc_path: Vec::new(),
+            npc_path_index: 0,
+            npc_patrol_index: 0,
+            npc_pause: 0.0,
+            last_frame: std::time::Instant::now(),
         }
     }
 
@@ -78,6 +106,96 @@ impl GameScene {
         self.icon_mode = Some(icon_mode);
         self.icons_slot_cursor = Some(icons_slot_cursor);
         self.cursor_entity = Some(ecs.add_cursor(0.0, 0.0, CURSOR_TEX[0]));
+
+        self.setup_npc(ecs);
+    }
+
+    // ====================================================================
+    //  NPC / patrol with A*
+    // ====================================================================
+
+    fn load_walkable_cells(&mut self) {
+        let src = include_str!("../../map.txt");
+        for (j, line) in src.lines().enumerate() {
+            for (i, token) in line.split_whitespace().enumerate() {
+                if token == "@" && i >= 18 && j >= 16 {
+                    let wx = i as f32 + WORLD_OFFSET_X;
+                    let wy = -(j as f32) + WORLD_OFFSET_Y;
+                    self.npc_walkable.insert(Node::from_world(wx, wy));
+                }
+            }
+        }
+    }
+
+    fn advance_patrol(&mut self) {
+        loop {
+            let (cx, cy) = self.npc_pos;
+            let start_node = Node::from_world(cx, cy);
+            let route = patrol_route();
+            self.npc_patrol_index = (self.npc_patrol_index + 1) % route.len();
+            let goal_node = route[self.npc_patrol_index];
+            if start_node == goal_node {
+                continue;
+            }
+            if let Some(path) = find_path(&self.npc_walkable, start_node, goal_node) {
+                self.npc_path = path;
+                self.npc_path_index = 0;
+            }
+            break;
+        }
+    }
+
+    fn setup_npc(&mut self, ecs: &mut crate::EcsAdapter) {
+        self.load_walkable_cells();
+        let start = patrol_route()[0];
+        let (sx, sy) = start.to_world();
+        self.npc_pos = (sx, sy);
+        self.npc_patrol_index = 0;
+        let entity = ecs.world.create_entity()
+            .with(crate::Transform { position: [sx, sy, Z_NPC] })
+            .with(crate::SpriteComponent {
+                texture_path: "tex/characters/player.png".to_string(),
+                texture_frame: [0, 0],
+                texture_count: [1, 1],
+            })
+            .build();
+        self.npc_entity = Some(entity);
+        self.advance_patrol();
+    }
+
+    fn move_npc(&mut self, ecs: &mut crate::EcsAdapter, dt: f64) {
+        let Some(entity) = self.npc_entity else { return };
+
+        if self.npc_pause > 0.0 {
+            self.npc_pause -= dt;
+            return;
+        }
+
+        if self.npc_path_index >= self.npc_path.len() {
+            self.npc_pause = 0.3;
+            self.advance_patrol();
+            return;
+        }
+
+        let target = self.npc_path[self.npc_path_index];
+        let (tx, ty) = target.to_world();
+        let (cx, cy) = self.npc_pos;
+
+        let speed = 3.0;
+        let step = speed * dt as f32;
+        let dx = tx - cx;
+        let dy = ty - cy;
+        let dist = (dx * dx + dy * dy).sqrt();
+
+        if dist <= step || dist < 0.01 {
+            self.npc_pos = (tx, ty);
+            self.npc_path_index += 1;
+        } else {
+            self.npc_pos = (cx + dx / dist * step, cy + dy / dist * step);
+        }
+
+        let (nx, ny) = self.npc_pos;
+        ecs.update_transform_position(entity, nx, ny);
     }
 
     // ====================================================================
@@ -159,6 +277,12 @@ impl Scene for GameScene {
         self.icons_slot_cursor = None;
         self.slot_entities.clear();
         self.inventory.reset();
+        self.npc_entity = None;
+        self.npc_walkable.clear();
+        self.npc_path.clear();
+        self.npc_patrol_index = 0;
+        self.npc_pause = 0.0;
+        self.last_frame = std::time::Instant::now();
     }
 
     fn update(&mut self, ecs: &mut crate::EcsAdapter, input: &winit_input_helper::WinitInputHelper, window_size: (f32, f32), text_renderer: &mut crate::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) -> SceneAction {
@@ -187,10 +311,17 @@ impl Scene for GameScene {
 
         self.handle_inventory_input(ecs, input, window_size);
 
+        if self.npc_entity.is_some() {
+            let now = std::time::Instant::now();
+            let dt = (now - self.last_frame).as_secs_f64();
+            self.last_frame = now;
+            self.move_npc(ecs, dt);
+        }
+
         SceneAction::None
     }
 
-    fn sprites(&self, ecs: &crate::EcsAdapter) -> (Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>) {
+    fn sprites(&self, ecs: &crate::EcsAdapter) -> (Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>) {
         ecs.get_sprites_by_layer()
     }
 

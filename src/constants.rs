@@ -107,7 +107,7 @@ pub const MODE_ICON_TEX: [&str; 3] = [
 ];
 
 // === Пути к текстурам ковров ===
-pub const CARPET_NAMES: [&str; 5] = ["carpet", "red_carpet", "green_carpet", "white_carpet", "black_carpet"];
+pub const CARPET_NAMES: [&str; 8] = ["carpet", "red_carpet", "green_carpet", "white_carpet", "black_carpet", "iron_panel", "gold_panel", "diamond_panel"];
 
 // === Меню ===
 pub const BTN_X: f32 = 0.0;

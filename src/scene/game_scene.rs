@@ -8,36 +8,38 @@ use crate::pathfinding::{Node, find_path};
 
 fn patrol_routes() -> Vec<Vec<Node>> {
     vec![
-        // Route 0: long L-shape — full loop
+        // Route 0: right column down → bottom left → full width right → back up
         vec![
-            Node::new(10, -5), Node::new(10, -11), Node::new(3, -11),
-            Node::new(3, -8), Node::new(10, -8), Node::new(10, -6),
-            Node::new(14, -6), Node::new(14, -11), Node::new(3, -11),
-            Node::new(3, -5), Node::new(10, -5),
+            Node::new(10, -5),  Node::new(10, -11),
+            Node::new(3, -11),  Node::new(3, -9),
+            Node::new(13, -9),  Node::new(13, -5),
         ],
-        // Route 1: right side vertical
+        // Route 1: bottom full sweep right-to-left, then return
         vec![
-            Node::new(14, -5), Node::new(14, -11), Node::new(10, -11),
-            Node::new(10, -5), Node::new(14, -5), Node::new(14, -8),
-            Node::new(10, -8), Node::new(10, -5),
+            Node::new(13, -9),  Node::new(3, -9),
+            Node::new(3, -11),  Node::new(13, -11),
+            Node::new(13, -9),
         ],
-        // Route 2: bottom horizontal
+        // Route 2: right column → bottom right → mid-right → bottom left
         vec![
-            Node::new(3, -11), Node::new(14, -11), Node::new(10, -11),
-            Node::new(3, -11), Node::new(3, -8), Node::new(10, -8),
-            Node::new(14, -8), Node::new(14, -11),
+            Node::new(10, -5),  Node::new(10, -11),
+            Node::new(13, -11), Node::new(13, -8),
+            Node::new(8, -8),   Node::new(8, -9),
+            Node::new(3, -9),   Node::new(3, -11),
         ],
-        // Route 3: wide figure-8
+        // Route 3: top-right → bottom sweep → bottom-left → right column up
         vec![
-            Node::new(10, -5), Node::new(10, -11), Node::new(14, -11),
-            Node::new(14, -8), Node::new(10, -8), Node::new(10, -11),
-            Node::new(3, -11), Node::new(3, -8), Node::new(10, -8),
-            Node::new(10, -5), Node::new(3, -5), Node::new(3, -8),
+            Node::new(13, -5),  Node::new(13, -9),
+            Node::new(3, -9),   Node::new(3, -11),
+            Node::new(10, -11), Node::new(10, -5),
         ],
-        // Route 4: short right-side patrol
+        // Route 4: bottom traverse + right column zigzag
         vec![
-            Node::new(10, -5), Node::new(10, -11), Node::new(12, -11),
-            Node::new(12, -5), Node::new(10, -5),
+            Node::new(3, -9),   Node::new(13, -9),
+            Node::new(13, -5),  Node::new(10, -5),
+            Node::new(10, -8),  Node::new(13, -8),
+            Node::new(13, -11), Node::new(3, -11),
+            Node::new(3, -9),
         ],
     ]
 }
@@ -257,8 +259,10 @@ impl GameScene {
     fn setup_npc(&mut self, ecs: &mut crate::EcsAdapter) {
         self.load_walkable_cells();
         let routes = patrol_routes();
-        for route in &routes {
-            let mut npc = Npc::new(ecs, route, 0);
+        let start_indices = [0, 0, 7, 0, 0];
+        for (idx, route) in routes.iter().enumerate() {
+            let start_idx = start_indices[idx.min(start_indices.len() - 1)] % route.len();
+            let mut npc = Npc::new(ecs, route, start_idx);
             npc.advance(&self.npc_walkable);
             self.npcs.push(npc);
         }

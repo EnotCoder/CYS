@@ -2,7 +2,7 @@ use specs::{World, WorldExt, Builder};
 use std::collections::HashMap;
 use specs::Join;
 use crate::Sprite;
-use crate::ecs::components::{Transform, SpriteComponent};
+use crate::ecs::components::{Transform, SpriteComponent, Rotation};
 use crate::{GroupComponent, GroupInfoResource};
 use crate::constants::*;
 
@@ -12,6 +12,7 @@ use crate::constants::*;
 #[derive(Clone)]
 pub struct SpriteRenderData {
     pub position: [f32; 3],
+    pub rotation: [f32; 3],
     pub texture_path: String,
     pub texture_frame: [i32; 2],
     pub texture_count: [i32; 2],
@@ -34,6 +35,7 @@ impl EcsAdapter {
         world.register::<Transform>();
         world.register::<SpriteComponent>();
         world.register::<GroupComponent>();
+        world.register::<Rotation>();
         world.insert(GroupInfoResource {
             groups: HashMap::new(),
         });
@@ -169,6 +171,7 @@ impl EcsAdapter {
     ) {
         let transforms = self.world.read_storage::<Transform>();
         let sprites = self.world.read_storage::<SpriteComponent>();
+        let rotations = self.world.read_storage::<Rotation>();
 
         let mut map_sprites = Vec::with_capacity(100);
         let mut carpet_sprites = Vec::with_capacity(20);
@@ -177,9 +180,10 @@ impl EcsAdapter {
         let mut cursor_sprites = Vec::with_capacity(1);
         let mut ui_sprites = Vec::with_capacity(10);
 
-        for (transform, sprite) in (&transforms, &sprites).join() {
+        for (transform, sprite, rotation_opt) in (&transforms, &sprites, rotations.maybe()).join() {
             let data = SpriteRenderData {
                 position: transform.position,
+                rotation: rotation_opt.map(|r| r.rotation).unwrap_or([0.0; 3]),
                 texture_path: sprite.texture_path.clone(),
                 texture_frame: sprite.texture_frame,
                 texture_count: sprite.texture_count,

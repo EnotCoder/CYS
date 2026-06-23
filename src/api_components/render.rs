@@ -141,7 +141,7 @@ fn render_group(
         // Обновляем uniform для каждой сущности (позиция в мире)
         let uniforms = Uniforms {
             translation: [data.position[0], data.position[1], data.position[2], 1.0],
-            rotation: [0.0, 0.0, 0.0, 1.0],
+            rotation: [data.rotation[0], data.rotation[1], data.rotation[2], 1.0],
             _padding: [0.0; 3],
         };
         queue.write_buffer(&sprite.uniform_buffer, 0, bytemuck::cast_slice(&[uniforms]));

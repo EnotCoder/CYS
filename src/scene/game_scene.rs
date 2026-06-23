@@ -163,6 +163,7 @@ impl GameScene {
                 texture_count: [1, 1],
                 scale: NPC_SCALE,
             })
+            .with(crate::Rotation { rotation: [0.0; 3] })
             .build();
         self.npc_entity = Some(entity);
         self.advance_patrol();
@@ -216,6 +217,13 @@ impl GameScene {
 
         let (nx, ny) = self.npc_pos;
         ecs.update_transform_position(entity, nx, ny);
+
+        if dx.abs() > 0.01 {
+            let facing = if dx > 0.0 { 0.0 } else { std::f32::consts::PI };
+            if let Some(rot) = ecs.world.write_storage::<crate::Rotation>().get_mut(entity) {
+                rot.rotation = [0.0, facing, 0.0];
+            }
+        }
     }
 
     // ====================================================================

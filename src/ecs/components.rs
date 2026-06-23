@@ -48,3 +48,12 @@ pub struct GroupInfo {
     pub pos_y: i32,
     pub is_carpet: bool,
 }
+
+#[derive(Debug)]
+pub struct Rotation {
+    pub rotation: [f32; 3],
+}
+
+impl Component for Rotation {
+    type Storage = VecStorage<Self>;
+}

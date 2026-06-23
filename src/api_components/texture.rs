@@ -147,18 +147,17 @@ impl Texture {
         queue: &wgpu::Queue,
         original_label: &str,
     ) -> Self {
-        let null_path = "tex/null.png";
-        match std::fs::read(null_path) {
+        match std::fs::read(crate::constants::TEX_FALLBACK) {
             Ok(bytes) => {
                 match Self::from_bytes(device, queue, &bytes, &format!("{}_fallback", original_label)) {
                     Ok(texture) => texture,
                     Err(e) => {
-                        panic!("Critical error: null.png exists but failed to decode: {}", e);
+                        panic!("Critical error: {} exists but failed to decode: {}", crate::constants::TEX_FALLBACK, e);
                     }
                 }
             }
             Err(e) => {
-                panic!("Critical error: null.png not found at '{}': {}", null_path, e);
+                panic!("Critical error: {} not found: {}", crate::constants::TEX_FALLBACK, e);
             }
         }
     }

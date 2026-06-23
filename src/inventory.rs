@@ -78,7 +78,7 @@ impl Inventory {
     pub fn selected_item_name(&self) -> Option<&'static str> {
         let row = self.selected / INVENTORY_COLS;
         let col = self.selected % INVENTORY_COLS;
-        let item_idx = ((INVENTORY_ROWS - 1 - row) * INVENTORY_COLS + col) as usize;
+        let item_idx = crate::util::inventory_index(row, col) as usize;
         self.items().get(item_idx).copied()
     }
 
@@ -147,11 +147,11 @@ impl Inventory {
         let items = self.items();
         for row in (0..INVENTORY_ROWS).rev() {
             for col in 0..INVENTORY_COLS {
-                let item_idx = ((INVENTORY_ROWS - 1 - row) * INVENTORY_COLS + col) as usize;
+                let item_idx = crate::util::inventory_index(row, col) as usize;
                 let tex = if item_idx < items.len() {
                     Self::slot_texture(items[item_idx])
                 } else {
-                    "tex/ui/icon_slots/null.png".to_string()
+                    format!("{}{}", TEX_UI_ICON_SLOTS_DIR, "null.png")
                 };
                 let ent = ecs.add_ui(
                     SLOT_BAR_X + col as f32,
@@ -201,7 +201,7 @@ impl Inventory {
         ecs.world.create_entity()
             .with(crate::Transform { position: [x, y, Z_UI] })
             .with(crate::SpriteComponent {
-                texture_path: "tex/ui/icon_slots/cursor.png".to_string(),
+                texture_path: SLOT_CURSOR_TEX.to_string(),
                 texture_frame: [0, 0],
                 texture_count: [1, 1],
                 scale: 1.0,
@@ -214,6 +214,6 @@ impl Inventory {
     // ================================================================
 
     fn slot_texture(name: &str) -> String {
-        format!("tex/ui/icon_slots/{}.png", name)
+        format!("{}{}.png", TEX_UI_ICON_SLOTS_DIR, name)
     }
 }

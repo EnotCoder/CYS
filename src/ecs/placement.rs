@@ -20,8 +20,8 @@ impl EcsAdapter {
         width: i32, height: i32,
         is_carpet: bool,
     ) -> bool {
-        if x < GRID_MIN_X as i32 || x + width > GRID_MAX_X as i32 + 1
-            || y < GRID_MIN_Y as i32 || y + height > GRID_MAX_Y as i32 + 1
+        if x < GRID_MIN_X as i32 || x + width > GRID_MAX_X as i32 + GRID_BOUNDARY_ADJUST
+            || y < GRID_MIN_Y as i32 || y + height > GRID_MAX_Y as i32 + GRID_BOUNDARY_ADJUST
         {
             return false;
         }

@@ -28,17 +28,12 @@ pub fn do_input(
     _icons_slot_cursor: Entity,
     inventory_mode: bool,
 ) -> (i32, i32, f32) {
-    let mut new_size = map_size;
+    let new_size = handle_zoom(input, map_size);
     let mut new_mode = mode;
-    let aspect = window_size.0 / window_size.1;
 
-    new_size = handle_zoom(input, new_size);
-
-    if input.key_pressed(KeyCode::KeyF) || input.mouse_pressed(0) {
+    if input.key_pressed(KeyCode::KeyF) || input.mouse_pressed(MOUSE_BUTTON_LEFT) {
         let skip = inventory_mode || input.cursor().map_or(false, |(mx, my)| {
-            let scale_factor = SHADER_SCALE;
-            let wx = ((mx / window_size.0) * 2.0 - 1.0) * aspect / scale_factor;
-            let wy = (1.0 - (my / window_size.1) * 2.0) / scale_factor;
+            let (wx, wy) = crate::util::ndc_to_world(mx, my, window_size, 1.0);
             let col = (wx - SLOT_BAR_X + TILE_HALF) as i32;
             (wy - SLOT_BAR_Y).abs() < TILE_HALF && col >= 0 && col < slots.len() as i32
         });
@@ -55,7 +50,7 @@ pub fn do_input(
         new_mode = cycle_mode(new_mode, ecs, cursor_entity, icon_button);
     }
 
-    handle_mouse_movement(input, ecs, cursor_entity, new_mode, slots, act_slot, new_size, window_size, aspect);
+    handle_mouse_movement(input, ecs, cursor_entity, new_mode, slots, act_slot, new_size, window_size);
 
     if new_mode == 1 {
         update_cursor_validity(ecs, cursor_entity, slots, act_slot);
@@ -111,13 +106,10 @@ fn handle_mouse_movement(
     act_slot: i32,
     map_size: f32,
     window_size: (f32, f32),
-    aspect: f32,
 ) {
     let Some((mouse_x, mouse_y)) = input.cursor() else { return };
 
-    let scale_factor = SHADER_SCALE * map_size;
-    let world_x = ((mouse_x / window_size.0) * 2.0 - 1.0) * aspect / scale_factor;
-    let world_y = (1.0 - (mouse_y / window_size.1) * 2.0) / scale_factor;
+    let (world_x, world_y) = crate::util::ndc_to_world(mouse_x, mouse_y, window_size, map_size);
 
     let grid_x = (world_x + TILE_HALF).floor().clamp(GRID_MIN_X, GRID_MAX_X);
     let grid_y = (world_y + TILE_HALF).floor().clamp(GRID_MIN_Y, GRID_MAX_Y);

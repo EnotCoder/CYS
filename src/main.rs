@@ -16,8 +16,10 @@ mod fps;
 mod inventory;
 mod pathfinding;
 mod constants;
+mod util;
 
 pub use map_loader::load_map_to_ecs;
+use crate::constants::*;
 
 use api_components::*;
 use sprite_manager::*;
@@ -37,7 +39,7 @@ async fn main() {
     event_loop.set_control_flow(ControlFlow::Poll);
     let window = WindowBuilder::new()
         .with_title("CYS — Create your Shop")
-        .with_inner_size(PhysicalSize::new(1000, 800))
+        .with_inner_size(PhysicalSize::new(WINDOW_WIDTH, WINDOW_HEIGHT))
         .build(&event_loop)
         .unwrap();
 
@@ -107,11 +109,7 @@ async fn main() {
                     .queue
                     .write_buffer(&wgpu_app.size_buffer, 0, bytemuck::cast_slice(&[size_data]));
 
-                let ui_uniforms = UiUniforms {
-                    size: 1.0,
-                    aspect,
-                    _padding: [0.0; 2],
-                };
+                let ui_uniforms = UiUniforms { size: 1.0, aspect, _padding: [0.0; 2] };
                 wgpu_app
                     .queue
                     .write_buffer(&wgpu_app.ui_uniform_buffer, 0, bytemuck::cast_slice(&[ui_uniforms]));

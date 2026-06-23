@@ -86,7 +86,7 @@ fn render_group(
         wgpu::LoadOp::Load
     };
     let depth_load = if clear_color {
-        wgpu::LoadOp::Clear(1.0) // Только первый pass очищает depth
+        wgpu::LoadOp::Clear(crate::constants::DEPTH_CLEAR) // Только первый pass очищает depth
     } else {
         wgpu::LoadOp::Load
     };

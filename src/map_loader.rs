@@ -10,7 +10,7 @@ use crate::constants::{WORLD_OFFSET_X, WORLD_OFFSET_Y, Z_MAP};
 
 /// Загружает map.txt и создаёт для каждой клетки ECS-сущность
 pub fn load_map_to_ecs(ecs: &mut EcsAdapter) {
-    let file = File::open("map.txt").expect("map.txt not found!");
+    let file = File::open(crate::constants::MAP_FILE).expect("map.txt not found!");
     let reader = BufReader::new(file);
 
     for (j, line) in reader.lines().flatten().enumerate() {

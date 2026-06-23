@@ -58,7 +58,7 @@ impl Sprite {
             Vertex { position: [hs, -hs, 0.0], tex_coord: [right, bottom] },
             Vertex { position: [hs, hs, 0.0], tex_coord: [right, top] }
         ];
-        let indices: Vec<u16> = vec![0, 1, 2, 2, 3, 0];
+        let indices: Vec<u16> = crate::constants::QUAD_INDICES.to_vec();
         let index_count = indices.len() as u32;
 
         let texture = Texture::from_path(device, queue, texture_path, "sprite_texture");
@@ -119,7 +119,7 @@ impl Sprite {
             Vertex { position: [hw, -hh, 0.0], tex_coord: [inv_eps, inv_eps] },
             Vertex { position: [hw, hh, 0.0], tex_coord: [inv_eps, eps] },
         ];
-        let indices: Vec<u16> = vec![0, 1, 2, 2, 3, 0];
+        let indices: Vec<u16> = crate::constants::QUAD_INDICES.to_vec();
         let index_count = indices.len() as u32;
 
         let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
@@ -134,12 +134,7 @@ impl Sprite {
             usage: wgpu::BufferUsages::INDEX | wgpu::BufferUsages::COPY_DST,
         });
 
-        let uniforms = Uniforms {
-            translation: [0.0, 0.0, 0.0, 0.0],
-            rotation: [0.0, 0.0, 0.0, 0.0],
-            _padding: [0.0; 3],
-        };
-
+        let uniforms = Uniforms { translation: [0.0; 4], rotation: [0.0; 4], _padding: [0.0; 3] };
         let uniform_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some(&format!("Uniform Buffer: {}", label)),
             contents: bytemuck::cast_slice(&[uniforms]),

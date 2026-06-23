@@ -157,7 +157,7 @@ impl TextRenderer {
         ecs.world
             .create_entity()
             .with(crate::Transform {
-                position: [x, y, 3.0],
+                position: [x, y, crate::constants::Z_UI],
             })
             .with(crate::SpriteComponent {
                 texture_path: text_key,

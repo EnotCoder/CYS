@@ -94,19 +94,19 @@ impl GameScene {
 
         self.slots = crate::slot_object::get_slot_vec();
 
-        text_renderer.add_text(ecs, device, queue, "Pre alpha", 128.0, -4.0, 4.0, 2.0, 4.0, WHITE);
+        text_renderer.add_text(ecs, device, queue, "Pre alpha", FONT_SIZE_LOGO, -4.0, 4.0, 2.0, 4.0, WHITE);
 
         let icon_mode = ecs.add_ui(ICON_MODE_X, SLOT_BAR_Y, MODE_ICON_TEX[0]);
 
         for (i, slot) in self.slots.iter().enumerate() {
             let ent = ecs.add_ui(
                 SLOT_BAR_X + i as f32, SLOT_BAR_Y,
-                &format!("tex/ui/icon_slots/{}.png", slot.obj.name),
+                &format!("{}{}.png", TEX_UI_ICON_SLOTS_DIR, slot.obj.name),
             );
             self.slot_entities.push(ent);
         }
 
-        let icons_slot_cursor = ecs.add_ui(SLOT_BAR_X, SLOT_BAR_Y, "tex/ui/icon_slots/cursor.png");
+        let icons_slot_cursor = ecs.add_ui(SLOT_BAR_X, SLOT_BAR_Y, SLOT_CURSOR_TEX);
         self.icon_mode = Some(icon_mode);
         self.icons_slot_cursor = Some(icons_slot_cursor);
         self.cursor_entity = Some(ecs.add_cursor(0.0, 0.0, CURSOR_TEX[0]));
@@ -158,10 +158,10 @@ impl GameScene {
         let entity = ecs.world.create_entity()
             .with(crate::Transform { position: [sx, sy, Z_NPC] })
             .with(crate::SpriteComponent {
-                texture_path: "tex/characters/player.png".to_string(),
+                texture_path: TEX_PLAYER_IDLE.to_string(),
                 texture_frame: [0, 0],
                 texture_count: [1, 1],
-                scale: 1.5,
+                scale: NPC_SCALE,
             })
             .build();
         self.npc_entity = Some(entity);
@@ -179,41 +179,35 @@ impl GameScene {
 
         if self.npc_pause > 0.0 {
             self.npc_pause -= dt;
-            self.set_npc_texture(ecs, "tex/characters/player.png");
+            self.set_npc_texture(ecs, TEX_PLAYER_IDLE);
             return;
         }
 
         if self.npc_path_index >= self.npc_path.len() {
-            self.set_npc_texture(ecs, "tex/characters/player.png");
-            self.npc_pause = 0.3;
+            self.set_npc_texture(ecs, TEX_PLAYER_IDLE);
+            self.npc_pause = NPC_PAUSE_DURATION;
             self.advance_patrol();
             return;
         }
 
-        // Ходьба — анимируем текстуру
         self.walk_anim_timer += dt;
-        if self.walk_anim_timer > 0.3 {
+        if self.walk_anim_timer > WALK_ANIM_INTERVAL {
             self.walk_anim_timer = 0.0;
             self.walk_frame = 1 - self.walk_frame;
         }
-        let tex = if self.walk_frame == 0 {
-            "tex/characters/player_walk_1.png"
-        } else {
-            "tex/characters/player_walk_2.png"
-        };
+        let tex = if self.walk_frame == 0 { TEX_PLAYER_WALK_1 } else { TEX_PLAYER_WALK_2 };
         self.set_npc_texture(ecs, tex);
 
         let target = self.npc_path[self.npc_path_index];
         let (tx, ty) = target.to_world();
         let (cx, cy) = self.npc_pos;
 
-        let speed = 3.0;
-        let step = speed * dt as f32;
+        let step = NPC_SPEED * dt as f32;
         let dx = tx - cx;
         let dy = ty - cy;
         let dist = (dx * dx + dy * dy).sqrt();
 
-        if dist <= step || dist < 0.01 {
+        if dist <= step || dist < EPSILON {
             self.npc_pos = (tx, ty);
             self.npc_path_index += 1;
         } else {
@@ -237,16 +231,13 @@ impl GameScene {
             }
         }
 
-        let click = input.mouse_pressed(0);
+        let click = input.mouse_pressed(MOUSE_BUTTON_LEFT);
         if !click {
             return;
         }
 
         let Some((mx, my)) = input.cursor() else { return };
-        let scale = crate::constants::SHADER_SCALE;
-        let aspect = window_size.0 / window_size.1;
-        let wx = ((mx / window_size.0) * 2.0 - 1.0) * aspect / scale;
-        let wy = (1.0 - (my / window_size.1) * 2.0) / scale;
+        let (wx, wy) = crate::util::ndc_to_world(mx, my, window_size, 1.0);
 
         // --- Клик по табам ---
         if self.inventory.mode {

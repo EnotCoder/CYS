@@ -318,6 +318,6 @@ fn surface_config(format: wgpu::TextureFormat, width: u32, height: u32) -> Surfa
         present_mode: PresentMode::Fifo,
         alpha_mode: CompositeAlphaMode::Auto,
         view_formats: vec![],
-        desired_maximum_frame_latency: 2,
+        desired_maximum_frame_latency: crate::constants::DESIRED_FRAME_LATENCY,
     }
 }

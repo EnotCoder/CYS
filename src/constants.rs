@@ -29,7 +29,7 @@ pub const SHADER_SCALE: f32 = 0.223;
 
 // === Зум ===
 pub const ZOOM_MIN: f32 = 0.4;
-pub const ZOOM_MAX: f32 = 1.0;
+pub const ZOOM_MAX: f32 = 0.8;
 pub const ZOOM_STEP: f32 = 0.1;
 
 // === NPC ===

@@ -6,13 +6,150 @@ use crate::constants::*;
 use crate::inventory::Inventory;
 use crate::pathfinding::{Node, find_path};
 
-fn patrol_route() -> Vec<Node> {
+fn patrol_routes() -> Vec<Vec<Node>> {
     vec![
-        Node::new(10, -5),
-        Node::new(10, -11),
-        Node::new(3, -11),
-        Node::new(3, -8),
+        // Route 0: long L-shape — full loop
+        vec![
+            Node::new(10, -5), Node::new(10, -11), Node::new(3, -11),
+            Node::new(3, -8), Node::new(10, -8), Node::new(10, -6),
+            Node::new(14, -6), Node::new(14, -11), Node::new(3, -11),
+            Node::new(3, -5), Node::new(10, -5),
+        ],
+        // Route 1: right side vertical
+        vec![
+            Node::new(14, -5), Node::new(14, -11), Node::new(10, -11),
+            Node::new(10, -5), Node::new(14, -5), Node::new(14, -8),
+            Node::new(10, -8), Node::new(10, -5),
+        ],
+        // Route 2: bottom horizontal
+        vec![
+            Node::new(3, -11), Node::new(14, -11), Node::new(10, -11),
+            Node::new(3, -11), Node::new(3, -8), Node::new(10, -8),
+            Node::new(14, -8), Node::new(14, -11),
+        ],
+        // Route 3: wide figure-8
+        vec![
+            Node::new(10, -5), Node::new(10, -11), Node::new(14, -11),
+            Node::new(14, -8), Node::new(10, -8), Node::new(10, -11),
+            Node::new(3, -11), Node::new(3, -8), Node::new(10, -8),
+            Node::new(10, -5), Node::new(3, -5), Node::new(3, -8),
+        ],
+        // Route 4: short right-side patrol
+        vec![
+            Node::new(10, -5), Node::new(10, -11), Node::new(12, -11),
+            Node::new(12, -5), Node::new(10, -5),
+        ],
     ]
+}
+
+struct Npc {
+    entity: specs::Entity,
+    pos: (f32, f32),
+    path: Vec<Node>,
+    path_index: usize,
+    patrol_route: Vec<Node>,
+    patrol_index: usize,
+    pause: f64,
+    walk_timer: f64,
+    walk_frame: i32,
+}
+
+impl Npc {
+    fn new(ecs: &mut crate::EcsAdapter, route: &[Node], start_idx: usize) -> Self {
+        let start = route[start_idx];
+        let (sx, sy) = start.to_world();
+        let entity = ecs.world.create_entity()
+            .with(crate::Transform { position: [sx, sy, Z_NPC] })
+            .with(crate::SpriteComponent {
+                texture_path: TEX_PLAYER_IDLE.to_string(),
+                texture_frame: [0, 0],
+                texture_count: [1, 1],
+                scale: NPC_SCALE,
+            })
+            .with(crate::Rotation { rotation: [0.0; 3] })
+            .build();
+        Npc {
+            entity,
+            pos: (sx, sy),
+            path: Vec::new(),
+            path_index: 0,
+            patrol_route: route.to_vec(),
+            patrol_index: start_idx,
+            pause: 0.0,
+            walk_timer: 0.0,
+            walk_frame: 0,
+        }
+    }
+
+    fn advance(&mut self, walkable: &HashSet<Node>) {
+        loop {
+            let (cx, cy) = self.pos;
+            let start_node = Node::from_world(cx, cy);
+            self.patrol_index = (self.patrol_index + 1) % self.patrol_route.len();
+            let goal_node = self.patrol_route[self.patrol_index];
+            if start_node == goal_node {
+                continue;
+            }
+            if let Some(path) = find_path(walkable, start_node, goal_node) {
+                self.path = path;
+                self.path_index = 0;
+            }
+            break;
+        }
+    }
+
+    fn set_texture(&self, ecs: &mut crate::EcsAdapter, texture_path: &str) {
+        ecs.update_sprite_texture(self.entity, texture_path);
+    }
+
+    fn update(&mut self, ecs: &mut crate::EcsAdapter, dt: f64, walkable: &HashSet<Node>) {
+        if self.pause > 0.0 {
+            self.pause -= dt;
+            self.set_texture(ecs, TEX_PLAYER_IDLE);
+            return;
+        }
+
+        if self.path_index >= self.path.len() {
+            self.set_texture(ecs, TEX_PLAYER_IDLE);
+            self.pause = NPC_PAUSE_DURATION;
+            self.advance(walkable);
+            return;
+        }
+
+        self.walk_timer += dt;
+        if self.walk_timer > WALK_ANIM_INTERVAL {
+            self.walk_timer = 0.0;
+            self.walk_frame = 1 - self.walk_frame;
+        }
+        let tex = if self.walk_frame == 0 { TEX_PLAYER_WALK_1 } else { TEX_PLAYER_WALK_2 };
+        self.set_texture(ecs, tex);
+
+        let target = self.path[self.path_index];
+        let (tx, ty) = target.to_world();
+        let (cx, cy) = self.pos;
+
+        let step = NPC_SPEED * dt as f32;
+        let dx = tx - cx;
+        let dy = ty - cy;
+        let dist = (dx * dx + dy * dy).sqrt();
+
+        if dist <= step || dist < EPSILON {
+            self.pos = (tx, ty);
+            self.path_index += 1;
+        } else {
+            self.pos = (cx + dx / dist * step, cy + dy / dist * step);
+        }
+
+        let (nx, ny) = self.pos;
+        ecs.update_transform_position(self.entity, nx, ny);
+
+        if dx.abs() > 0.01 {
+            let facing = if dx > 0.0 { 0.0 } else { std::f32::consts::PI };
+            if let Some(rot) = ecs.world.write_storage::<crate::Rotation>().get_mut(self.entity) {
+                rot.rotation = [0.0, facing, 0.0];
+            }
+        }
+    }
 }
 
 pub struct GameScene {
@@ -29,16 +166,9 @@ pub struct GameScene {
     icons_slot_cursor: Option<specs::Entity>,
     slot_entities: Vec<specs::Entity>,
     inventory: Inventory,
-    npc_entity: Option<specs::Entity>,
     npc_walkable: HashSet<Node>,
-    npc_pos: (f32, f32),
-    npc_path: Vec<Node>,
-    npc_path_index: usize,
-    npc_patrol_index: usize,
-    npc_pause: f64,
+    npcs: Vec<Npc>,
     last_frame: std::time::Instant,
-    walk_anim_timer: f64,
-    walk_frame: i32,
 }
 
 impl GameScene {
@@ -57,16 +187,9 @@ impl GameScene {
             icons_slot_cursor: None,
             slot_entities: Vec::new(),
             inventory: Inventory::new(),
-            npc_entity: None,
             npc_walkable: HashSet::new(),
-            npc_pos: (0.0, 0.0),
-            npc_path: Vec::new(),
-            npc_path_index: 0,
-            npc_patrol_index: 0,
-            npc_pause: 0.0,
+            npcs: Vec::new(),
             last_frame: std::time::Instant::now(),
-            walk_anim_timer: 0.0,
-            walk_frame: 0,
         }
     }
 
@@ -131,98 +254,19 @@ impl GameScene {
         }
     }
 
-    fn advance_patrol(&mut self) {
-        loop {
-            let (cx, cy) = self.npc_pos;
-            let start_node = Node::from_world(cx, cy);
-            let route = patrol_route();
-            self.npc_patrol_index = (self.npc_patrol_index + 1) % route.len();
-            let goal_node = route[self.npc_patrol_index];
-            if start_node == goal_node {
-                continue;
-            }
-            if let Some(path) = find_path(&self.npc_walkable, start_node, goal_node) {
-                self.npc_path = path;
-                self.npc_path_index = 0;
-            }
-            break;
-        }
-    }
-
     fn setup_npc(&mut self, ecs: &mut crate::EcsAdapter) {
         self.load_walkable_cells();
-        let start = patrol_route()[0];
-        let (sx, sy) = start.to_world();
-        self.npc_pos = (sx, sy);
-        self.npc_patrol_index = 0;
-        let entity = ecs.world.create_entity()
-            .with(crate::Transform { position: [sx, sy, Z_NPC] })
-            .with(crate::SpriteComponent {
-                texture_path: TEX_PLAYER_IDLE.to_string(),
-                texture_frame: [0, 0],
-                texture_count: [1, 1],
-                scale: NPC_SCALE,
-            })
-            .with(crate::Rotation { rotation: [0.0; 3] })
-            .build();
-        self.npc_entity = Some(entity);
-        self.advance_patrol();
-    }
-
-    fn set_npc_texture(&self, ecs: &mut crate::EcsAdapter, texture_path: &str) {
-        if let Some(entity) = self.npc_entity {
-            ecs.update_sprite_texture(entity, texture_path);
+        let routes = patrol_routes();
+        for route in &routes {
+            let mut npc = Npc::new(ecs, route, 0);
+            npc.advance(&self.npc_walkable);
+            self.npcs.push(npc);
         }
     }
 
-    fn move_npc(&mut self, ecs: &mut crate::EcsAdapter, dt: f64) {
-        let Some(entity) = self.npc_entity else { return };
-
-        if self.npc_pause > 0.0 {
-            self.npc_pause -= dt;
-            self.set_npc_texture(ecs, TEX_PLAYER_IDLE);
-            return;
-        }
-
-        if self.npc_path_index >= self.npc_path.len() {
-            self.set_npc_texture(ecs, TEX_PLAYER_IDLE);
-            self.npc_pause = NPC_PAUSE_DURATION;
-            self.advance_patrol();
-            return;
-        }
-
-        self.walk_anim_timer += dt;
-        if self.walk_anim_timer > WALK_ANIM_INTERVAL {
-            self.walk_anim_timer = 0.0;
-            self.walk_frame = 1 - self.walk_frame;
-        }
-        let tex = if self.walk_frame == 0 { TEX_PLAYER_WALK_1 } else { TEX_PLAYER_WALK_2 };
-        self.set_npc_texture(ecs, tex);
-
-        let target = self.npc_path[self.npc_path_index];
-        let (tx, ty) = target.to_world();
-        let (cx, cy) = self.npc_pos;
-
-        let step = NPC_SPEED * dt as f32;
-        let dx = tx - cx;
-        let dy = ty - cy;
-        let dist = (dx * dx + dy * dy).sqrt();
-
-        if dist <= step || dist < EPSILON {
-            self.npc_pos = (tx, ty);
-            self.npc_path_index += 1;
-        } else {
-            self.npc_pos = (cx + dx / dist * step, cy + dy / dist * step);
-        }
-
-        let (nx, ny) = self.npc_pos;
-        ecs.update_transform_position(entity, nx, ny);
-
-        if dx.abs() > 0.01 {
-            let facing = if dx > 0.0 { 0.0 } else { std::f32::consts::PI };
-            if let Some(rot) = ecs.world.write_storage::<crate::Rotation>().get_mut(entity) {
-                rot.rotation = [0.0, facing, 0.0];
-            }
+    fn move_npcs(&mut self, ecs: &mut crate::EcsAdapter, dt: f64) {
+        for npc in &mut self.npcs {
+            npc.update(ecs, dt, &self.npc_walkable);
         }
     }
 
@@ -302,14 +346,9 @@ impl Scene for GameScene {
         self.icons_slot_cursor = None;
         self.slot_entities.clear();
         self.inventory.reset();
-        self.npc_entity = None;
         self.npc_walkable.clear();
-        self.npc_path.clear();
-        self.npc_patrol_index = 0;
-        self.npc_pause = 0.0;
+        self.npcs.clear();
         self.last_frame = std::time::Instant::now();
-        self.walk_anim_timer = 0.0;
-        self.walk_frame = 0;
     }
 
     fn update(&mut self, ecs: &mut crate::EcsAdapter, input: &winit_input_helper::WinitInputHelper, window_size: (f32, f32), text_renderer: &mut crate::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) -> SceneAction {
@@ -338,12 +377,10 @@ impl Scene for GameScene {
 
         self.handle_inventory_input(ecs, input, window_size);
 
-        if self.npc_entity.is_some() {
-            let now = std::time::Instant::now();
-            let dt = (now - self.last_frame).as_secs_f64();
-            self.last_frame = now;
-            self.move_npc(ecs, dt);
-        }
+        let now = std::time::Instant::now();
+        let dt = (now - self.last_frame).as_secs_f64();
+        self.last_frame = now;
+        self.move_npcs(ecs, dt);
 
         SceneAction::None
     }

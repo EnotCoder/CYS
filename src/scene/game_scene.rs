@@ -8,38 +8,37 @@ use crate::pathfinding::{Node, find_path};
 
 fn patrol_routes() -> Vec<Vec<Node>> {
     vec![
-        // Route 0: right column down → bottom left → full width right → back up
+        // Route 0: perimeter clockwise — top-right → down right → bottom → up left
         vec![
+            Node::new(13, 11),  Node::new(13, -5),
+            Node::new(13, -11), Node::new(-15, -11),
+            Node::new(-15, 11),
+        ],
+        // Route 1: perimeter counter-clockwise — top-left → down left → bottom → up right
+        vec![
+            Node::new(-15, 11),  Node::new(-15, -11),
+            Node::new(13, -11),  Node::new(13, -5),
+            Node::new(13, 11),
+        ],
+        // Route 2: left grass + bottom sweep — top-left → bottom → right → back
+        vec![
+            Node::new(-15, 11),  Node::new(-15, -11),
+            Node::new(13, -11),  Node::new(13, -8),
+            Node::new(-15, -8),  Node::new(-15, 11),
+        ],
+        // Route 3: right road loop — top-right → down right → bottom → back
+        vec![
+            Node::new(9, 11),   Node::new(9, -5),
             Node::new(10, -5),  Node::new(10, -11),
             Node::new(3, -11),  Node::new(3, -9),
-            Node::new(13, -9),  Node::new(13, -5),
+            Node::new(13, -9),  Node::new(13, 11),
         ],
-        // Route 1: bottom full sweep right-to-left, then return
+        // Route 4: cross-country — across middle → bottom → up left
         vec![
-            Node::new(13, -9),  Node::new(3, -9),
-            Node::new(3, -11),  Node::new(13, -11),
-            Node::new(13, -9),
-        ],
-        // Route 2: right column → bottom right → mid-right → bottom left
-        vec![
-            Node::new(10, -5),  Node::new(10, -11),
-            Node::new(13, -11), Node::new(13, -8),
-            Node::new(8, -8),   Node::new(8, -9),
-            Node::new(3, -9),   Node::new(3, -11),
-        ],
-        // Route 3: top-right → bottom sweep → bottom-left → right column up
-        vec![
-            Node::new(13, -5),  Node::new(13, -9),
-            Node::new(3, -9),   Node::new(3, -11),
-            Node::new(10, -11), Node::new(10, -5),
-        ],
-        // Route 4: bottom traverse + right column zigzag
-        vec![
-            Node::new(3, -9),   Node::new(13, -9),
-            Node::new(13, -5),  Node::new(10, -5),
-            Node::new(10, -8),  Node::new(13, -8),
-            Node::new(13, -11), Node::new(3, -11),
-            Node::new(3, -9),
+            Node::new(13, -5),  Node::new(-15, -5),
+            Node::new(-15, -8), Node::new(13, -8),
+            Node::new(13, -11), Node::new(-15, -11),
+            Node::new(-15, 11),
         ],
     ]
 }
@@ -247,7 +246,7 @@ impl GameScene {
         let src = include_str!("../../map.txt");
         for (j, line) in src.lines().enumerate() {
             for (i, token) in line.split_whitespace().enumerate() {
-                if token == "@" && i >= 18 && j >= 16 {
+                if matches!(token, "@" | "!" | "." | "~") {
                     let wx = i as f32 + WORLD_OFFSET_X;
                     let wy = -(j as f32) + WORLD_OFFSET_Y;
                     self.npc_walkable.insert(Node::from_world(wx, wy));
@@ -259,7 +258,7 @@ impl GameScene {
     fn setup_npc(&mut self, ecs: &mut crate::EcsAdapter) {
         self.load_walkable_cells();
         let routes = patrol_routes();
-        let start_indices = [0, 0, 7, 0, 0];
+        let start_indices = [0, 0, 2, 0, 2];
         for (idx, route) in routes.iter().enumerate() {
             let start_idx = start_indices[idx.min(start_indices.len() - 1)] % route.len();
             let mut npc = Npc::new(ecs, route, start_idx);

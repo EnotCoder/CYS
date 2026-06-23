@@ -90,6 +90,10 @@ impl Inventory {
         self.tab = new_tab;
         self.hide_grid(ecs);
         self.show_grid(ecs);
+        for (i, ent) in self.tab_entities.iter().enumerate() {
+            let a = if i as i32 == self.tab { 1.0 } else { 0.5 };
+            ecs.update_sprite_alpha(*ent, a);
+        }
         if let Some(old) = self.cursor_entity.take() {
             ecs.delete_entity(old);
         }
@@ -175,6 +179,8 @@ impl Inventory {
     fn show_tabs(&mut self, ecs: &mut EcsAdapter) {
         for (i, tex) in TAB_TEX.iter().enumerate() {
             let ent = ecs.add_ui(SLOT_BAR_X + i as f32, INV_TAB_Y, tex);
+            let a = if i as i32 == self.tab { 1.0 } else { 0.5 };
+            ecs.update_sprite_alpha(ent, a);
             self.tab_entities.push(ent);
         }
         self.update_cursor(ecs);
@@ -205,6 +211,7 @@ impl Inventory {
                 texture_frame: [0, 0],
                 texture_count: [1, 1],
                 scale: 1.0,
+                alpha: 1.0,
             })
             .build()
     }

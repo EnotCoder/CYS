@@ -66,6 +66,7 @@ impl Npc {
                 texture_frame: [0, 0],
                 texture_count: [1, 1],
                 scale: NPC_SCALE,
+                alpha: 1.0,
             })
             .with(crate::Rotation { rotation: [0.0; 3] })
             .build();

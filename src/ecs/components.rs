@@ -17,6 +17,7 @@ pub struct SpriteComponent {
     pub texture_frame: [i32; 2],
     pub texture_count: [i32; 2],
     pub scale: f32,
+    pub alpha: f32,
 }
 
 impl Component for SpriteComponent {

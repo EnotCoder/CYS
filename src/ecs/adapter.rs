@@ -17,6 +17,7 @@ pub struct SpriteRenderData {
     pub texture_frame: [i32; 2],
     pub texture_count: [i32; 2],
     pub scale: f32,
+    pub alpha: f32,
 }
 
 // ========================================================================
@@ -65,6 +66,12 @@ impl EcsAdapter {
         }
     }
 
+    pub fn update_sprite_alpha(&mut self, entity: specs::Entity, alpha: f32) {
+        if let Some(sprite) = self.world.write_storage::<SpriteComponent>().get_mut(entity) {
+            sprite.alpha = alpha;
+        }
+    }
+
     pub fn get_transform_position(&self, entity: specs::Entity) -> (f32, f32) {
         self.world
             .read_storage::<Transform>()
@@ -102,6 +109,7 @@ impl EcsAdapter {
                 texture_frame: [0, 0],
                 texture_count: [1, 1],
                 scale: 1.0,
+                alpha: 1.0,
             })
             .build()
     }
@@ -122,6 +130,7 @@ impl EcsAdapter {
                 texture_frame: [0, 0],
                 texture_count: [1, 1],
                 scale: 1.0,
+                alpha: 1.0,
             })
             .build();
 
@@ -188,6 +197,7 @@ impl EcsAdapter {
                 texture_frame: sprite.texture_frame,
                 texture_count: sprite.texture_count,
                 scale: sprite.scale,
+                alpha: sprite.alpha,
             };
 
             let z = transform.position[2];

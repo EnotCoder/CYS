@@ -88,5 +88,6 @@ fn vs_main(
 fn fs_main(
     @location(0) tex_coord: vec2<f32>,
 ) -> @location(0) vec4<f32> {
-    return textureSample(my_texture, my_sampler, tex_coord);
+    let color = textureSample(my_texture, my_sampler, tex_coord);
+    return vec4<f32>(color.rgb, color.a * uniforms.translation.w);
 }

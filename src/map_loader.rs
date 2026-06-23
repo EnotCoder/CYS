@@ -34,6 +34,7 @@ pub fn load_map_to_ecs(ecs: &mut EcsAdapter) {
                     texture_path: tex_path.to_string(),
                     texture_frame: tex_pos,
                     texture_count: tex_count,
+                    scale: 1.0,
                 })
                 .build();
         }

@@ -22,7 +22,7 @@ impl TextRenderer {
 
     pub fn sprite_cache_key(x: f32, y: f32, text: &str, px_size: f32, outline: f32, color: [u8; 3]) -> String {
         let tk = Self::cache_key(text, px_size, outline, color);
-        format!("ui_{}_{}_{}_[0, 0]_[1, 1]", x, y, tk)
+        format!("ui_{}_{}_{}_[0, 0]_[1, 1]_1", x, y, tk)
     }
 
     fn rasterize(&mut self, text: &str, px_size: f32, outline: f32, color: [u8; 3]) -> &(Vec<u8>, u32, u32) {
@@ -163,6 +163,7 @@ impl TextRenderer {
                 texture_path: text_key,
                 texture_frame: [0, 0],
                 texture_count: [1, 1],
+                scale: 1.0,
             })
             .build()
     }

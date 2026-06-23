@@ -15,6 +15,7 @@ pub struct SpriteRenderData {
     pub texture_path: String,
     pub texture_frame: [i32; 2],
     pub texture_count: [i32; 2],
+    pub scale: f32,
 }
 
 // ========================================================================
@@ -98,6 +99,7 @@ impl EcsAdapter {
                 texture_path: texture_path.to_string(),
                 texture_frame: [0, 0],
                 texture_count: [1, 1],
+                scale: 1.0,
             })
             .build()
     }
@@ -117,6 +119,7 @@ impl EcsAdapter {
                 texture_path: texture_path.to_string(),
                 texture_frame: [0, 0],
                 texture_count: [1, 1],
+                scale: 1.0,
             })
             .build();
 
@@ -124,7 +127,7 @@ impl EcsAdapter {
         let sprite = crate::Sprite::from_texture(device, &tex, texture_path, width, height);
 
         let frame_key = format!("{:?}_{:?}", [0, 0], [1, 1]);
-        let key = format!("ui_{}_{}_{}_{}", x, y, texture_path, frame_key);
+        let key = format!("ui_{}_{}_{}_{}_1", x, y, texture_path, frame_key);
         self.sprite_cache.insert(key, sprite);
 
         entity
@@ -180,6 +183,7 @@ impl EcsAdapter {
                 texture_path: sprite.texture_path.clone(),
                 texture_frame: sprite.texture_frame,
                 texture_count: sprite.texture_count,
+                scale: sprite.scale,
             };
 
             let z = transform.position[2];

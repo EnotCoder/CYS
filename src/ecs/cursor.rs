@@ -15,6 +15,7 @@ impl EcsAdapter {
                 texture_path: texture_path.to_string(),
                 texture_frame: [0, 0],
                 texture_count: [1, 1],
+                scale: 1.0,
             })
             .build()
     }
@@ -46,6 +47,7 @@ impl EcsAdapter {
                         texture_path: tex.to_string(),
                         texture_frame: [0, 0],
                         texture_count: [1, 1],
+                        scale: 1.0,
                     })
                     .build();
                 self.cursor_preview.push(entity);

@@ -32,6 +32,7 @@ impl Sprite {
         texture_path: &str,
         texture_frame: [i32; 2],
         texture_count: [i32; 2],
+        scale: f32,
     ) -> Self {
         let sprite_x = texture_frame[0];
         let sprite_y = texture_frame[1];
@@ -50,11 +51,12 @@ impl Sprite {
         let top    = sprite_y as f32 * tile_h + eps;
         let bottom = (sprite_y as f32 + 1.0) * tile_h - eps;
         
+        let hs = scale * 0.5;
         let vertices: Vec<Vertex> = vec![
-            Vertex { position: [-0.5, 0.5, 0.0], tex_coord: [left, top] },
-            Vertex { position: [-0.5, -0.5, 0.0], tex_coord: [left, bottom] },
-            Vertex { position: [0.5, -0.5, 0.0], tex_coord: [right, bottom] },
-            Vertex { position: [0.5, 0.5, 0.0], tex_coord: [right, top] }
+            Vertex { position: [-hs, hs, 0.0], tex_coord: [left, top] },
+            Vertex { position: [-hs, -hs, 0.0], tex_coord: [left, bottom] },
+            Vertex { position: [hs, -hs, 0.0], tex_coord: [right, bottom] },
+            Vertex { position: [hs, hs, 0.0], tex_coord: [right, top] }
         ];
         let indices: Vec<u16> = vec![0, 1, 2, 2, 3, 0];
         let index_count = indices.len() as u32;

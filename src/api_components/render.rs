@@ -116,18 +116,19 @@ fn render_group(
         // Формируем ключ: "слой_x_y_путь_кадр_атлас"
         let frame_key = format!("{:?}_{:?}", data.texture_frame, data.texture_count);
         let key = format!(
-            "{}_{}_{}_{}_{}",
+            "{}_{}_{}_{}_{}_{}",
             key_prefix,
             data.position[0],
             data.position[1],
             data.texture_path,
             frame_key,
+            data.scale,
         );
 
         // Если спрайта ещё нет в кеше — создаём
         if !sprite_cache.contains_key(&key) {
             let new_sprite = Sprite::new(device, queue, &data.texture_path,
-                data.texture_frame, data.texture_count);
+                data.texture_frame, data.texture_count, data.scale);
             sprite_cache.insert(key.clone(), new_sprite);
         }
         keys.push(key);

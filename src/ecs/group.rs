@@ -42,6 +42,7 @@ impl EcsAdapter {
                             (base_frame[1] + j) % tex_count[1],
                         ],
                         texture_count: tex_count,
+                        scale: 1.0,
                     })
                     .with(GroupComponent { group_id })
                     .build();

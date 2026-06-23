@@ -37,6 +37,8 @@ pub struct GameScene {
     npc_patrol_index: usize,
     npc_pause: f64,
     last_frame: std::time::Instant,
+    walk_anim_timer: f64,
+    walk_frame: i32,
 }
 
 impl GameScene {
@@ -63,6 +65,8 @@ impl GameScene {
             npc_patrol_index: 0,
             npc_pause: 0.0,
             last_frame: std::time::Instant::now(),
+            walk_anim_timer: 0.0,
+            walk_frame: 0,
         }
     }
 
@@ -157,10 +161,17 @@ impl GameScene {
                 texture_path: "tex/characters/player.png".to_string(),
                 texture_frame: [0, 0],
                 texture_count: [1, 1],
+                scale: 1.5,
             })
             .build();
         self.npc_entity = Some(entity);
         self.advance_patrol();
+    }
+
+    fn set_npc_texture(&self, ecs: &mut crate::EcsAdapter, texture_path: &str) {
+        if let Some(entity) = self.npc_entity {
+            ecs.update_sprite_texture(entity, texture_path);
+        }
     }
 
     fn move_npc(&mut self, ecs: &mut crate::EcsAdapter, dt: f64) {
@@ -168,14 +179,29 @@ impl GameScene {
 
         if self.npc_pause > 0.0 {
             self.npc_pause -= dt;
+            self.set_npc_texture(ecs, "tex/characters/player.png");
             return;
         }
 
         if self.npc_path_index >= self.npc_path.len() {
+            self.set_npc_texture(ecs, "tex/characters/player.png");
             self.npc_pause = 0.3;
             self.advance_patrol();
             return;
         }
+
+        // Ходьба — анимируем текстуру
+        self.walk_anim_timer += dt;
+        if self.walk_anim_timer > 0.3 {
+            self.walk_anim_timer = 0.0;
+            self.walk_frame = 1 - self.walk_frame;
+        }
+        let tex = if self.walk_frame == 0 {
+            "tex/characters/player_walk_1.png"
+        } else {
+            "tex/characters/player_walk_2.png"
+        };
+        self.set_npc_texture(ecs, tex);
 
         let target = self.npc_path[self.npc_path_index];
         let (tx, ty) = target.to_world();
@@ -283,6 +309,8 @@ impl Scene for GameScene {
         self.npc_patrol_index = 0;
         self.npc_pause = 0.0;
         self.last_frame = std::time::Instant::now();
+        self.walk_anim_timer = 0.0;
+        self.walk_frame = 0;
     }
 
     fn update(&mut self, ecs: &mut crate::EcsAdapter, input: &winit_input_helper::WinitInputHelper, window_size: (f32, f32), text_renderer: &mut crate::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) -> SceneAction {

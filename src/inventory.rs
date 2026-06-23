@@ -204,6 +204,7 @@ impl Inventory {
                 texture_path: "tex/ui/icon_slots/cursor.png".to_string(),
                 texture_frame: [0, 0],
                 texture_count: [1, 1],
+                scale: 1.0,
             })
             .build()
     }

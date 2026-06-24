@@ -29,25 +29,83 @@ pub struct Object {
 const ALL_OBJECTS: &[Object] = &[
     //def object
     Object {
-        width: 1, height: 1, name: "box", path: "tex/decor/box.png", texture_frame: [0, 0], texture_count: [1, 1], 
-        animated: false, frame_paths: &[] 
+        width: 1, height: 1, name: "box", path: "tex/decor/box.png",
+        texture_frame: [0, 0], texture_count: [1, 1],
+        animated: false, frame_paths: &[],
     },
-    Object { 
-        width: 1, height: 1, name: "sign",         path: "tex/decor/sign.png",   texture_frame: [0, 0], texture_count: [1, 1], animated: false, frame_paths: &[] },
-    Object { width: 1, height: 2, name: "rack",         path: "tex/decor/rack.png",   texture_frame: [0, 1], texture_count: [1, 2], animated: false, frame_paths: &[] },
-    Object { width: 2, height: 1, name: "table",        path: "tex/decor/table.png",  texture_frame: [0, 0], texture_count: [2, 1], animated: false, frame_paths: &[] },
-    Object { width: 2, height: 2, name: "cassa",        path: "tex/decor/cassa.png",  texture_frame: [0, 1], texture_count: [2, 2], animated: false, frame_paths: &[] },
-    Object { width: 2, height: 1, name: "ice_cream",    path: "tex/decor/ice_cream.png", texture_frame: [0, 0], texture_count: [2, 1], animated: false, frame_paths: &[] },
-    Object { width: 1, height: 2, name: "arcade_machine", path: "tex/decor/arcade_machine/a_m_1.png", texture_frame: [0, 1], texture_count: [1, 2], animated: true, frame_paths: &["tex/decor/arcade_machine/a_m_1.png", "tex/decor/arcade_machine/a_m_2.png"] },
+    Object {
+        width: 1, height: 1, name: "sign", path: "tex/decor/sign.png",
+        texture_frame: [0, 0], texture_count: [1, 1],
+        animated: false, frame_paths: &[],
+    },
+    Object {
+        width: 1, height: 2, name: "rack", path: "tex/decor/rack.png",
+        texture_frame: [0, 1], texture_count: [1, 2],
+        animated: false, frame_paths: &[],
+    },
+    Object {
+        width: 2, height: 1, name: "table", path: "tex/decor/table.png",
+        texture_frame: [0, 0], texture_count: [2, 1],
+        animated: false, frame_paths: &[],
+    },
+    Object {
+        width: 2, height: 2, name: "cassa", path: "tex/decor/cassa.png",
+        texture_frame: [0, 1], texture_count: [2, 2],
+        animated: false, frame_paths: &[],
+    },
+    Object {
+        width: 2, height: 1, name: "ice_cream", path: "tex/decor/ice_cream.png",
+        texture_frame: [0, 0], texture_count: [2, 1],
+        animated: false, frame_paths: &[],
+    },
+    Object {
+        width: 1, height: 2, name: "arcade_machine",
+        path: "tex/decor/arcade_machine/a_m_1.png",
+        texture_frame: [0, 1], texture_count: [1, 2],
+        animated: true,
+        frame_paths: &["tex/decor/arcade_machine/a_m_1.png", "tex/decor/arcade_machine/a_m_2.png"],
+    },
     //carpets
-    Object { width: 1, height: 1, name: "carpet",       path: "tex/decor/carpet.png", texture_frame: [0, 0], texture_count: [4, 4], animated: false, frame_paths: &[] },
-    Object { width: 1, height: 1, name: "red_carpet",   path: "tex/decor/carpet.png", texture_frame: [1, 0], texture_count: [4, 4], animated: false, frame_paths: &[] },
-    Object { width: 1, height: 1, name: "green_carpet", path: "tex/decor/carpet.png", texture_frame: [0, 1], texture_count: [4, 4], animated: false, frame_paths: &[] },
-    Object { width: 1, height: 1, name: "white_carpet", path: "tex/decor/carpet.png", texture_frame: [1, 1], texture_count: [4, 4], animated: false, frame_paths: &[] },
-    Object { width: 1, height: 1, name: "black_carpet", path: "tex/decor/carpet.png", texture_frame: [2, 0], texture_count: [4, 4], animated: false, frame_paths: &[] },
-    Object { width: 1, height: 1, name: "iron_panel", path: "tex/decor/carpet.png", texture_frame: [0, 2], texture_count: [4, 4], animated: false, frame_paths: &[] },
-    Object { width: 1, height: 1, name: "gold_panel", path: "tex/decor/carpet.png", texture_frame: [1, 2], texture_count: [4, 4], animated: false, frame_paths: &[] },
-    Object { width: 1, height: 1, name: "diamond_panel", path: "tex/decor/carpet.png", texture_frame: [2, 2], texture_count: [4, 4], animated: false, frame_paths: &[] },
+    Object {
+        width: 1, height: 1, name: "carpet", path: "tex/decor/carpet.png",
+        texture_frame: [0, 0], texture_count: [4, 4],
+        animated: false, frame_paths: &[],
+    },
+    Object {
+        width: 1, height: 1, name: "red_carpet", path: "tex/decor/carpet.png",
+        texture_frame: [1, 0], texture_count: [4, 4],
+        animated: false, frame_paths: &[],
+    },
+    Object {
+        width: 1, height: 1, name: "green_carpet", path: "tex/decor/carpet.png",
+        texture_frame: [0, 1], texture_count: [4, 4],
+        animated: false, frame_paths: &[],
+    },
+    Object {
+        width: 1, height: 1, name: "white_carpet", path: "tex/decor/carpet.png",
+        texture_frame: [1, 1], texture_count: [4, 4],
+        animated: false, frame_paths: &[],
+    },
+    Object {
+        width: 1, height: 1, name: "black_carpet", path: "tex/decor/carpet.png",
+        texture_frame: [2, 0], texture_count: [4, 4],
+        animated: false, frame_paths: &[],
+    },
+    Object {
+        width: 1, height: 1, name: "iron_panel", path: "tex/decor/carpet.png",
+        texture_frame: [0, 2], texture_count: [4, 4],
+        animated: false, frame_paths: &[],
+    },
+    Object {
+        width: 1, height: 1, name: "gold_panel", path: "tex/decor/carpet.png",
+        texture_frame: [1, 2], texture_count: [4, 4],
+        animated: false, frame_paths: &[],
+    },
+    Object {
+        width: 1, height: 1, name: "diamond_panel", path: "tex/decor/carpet.png",
+        texture_frame: [2, 2], texture_count: [4, 4],
+        animated: false, frame_paths: &[],
+    },
 ];
 
 const INITIAL_SLOTS: [&str; SLOT_COUNT] = ["box", "sign", "rack", "table", "cassa"];

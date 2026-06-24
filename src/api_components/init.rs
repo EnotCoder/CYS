@@ -9,6 +9,8 @@ use crate::DepthBuffer;
 pub struct Size {
     pub map_size: f32,
     pub aspect: f32,
+    pub offset_x: f32,
+    pub offset_y: f32,
 }
 
 #[repr(C)]
@@ -179,7 +181,7 @@ impl WgpuApp {
     }
 
     fn create_size_buffer(device: &wgpu::Device) -> wgpu::Buffer {
-        let size = Size { map_size: 1.0, aspect: 1.0 };
+        let size = Size { map_size: 1.0, aspect: 1.0, offset_x: 0.0, offset_y: 0.0 };
         device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Size Buffer"),
             contents: bytemuck::bytes_of(&size),

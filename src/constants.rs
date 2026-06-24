@@ -3,8 +3,8 @@
 // ========================================================================
 
 // === Мировые константы ===
-pub const WORLD_OFFSET_X: f32 = -15.0;
-pub const WORLD_OFFSET_Y: f32 = 11.0;
+pub const WORLD_OFFSET_X: f32 = -21.0;
+pub const WORLD_OFFSET_Y: f32 = 14.0;
 
 // === Игровое поле (13x9) ===
 pub const GRID_COLS: i32 = 13;
@@ -31,6 +31,13 @@ pub const SHADER_SCALE: f32 = 0.223;
 pub const ZOOM_MIN: f32 = 0.4;
 pub const ZOOM_MAX: f32 = 0.8;
 pub const ZOOM_STEP: f32 = 0.1;
+
+// === Камера ===
+pub const CAMERA_SPEED: f32 = 5.0;
+pub const CAMERA_MIN_X: f32 = -5.0;
+pub const CAMERA_MAX_X: f32 = 2.5;
+pub const CAMERA_MIN_Y: f32 = -2.5;
+pub const CAMERA_MAX_Y: f32 = 2.5;
 
 // === NPC ===
 pub const NPC_SPEED: f32 = 3.0;

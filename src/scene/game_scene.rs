@@ -1,5 +1,6 @@
 use std::collections::HashSet;
 use specs::{WorldExt, Builder, Join};
+use winit::keyboard::KeyCode;
 use crate::scene::scene_trait::{Scene, SceneAction};
 use crate::text_renderer::TextRenderer;
 use crate::constants::*;
@@ -175,6 +176,8 @@ pub struct GameScene {
     npcs: Vec<Npc>,
     last_frame: std::time::Instant,
     anim_timer: f64,
+    camera_offset_x: f32,
+    camera_offset_y: f32,
 }
 
 impl GameScene {
@@ -197,6 +200,8 @@ impl GameScene {
             npcs: Vec::new(),
             last_frame: std::time::Instant::now(),
             anim_timer: 0.0,
+            camera_offset_x: 0.0,
+            camera_offset_y: 0.0,
         }
     }
 
@@ -315,7 +320,7 @@ impl GameScene {
         }
 
         let Some((mx, my)) = input.cursor() else { return };
-        let (wx, wy) = crate::util::ndc_to_world(mx, my, window_size, 1.0);
+        let (wx, wy) = crate::util::ndc_to_world(mx, my, window_size, 1.0, 0.0, 0.0);
 
         // --- Клик по табам ---
         if self.inventory.mode {
@@ -376,6 +381,8 @@ impl Scene for GameScene {
         self.npcs.clear();
         self.last_frame = std::time::Instant::now();
         self.anim_timer = 0.0;
+        self.camera_offset_x = 0.0;
+        self.camera_offset_y = 0.0;
     }
 
     fn update(&mut self, ecs: &mut crate::EcsAdapter, input: &winit_input_helper::WinitInputHelper, window_size: (f32, f32), text_renderer: &mut crate::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) -> SceneAction {
@@ -397,6 +404,7 @@ impl Scene for GameScene {
         let result = crate::input::do_input(
             input, ecs, &mut self.slots, self.act_slot, self.mode, self.map_size,
             window_size, cursor, icon_mode, icons_slot_cursor, self.inventory.mode,
+            self.camera_offset_x, self.camera_offset_y,
         );
         self.act_slot = result.0;
         self.mode = result.1;
@@ -407,6 +415,21 @@ impl Scene for GameScene {
         let now = std::time::Instant::now();
         let dt = (now - self.last_frame).as_secs_f64();
         self.last_frame = now;
+
+        let step = CAMERA_SPEED * (dt as f32);
+        if input.key_held(KeyCode::ArrowLeft) {
+            self.camera_offset_x = (self.camera_offset_x - step).max(CAMERA_MIN_X);
+        }
+        if input.key_held(KeyCode::ArrowRight) {
+            self.camera_offset_x = (self.camera_offset_x + step).min(CAMERA_MAX_X);
+        }
+        if input.key_held(KeyCode::ArrowDown) {
+            self.camera_offset_y = (self.camera_offset_y - step).max(CAMERA_MIN_Y);
+        }
+        if input.key_held(KeyCode::ArrowUp) {
+            self.camera_offset_y = (self.camera_offset_y + step).min(CAMERA_MAX_Y);
+        }
+
         self.move_npcs(ecs, dt);
         self.update_animations(ecs, dt);
 
@@ -419,5 +442,9 @@ impl Scene for GameScene {
 
     fn map_size(&self) -> f32 {
         self.map_size
+    }
+
+    fn camera_offset(&self) -> (f32, f32) {
+        (self.camera_offset_x, self.camera_offset_y)
     }
 }

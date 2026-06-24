@@ -103,8 +103,9 @@ async fn main() {
                     .write_buffer(&wgpu_app.uniform_buffer, 0, bytemuck::cast_slice(&[EMPTY_UNIFORMS]));
 
                 let ms = scene_manager.scenes.get(&scene_manager.current).unwrap().map_size();
+                let (cam_x, cam_y) = scene_manager.scenes.get(&scene_manager.current).unwrap().camera_offset();
                 let aspect = window_size.0 / window_size.1;
-                let size_data = Size { map_size: ms, aspect };
+                let size_data = Size { map_size: ms, aspect, offset_x: cam_x, offset_y: cam_y };
                 wgpu_app
                     .queue
                     .write_buffer(&wgpu_app.size_buffer, 0, bytemuck::cast_slice(&[size_data]));

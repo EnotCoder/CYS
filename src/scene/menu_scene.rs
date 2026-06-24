@@ -39,7 +39,7 @@ impl MenuScene {
 
     fn is_inside(input: &winit_input_helper::WinitInputHelper, window_size: (f32, f32), bx: f32, by: f32, bw: f32, bh: f32) -> bool {
         let Some((mx, my)) = input.cursor() else { return false };
-        let (wx, wy) = crate::util::ndc_to_world(mx, my, window_size, MENU_MAP_SIZE);
+        let (wx, wy) = crate::util::ndc_to_world(mx, my, window_size, MENU_MAP_SIZE, 0.0, 0.0);
         wx >= bx - bw / 2.0 && wx <= bx + bw / 2.0
             && wy >= by - bh / 2.0 && wy <= by + bh / 2.0
     }
@@ -104,4 +104,5 @@ impl Scene for MenuScene {
     }
 
     fn map_size(&self) -> f32 { MENU_MAP_SIZE }
+    fn camera_offset(&self) -> (f32, f32) { (0.0, 0.0) }
 }

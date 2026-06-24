@@ -1,10 +1,10 @@
 use crate::constants::SHADER_SCALE;
 
-pub fn ndc_to_world(mx: f32, my: f32, window_size: (f32, f32), map_size: f32) -> (f32, f32) {
+pub fn ndc_to_world(mx: f32, my: f32, window_size: (f32, f32), map_size: f32, cam_x: f32, cam_y: f32) -> (f32, f32) {
     let aspect = window_size.0 / window_size.1;
     let scale = SHADER_SCALE * map_size;
-    let wx = ((mx / window_size.0) * 2.0 - 1.0) * aspect / scale;
-    let wy = (1.0 - (my / window_size.1) * 2.0) / scale;
+    let wx = ((mx / window_size.0) * 2.0 - 1.0) * aspect / scale + cam_x;
+    let wy = (1.0 - (my / window_size.1) * 2.0) / scale + cam_y;
     (wx, wy)
 }
 

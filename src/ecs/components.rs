@@ -18,6 +18,9 @@ pub struct SpriteComponent {
     pub texture_count: [i32; 2],
     pub scale: f32,
     pub alpha: f32,
+    pub animated: bool,
+    pub frame_paths: Vec<String>,
+    pub current_frame: i32,
 }
 
 impl Component for SpriteComponent {

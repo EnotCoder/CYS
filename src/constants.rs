@@ -83,7 +83,7 @@ pub const INVENTORY_COLS: i32 = 5;
 pub const INV_NONE: i32 = INVENTORY_ROWS * (INVENTORY_COLS - 1);
 pub const TAB_TEX: [&str; 2] = ["tex/ui/icon_slots/box.png", "tex/ui/icon_slots/carpet.png"];
 pub const SLOT_CURSOR_TEX: &str = "tex/ui/icon_slots/cursor.png";
-pub const INV_REGULAR: &[&str] = &["box", "sign", "rack", "table", "cassa", "ice_cream"];
+pub const INV_REGULAR: &[&str] = &["box", "sign", "rack", "table", "cassa", "ice_cream", "arcade_machine"];
 pub const INV_CARPETS: &[&str] = 
 &[
     "carpet", "red_carpet", "green_carpet", "white_carpet", "black_carpet", 

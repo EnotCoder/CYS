@@ -1,5 +1,5 @@
 use std::collections::HashSet;
-use specs::{WorldExt, Builder};
+use specs::{WorldExt, Builder, Join};
 use crate::scene::scene_trait::{Scene, SceneAction};
 use crate::text_renderer::TextRenderer;
 use crate::constants::*;
@@ -67,6 +67,9 @@ impl Npc {
                 texture_count: [1, 1],
                 scale: NPC_SCALE,
                 alpha: 1.0,
+                animated: false,
+                frame_paths: Vec::new(),
+                current_frame: 0,
             })
             .with(crate::Rotation { rotation: [0.0; 3] })
             .build();
@@ -171,6 +174,7 @@ pub struct GameScene {
     npc_walkable: HashSet<Node>,
     npcs: Vec<Npc>,
     last_frame: std::time::Instant,
+    anim_timer: f64,
 }
 
 impl GameScene {
@@ -192,6 +196,7 @@ impl GameScene {
             npc_walkable: HashSet::new(),
             npcs: Vec::new(),
             last_frame: std::time::Instant::now(),
+            anim_timer: 0.0,
         }
     }
 
@@ -274,6 +279,23 @@ impl GameScene {
         }
     }
 
+    fn update_animations(&mut self, ecs: &mut crate::EcsAdapter, dt: f64) {
+        self.anim_timer += dt;
+        if self.anim_timer >= 1.0 {
+            self.anim_timer -= 1.0;
+            let mut sprites = ecs.world.write_storage::<crate::SpriteComponent>();
+            for sprite in (&mut sprites).join() {
+                if sprite.animated {
+                    let n = sprite.frame_paths.len() as i32;
+                    sprite.current_frame = (sprite.current_frame + 1) % n;
+                    if let Some(path) = sprite.frame_paths.get(sprite.current_frame as usize) {
+                        sprite.texture_path = path.clone();
+                    }
+                }
+            }
+        }
+    }
+
     // ====================================================================
     //  Инвентарь + хотбар — ввод
     // ====================================================================
@@ -353,6 +375,7 @@ impl Scene for GameScene {
         self.npc_walkable.clear();
         self.npcs.clear();
         self.last_frame = std::time::Instant::now();
+        self.anim_timer = 0.0;
     }
 
     fn update(&mut self, ecs: &mut crate::EcsAdapter, input: &winit_input_helper::WinitInputHelper, window_size: (f32, f32), text_renderer: &mut crate::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) -> SceneAction {
@@ -385,6 +408,7 @@ impl Scene for GameScene {
         let dt = (now - self.last_frame).as_secs_f64();
         self.last_frame = now;
         self.move_npcs(ecs, dt);
+        self.update_animations(ecs, dt);
 
         SceneAction::None
     }

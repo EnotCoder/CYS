@@ -36,6 +36,9 @@ pub fn load_map_to_ecs(ecs: &mut EcsAdapter) {
                     texture_count: tex_count,
                     scale: 1.0,
                     alpha: 1.0,
+                    animated: false,
+                    frame_paths: Vec::new(),
+                    current_frame: 0,
                 })
                 .build();
         }

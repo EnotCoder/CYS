@@ -16,6 +16,8 @@ impl EcsAdapter {
         base_frame: [i32; 2],
         tex_count: [i32; 2],
         is_carpet: bool,
+        animated: bool,
+        frame_paths: &[&str],
     ) -> u32 {
         let group_id = self.next_group_id;
         self.next_group_id += 1;
@@ -44,6 +46,9 @@ impl EcsAdapter {
                         texture_count: tex_count,
                         scale: 1.0,
                         alpha: 1.0,
+                        animated,
+                        frame_paths: frame_paths.iter().map(|s| s.to_string()).collect(),
+                        current_frame: 0,
                     })
                     .with(GroupComponent { group_id })
                     .build();

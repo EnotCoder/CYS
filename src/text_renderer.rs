@@ -165,6 +165,9 @@ impl TextRenderer {
                 texture_count: [1, 1],
                 scale: 1.0,
                 alpha: 1.0,
+                animated: false,
+                frame_paths: Vec::new(),
+                current_frame: 0,
             })
             .build()
     }

@@ -3,10 +3,10 @@ use winit_input_helper::WinitInputHelper;
 use std::cell::Cell;
 use std::time::{Instant, Duration};
 
+use specs::{Entity, WorldExt};
 use crate::{EcsAdapter, Slot};
 use crate::slot_object::{add, remove, is_carpet_name};
 use crate::constants::*;
-use specs::Entity;
 
 thread_local! {
     static LAST_MOVE_TIME: Cell<Option<Instant>> = const { Cell::new(None) };
@@ -29,9 +29,10 @@ pub fn do_input(
     inventory_mode: bool,
     cam_x: f32,
     cam_y: f32,
-) -> (i32, i32, f32) {
+) -> (i32, i32, f32, bool) {
     let new_size = handle_zoom(input, map_size);
     let mut new_mode = mode;
+    let mut show_ilm = false;
 
     if input.key_pressed(KeyCode::KeyF) || input.mouse_pressed(MOUSE_BUTTON_LEFT) {
         let skip = inventory_mode || input.cursor().map_or(false, |(mx, my)| {
@@ -41,6 +42,7 @@ pub fn do_input(
         });
         if !skip {
             match mode {
+                0 => { show_ilm = try_interact(ecs, cursor_entity) || show_ilm; }
                 1 => add(ecs, slots, act_slot, cursor_entity),
                 2 => { remove(ecs, cursor_entity); }
                 _ => {}
@@ -60,7 +62,7 @@ pub fn do_input(
 
     update_cursor_preview(ecs, new_mode, slots, act_slot, cursor_entity);
 
-    (act_slot, new_mode, new_size)
+    (act_slot, new_mode, new_size, show_ilm)
 }
 
 // ========================================================================
@@ -81,6 +83,28 @@ fn handle_zoom(input: &WinitInputHelper, current: f32) -> f32 {
         return (current - ZOOM_STEP).max(ZOOM_MIN);
     }
     current
+}
+
+// ========================================================================
+//  Взаимодействие с объектами (mode 0)
+// ========================================================================
+fn try_interact(ecs: &EcsAdapter, cursor: Entity) -> bool {
+    let (cx, cy) = ecs.get_transform_position(cursor);
+    let gx = cx as i32;
+    let gy = cy as i32;
+    if let Some(gid) = ecs.find_group_at_position(gx, gy) {
+        let group = ecs.world.read_resource::<crate::GroupInfoResource>();
+        if let Some(info) = group.groups.get(&gid) {
+            if let Some(first) = info.entities.first() {
+                if let Some(sprite) = ecs.world.read_storage::<crate::SpriteComponent>().get(*first) {
+                    if sprite.texture_path.contains("arcade_machine") {
+                        return true;
+                    }
+                }
+            }
+        }
+    }
+    false
 }
 
 // ========================================================================

@@ -178,6 +178,9 @@ pub struct GameScene {
     anim_timer: f64,
     camera_offset_x: f32,
     camera_offset_y: f32,
+    ilm_entity: Option<specs::Entity>,
+    ilm_timer: f64,
+    ilm_cooldown: f64,
 }
 
 impl GameScene {
@@ -202,6 +205,9 @@ impl GameScene {
             anim_timer: 0.0,
             camera_offset_x: 0.0,
             camera_offset_y: 0.0,
+            ilm_entity: None,
+            ilm_timer: 0.0,
+            ilm_cooldown: 0.0,
         }
     }
 
@@ -383,6 +389,9 @@ impl Scene for GameScene {
         self.anim_timer = 0.0;
         self.camera_offset_x = 0.0;
         self.camera_offset_y = 0.0;
+        self.ilm_entity = None;
+        self.ilm_timer = 0.0;
+        self.ilm_cooldown = 0.0;
     }
 
     fn update(&mut self, ecs: &mut crate::EcsAdapter, input: &winit_input_helper::WinitInputHelper, window_size: (f32, f32), text_renderer: &mut crate::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) -> SceneAction {
@@ -409,6 +418,14 @@ impl Scene for GameScene {
         self.act_slot = result.0;
         self.mode = result.1;
         self.map_size = result.2;
+        let show_ilm = result.3;
+
+        if show_ilm && self.ilm_cooldown <= 0.0 && self.ilm_entity.is_none() {
+            let ent = text_renderer.add_text(ecs, device, queue, "Minecraft", 48.0, 0.0, -3.0, 2.0, 1.0, WHITE);
+            self.ilm_entity = Some(ent);
+            self.ilm_timer = 2.0;
+            self.ilm_cooldown = 5.0;
+        }
 
         self.handle_inventory_input(ecs, input, window_size);
 
@@ -440,6 +457,17 @@ impl Scene for GameScene {
         // clamp in case limits cross (zoom shows entire map)
         self.camera_offset_x = self.camera_offset_x.clamp(cam_min_x.min(cam_max_x), cam_min_x.max(cam_max_x));
         self.camera_offset_y = self.camera_offset_y.clamp(cam_min_y.min(cam_max_y), cam_min_y.max(cam_max_y));
+
+        if self.ilm_cooldown > 0.0 {
+            self.ilm_cooldown -= dt;
+        }
+        if let Some(ent) = self.ilm_entity {
+            self.ilm_timer -= dt;
+            if self.ilm_timer <= 0.0 {
+                ecs.delete_entity(ent);
+                self.ilm_entity = None;
+            }
+        }
 
         self.move_npcs(ecs, dt);
         self.update_animations(ecs, dt);

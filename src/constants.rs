@@ -34,10 +34,10 @@ pub const ZOOM_STEP: f32 = 0.1;
 
 // === Камера ===
 pub const CAMERA_SPEED: f32 = 5.0;
-pub const CAMERA_MIN_X: f32 = -5.0;
-pub const CAMERA_MAX_X: f32 = 2.5;
-pub const CAMERA_MIN_Y: f32 = -2.5;
-pub const CAMERA_MAX_Y: f32 = 2.5;
+pub const CAMERA_MAP_MIN_X: f32 = -20.0;
+pub const CAMERA_MAP_MAX_X: f32 = 18.0;
+pub const CAMERA_MAP_MIN_Y: f32 = -13.0;
+pub const CAMERA_MAP_MAX_Y: f32 = 13.0;
 
 // === NPC ===
 pub const NPC_SPEED: f32 = 3.0;

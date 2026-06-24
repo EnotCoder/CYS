@@ -416,19 +416,30 @@ impl Scene for GameScene {
         let dt = (now - self.last_frame).as_secs_f64();
         self.last_frame = now;
 
+        let aspect = window_size.0 / window_size.1;
+        let vis_w = 2.0 * aspect / (SHADER_SCALE * self.map_size);
+        let vis_h = 2.0 / (SHADER_SCALE * self.map_size);
+        let cam_min_x = CAMERA_MAP_MIN_X + vis_w / 2.0;
+        let cam_max_x = CAMERA_MAP_MAX_X - vis_w / 2.0;
+        let cam_min_y = CAMERA_MAP_MIN_Y + vis_h / 2.0;
+        let cam_max_y = CAMERA_MAP_MAX_Y - vis_h / 2.0;
+
         let step = CAMERA_SPEED * (dt as f32);
         if input.key_held(KeyCode::ArrowLeft) {
-            self.camera_offset_x = (self.camera_offset_x - step).max(CAMERA_MIN_X);
+            self.camera_offset_x = (self.camera_offset_x - step).max(cam_min_x);
         }
         if input.key_held(KeyCode::ArrowRight) {
-            self.camera_offset_x = (self.camera_offset_x + step).min(CAMERA_MAX_X);
+            self.camera_offset_x = (self.camera_offset_x + step).min(cam_max_x);
         }
         if input.key_held(KeyCode::ArrowDown) {
-            self.camera_offset_y = (self.camera_offset_y - step).max(CAMERA_MIN_Y);
+            self.camera_offset_y = (self.camera_offset_y - step).max(cam_min_y);
         }
         if input.key_held(KeyCode::ArrowUp) {
-            self.camera_offset_y = (self.camera_offset_y + step).min(CAMERA_MAX_Y);
+            self.camera_offset_y = (self.camera_offset_y + step).min(cam_max_y);
         }
+        // clamp in case limits cross (zoom shows entire map)
+        self.camera_offset_x = self.camera_offset_x.clamp(cam_min_x.min(cam_max_x), cam_min_x.max(cam_max_x));
+        self.camera_offset_y = self.camera_offset_y.clamp(cam_min_y.min(cam_max_y), cam_min_y.max(cam_max_y));
 
         self.move_npcs(ecs, dt);
         self.update_animations(ecs, dt);

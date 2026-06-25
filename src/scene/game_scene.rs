@@ -442,6 +442,14 @@ impl Scene for GameScene {
         let cam_max_y = CAMERA_MAP_MAX_Y - vis_h / 2.0;
 
         let step = CAMERA_SPEED * (dt as f32);
+
+        if input.mouse_held(MOUSE_BUTTON_MIDDLE) {
+            let sensitivity = 0.01;
+            let (dx, dy) = input.cursor_diff();
+            self.camera_offset_x = (self.camera_offset_x - dx * sensitivity).clamp(cam_min_x.min(cam_max_x), cam_min_x.max(cam_max_x));
+            self.camera_offset_y = (self.camera_offset_y + dy * sensitivity).clamp(cam_min_y.min(cam_max_y), cam_min_y.max(cam_max_y));
+        }
+
         if input.key_held(KeyCode::ArrowLeft) {
             self.camera_offset_x = (self.camera_offset_x - step).max(cam_min_x);
         }

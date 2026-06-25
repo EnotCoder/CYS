@@ -54,6 +54,7 @@ pub const TEX_PLAYER_WALK_2: &str = "tex/characters/player_walk_2.png";
 pub const CURSOR_MOVE_DELAY_MS: u64 = 150;
 pub const EPSILON: f32 = 0.01;
 pub const MOUSE_BUTTON_LEFT: usize = 0;
+pub const MOUSE_BUTTON_MIDDLE: usize = 2;
 
 // === Окно ===
 pub const WINDOW_WIDTH: u32 = 1000;

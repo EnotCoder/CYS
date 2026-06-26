@@ -6,15 +6,7 @@
 pub const WORLD_OFFSET_X: f32 = -21.0;
 pub const WORLD_OFFSET_Y: f32 = 14.0;
 
-// === Игровое поле (13x9) ===
-pub const GRID_COLS: i32 = 13;
-pub const GRID_ROWS: i32 = 9;
-pub const GRID_MIN_X: f32 = -(GRID_COLS / 2) as f32;
-pub const GRID_MAX_X: f32 = (GRID_COLS / 2) as f32;
-pub const GRID_MIN_Y: f32 = -(GRID_ROWS / 2) as f32;
-pub const GRID_MAX_Y: f32 = (GRID_ROWS / 2) as f32;
 pub const TILE_HALF: f32 = 0.5;
-pub const GRID_BOUNDARY_ADJUST: i32 = 1;
 
 // === Слои (z) ===
 pub const Z_MAP: f32 = 0.0;
@@ -89,7 +81,7 @@ pub const INVENTORY_TOP_Y: f32 = INVENTORY_BASE_Y + (INVENTORY_ROWS - 1) as f32;
 pub const INVENTORY_ROWS: i32 = 5;
 pub const INVENTORY_COLS: i32 = 5;
 pub const INV_NONE: i32 = INVENTORY_ROWS * (INVENTORY_COLS - 1);
-pub const TAB_TEX: [&str; 2] = ["tex/ui/icon_slots/box.png", "tex/ui/icon_slots/carpet.png"];
+pub const TAB_TEX: [&str; 3] = ["tex/ui/icon_slots/box.png", "tex/ui/icon_slots/carpet.png", "tex/ui/icon_slots/box.png"];
 pub const SLOT_CURSOR_TEX: &str = "tex/ui/icon_slots/cursor.png";
 pub const INV_REGULAR: &[&str] = &["box", "sign", "rack", "table", "cassa", "ice_cream", "arcade_machine", "candies"];
 pub const INV_CARPETS: &[&str] = 
@@ -97,6 +89,7 @@ pub const INV_CARPETS: &[&str] =
     "carpet", "red_carpet", "green_carpet", "white_carpet", "black_carpet", 
     "iron_panel", "gold_panel", "diamond_panel"
 ];
+pub const INV_WALLDECOR: &[&str] = &["welcome"];
 pub const INV_TAB_Y: f32 = 2.0;
 
 // === Текстуры курсора по режимам ===

@@ -5,7 +5,7 @@ use std::time::{Instant, Duration};
 
 use specs::{Entity, WorldExt};
 use crate::{EcsAdapter, Slot};
-use crate::slot_object::{add, remove, is_carpet_name};
+use crate::slot_object::{add, remove, is_carpet_name, is_wall_decor_name};
 use crate::constants::*;
 
 thread_local! {
@@ -139,8 +139,8 @@ fn handle_mouse_movement(
 
     let (world_x, world_y) = crate::util::ndc_to_world(mouse_x, mouse_y, window_size, map_size, cam_x, cam_y);
 
-    let grid_x = (world_x + TILE_HALF).floor().clamp(GRID_MIN_X, GRID_MAX_X);
-    let grid_y = (world_y + TILE_HALF).floor().clamp(GRID_MIN_Y, GRID_MAX_Y);
+    let grid_x = (world_x + TILE_HALF).floor().clamp(CAMERA_MAP_MIN_X, CAMERA_MAP_MAX_X);
+    let grid_y = (world_y + TILE_HALF).floor().clamp(CAMERA_MAP_MIN_Y, CAMERA_MAP_MAX_Y);
 
     let (cur_x, cur_y) = ecs.get_transform_position(cursor);
     if (cur_x - grid_x).abs() < EPSILON && (cur_y - grid_y).abs() < EPSILON {
@@ -173,8 +173,9 @@ fn update_cursor_validity(ecs: &mut EcsAdapter, cursor: Entity, slots: &[Slot], 
     let (x, y) = ecs.get_transform_position(cursor);
     let slot = &slots[act_slot as usize];
     let is_carpet = is_carpet_name(slot.obj.name);
+    let is_wall_decor = is_wall_decor_name(slot.obj.name);
 
-    if ecs.can_place_at(x as i32, y as i32, slot.obj.width, slot.obj.height, is_carpet) {
+    if ecs.can_place_at(x as i32, y as i32, slot.obj.width, slot.obj.height, is_carpet, is_wall_decor) {
         ecs.update_sprite_texture(cursor, CURSOR_TEX[1]);
     } else {
         ecs.update_sprite_texture(cursor, CURSOR_ERR_TEX);
@@ -193,6 +194,7 @@ fn update_cursor_preview(ecs: &mut EcsAdapter, mode: i32, slots: &[Slot], act_sl
     let slot = &slots[act_slot as usize];
     let (cx, cy) = ecs.get_transform_position(cursor);
     let is_carpet = is_carpet_name(slot.obj.name);
-    let valid = ecs.can_place_at(cx as i32, cy as i32, slot.obj.width, slot.obj.height, is_carpet);
+    let is_wall_decor = is_wall_decor_name(slot.obj.name);
+    let valid = ecs.can_place_at(cx as i32, cy as i32, slot.obj.width, slot.obj.height, is_carpet, is_wall_decor);
     ecs.update_cursor_preview(cx, cy, slot.obj.width, slot.obj.height, valid);
 }

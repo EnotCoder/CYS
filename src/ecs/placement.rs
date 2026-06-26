@@ -2,28 +2,42 @@ use specs::{WorldExt, Join};
 use crate::ecs::adapter::EcsAdapter;
 use crate::ecs::components::Transform;
 use crate::GroupComponent;
-use crate::constants::*;
 
 impl EcsAdapter {
     // ====================================================================
     //  can_place_at: Проверяет, можно ли разместить объект.
     //
     //  Правила:
-    //   - Объект не должен выходить за границы поля
-    //   - Ковёр нельзя ставить на другой ковёр
-    //   - Декор можно ставить только на ковёр
-    //   - Декор нельзя ставить на другой декор
+    //   - Обычные предметы (ковры и декор) можно ставить только на пол ('0')
+    //   - Настенный декор можно ставить только на блоки стен ('=' и '-')
     // ====================================================================
     pub fn can_place_at(
         &self,
         x: i32, y: i32,
         width: i32, height: i32,
         is_carpet: bool,
+        is_wall_decor: bool,
     ) -> bool {
-        if x < GRID_MIN_X as i32 || x + width > GRID_MAX_X as i32 + GRID_BOUNDARY_ADJUST
-            || y < GRID_MIN_Y as i32 || y + height > GRID_MAX_Y as i32 + GRID_BOUNDARY_ADJUST
-        {
-            return false;
+        if is_wall_decor {
+            for i in 0..width {
+                for j in 0..height {
+                    let cx = x + i;
+                    let cy = y + j;
+                    if !self.wall_positions.contains(&(cx, cy)) {
+                        return false;
+                    }
+                }
+            }
+        } else {
+            for i in 0..width {
+                for j in 0..height {
+                    let cx = x + i;
+                    let cy = y + j;
+                    if !self.floor_positions.contains(&(cx, cy)) {
+                        return false;
+                    }
+                }
+            }
         }
 
         let transforms = self.world.read_storage::<Transform>();

@@ -1,5 +1,5 @@
 use specs::{World, WorldExt, Builder};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use specs::Join;
 use crate::Sprite;
 use crate::ecs::components::{Transform, SpriteComponent, Rotation};
@@ -28,6 +28,8 @@ pub struct EcsAdapter {
     pub sprite_cache: HashMap<String, Sprite>,
     pub next_group_id: u32,
     pub cursor_preview: Vec<specs::Entity>,
+    pub wall_positions: HashSet<(i32, i32)>,
+    pub floor_positions: HashSet<(i32, i32)>,
 }
 
 impl EcsAdapter {
@@ -46,6 +48,8 @@ impl EcsAdapter {
             sprite_cache: HashMap::new(),
             next_group_id: 1,
             cursor_preview: Vec::new(),
+            wall_positions: HashSet::new(),
+            floor_positions: HashSet::new(),
         }
     }
 

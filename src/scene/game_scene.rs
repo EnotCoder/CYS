@@ -331,7 +331,7 @@ impl GameScene {
         // --- Клик по табам ---
         if self.inventory.mode {
             let tcol = (wx - SLOT_BAR_X + TILE_HALF) as i32;
-            if (wy - INV_TAB_Y).abs() < TILE_HALF && (tcol == 0 || tcol == 1) {
+            if (wy - INV_TAB_Y).abs() < TILE_HALF && tcol >= 0 && tcol < TAB_TEX.len() as i32 {
                 if tcol != self.inventory.tab {
                     self.inventory.switch_tab(tcol, ecs);
                 }

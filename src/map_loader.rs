@@ -24,6 +24,15 @@ pub fn load_map_to_ecs(ecs: &mut EcsAdapter) {
 
             let x = i as f32 + WORLD_OFFSET_X;
             let y = -(j as f32) + WORLD_OFFSET_Y;
+            let grid_x = (x + 0.5).floor() as i32;
+            let grid_y = (y + 0.5).floor() as i32;
+
+            if *token == "=" || *token == "-" {
+                ecs.wall_positions.insert((grid_x, grid_y));
+            }
+            if *token == "0" {
+                ecs.floor_positions.insert((grid_x, grid_y));
+            }
 
             ecs.world
                 .create_entity()

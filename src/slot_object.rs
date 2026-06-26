@@ -111,6 +111,11 @@ const ALL_OBJECTS: &[Object] = &[
         texture_frame: [2, 2], texture_count: [4, 4],
         animated: false, frame_paths: &[],
     },
+    Object {
+        width: 2, height: 1, name: "welcome", path: "tex/decor/welcome.png",
+        texture_frame: [0, 0], texture_count: [2, 1],
+        animated: false, frame_paths: &[],
+    },
 ];
 
 const INITIAL_SLOTS: [&str; SLOT_COUNT] = ["box", "sign", "rack", "table", "cassa"];
@@ -143,6 +148,10 @@ pub fn is_carpet_name(name: &str) -> bool {
     crate::constants::CARPET_NAMES.contains(&name)
 }
 
+pub fn is_wall_decor_name(name: &str) -> bool {
+    crate::constants::INV_WALLDECOR.contains(&name)
+}
+
 // ========================================================================
 //  add: Попытка поставить объект из активного слота под курсор
 // ========================================================================
@@ -150,11 +159,12 @@ pub fn add(ecs: &mut EcsAdapter, slots: &mut Vec<Slot>, act_slot: i32, cursor_en
     let active_slot = &slots[act_slot as usize].obj;
     let (cursor_x, cursor_y) = ecs.get_transform_position(cursor_entity);
     let is_carpet = is_carpet_name(active_slot.name);
+    let is_wall_decor = is_wall_decor_name(active_slot.name);
 
     if ecs.can_place_at(
         cursor_x as i32, cursor_y as i32,
         active_slot.width, active_slot.height,
-        is_carpet,
+        is_carpet, is_wall_decor,
     ) {
         ecs.clear_cursor_preview();
         ecs.add_group_object(

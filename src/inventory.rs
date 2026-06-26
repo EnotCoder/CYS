@@ -68,7 +68,11 @@ impl Inventory {
     // ================================================================
 
     pub fn items(&self) -> &'static [&'static str] {
-        if self.tab == 0 { INV_REGULAR } else { INV_CARPETS }
+        match self.tab {
+            0 => INV_REGULAR,
+            1 => INV_CARPETS,
+            _ => INV_WALLDECOR,
+        }
     }
 
     // ================================================================

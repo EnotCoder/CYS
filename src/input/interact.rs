@@ -30,6 +30,7 @@ pub fn try_interact(ecs: &mut EcsAdapter, cursor: Entity) -> bool {
                 }
             };
             ecs.world.write_resource::<TotalFood>().0 += food;
+            ecs.update_box_textures();
         }
 
         let group = ecs.world.read_resource::<crate::GroupInfoResource>();

@@ -1,6 +1,5 @@
-use specs::{World, WorldExt};
+use specs::{World, WorldExt, Join};
 use std::collections::{HashMap, HashSet};
-use specs::Join;
 use crate::Sprite;
 use crate::ecs::components::{Transform, SpriteComponent, Rotation, BoxStorage, TotalFood};
 use crate::{GroupComponent, GroupInfoResource};
@@ -211,5 +210,28 @@ impl EcsAdapter {
         }
 
         (map_sprites, carpet_sprites, decor_sprites, npc_sprites, cursor_sprites, ui_sprites)
+    }
+
+    pub fn update_box_textures(&mut self) {
+        use crate::ecs::components::{BoxStorage, SpriteComponent};
+        let group_info = self.world.read_resource::<crate::GroupInfoResource>();
+        let storage = self.world.read_resource::<BoxStorage>();
+        let mut sprites = self.world.write_storage::<SpriteComponent>();
+        for (&gid, data) in storage.boxes.iter() {
+            let tex = if data.food_count < 8 {
+                "tex/decor/box/box_0.png"
+            } else if data.food_count < 12 {
+                "tex/decor/box/box_1.png"
+            } else {
+                "tex/decor/box/box_2.png"
+            };
+            if let Some(info) = group_info.groups.get(&gid) {
+                if let Some(first) = info.entities.first() {
+                    if let Some(sprite) = sprites.get_mut(*first) {
+                        sprite.texture_path = tex.to_string();
+                    }
+                }
+            }
+        }
     }
 }

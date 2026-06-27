@@ -295,12 +295,15 @@ impl Scene for GameScene {
         self.food_timer += dt;
         if self.food_timer >= 1.0 {
             self.food_timer -= 1.0;
-            let mut storage = ecs.world.write_resource::<BoxStorage>();
-            for (_, data) in storage.boxes.iter_mut() {
-                if data.food_count < data.max_food {
-                    data.food_count += 1;
+            {
+                let mut storage = ecs.world.write_resource::<BoxStorage>();
+                for (_, data) in storage.boxes.iter_mut() {
+                    if data.food_count < data.max_food {
+                        data.food_count += 1;
+                    }
                 }
             }
+            ecs.update_box_textures();
         }
         let cursor_pos = self.cursor_entity.map(|e| ecs.get_transform_position(e));
         let hovered_box = cursor_pos.and_then(|(cx, cy)| {

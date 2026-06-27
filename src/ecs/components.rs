@@ -69,6 +69,7 @@ impl Component for Rotation {
 /// Маркер с именем объекта (box, table, rack...)
 #[derive(Debug)]
 pub struct ObjectTag {
+    #[allow(dead_code)]
     pub name: String,
 }
 

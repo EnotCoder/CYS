@@ -63,19 +63,28 @@ impl Component for Rotation {
 }
 
 // ========================================================================
-//  Box (food storage) system
+//  Система компонентов объектов — каждое свойство = отдельный компонент
 // ========================================================================
 
-#[derive(Debug, Clone)]
-pub struct BoxFoodData {
-    pub food_count: i32,
-    pub max_food: i32,
-    pub pos_x: i32,
-    pub pos_y: i32,
+/// Маркер с именем объекта (box, table, rack...)
+#[derive(Debug)]
+pub struct ObjectTag {
+    pub name: String,
 }
 
-pub struct BoxStorage {
-    pub boxes: HashMap<u32, BoxFoodData>,
+impl Component for ObjectTag {
+    type Storage = VecStorage<Self>;
+}
+
+/// Хранилище еды (для box)
+#[derive(Debug)]
+pub struct FoodStorage {
+    pub food_count: i32,
+    pub max_food: i32,
+}
+
+impl Component for FoodStorage {
+    type Storage = VecStorage<Self>;
 }
 
 pub struct TotalFood(pub i32);

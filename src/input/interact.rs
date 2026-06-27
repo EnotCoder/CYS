@@ -2,44 +2,39 @@ use specs::{Entity, WorldExt};
 use crate::{EcsAdapter, Slot};
 use crate::slot_object::{add, remove};
 use crate::constants::*;
-use crate::ecs::components::{BoxStorage, TotalFood};
+use crate::ecs::components::{FoodStorage, TotalFood};
 
 pub fn try_interact(ecs: &mut EcsAdapter, cursor: Entity) -> bool {
     let (cx, cy) = ecs.get_transform_position(cursor);
     let gx = cx as i32;
     let gy = cy as i32;
     if let Some(gid) = ecs.find_group_at_position(gx, gy) {
-        let mut collect_food = false;
-        {
-            let storage = ecs.world.read_resource::<BoxStorage>();
-            if let Some(box_data) = storage.boxes.get(&gid) {
-                if box_data.food_count > 0 {
-                    collect_food = true;
+        let first_entity = {
+            let groups = ecs.world.read_resource::<crate::GroupInfoResource>();
+            groups.groups.get(&gid).and_then(|g| g.entities.first().copied())
+        };
+        if let Some(entity) = first_entity {
+            let mut food = None;
+            {
+                let foods = ecs.world.read_storage::<FoodStorage>();
+                if let Some(storage) = foods.get(entity) {
+                    if storage.food_count > 0 {
+                        food = Some(storage.food_count);
+                    }
                 }
             }
-        }
-        if collect_food {
-            let food = {
-                let mut storage = ecs.world.write_resource::<BoxStorage>();
-                if let Some(data) = storage.boxes.get_mut(&gid) {
-                    let f = data.food_count;
-                    data.food_count = 0;
-                    f
-                } else {
-                    0
-                }
-            };
-            ecs.world.write_resource::<TotalFood>().0 += food;
-            ecs.update_box_textures();
-        }
+            if let Some(count) = food {
+                ecs.world.write_storage::<FoodStorage>().get_mut(entity).map(|s| {
+                    s.food_count = 0;
+                });
+                ecs.world.write_resource::<TotalFood>().0 += count;
+                ecs.update_box_textures();
+            }
 
-        let group = ecs.world.read_resource::<crate::GroupInfoResource>();
-        if let Some(info) = group.groups.get(&gid) {
-            if let Some(first) = info.entities.first() {
-                if let Some(sprite) = ecs.world.read_storage::<crate::SpriteComponent>().get(*first) {
-                    if sprite.texture_path.contains("arcade_machine") {
-                        return true;
-                    }
+            let sprites = ecs.world.read_storage::<crate::SpriteComponent>();
+            if let Some(sprite) = sprites.get(entity) {
+                if sprite.texture_path.contains("arcade_machine") {
+                    return true;
                 }
             }
         }

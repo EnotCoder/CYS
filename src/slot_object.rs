@@ -1,7 +1,6 @@
 use specs::{Entity, WorldExt};
 use crate::EcsAdapter;
 use crate::constants::SLOT_COUNT;
-use crate::ecs::components::{BoxStorage, BoxFoodData};
 
 // ========================================================================
 //  Slot & Object — предметы инвентаря
@@ -178,13 +177,21 @@ pub fn add(ecs: &mut EcsAdapter, slots: &mut Vec<Slot>, act_slot: i32, cursor_en
             active_slot.animated,
             active_slot.frame_paths,
         );
-        if active_slot.name == "box" {
-            ecs.world.write_resource::<BoxStorage>().boxes.insert(group_id, BoxFoodData {
-                food_count: 0,
-                max_food: 20,
-                pos_x: cursor_x as i32,
-                pos_y: cursor_y as i32,
-            });
+        let first = {
+            let groups = ecs.world.read_resource::<crate::GroupInfoResource>();
+            groups.groups.get(&group_id).and_then(|g| g.entities.first().copied())
+        };
+        if let Some(entity) = first {
+            use specs::WorldExt;
+            ecs.world.write_storage::<crate::ObjectTag>().insert(entity, crate::ObjectTag {
+                name: active_slot.name.to_string(),
+            }).ok();
+            if active_slot.name == "box" {
+                ecs.world.write_storage::<crate::FoodStorage>().insert(entity, crate::FoodStorage {
+                    food_count: 0,
+                    max_food: 20,
+                }).ok();
+            }
         }
     }
 }
@@ -195,7 +202,6 @@ pub fn add(ecs: &mut EcsAdapter, slots: &mut Vec<Slot>, act_slot: i32, cursor_en
 pub fn remove(ecs: &mut EcsAdapter, cursor_entity: Entity) -> bool {
     let (cursor_x, cursor_y) = ecs.get_transform_position(cursor_entity);
     if let Some(group_id) = ecs.find_group_at_position(cursor_x as i32, cursor_y as i32) {
-        ecs.world.write_resource::<BoxStorage>().boxes.remove(&group_id);
         ecs.delete_group(group_id);
         true
     } else {

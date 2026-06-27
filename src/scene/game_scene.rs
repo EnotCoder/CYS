@@ -7,7 +7,7 @@ use crate::constants::*;
 use crate::inventory::Inventory;
 use crate::pathfinding::Node;
 use crate::npc::Npc;
-use crate::ecs::components::{BoxStorage, TotalFood};
+use crate::ecs::components::{FoodStorage, TotalFood};
 
 pub struct GameScene {
     loaded: bool,
@@ -216,7 +216,6 @@ impl Scene for GameScene {
         self.total_food_sprite_key = None;
         self.current_total_food = -1;
         self.box_hover_text = None;
-        ecs.world.write_resource::<BoxStorage>().boxes.clear();
         ecs.world.write_resource::<TotalFood>().0 = 0;
     }
 
@@ -291,15 +290,15 @@ impl Scene for GameScene {
         self.camera_offset_x = self.camera_offset_x.clamp(cam_min_x.min(cam_max_x), cam_min_x.max(cam_max_x));
         self.camera_offset_y = self.camera_offset_y.clamp(cam_min_y.min(cam_max_y), cam_min_y.max(cam_max_y));
 
-        // --- Box food system ---
+        // --- Обновление всех объектов по компонентам ---
         self.food_timer += dt;
         if self.food_timer >= 1.0 {
             self.food_timer -= 1.0;
             {
-                let mut storage = ecs.world.write_resource::<BoxStorage>();
-                for (_, data) in storage.boxes.iter_mut() {
-                    if data.food_count < data.max_food {
-                        data.food_count += 1;
+                let mut foods = ecs.world.write_storage::<FoodStorage>();
+                for storage in (&mut foods).join() {
+                    if storage.food_count < storage.max_food {
+                        storage.food_count += 1;
                     }
                 }
             }
@@ -309,10 +308,20 @@ impl Scene for GameScene {
         let hovered_box = cursor_pos.and_then(|(cx, cy)| {
             let gx = cx as i32;
             let gy = cy as i32;
-            let storage = ecs.world.read_resource::<BoxStorage>();
-            storage.boxes.iter().find(|(_, d)| d.pos_x == gx && d.pos_y == gy).map(|(&gid, d)| (gid, d.food_count, d.max_food))
+            if let Some(gid) = ecs.find_group_at_position(gx, gy) {
+                let groups = ecs.world.read_resource::<crate::GroupInfoResource>();
+                if let Some(info) = groups.groups.get(&gid) {
+                    if let Some(first) = info.entities.first() {
+                        let foods = ecs.world.read_storage::<FoodStorage>();
+                        if let Some(f) = foods.get(*first) {
+                            return Some((f.food_count, f.max_food));
+                        }
+                    }
+                }
+            }
+            None
         });
-        if let Some((_, food, max)) = hovered_box {
+        if let Some((food, max)) = hovered_box {
             let text = format!("Box: {}/{}", food, max);
             if let Some(old_ent) = self.box_hover_text.take() {
                 ecs.delete_entity(old_ent);

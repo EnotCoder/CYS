@@ -1,7 +1,7 @@
 use specs::{World, WorldExt, Join};
 use std::collections::{HashMap, HashSet};
 use crate::Sprite;
-use crate::ecs::components::{Transform, SpriteComponent, Rotation, BoxStorage, TotalFood};
+use crate::ecs::components::{Transform, SpriteComponent, Rotation, ObjectTag, FoodStorage, TotalFood};
 use crate::{GroupComponent, GroupInfoResource};
 use crate::constants::*;
 
@@ -38,11 +38,10 @@ impl EcsAdapter {
         world.register::<SpriteComponent>();
         world.register::<GroupComponent>();
         world.register::<Rotation>();
+        world.register::<ObjectTag>();
+        world.register::<FoodStorage>();
         world.insert(GroupInfoResource {
             groups: HashMap::new(),
-        });
-        world.insert(BoxStorage {
-            boxes: HashMap::new(),
         });
         world.insert(TotalFood(0));
 
@@ -213,25 +212,18 @@ impl EcsAdapter {
     }
 
     pub fn update_box_textures(&mut self) {
-        use crate::ecs::components::{BoxStorage, SpriteComponent};
-        let group_info = self.world.read_resource::<crate::GroupInfoResource>();
-        let storage = self.world.read_resource::<BoxStorage>();
+        use crate::ecs::components::{FoodStorage, SpriteComponent};
         let mut sprites = self.world.write_storage::<SpriteComponent>();
-        for (&gid, data) in storage.boxes.iter() {
-            let tex = if data.food_count < 8 {
+        let foods = self.world.read_storage::<FoodStorage>();
+        for (food, sprite) in (&foods, &mut sprites).join() {
+            let tex = if food.food_count < 8 {
                 "tex/decor/box/box_0.png"
-            } else if data.food_count < 12 {
+            } else if food.food_count < 12 {
                 "tex/decor/box/box_1.png"
             } else {
                 "tex/decor/box/box_2.png"
             };
-            if let Some(info) = group_info.groups.get(&gid) {
-                if let Some(first) = info.entities.first() {
-                    if let Some(sprite) = sprites.get_mut(*first) {
-                        sprite.texture_path = tex.to_string();
-                    }
-                }
-            }
+            sprite.texture_path = tex.to_string();
         }
     }
 }

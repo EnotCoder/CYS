@@ -61,3 +61,21 @@ pub struct Rotation {
 impl Component for Rotation {
     type Storage = VecStorage<Self>;
 }
+
+// ========================================================================
+//  Box (food storage) system
+// ========================================================================
+
+#[derive(Debug, Clone)]
+pub struct BoxFoodData {
+    pub food_count: i32,
+    pub max_food: i32,
+    pub pos_x: i32,
+    pub pos_y: i32,
+}
+
+pub struct BoxStorage {
+    pub boxes: HashMap<u32, BoxFoodData>,
+}
+
+pub struct TotalFood(pub i32);

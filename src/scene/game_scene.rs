@@ -6,6 +6,7 @@ use crate::text_renderer::TextRenderer;
 use crate::constants::*;
 use crate::inventory::Inventory;
 use crate::pathfinding::{Node, find_path};
+use crate::ecs::components::{BoxStorage, TotalFood};
 
 fn patrol_routes() -> Vec<Vec<Node>> {
     vec![
@@ -181,6 +182,11 @@ pub struct GameScene {
     ilm_entity: Option<specs::Entity>,
     ilm_timer: f64,
     ilm_cooldown: f64,
+    food_timer: f64,
+    total_food_text: Option<specs::Entity>,
+    total_food_sprite_key: Option<String>,
+    current_total_food: i32,
+    box_hover_text: Option<specs::Entity>,
 }
 
 impl GameScene {
@@ -208,6 +214,11 @@ impl GameScene {
             ilm_entity: None,
             ilm_timer: 0.0,
             ilm_cooldown: 0.0,
+            food_timer: 0.0,
+            total_food_text: None,
+            total_food_sprite_key: None,
+            current_total_food: -1,
+            box_hover_text: None,
         }
     }
 
@@ -369,7 +380,7 @@ impl GameScene {
 }
 
 impl Scene for GameScene {
-    fn on_enter(&mut self, _ecs: &mut crate::EcsAdapter, _text_renderer: &mut crate::text_renderer::TextRenderer) {
+    fn on_enter(&mut self, ecs: &mut crate::EcsAdapter, _text_renderer: &mut crate::text_renderer::TextRenderer) {
         self.loaded = false;
         self.loading = true;
         self.loading_text = None;
@@ -392,6 +403,13 @@ impl Scene for GameScene {
         self.ilm_entity = None;
         self.ilm_timer = 0.0;
         self.ilm_cooldown = 0.0;
+        self.food_timer = 0.0;
+        self.total_food_text = None;
+        self.total_food_sprite_key = None;
+        self.current_total_food = -1;
+        self.box_hover_text = None;
+        ecs.world.write_resource::<BoxStorage>().boxes.clear();
+        ecs.world.write_resource::<TotalFood>().0 = 0;
     }
 
     fn update(&mut self, ecs: &mut crate::EcsAdapter, input: &winit_input_helper::WinitInputHelper, window_size: (f32, f32), text_renderer: &mut crate::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) -> SceneAction {
@@ -465,6 +483,54 @@ impl Scene for GameScene {
         // clamp in case limits cross (zoom shows entire map)
         self.camera_offset_x = self.camera_offset_x.clamp(cam_min_x.min(cam_max_x), cam_min_x.max(cam_max_x));
         self.camera_offset_y = self.camera_offset_y.clamp(cam_min_y.min(cam_max_y), cam_min_y.max(cam_max_y));
+
+        // --- Box food system ---
+        // Food generation every second
+        self.food_timer += dt;
+        if self.food_timer >= 1.0 {
+            self.food_timer -= 1.0;
+            let mut storage = ecs.world.write_resource::<BoxStorage>();
+            for (_, data) in storage.boxes.iter_mut() {
+                if data.food_count < data.max_food {
+                    data.food_count += 1;
+                }
+            }
+        }
+        // Hover text: show box info at (0, -3) when cursor is over a box
+        let cursor_pos = self.cursor_entity.map(|e| ecs.get_transform_position(e));
+        let hovered_box = cursor_pos.and_then(|(cx, cy)| {
+            let gx = cx as i32;
+            let gy = cy as i32;
+            let storage = ecs.world.read_resource::<BoxStorage>();
+            storage.boxes.iter().find(|(_, d)| d.pos_x == gx && d.pos_y == gy).map(|(&gid, d)| (gid, d.food_count, d.max_food))
+        });
+        if let Some((_, food, max)) = hovered_box {
+            let text = format!("Box: {}/{}", food, max);
+            if let Some(old_ent) = self.box_hover_text.take() {
+                ecs.delete_entity(old_ent);
+            }
+            let ent = text_renderer.add_text(ecs, device, queue, &text, 48.0, 0.0, -3.0, 2.0, 1.0, WHITE);
+            self.box_hover_text = Some(ent);
+        } else if let Some(ent) = self.box_hover_text.take() {
+            ecs.delete_entity(ent);
+        }
+        // Total food display
+        {
+            let total = ecs.world.read_resource::<TotalFood>().0;
+            if total != self.current_total_food {
+                self.current_total_food = total;
+                if let Some(entity) = self.total_food_text.take() {
+                    ecs.delete_entity(entity);
+                }
+                if let Some(key) = self.total_food_sprite_key.take() {
+                    ecs.sprite_cache.remove(&key);
+                }
+                let text = format!("Food: {}", total);
+                let ent = text_renderer.add_text(ecs, device, queue, &text, 64.0, 5.0, 3.5, 1.0, 4.0, WHITE);
+                self.total_food_text = Some(ent);
+                self.total_food_sprite_key = Some(TextRenderer::sprite_cache_key(5.0, 3.5, &text, 24.0, 1.0, GREEN));
+            }
+        }
 
         if self.ilm_cooldown > 0.0 {
             self.ilm_cooldown -= dt;

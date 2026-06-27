@@ -7,6 +7,7 @@ use specs::{Entity, WorldExt};
 use crate::{EcsAdapter, Slot};
 use crate::slot_object::{add, remove, is_carpet_name, is_wall_decor_name};
 use crate::constants::*;
+use crate::ecs::components::{BoxStorage, TotalFood};
 
 thread_local! {
     static LAST_MOVE_TIME: Cell<Option<Instant>> = const { Cell::new(None) };
@@ -88,11 +89,34 @@ fn handle_zoom(input: &WinitInputHelper, current: f32) -> f32 {
 // ========================================================================
 //  Взаимодействие с объектами (mode 0)
 // ========================================================================
-fn try_interact(ecs: &EcsAdapter, cursor: Entity) -> bool {
+fn try_interact(ecs: &mut EcsAdapter, cursor: Entity) -> bool {
     let (cx, cy) = ecs.get_transform_position(cursor);
     let gx = cx as i32;
     let gy = cy as i32;
     if let Some(gid) = ecs.find_group_at_position(gx, gy) {
+        let mut collect_food = false;
+        {
+            let storage = ecs.world.read_resource::<BoxStorage>();
+            if let Some(box_data) = storage.boxes.get(&gid) {
+                if box_data.food_count > 0 {
+                    collect_food = true;
+                }
+            }
+        }
+        if collect_food {
+            let food = {
+                let mut storage = ecs.world.write_resource::<BoxStorage>();
+                if let Some(data) = storage.boxes.get_mut(&gid) {
+                    let f = data.food_count;
+                    data.food_count = 0;
+                    f
+                } else {
+                    0
+                }
+            };
+            ecs.world.write_resource::<TotalFood>().0 += food;
+        }
+
         let group = ecs.world.read_resource::<crate::GroupInfoResource>();
         if let Some(info) = group.groups.get(&gid) {
             if let Some(first) = info.entities.first() {

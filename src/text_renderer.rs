@@ -143,6 +143,23 @@ impl TextRenderer {
         outline: f32,
         color: [u8; 3],
     ) -> specs::Entity {
+        self.add_text_z(ecs, device, queue, text, font_size, x, y, world_width, outline, color, crate::constants::Z_UI)
+    }
+
+    pub fn add_text_z(
+        &mut self,
+        ecs: &mut crate::EcsAdapter,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        text: &str,
+        font_size: f32,
+        x: f32,
+        y: f32,
+        world_width: f32,
+        outline: f32,
+        color: [u8; 3],
+        z: f32,
+    ) -> specs::Entity {
         let (rgba, tw, th) = self.rasterize(text, font_size, outline, color).clone();
         let aspect = tw as f32 / th as f32;
         let world_h = world_width / aspect;
@@ -150,14 +167,15 @@ impl TextRenderer {
         let tex = Texture::from_rgba(device, queue, &rgba, tw, th, text);
         let sprite = Sprite::from_texture(device, &tex, text, world_width, world_h);
 
-        let skey = Self::sprite_cache_key(x, y, text, font_size, outline, color);
+        let text_key = Self::cache_key(text, font_size, outline, color);
+        let layer_prefix = if (z - crate::constants::Z_UI).abs() < 0.001 { "ui" } else { "decor" };
+        let skey = format!("{}_{}_{}_{}_[0, 0]_[1, 1]_1", layer_prefix, x, y, text_key);
         ecs.sprite_cache.insert(skey, sprite);
 
-        let text_key = Self::cache_key(text, font_size, outline, color);
         ecs.world
             .create_entity()
             .with(crate::Transform {
-                position: [x, y, crate::constants::Z_UI],
+                position: [x, y, z],
             })
             .with(crate::SpriteComponent {
                 texture_path: text_key,

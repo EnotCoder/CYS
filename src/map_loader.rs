@@ -2,11 +2,12 @@
 //  Загрузка карты из map.txt в ECS мир
 // ========================================================================
 
+use std::collections::HashSet;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
-use specs::{WorldExt, Builder};
-use crate::ecs::{Transform, SpriteComponent, EcsAdapter};
+use crate::ecs::EcsAdapter;
 use crate::constants::{WORLD_OFFSET_X, WORLD_OFFSET_Y, Z_MAP};
+use crate::pathfinding::Node;
 
 /// Загружает map.txt и создаёт для каждой клетки ECS-сущность
 pub fn load_map_to_ecs(ecs: &mut EcsAdapter) {
@@ -34,24 +35,28 @@ pub fn load_map_to_ecs(ecs: &mut EcsAdapter) {
                 ecs.floor_positions.insert((grid_x, grid_y));
             }
 
-            ecs.world
-                .create_entity()
-                .with(Transform {
-                    position: [x, y, Z_MAP],
-                })
-                .with(SpriteComponent {
-                    texture_path: tex_path.to_string(),
-                    texture_frame: tex_pos,
-                    texture_count: tex_count,
-                    scale: 1.0,
-                    alpha: 1.0,
-                    animated: false,
-                    frame_paths: Vec::new(),
-                    current_frame: 0,
-                })
-                .build();
+            crate::ecs::factory::create_sprite(
+                &mut ecs.world, x, y, Z_MAP,
+                tex_path, tex_pos, tex_count, 1.0, 1.0,
+            );
         }
     }
+}
+
+/// Загружает проходимые клетки из map.txt (для NPC pathfinding)
+pub fn load_walkable_cells() -> HashSet<Node> {
+    let src = include_str!("../map.txt");
+    let mut cells = HashSet::new();
+    for (j, line) in src.lines().enumerate() {
+        for (i, token) in line.split_whitespace().enumerate() {
+            if matches!(token, "@" | "!" | "." | "~") {
+                let wx = i as f32 + WORLD_OFFSET_X;
+                let wy = -(j as f32) + WORLD_OFFSET_Y;
+                cells.insert(Node::from_world(wx, wy));
+            }
+        }
+    }
+    cells
 }
 
 fn token_to_texture(token: &str) -> (&str, [i32; 2], [i32; 2]) {

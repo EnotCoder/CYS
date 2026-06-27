@@ -1,4 +1,4 @@
-use specs::{WorldExt, Builder, Entity};
+use specs::Entity;
 use crate::EcsAdapter;
 use crate::constants::*;
 
@@ -208,19 +208,10 @@ impl Inventory {
     }
 
     fn make_cursor(ecs: &mut EcsAdapter, x: f32, y: f32) -> Entity {
-        ecs.world.create_entity()
-            .with(crate::Transform { position: [x, y, Z_UI] })
-            .with(crate::SpriteComponent {
-                texture_path: SLOT_CURSOR_TEX.to_string(),
-                texture_frame: [0, 0],
-                texture_count: [1, 1],
-                scale: 1.0,
-                alpha: 1.0,
-                animated: false,
-                frame_paths: Vec::new(),
-                current_frame: 0,
-            })
-            .build()
+        crate::ecs::factory::create_sprite(
+            &mut ecs.world, x, y, Z_UI,
+            SLOT_CURSOR_TEX, [0, 0], [1, 1], 1.0, 1.0,
+        )
     }
 
     // ================================================================

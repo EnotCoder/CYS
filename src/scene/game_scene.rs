@@ -1,163 +1,13 @@
 use std::collections::HashSet;
-use specs::{WorldExt, Builder, Join};
+use specs::{WorldExt, Join};
 use winit::keyboard::KeyCode;
 use crate::scene::scene_trait::{Scene, SceneAction};
 use crate::text_renderer::TextRenderer;
 use crate::constants::*;
 use crate::inventory::Inventory;
-use crate::pathfinding::{Node, find_path};
+use crate::pathfinding::Node;
+use crate::npc::Npc;
 use crate::ecs::components::{BoxStorage, TotalFood};
-
-fn patrol_routes() -> Vec<Vec<Node>> {
-    vec![
-        // Route 0: perimeter clockwise — top-right → down right → bottom → up left
-        vec![
-            Node::new(13, 11),  Node::new(13, -5),
-            Node::new(13, -11), Node::new(-14, -11),
-            Node::new(-15, 11),
-        ],
-        // Route 1: perimeter counter-clockwise — top-left → down left → bottom → up right
-        vec![
-            Node::new(-15, 11),  Node::new(-14, -11),
-            Node::new(13, -11),  Node::new(13, -5),
-            Node::new(13, 11),
-        ],
-        // Route 2: left grass + bottom sweep — top-left → bottom → right → back
-        vec![
-            Node::new(-15, 11),  Node::new(-14, -11),
-            Node::new(13, -11),  Node::new(13, -8),
-            Node::new(-14, -8),  Node::new(-15, 11),
-        ],
-        // Route 3: right road loop — top-right → down right → bottom → back
-        vec![
-            Node::new(9, 11),   Node::new(9, -5),
-            Node::new(10, -5),  Node::new(10, -11),
-            Node::new(3, -11),  Node::new(3, -9),
-            Node::new(13, -9),  Node::new(13, 11),
-        ],
-        // Route 4: cross-country — across middle → bottom → up left
-        vec![
-            Node::new(13, -5),  Node::new(-15, -5),
-            Node::new(-14, -8), Node::new(13, -8),
-            Node::new(13, -11), Node::new(-14, -11),
-            Node::new(-15, 11),
-        ],
-    ]
-}
-
-struct Npc {
-    entity: specs::Entity,
-    pos: (f32, f32),
-    path: Vec<Node>,
-    path_index: usize,
-    patrol_route: Vec<Node>,
-    patrol_index: usize,
-    pause: f64,
-    walk_timer: f64,
-    walk_frame: i32,
-}
-
-impl Npc {
-    fn new(ecs: &mut crate::EcsAdapter, route: &[Node], start_idx: usize) -> Self {
-        let start = route[start_idx];
-        let (sx, sy) = start.to_world();
-        let entity = ecs.world.create_entity()
-            .with(crate::Transform { position: [sx, sy, Z_NPC] })
-            .with(crate::SpriteComponent {
-                texture_path: TEX_PLAYER_IDLE.to_string(),
-                texture_frame: [0, 0],
-                texture_count: [1, 1],
-                scale: NPC_SCALE,
-                alpha: 1.0,
-                animated: false,
-                frame_paths: Vec::new(),
-                current_frame: 0,
-            })
-            .with(crate::Rotation { rotation: [0.0; 3] })
-            .build();
-        Npc {
-            entity,
-            pos: (sx, sy),
-            path: Vec::new(),
-            path_index: 0,
-            patrol_route: route.to_vec(),
-            patrol_index: start_idx,
-            pause: 0.0,
-            walk_timer: 0.0,
-            walk_frame: 0,
-        }
-    }
-
-    fn advance(&mut self, walkable: &HashSet<Node>) {
-        loop {
-            let (cx, cy) = self.pos;
-            let start_node = Node::from_world(cx, cy);
-            self.patrol_index = (self.patrol_index + 1) % self.patrol_route.len();
-            let goal_node = self.patrol_route[self.patrol_index];
-            if start_node == goal_node {
-                continue;
-            }
-            if let Some(path) = find_path(walkable, start_node, goal_node) {
-                self.path = path;
-                self.path_index = 0;
-            }
-            break;
-        }
-    }
-
-    fn set_texture(&self, ecs: &mut crate::EcsAdapter, texture_path: &str) {
-        ecs.update_sprite_texture(self.entity, texture_path);
-    }
-
-    fn update(&mut self, ecs: &mut crate::EcsAdapter, dt: f64, walkable: &HashSet<Node>) {
-        if self.pause > 0.0 {
-            self.pause -= dt;
-            self.set_texture(ecs, TEX_PLAYER_IDLE);
-            return;
-        }
-
-        if self.path_index >= self.path.len() {
-            self.set_texture(ecs, TEX_PLAYER_IDLE);
-            self.pause = NPC_PAUSE_DURATION;
-            self.advance(walkable);
-            return;
-        }
-
-        self.walk_timer += dt;
-        if self.walk_timer > WALK_ANIM_INTERVAL {
-            self.walk_timer = 0.0;
-            self.walk_frame = 1 - self.walk_frame;
-        }
-        let tex = if self.walk_frame == 0 { TEX_PLAYER_WALK_1 } else { TEX_PLAYER_WALK_2 };
-        self.set_texture(ecs, tex);
-
-        let target = self.path[self.path_index];
-        let (tx, ty) = target.to_world();
-        let (cx, cy) = self.pos;
-
-        let step = NPC_SPEED * dt as f32;
-        let dx = tx - cx;
-        let dy = ty - cy;
-        let dist = (dx * dx + dy * dy).sqrt();
-
-        if dist <= step || dist < EPSILON {
-            self.pos = (tx, ty);
-            self.path_index += 1;
-        } else {
-            self.pos = (cx + dx / dist * step, cy + dy / dist * step);
-        }
-
-        let (nx, ny) = self.pos;
-        ecs.update_transform_position(self.entity, nx, ny);
-
-        if dx.abs() > 0.01 {
-            let facing = if dx > 0.0 { 0.0 } else { std::f32::consts::PI };
-            if let Some(rot) = ecs.world.write_storage::<crate::Rotation>().get_mut(self.entity) {
-                rot.rotation = [0.0, facing, 0.0];
-            }
-        }
-    }
-}
 
 pub struct GameScene {
     loaded: bool,
@@ -222,10 +72,6 @@ impl GameScene {
         }
     }
 
-    // ====================================================================
-    //  Загрузка / выгрузка
-    // ====================================================================
-
     fn show_loading(&mut self, ecs: &mut crate::EcsAdapter, text_renderer: &mut crate::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) {
         let entity = text_renderer.add_text(ecs, device, queue, "Loading...", 64.0, 0.0, 0.0, 4.0, 2.0, GRAY);
         self.loading_text = Some(entity);
@@ -263,42 +109,8 @@ impl GameScene {
         self.icons_slot_cursor = Some(icons_slot_cursor);
         self.cursor_entity = Some(ecs.add_cursor(0.0, 0.0, CURSOR_TEX[0]));
 
-        self.setup_npc(ecs);
-    }
-
-    // ====================================================================
-    //  NPC / patrol with A*
-    // ====================================================================
-
-    fn load_walkable_cells(&mut self) {
-        let src = include_str!("../../map.txt");
-        for (j, line) in src.lines().enumerate() {
-            for (i, token) in line.split_whitespace().enumerate() {
-                if matches!(token, "@" | "!" | "." | "~") {
-                    let wx = i as f32 + WORLD_OFFSET_X;
-                    let wy = -(j as f32) + WORLD_OFFSET_Y;
-                    self.npc_walkable.insert(Node::from_world(wx, wy));
-                }
-            }
-        }
-    }
-
-    fn setup_npc(&mut self, ecs: &mut crate::EcsAdapter) {
-        self.load_walkable_cells();
-        let routes = patrol_routes();
-        let start_indices = [0, 0, 2, 0, 2];
-        for (idx, route) in routes.iter().enumerate() {
-            let start_idx = start_indices[idx.min(start_indices.len() - 1)] % route.len();
-            let mut npc = Npc::new(ecs, route, start_idx);
-            npc.advance(&self.npc_walkable);
-            self.npcs.push(npc);
-        }
-    }
-
-    fn move_npcs(&mut self, ecs: &mut crate::EcsAdapter, dt: f64) {
-        for npc in &mut self.npcs {
-            npc.update(ecs, dt, &self.npc_walkable);
-        }
+        self.npc_walkable = crate::map_loader::load_walkable_cells();
+        self.npcs = crate::npc::setup_npcs(ecs, &self.npc_walkable);
     }
 
     fn update_animations(&mut self, ecs: &mut crate::EcsAdapter, dt: f64) {
@@ -317,10 +129,6 @@ impl GameScene {
             }
         }
     }
-
-    // ====================================================================
-    //  Инвентарь + хотбар — ввод
-    // ====================================================================
 
     fn handle_inventory_input(&mut self, ecs: &mut crate::EcsAdapter, input: &winit_input_helper::WinitInputHelper, window_size: (f32, f32)) {
         if input.key_pressed(winit::keyboard::KeyCode::KeyE) {
@@ -480,12 +288,10 @@ impl Scene for GameScene {
         if input.key_held(KeyCode::ArrowUp) {
             self.camera_offset_y = (self.camera_offset_y + step).min(cam_max_y);
         }
-        // clamp in case limits cross (zoom shows entire map)
         self.camera_offset_x = self.camera_offset_x.clamp(cam_min_x.min(cam_max_x), cam_min_x.max(cam_max_x));
         self.camera_offset_y = self.camera_offset_y.clamp(cam_min_y.min(cam_max_y), cam_min_y.max(cam_max_y));
 
         // --- Box food system ---
-        // Food generation every second
         self.food_timer += dt;
         if self.food_timer >= 1.0 {
             self.food_timer -= 1.0;
@@ -496,7 +302,6 @@ impl Scene for GameScene {
                 }
             }
         }
-        // Hover text: show box info at (0, -3) when cursor is over a box
         let cursor_pos = self.cursor_entity.map(|e| ecs.get_transform_position(e));
         let hovered_box = cursor_pos.and_then(|(cx, cy)| {
             let gx = cx as i32;
@@ -514,7 +319,6 @@ impl Scene for GameScene {
         } else if let Some(ent) = self.box_hover_text.take() {
             ecs.delete_entity(ent);
         }
-        // Total food display
         {
             let total = ecs.world.read_resource::<TotalFood>().0;
             if total != self.current_total_food {
@@ -543,7 +347,7 @@ impl Scene for GameScene {
             }
         }
 
-        self.move_npcs(ecs, dt);
+        crate::npc::move_npcs(&mut self.npcs, ecs, dt, &self.npc_walkable);
         self.update_animations(ecs, dt);
 
         SceneAction::None

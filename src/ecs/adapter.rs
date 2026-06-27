@@ -1,4 +1,4 @@
-use specs::{World, WorldExt, Builder};
+use specs::{World, WorldExt};
 use std::collections::{HashMap, HashSet};
 use specs::Join;
 use crate::Sprite;
@@ -109,20 +109,10 @@ impl EcsAdapter {
     // ====================================================================
 
     pub fn add_ui(&mut self, x: f32, y: f32, texture_path: &str) -> specs::Entity {
-        self.world
-            .create_entity()
-            .with(Transform { position: [x, y, Z_UI] })
-            .with(SpriteComponent {
-                texture_path: texture_path.to_string(),
-                texture_frame: [0, 0],
-                texture_count: [1, 1],
-                scale: 1.0,
-                alpha: 1.0,
-                animated: false,
-                frame_paths: Vec::new(),
-                current_frame: 0,
-            })
-            .build()
+        crate::ecs::factory::create_sprite(
+            &mut self.world, x, y, Z_UI,
+            texture_path, [0, 0], [1, 1], 1.0, 1.0,
+        )
     }
 
     pub fn add_ui_sized(
@@ -133,20 +123,10 @@ impl EcsAdapter {
         device: &wgpu::Device,
         queue: &wgpu::Queue,
     ) -> specs::Entity {
-        let entity = self.world
-            .create_entity()
-            .with(Transform { position: [x, y, Z_UI] })
-            .with(SpriteComponent {
-                texture_path: texture_path.to_string(),
-                texture_frame: [0, 0],
-                texture_count: [1, 1],
-                scale: 1.0,
-                alpha: 1.0,
-                animated: false,
-                frame_paths: Vec::new(),
-                current_frame: 0,
-            })
-            .build();
+        let entity = crate::ecs::factory::create_sprite(
+            &mut self.world, x, y, Z_UI,
+            texture_path, [0, 0], [1, 1], 1.0, 1.0,
+        );
 
         let tex = crate::Texture::from_path(device, queue, texture_path, "ui_sized");
         let sprite = crate::Sprite::from_texture(device, &tex, texture_path, width, height);

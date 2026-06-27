@@ -15,6 +15,7 @@ mod map_loader;
 mod fps;
 mod inventory;
 mod pathfinding;
+mod npc;
 mod constants;
 mod util;
 

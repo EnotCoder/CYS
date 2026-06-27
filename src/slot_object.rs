@@ -112,9 +112,9 @@ const ALL_OBJECTS: &[Object] = &[
         animated: false, frame_paths: &[],
     },
     Object {
-        width: 2, height: 2, name: "welcome", path: "tex/decor/welcome.png",
+        width: 2, height: 2, name: "welcome", path: "tex/decor/welcome/welcome_0.png",
         texture_frame: [0, 1], texture_count: [2, 2],
-        animated: false, frame_paths: &[],
+        animated: true, frame_paths: &["tex/decor/welcome/welcome_0.png", "tex/decor/welcome/welcome_1.png"],
     },
 ];
 

@@ -30,7 +30,7 @@ pub struct Object {
 const ALL_OBJECTS: &[Object] = &[
     //def object
     Object {
-        width: 1, height: 1, name: "box", path: "tex/decor/box.png",
+        width: 1, height: 1, name: "box", path: "tex/decor/box/box_0.png",
         texture_frame: [0, 0], texture_count: [1, 1],
         animated: false, frame_paths: &[],
     },

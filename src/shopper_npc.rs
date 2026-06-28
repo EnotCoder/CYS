@@ -130,13 +130,9 @@ impl ShopperNpc {
             ShopperState::GoingToRack => {
                 if self.path_index >= self.path.len() {
                     self.set_texture(ecs, TEX_PLAYER_IDLE);
-                    if ecs.world.read_resource::<CassaBusy>().0 {
-                        return false; // касса занята — ждём, еду НЕ берем
-                    }
                     if !self.take_food(ecs) {
                         return true; // еды нет — уходим
                     }
-                    ecs.world.write_resource::<CassaBusy>().0 = true;
                     let from = Node::from_world(self.pos.0, self.pos.1);
                     if let Some(path) = find_path(walkable, from, self.cassa_pos) {
                         self.path = path;
@@ -153,6 +149,10 @@ impl ShopperNpc {
             ShopperState::GoingToCassa => {
                 if self.path_index >= self.path.len() {
                     self.set_texture(ecs, TEX_PLAYER_IDLE);
+                    if ecs.world.read_resource::<CassaBusy>().0 {
+                        return false; // касса занята — ждём здесь (очередь)
+                    }
+                    ecs.world.write_resource::<CassaBusy>().0 = true;
                     self.state = ShopperState::AtCassa;
                     self.state_timer = CASSA_WAIT_SECS;
                     return false;

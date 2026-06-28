@@ -317,6 +317,7 @@ impl Scene for GameScene {
             }
             ecs.update_object_textures();
         }
+        ecs.update_fence_textures();
         let cursor_pos = self.cursor_entity.map(|e| ecs.get_transform_position(e));
         let hovered_object = cursor_pos.and_then(|(cx, cy)| {
             let gx = cx as i32;

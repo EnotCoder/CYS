@@ -89,3 +89,11 @@ impl Component for FoodStorage {
 }
 
 pub struct TotalFood(pub i32);
+
+/// Маркер для забора — текстура зависит от соседей
+#[derive(Debug)]
+pub struct FenceComponent;
+
+impl Component for FenceComponent {
+    type Storage = VecStorage<Self>;
+}

@@ -116,6 +116,11 @@ const ALL_OBJECTS: &[Object] = &[
         texture_frame: [0, 1], texture_count: [2, 2],
         animated: true, frame_paths: &["tex/decor/welcome/welcome_0.png", "tex/decor/welcome/welcome_1.png"],
     },
+    Object {
+        width: 1, height: 1, name: "fence", path: "tex/decor/fence/fence_0_0_0_0.png",
+        texture_frame: [0, 0], texture_count: [1, 1],
+        animated: false, frame_paths: &[],
+    },
 ];
 
 const INITIAL_SLOTS: [&str; SLOT_COUNT] = ["box", "sign", "rack", "table", "cassa"];
@@ -196,6 +201,8 @@ pub fn add(ecs: &mut EcsAdapter, slots: &mut Vec<Slot>, act_slot: i32, cursor_en
                     food_count: 0,
                     max_food: 15,
                 }).ok();
+            } else if active_slot.name == "fence" {
+                ecs.world.write_storage::<crate::FenceComponent>().insert(entity, crate::FenceComponent).ok();
             }
         }
     }

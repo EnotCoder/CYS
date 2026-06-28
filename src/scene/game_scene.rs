@@ -37,6 +37,10 @@ pub struct GameScene {
     total_food_sprite_key: Option<String>,
     current_total_food: i32,
     object_hover_text: Option<specs::Entity>,
+    slot_tooltip_text: Option<specs::Entity>,
+    slot_tooltip_text_key: Option<String>,
+    slot_tooltip_bg: Option<specs::Entity>,
+    slot_tooltip_bg_key: Option<String>,
 }
 
 impl GameScene {
@@ -69,6 +73,10 @@ impl GameScene {
             total_food_sprite_key: None,
             current_total_food: -1,
             object_hover_text: None,
+            slot_tooltip_text: None,
+            slot_tooltip_text_key: None,
+            slot_tooltip_bg: None,
+            slot_tooltip_bg_key: None,
         }
     }
 
@@ -92,7 +100,7 @@ impl GameScene {
 
         self.slots = crate::slot_object::get_slot_vec();
 
-        text_renderer.add_text(ecs, device, queue, "Pre alpha", FONT_SIZE_LOGO, -4.0, 4.0, 2.0, 4.0, WHITE);
+        text_renderer.add_text(ecs, device, queue, "Pre alpha", FONT_SIZE_LOGO, -5.0, 4.0, 2.0, 4.0, WHITE);
 
         let icon_mode = ecs.add_ui(ICON_MODE_X, SLOT_BAR_Y, MODE_ICON_TEX[0]);
 
@@ -216,6 +224,10 @@ impl Scene for GameScene {
         self.total_food_sprite_key = None;
         self.current_total_food = -1;
         self.object_hover_text = None;
+        self.slot_tooltip_text = None;
+        self.slot_tooltip_text_key = None;
+        self.slot_tooltip_bg = None;
+        self.slot_tooltip_bg_key = None;
         ecs.world.write_resource::<TotalFood>().0 = 0;
     }
 
@@ -334,6 +346,72 @@ impl Scene for GameScene {
         } else if let Some(ent) = self.object_hover_text.take() {
             ecs.delete_entity(ent);
         }
+        // --- Tooltip для ячеек инвентаря ---
+        let slot_tooltip = if self.inventory.mode {
+            input.cursor().and_then(|(mx, my)| {
+                let (wx, wy) = crate::util::ndc_to_world(mx, my, window_size, 1.0, 0.0, 0.0);
+                let col = (wx - SLOT_BAR_X + TILE_HALF) as i32;
+                let row = (wy - INVENTORY_BASE_Y + TILE_HALF) as i32;
+                if col >= 0 && col < INVENTORY_COLS && row >= 0 && row < INVENTORY_ROWS {
+                    let item_idx = crate::util::inventory_index(row, col) as usize;
+                    let items = self.inventory.items();
+                    if item_idx < items.len() {
+                        let name = items[item_idx];
+                        Some((name, SLOT_BAR_X + col as f32, INVENTORY_BASE_Y + row as f32 - 0.55))
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                }
+            })
+        } else {
+            None
+        };
+        if let Some((name, tx, ty)) = slot_tooltip {
+            if let Some(old) = self.slot_tooltip_text.take() {
+                ecs.delete_entity(old);
+            }
+            if let Some(old_key) = self.slot_tooltip_text_key.take() {
+                ecs.sprite_cache.remove(&old_key);
+            }
+            if let Some(old_bg) = self.slot_tooltip_bg.take() {
+                ecs.delete_entity(old_bg);
+            }
+            if let Some(old_key) = self.slot_tooltip_bg_key.take() {
+                ecs.sprite_cache.remove(&old_key);
+            }
+            let display_name = name.replace('_', " ");
+            let char_w = 0.14;
+            let text_w = (display_name.len() as f32).max(1.0) * char_w;
+            let (_, text_h) = text_renderer.text_world_size(&display_name, FONT_SIZE_LOGO, text_w, 4.0, WHITE);
+            let pad_x = 0.10;
+            let pad_y = 0.04;
+            let bg_w = text_w + pad_x * 2.0;
+            let bg_h = text_h + pad_y * 2.0;
+            let bg_ent = ecs.add_ui_sized(tx, ty, bg_w, bg_h, "tex/black.png", device, queue);
+            self.slot_tooltip_bg = Some(bg_ent);
+            let text_ent = text_renderer.add_text_fixed(ecs, device, queue, &display_name, FONT_SIZE_LOGO, tx, ty, text_w, text_h, 4.0, WHITE);
+            self.slot_tooltip_text = Some(text_ent);
+            let text_key = TextRenderer::sprite_cache_key(tx, ty, &display_name, FONT_SIZE_LOGO, 4.0, WHITE);
+            self.slot_tooltip_text_key = Some(text_key);
+            let frame_key = format!("{:?}_{:?}", [0, 0], [1, 1]);
+            let bg_key = format!("ui_{}_{}_{}_{}_1", tx, ty, "tex/black.png", frame_key);
+            self.slot_tooltip_bg_key = Some(bg_key);
+        } else {
+            if let Some(old) = self.slot_tooltip_text.take() {
+                ecs.delete_entity(old);
+            }
+            if let Some(old_key) = self.slot_tooltip_text_key.take() {
+                ecs.sprite_cache.remove(&old_key);
+            }
+            if let Some(old_bg) = self.slot_tooltip_bg.take() {
+                ecs.delete_entity(old_bg);
+            }
+            if let Some(old_key) = self.slot_tooltip_bg_key.take() {
+                ecs.sprite_cache.remove(&old_key);
+            }
+        }
         {
             let total = ecs.world.read_resource::<TotalFood>().0;
             if total != self.current_total_food {
@@ -345,9 +423,9 @@ impl Scene for GameScene {
                     ecs.sprite_cache.remove(&key);
                 }
                 let text = format!("Food: {}", total);
-                let ent = text_renderer.add_text(ecs, device, queue, &text, 64.0, 5.0, 3.5, 1.0, 4.0, WHITE);
+                let ent = text_renderer.add_text(ecs, device, queue, &text, 64.0, 5.75, 3.5, 1.0, 4.0, WHITE);
                 self.total_food_text = Some(ent);
-                self.total_food_sprite_key = Some(TextRenderer::sprite_cache_key(5.0, 3.5, &text, 24.0, 1.0, GREEN));
+                self.total_food_sprite_key = Some(TextRenderer::sprite_cache_key(5.75, 3.5, &text, 24.0, 1.0, GREEN));
             }
         }
 

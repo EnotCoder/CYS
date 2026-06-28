@@ -49,7 +49,7 @@ pub const MOUSE_BUTTON_LEFT: usize = 0;
 pub const MOUSE_BUTTON_MIDDLE: usize = 2;
 
 // === Окно ===
-pub const WINDOW_WIDTH: u32 = 1000;
+pub const WINDOW_WIDTH: u32 = 1200;
 pub const WINDOW_HEIGHT: u32 = 800;
 
 // === Спрайты/анимация ===
@@ -86,7 +86,7 @@ pub const SLOT_CURSOR_TEX: &str = "tex/ui/icon_slots/cursor.png";
 pub const INV_REGULAR: &[&str] = &["box", "sign", "rack", "table", "cassa", "ice_cream", "arcade_machine", "candies"];
 pub const INV_CARPETS: &[&str] = 
 &[
-    "carpet", "red_carpet", "green_carpet", "white_carpet", "black_carpet", 
+    "blue_carpet", "red_carpet", "green_carpet", "white_carpet", "black_carpet", 
     "iron_panel", "gold_panel", "diamond_panel"
 ];
 pub const INV_WALLDECOR: &[&str] = &["welcome"];
@@ -108,7 +108,7 @@ pub const MODE_ICON_TEX: [&str; 3] = [
 ];
 
 // === Пути к текстурам ковров ===
-pub const CARPET_NAMES: [&str; 8] = ["carpet", "red_carpet", "green_carpet", "white_carpet", "black_carpet", "iron_panel", "gold_panel", "diamond_panel"];
+pub const CARPET_NAMES: [&str; 8] = ["blue_carpet", "red_carpet", "green_carpet", "white_carpet", "black_carpet", "iron_panel", "gold_panel", "diamond_panel"];
 
 // === Меню ===
 pub const BTN_X: f32 = 0.0;

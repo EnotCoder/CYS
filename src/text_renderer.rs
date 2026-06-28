@@ -130,6 +130,19 @@ impl TextRenderer {
         &self.tex_cache[&key]
     }
 
+    pub fn text_world_size(
+        &mut self,
+        text: &str,
+        font_size: f32,
+        world_width: f32,
+        outline: f32,
+        color: [u8; 3],
+    ) -> (f32, f32) {
+        let (_, tw, th) = self.rasterize(text, font_size, outline, color).clone();
+        let aspect = tw as f32 / th as f32;
+        (world_width, world_width / aspect)
+    }
+
     pub fn add_text(
         &mut self,
         ecs: &mut crate::EcsAdapter,
@@ -144,6 +157,47 @@ impl TextRenderer {
         color: [u8; 3],
     ) -> specs::Entity {
         self.add_text_z(ecs, device, queue, text, font_size, x, y, world_width, outline, color, crate::constants::Z_UI)
+    }
+
+    pub fn add_text_fixed(
+        &mut self,
+        ecs: &mut crate::EcsAdapter,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        text: &str,
+        font_size: f32,
+        x: f32,
+        y: f32,
+        world_width: f32,
+        world_height: f32,
+        outline: f32,
+        color: [u8; 3],
+    ) -> specs::Entity {
+        let (rgba, tw, th) = self.rasterize(text, font_size, outline, color).clone();
+
+        let tex = Texture::from_rgba(device, queue, &rgba, tw, th, text);
+        let sprite = Sprite::from_texture(device, &tex, text, world_width, world_height);
+
+        let text_key = Self::cache_key(text, font_size, outline, color);
+        let skey = format!("ui_{}_{}_{}_[0, 0]_[1, 1]_1", x, y, text_key);
+        ecs.sprite_cache.insert(skey, sprite);
+
+        ecs.world
+            .create_entity()
+            .with(crate::Transform {
+                position: [x, y, crate::constants::Z_UI],
+            })
+            .with(crate::SpriteComponent {
+                texture_path: text_key,
+                texture_frame: [0, 0],
+                texture_count: [1, 1],
+                scale: 1.0,
+                alpha: 1.0,
+                animated: false,
+                frame_paths: Vec::new(),
+                current_frame: 0,
+            })
+            .build()
     }
 
     pub fn add_text_z(

@@ -72,7 +72,7 @@ const ALL_OBJECTS: &[Object] = &[
     },
     //carpets
     Object {
-        width: 1, height: 1, name: "carpet", path: "tex/decor/carpet.png",
+        width: 1, height: 1, name: "blue_carpet", path: "tex/decor/carpet.png",
         texture_frame: [0, 0], texture_count: [4, 4],
         animated: false, frame_paths: &[],
     },

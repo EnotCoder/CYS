@@ -1,7 +1,7 @@
 use specs::{World, WorldExt, Join};
 use std::collections::{HashMap, HashSet};
 use crate::Sprite;
-use crate::ecs::components::{Transform, SpriteComponent, Rotation, ObjectTag, FoodStorage, TotalFood, FenceComponent, CassaBusy};
+use crate::ecs::components::{Transform, SpriteComponent, Rotation, ObjectTag, FoodStorage, TotalFood, FenceComponent, CassaBusy, Money};
 use crate::{GroupComponent, GroupInfoResource};
 use crate::constants::*;
 
@@ -46,6 +46,7 @@ impl EcsAdapter {
         });
         world.insert(TotalFood(0));
         world.insert(CassaBusy(false));
+        world.insert(Money(0));
 
         Self {
             world,

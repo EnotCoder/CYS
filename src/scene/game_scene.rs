@@ -7,7 +7,7 @@ use crate::constants::*;
 use crate::inventory::Inventory;
 use crate::pathfinding::Node;
 use crate::npc::Npc;
-use crate::ecs::components::{FoodStorage, ObjectTag, TotalFood, CassaBusy, Transform};
+use crate::ecs::components::{FoodStorage, ObjectTag, TotalFood, CassaBusy, Transform, Money};
 use crate::shopper_npc::ShopperNpc;
 
 pub struct GameScene {
@@ -37,6 +37,9 @@ pub struct GameScene {
     total_food_text: Option<specs::Entity>,
     total_food_sprite_key: Option<String>,
     current_total_food: i32,
+    money_text: Option<specs::Entity>,
+    money_sprite_key: Option<String>,
+    current_money: i32,
     object_hover_text: Option<specs::Entity>,
     slot_tooltip_text: Option<specs::Entity>,
     slot_tooltip_text_key: Option<String>,
@@ -75,6 +78,9 @@ impl GameScene {
             total_food_text: None,
             total_food_sprite_key: None,
             current_total_food: -1,
+            money_text: None,
+            money_sprite_key: None,
+            current_money: -1,
             object_hover_text: None,
             slot_tooltip_text: None,
             slot_tooltip_text_key: None,
@@ -228,6 +234,9 @@ impl Scene for GameScene {
         self.total_food_text = None;
         self.total_food_sprite_key = None;
         self.current_total_food = -1;
+        self.money_text = None;
+        self.money_sprite_key = None;
+        self.current_money = -1;
         self.object_hover_text = None;
         self.slot_tooltip_text = None;
         self.slot_tooltip_text_key = None;
@@ -435,6 +444,22 @@ impl Scene for GameScene {
                 let ent = text_renderer.add_text(ecs, device, queue, &text, 64.0, 5.75, 3.5, 1.0, 4.0, WHITE);
                 self.total_food_text = Some(ent);
                 self.total_food_sprite_key = Some(TextRenderer::sprite_cache_key(5.75, 3.5, &text, 24.0, 1.0, GREEN));
+            }
+        }
+        {
+            let money = ecs.world.read_resource::<Money>().0;
+            if money != self.current_money {
+                self.current_money = money;
+                if let Some(entity) = self.money_text.take() {
+                    ecs.delete_entity(entity);
+                }
+                if let Some(key) = self.money_sprite_key.take() {
+                    ecs.sprite_cache.remove(&key);
+                }
+                let text = format!("Money: {}", money);
+                let ent = text_renderer.add_text(ecs, device, queue, &text, 64.0, 5.75, 3.0, 1.0, 4.0, WHITE);
+                self.money_text = Some(ent);
+                self.money_sprite_key = Some(TextRenderer::sprite_cache_key(5.75, 3.0, &text, 24.0, 1.0, GREEN));
             }
         }
 

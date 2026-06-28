@@ -4,7 +4,7 @@ use specs::Join;
 use crate::pathfinding::{Node, find_path};
 use crate::constants::*;
 use crate::EcsAdapter;
-use crate::ecs::components::{FoodStorage, ObjectTag, Transform, CassaBusy};
+use crate::ecs::components::{FoodStorage, ObjectTag, Transform, CassaBusy, Money};
 
 enum ShopperState {
     GoingToRack,
@@ -165,6 +165,7 @@ impl ShopperNpc {
                 self.set_texture(ecs, TEX_PLAYER_IDLE);
                 if self.state_timer <= 0.0 {
                     ecs.world.write_resource::<CassaBusy>().0 = false;
+                    ecs.world.write_resource::<Money>().0 += 5;
                     return true; // деспавн
                 }
             }

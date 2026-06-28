@@ -28,12 +28,6 @@ use slot_object::Slot;
 use ecs::*;
 use fps::FpsCounter;
 
-const EMPTY_UNIFORMS: Uniforms = Uniforms {
-    translation: [0.0; 4],
-    rotation: [0.0; 4],
-    _padding: [0.0; 3],
-};
-
 #[tokio::main]
 async fn main() {
     let event_loop = EventLoop::new().unwrap();
@@ -99,10 +93,6 @@ async fn main() {
                 let fps = fps_counter.tick();
                 scene_manager.update_fps(fps, &mut text_renderer, &wgpu_app.device, &wgpu_app.queue);
 
-                wgpu_app
-                    .queue
-                    .write_buffer(&wgpu_app.uniform_buffer, 0, bytemuck::cast_slice(&[EMPTY_UNIFORMS]));
-
                 let ms = scene_manager.scenes.get(&scene_manager.current).unwrap().map_size();
                 let (cam_x, cam_y) = scene_manager.scenes.get(&scene_manager.current).unwrap().camera_offset();
                 let aspect = window_size.0 / window_size.1;
@@ -116,8 +106,11 @@ async fn main() {
                     .queue
                     .write_buffer(&wgpu_app.ui_uniform_buffer, 0, bytemuck::cast_slice(&[ui_uniforms]));
 
+                let vis_w = 2.0 * aspect / (SHADER_SCALE * ms);
+                let vis_h = 2.0 / (SHADER_SCALE * ms);
+                let bounds = Some((cam_x - vis_w/2.0, cam_x + vis_w/2.0, cam_y - vis_h/2.0, cam_y + vis_h/2.0));
                 let (map_sprites, carpet_sprites, decor_sprites, npc_sprites, cursor_sprites, ui_sprites) =
-                    scene_manager.scenes.get(&scene_manager.current).unwrap().sprites(&scene_manager.ecs);
+                    scene_manager.scenes.get(&scene_manager.current).unwrap().sprites(&scene_manager.ecs, bounds);
 
                 render(
                     &surface,

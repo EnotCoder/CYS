@@ -162,6 +162,7 @@ impl EcsAdapter {
 
     pub fn get_sprites_by_layer(
         &self,
+        visible_bounds: Option<(f32, f32, f32, f32)>,
     ) -> (
         Vec<SpriteRenderData>,
         Vec<SpriteRenderData>,
@@ -174,6 +175,7 @@ impl EcsAdapter {
         let sprites = self.world.read_storage::<SpriteComponent>();
         let rotations = self.world.read_storage::<Rotation>();
 
+        let margin = 2.0;
         let mut map_sprites = Vec::with_capacity(100);
         let mut carpet_sprites = Vec::with_capacity(20);
         let mut decor_sprites = Vec::with_capacity(20);
@@ -193,6 +195,19 @@ impl EcsAdapter {
             };
 
             let z = transform.position[2];
+            let should_cull = z == crate::constants::Z_MAP
+                || z == crate::constants::Z_CARPET
+                || z == crate::constants::Z_DECOR
+                || z == crate::constants::Z_NPC;
+            if should_cull {
+                if let Some((l, r, b, t)) = visible_bounds {
+                    let x = transform.position[0];
+                    let y = transform.position[1];
+                    if x + 1.0 + margin < l || x - margin > r || y + 1.0 + margin < b || y - margin > t {
+                        continue;
+                    }
+                }
+            }
             if z == crate::constants::Z_MAP {
                 map_sprites.push(data);
             } else if z == crate::constants::Z_CARPET {

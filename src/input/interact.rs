@@ -2,7 +2,7 @@ use specs::{Entity, WorldExt};
 use crate::{EcsAdapter, Slot};
 use crate::slot_object::{add, remove};
 use crate::constants::*;
-use crate::ecs::components::{FoodStorage, TotalFood};
+use crate::ecs::components::{FoodStorage, ObjectTag, TotalFood};
 
 pub fn try_interact(ecs: &mut EcsAdapter, cursor: Entity) -> bool {
     let (cx, cy) = ecs.get_transform_position(cursor);
@@ -14,21 +14,48 @@ pub fn try_interact(ecs: &mut EcsAdapter, cursor: Entity) -> bool {
             groups.groups.get(&gid).and_then(|g| g.entities.first().copied())
         };
         if let Some(entity) = first_entity {
-            let mut food = None;
+            let mut obj_name = None;
+            let mut food_storage = None;
             {
+                let tags = ecs.world.read_storage::<ObjectTag>();
+                if let Some(tag) = tags.get(entity) {
+                    obj_name = Some(tag.name.clone());
+                }
                 let foods = ecs.world.read_storage::<FoodStorage>();
                 if let Some(storage) = foods.get(entity) {
-                    if storage.food_count > 0 {
-                        food = Some(storage.food_count);
-                    }
+                    food_storage = Some((storage.food_count, storage.max_food));
                 }
             }
-            if let Some(count) = food {
-                ecs.world.write_storage::<FoodStorage>().get_mut(entity).map(|s| {
-                    s.food_count = 0;
-                });
-                ecs.world.write_resource::<TotalFood>().0 += count;
-                ecs.update_box_textures();
+            if let Some(name) = obj_name {
+                if name == "box" {
+                    if let Some((count, _)) = food_storage {
+                        if count > 0 {
+                            ecs.world.write_storage::<FoodStorage>().get_mut(entity).map(|s| {
+                                s.food_count = 0;
+                            });
+                            ecs.world.write_resource::<TotalFood>().0 += count;
+                            ecs.update_object_textures();
+                        }
+                    }
+                } else if name == "rack" {
+                    if let Some((count, max)) = food_storage {
+                        if count < max {
+                            let take = {
+                                let mut total = ecs.world.write_resource::<TotalFood>();
+                                let can_take = max - count;
+                                let take = can_take.min(total.0);
+                                total.0 -= take;
+                                take
+                            };
+                            if take > 0 {
+                                ecs.world.write_storage::<FoodStorage>().get_mut(entity).map(|s| {
+                                    s.food_count += take;
+                                });
+                                ecs.update_object_textures();
+                            }
+                        }
+                    }
+                }
             }
 
             let sprites = ecs.world.read_storage::<crate::SpriteComponent>();

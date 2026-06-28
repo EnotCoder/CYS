@@ -39,7 +39,7 @@ const ALL_OBJECTS: &[Object] = &[
         animated: false, frame_paths: &[],
     },
     Object {
-        width: 1, height: 2, name: "rack", path: "tex/decor/rack.png",
+        width: 1, height: 2, name: "rack", path: "tex/decor/rack/rack_0.png",
         texture_frame: [0, 1], texture_count: [1, 2],
         animated: false, frame_paths: &[],
     },
@@ -190,6 +190,11 @@ pub fn add(ecs: &mut EcsAdapter, slots: &mut Vec<Slot>, act_slot: i32, cursor_en
                 ecs.world.write_storage::<crate::FoodStorage>().insert(entity, crate::FoodStorage {
                     food_count: 0,
                     max_food: 20,
+                }).ok();
+            } else if active_slot.name == "rack" {
+                ecs.world.write_storage::<crate::FoodStorage>().insert(entity, crate::FoodStorage {
+                    food_count: 0,
+                    max_food: 15,
                 }).ok();
             }
         }

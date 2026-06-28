@@ -7,7 +7,7 @@ use crate::constants::*;
 use crate::inventory::Inventory;
 use crate::pathfinding::Node;
 use crate::npc::Npc;
-use crate::ecs::components::{FoodStorage, TotalFood};
+use crate::ecs::components::{FoodStorage, ObjectTag, TotalFood};
 
 pub struct GameScene {
     loaded: bool,
@@ -36,7 +36,7 @@ pub struct GameScene {
     total_food_text: Option<specs::Entity>,
     total_food_sprite_key: Option<String>,
     current_total_food: i32,
-    box_hover_text: Option<specs::Entity>,
+    object_hover_text: Option<specs::Entity>,
 }
 
 impl GameScene {
@@ -68,7 +68,7 @@ impl GameScene {
             total_food_text: None,
             total_food_sprite_key: None,
             current_total_food: -1,
-            box_hover_text: None,
+            object_hover_text: None,
         }
     }
 
@@ -215,7 +215,7 @@ impl Scene for GameScene {
         self.total_food_text = None;
         self.total_food_sprite_key = None;
         self.current_total_food = -1;
-        self.box_hover_text = None;
+        self.object_hover_text = None;
         ecs.world.write_resource::<TotalFood>().0 = 0;
     }
 
@@ -295,17 +295,18 @@ impl Scene for GameScene {
         if self.food_timer >= 1.0 {
             self.food_timer -= 1.0;
             {
+                let tags = ecs.world.read_storage::<ObjectTag>();
                 let mut foods = ecs.world.write_storage::<FoodStorage>();
-                for storage in (&mut foods).join() {
-                    if storage.food_count < storage.max_food {
+                for (tag, storage) in (&tags, &mut foods).join() {
+                    if tag.name == "box" && storage.food_count < storage.max_food {
                         storage.food_count += 1;
                     }
                 }
             }
-            ecs.update_box_textures();
+            ecs.update_object_textures();
         }
         let cursor_pos = self.cursor_entity.map(|e| ecs.get_transform_position(e));
-        let hovered_box = cursor_pos.and_then(|(cx, cy)| {
+        let hovered_object = cursor_pos.and_then(|(cx, cy)| {
             let gx = cx as i32;
             let gy = cy as i32;
             if let Some(gid) = ecs.find_group_at_position(gx, gy) {
@@ -313,22 +314,24 @@ impl Scene for GameScene {
                 if let Some(info) = groups.groups.get(&gid) {
                     if let Some(first) = info.entities.first() {
                         let foods = ecs.world.read_storage::<FoodStorage>();
+                        let tags = ecs.world.read_storage::<ObjectTag>();
                         if let Some(f) = foods.get(*first) {
-                            return Some((f.food_count, f.max_food));
+                            let name = tags.get(*first).map(|t| t.name.clone()).unwrap_or("Object".to_string());
+                            return Some((f.food_count, f.max_food, name));
                         }
                     }
                 }
             }
             None
         });
-        if let Some((food, max)) = hovered_box {
-            let text = format!("Box: {}/{}", food, max);
-            if let Some(old_ent) = self.box_hover_text.take() {
+        if let Some((food, max, name)) = hovered_object {
+            let text = format!("{}: {}/{}", name, food, max);
+            if let Some(old_ent) = self.object_hover_text.take() {
                 ecs.delete_entity(old_ent);
             }
             let ent = text_renderer.add_text(ecs, device, queue, &text, 48.0, 0.0, -3.0, 2.0, 1.0, WHITE);
-            self.box_hover_text = Some(ent);
-        } else if let Some(ent) = self.box_hover_text.take() {
+            self.object_hover_text = Some(ent);
+        } else if let Some(ent) = self.object_hover_text.take() {
             ecs.delete_entity(ent);
         }
         {

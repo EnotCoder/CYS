@@ -211,19 +211,43 @@ impl EcsAdapter {
         (map_sprites, carpet_sprites, decor_sprites, npc_sprites, cursor_sprites, ui_sprites)
     }
 
-    pub fn update_box_textures(&mut self) {
-        use crate::ecs::components::{FoodStorage, SpriteComponent};
+    pub fn update_object_textures(&mut self) {
+        let mut updates: Vec<(u32, String)> = Vec::new();
+        {
+            let tags = self.world.read_storage::<ObjectTag>();
+            let foods = self.world.read_storage::<FoodStorage>();
+            let groups = self.world.read_storage::<GroupComponent>();
+            for (tag, food, group) in (&tags, &foods, &groups).join() {
+                let tex = if tag.name == "box" {
+                    if food.food_count < 8 {
+                        "tex/decor/box/box_0.png"
+                    } else if food.food_count < 12 {
+                        "tex/decor/box/box_1.png"
+                    } else {
+                        "tex/decor/box/box_2.png"
+                    }
+                } else if tag.name == "rack" {
+                    if food.food_count == 0 {
+                        "tex/decor/rack/rack_0.png"
+                    } else {
+                        "tex/decor/rack/rack_1.png"
+                    }
+                } else {
+                    continue;
+                };
+                updates.push((group.group_id, tex.to_string()));
+            }
+        }
+        let group_info = self.world.read_resource::<crate::GroupInfoResource>();
         let mut sprites = self.world.write_storage::<SpriteComponent>();
-        let foods = self.world.read_storage::<FoodStorage>();
-        for (food, sprite) in (&foods, &mut sprites).join() {
-            let tex = if food.food_count < 8 {
-                "tex/decor/box/box_0.png"
-            } else if food.food_count < 12 {
-                "tex/decor/box/box_1.png"
-            } else {
-                "tex/decor/box/box_2.png"
-            };
-            sprite.texture_path = tex.to_string();
+        for (gid, tex) in &updates {
+            if let Some(info) = group_info.groups.get(gid) {
+                for &entity in &info.entities {
+                    if let Some(sprite) = sprites.get_mut(entity) {
+                        sprite.texture_path = tex.clone();
+                    }
+                }
+            }
         }
     }
 }

@@ -16,6 +16,7 @@ mod fps;
 mod inventory;
 mod pathfinding;
 mod npc;
+mod shopper_npc;
 mod constants;
 mod util;
 

@@ -49,13 +49,16 @@ pub fn load_walkable_cells() -> HashSet<Node> {
     let mut cells = HashSet::new();
     for (j, line) in src.lines().enumerate() {
         for (i, token) in line.split_whitespace().enumerate() {
-            if matches!(token, "@" | "!" | "." | "~") {
+            if matches!(token, "@" | "!" | "." | "~" | "0" | "+" | "*" | "m" | "f" | "l" | "$" | "1" | "2" | "3" | "4" | "5" | "6") {
                 let wx = i as f32 + WORLD_OFFSET_X;
                 let wy = -(j as f32) + WORLD_OFFSET_Y;
                 cells.insert(Node::from_world(wx, wy));
             }
         }
     }
+    // Дверные тайлы магазина — стены визуально, но проходимы для NPC
+    cells.insert(Node::new(0, -5));
+    cells.insert(Node::new(0, -6));
     cells
 }
 

@@ -7,7 +7,8 @@ use crate::constants::*;
 use crate::inventory::Inventory;
 use crate::pathfinding::Node;
 use crate::npc::Npc;
-use crate::ecs::components::{FoodStorage, ObjectTag, TotalFood};
+use crate::ecs::components::{FoodStorage, ObjectTag, TotalFood, CassaBusy, Transform};
+use crate::shopper_npc::ShopperNpc;
 
 pub struct GameScene {
     loaded: bool,
@@ -41,6 +42,8 @@ pub struct GameScene {
     slot_tooltip_text_key: Option<String>,
     slot_tooltip_bg: Option<specs::Entity>,
     slot_tooltip_bg_key: Option<String>,
+    shoppers: Vec<ShopperNpc>,
+    shopper_timer: f64,
 }
 
 impl GameScene {
@@ -77,6 +80,8 @@ impl GameScene {
             slot_tooltip_text_key: None,
             slot_tooltip_bg: None,
             slot_tooltip_bg_key: None,
+            shoppers: Vec::new(),
+            shopper_timer: 0.0,
         }
     }
 
@@ -228,7 +233,10 @@ impl Scene for GameScene {
         self.slot_tooltip_text_key = None;
         self.slot_tooltip_bg = None;
         self.slot_tooltip_bg_key = None;
+        self.shoppers.clear();
+        self.shopper_timer = 0.0;
         ecs.world.write_resource::<TotalFood>().0 = 0;
+        ecs.world.write_resource::<CassaBusy>().0 = false;
     }
 
     fn update(&mut self, ecs: &mut crate::EcsAdapter, input: &winit_input_helper::WinitInputHelper, window_size: (f32, f32), text_renderer: &mut crate::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) -> SceneAction {
@@ -442,6 +450,50 @@ impl Scene for GameScene {
         }
 
         crate::npc::move_npcs(&mut self.npcs, ecs, dt, &self.npc_walkable);
+
+        // --- Shopper NPCs ---
+        self.shopper_timer += dt;
+        if self.shopper_timer >= SHOPPER_SPAWN_INTERVAL && self.shoppers.len() < MAX_SHOPPERS {
+            self.shopper_timer = 0.0;
+            let (rack_pos, cassa_pos) = {
+                let tags = ecs.world.read_storage::<ObjectTag>();
+                let foods = ecs.world.read_storage::<FoodStorage>();
+                let transforms = ecs.world.read_storage::<Transform>();
+                let mut rack = None;
+                let mut cassa = None;
+                for (tag, transform) in (&tags, &transforms).join() {
+                    if tag.name == "cassa" {
+                        let cx = transform.position[0] as i32;
+                        let cy = transform.position[1] as i32;
+                        cassa = Some(Node::new(cx, cy));
+                    }
+                }
+                for (tag, food, transform) in (&tags, &foods, &transforms).join() {
+                    if tag.name == "rack" && food.food_count > 0 {
+                        let rx = transform.position[0] as i32;
+                        let ry = transform.position[1] as i32;
+                        rack = Some(Node::new(rx, ry + 1));
+                    }
+                }
+                (rack, cassa)
+            };
+            if let (Some(rack), Some(cassa)) = (rack_pos, cassa_pos) {
+                let spawn_x = (rack.x + cassa.x) / 2;
+                let spawn_y = rack.y.min(cassa.y) - 3;
+                let spawn_node = Node::new(spawn_x, spawn_y);
+                if let Some(shopper) = ShopperNpc::spawn(ecs, &self.npc_walkable, spawn_node, rack, cassa) {
+                    self.shoppers.push(shopper);
+                }
+            }
+        }
+        self.shoppers.retain_mut(|shopper| {
+            let done = shopper.update(ecs, dt, &self.npc_walkable);
+            if done {
+                shopper.despawn(ecs);
+            }
+            !done
+        });
+
         self.update_animations(ecs, dt);
 
         SceneAction::None

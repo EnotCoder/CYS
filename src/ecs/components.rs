@@ -90,6 +90,9 @@ impl Component for FoodStorage {
 
 pub struct TotalFood(pub i32);
 
+/// Ресурс: занята ли касса покупателем
+pub struct CassaBusy(pub bool);
+
 /// Маркер для забора — текстура зависит от соседей
 #[derive(Debug)]
 pub struct FenceComponent;

@@ -293,10 +293,15 @@ impl Scene for GameScene {
                         ecs.update_sprite_texture(entity, tex);
                     }
                     if !self.active {
-                        for mut shopper in self.shoppers.drain(..) {
-                            shopper.despawn(ecs);
+                        for shopper in &mut self.shoppers {
+                            shopper.set_exiting(true);
                         }
-        ecs.world.write_resource::<BusyCassas>().0.clear();
+                    } else {
+                        for shopper in &mut self.shoppers {
+                            if !shopper.has_taken_food() {
+                                shopper.set_exiting(false);
+                            }
+                        }
                     }
                 }
                 // --- Клик по mode ---

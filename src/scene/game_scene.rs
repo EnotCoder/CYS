@@ -538,7 +538,7 @@ impl Scene for GameScene {
             };
             if let (Some(rack), Some(cassa)) = (rack_pos, cassa_pos) {
                 let spawn_x = (rack.x + cassa.x) / 2;
-                let spawn_y = rack.y.min(cassa.y) - 3;
+                let spawn_y = rack.y.min(cassa.y) - 4;
                 let spawn_node = Node::new(spawn_x, spawn_y);
                 if let Some(shopper) = ShopperNpc::spawn(ecs, &self.npc_walkable, spawn_node, rack, cassa) {
                     self.shoppers.push(shopper);

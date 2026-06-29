@@ -4,7 +4,7 @@ use specs::Join;
 use crate::pathfinding::{Node, find_path};
 use crate::constants::*;
 use crate::EcsAdapter;
-use crate::ecs::components::{FoodStorage, ObjectTag, Transform, CassaBusy, Money};
+use crate::ecs::components::{FoodStorage, ObjectTag, Transform, BusyCassas, Money};
 
 enum ShopperState {
     GoingToRack,
@@ -119,9 +119,6 @@ impl ShopperNpc {
         taken
     }
 
-    pub fn rack_target(&self) -> Node { self.rack_pos }
-    pub fn cassa_target(&self) -> Node { self.cassa_pos }
-
     /// Деспавн — удаление entity
     pub fn despawn(&mut self, ecs: &mut EcsAdapter) {
         ecs.delete_entity(self.entity);
@@ -133,9 +130,14 @@ impl ShopperNpc {
             ShopperState::GoingToRack => {
                 if self.path_index >= self.path.len() {
                     self.set_texture(ecs, TEX_PLAYER_IDLE);
+                    let cp = (self.cassa_pos.x, self.cassa_pos.y);
+                    if ecs.world.read_resource::<BusyCassas>().0.contains(&cp) {
+                        return false; // эта касса занята — ждём у rack, еду НЕ берём
+                    }
                     if !self.take_food(ecs) {
                         return true; // еды нет — уходим
                     }
+                    ecs.world.write_resource::<BusyCassas>().0.insert(cp);
                     let from = Node::from_world(self.pos.0, self.pos.1);
                     if let Some(path) = find_path(walkable, from, self.cassa_pos) {
                         self.path = path;
@@ -152,10 +154,6 @@ impl ShopperNpc {
             ShopperState::GoingToCassa => {
                 if self.path_index >= self.path.len() {
                     self.set_texture(ecs, TEX_PLAYER_IDLE);
-                    if ecs.world.read_resource::<CassaBusy>().0 {
-                        return false; // касса занята — ждём здесь (очередь)
-                    }
-                    ecs.world.write_resource::<CassaBusy>().0 = true;
                     self.state = ShopperState::AtCassa;
                     self.state_timer = CASSA_WAIT_SECS;
                     return false;
@@ -167,7 +165,7 @@ impl ShopperNpc {
                 self.state_timer -= dt;
                 self.set_texture(ecs, TEX_PLAYER_IDLE);
                 if self.state_timer <= 0.0 {
-                    ecs.world.write_resource::<CassaBusy>().0 = false;
+                    ecs.world.write_resource::<BusyCassas>().0.remove(&(self.cassa_pos.x, self.cassa_pos.y));
                     ecs.world.write_resource::<Money>().0 += 5;
                     return true; // деспавн
                 }

@@ -43,8 +43,6 @@ pub const TEX_PLAYER_WALK_1: &str = "tex/characters/player_walk_1.png";
 pub const TEX_PLAYER_WALK_2: &str = "tex/characters/player_walk_2.png";
 
 // === Shopping NPC ===
-/// Интервал появления покупателей (сек)
-pub const SHOPPER_SPAWN_INTERVAL: f64 = 3.0;
 /// Сколько секунд покупатель стоит у кассы
 pub const CASSA_WAIT_SECS: f64 = 1.0;
 /// Максимум активных покупателей

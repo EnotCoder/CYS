@@ -7,7 +7,7 @@ use crate::constants::*;
 use crate::inventory::Inventory;
 use crate::pathfinding::Node;
 use crate::npc::Npc;
-use crate::ecs::components::{FoodStorage, ObjectTag, TotalFood, CassaBusy, Transform, Money};
+use crate::ecs::components::{FoodStorage, ObjectTag, TotalFood, BusyCassas, Transform, Money};
 use crate::shopper_npc::ShopperNpc;
 
 pub struct GameScene {
@@ -253,7 +253,7 @@ impl Scene for GameScene {
         self.active = true;
         self.active_entity = None;
         ecs.world.write_resource::<TotalFood>().0 = 0;
-        ecs.world.write_resource::<CassaBusy>().0 = false;
+        ecs.world.write_resource::<BusyCassas>().0.clear();
     }
 
     fn update(&mut self, ecs: &mut crate::EcsAdapter, input: &winit_input_helper::WinitInputHelper, window_size: (f32, f32), text_renderer: &mut crate::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) -> SceneAction {
@@ -296,7 +296,7 @@ impl Scene for GameScene {
                         for mut shopper in self.shoppers.drain(..) {
                             shopper.despawn(ecs);
                         }
-                        ecs.world.write_resource::<CassaBusy>().0 = false;
+        ecs.world.write_resource::<BusyCassas>().0.clear();
                     }
                 }
                 // --- Клик по mode ---
@@ -512,7 +512,7 @@ impl Scene for GameScene {
 
         // --- Shopper NPCs ---
         self.shopper_timer += dt;
-        if self.active && self.shopper_timer >= SHOPPER_SPAWN_INTERVAL && self.shoppers.len() < MAX_SHOPPERS {
+        if self.active && self.shopper_timer >= 3.0 && self.shoppers.len() < MAX_SHOPPERS {
             self.shopper_timer = 0.0;
             let (all_racks, all_cassas) = {
                 let tags = ecs.world.read_storage::<ObjectTag>();
@@ -522,35 +522,21 @@ impl Scene for GameScene {
                 let mut cassas = Vec::new();
                 for (tag, transform) in (&tags, &transforms).join() {
                     if tag.name == "cassa" {
-                        let cx = transform.position[0] as i32;
-                        let cy = transform.position[1] as i32;
-                        cassas.push(Node::new(cx, cy));
+                        cassas.push(Node::new(transform.position[0] as i32, transform.position[1] as i32));
                     }
                 }
                 for (tag, food, transform) in (&tags, &foods, &transforms).join() {
                     if tag.name == "rack" && food.food_count > 0 {
-                        let rx = transform.position[0] as i32;
-                        let ry = transform.position[1] as i32;
-                        racks.push(Node::new(rx, ry + 1));
+                        racks.push(Node::new(transform.position[0] as i32, transform.position[1] as i32 + 1));
                     }
                 }
                 (racks, cassas)
             };
-            if all_racks.is_empty() || all_cassas.is_empty() {
-                // ничего не делаем, ждём следующего тика
-            }
-            // Какие rack/cassa уже заняты другими NPC
-            let occupied_racks: std::collections::HashSet<Node> =
-                self.shoppers.iter().map(|s| s.rack_target()).collect();
-            let occupied_cassas: std::collections::HashSet<Node> =
-                self.shoppers.iter().map(|s| s.cassa_target()).collect();
-            let free_racks: Vec<&Node> = all_racks.iter().filter(|r| !occupied_racks.contains(r)).collect();
-            let free_cassas: Vec<&Node> = all_cassas.iter().filter(|c| !occupied_cassas.contains(c)).collect();
-            if !free_racks.is_empty() && !free_cassas.is_empty() {
+            if !all_racks.is_empty() && !all_cassas.is_empty() {
                 let seed = std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH).unwrap().subsec_nanos();
-                let rack = *free_racks[(seed as usize) % free_racks.len()];
-                let cassa = *free_cassas[((seed >> 16) as usize) % free_cassas.len()];
+                let rack = all_racks[(seed as usize) % all_racks.len()];
+                let cassa = all_cassas[((seed >> 16) as usize) % all_cassas.len()];
                 let spawn_node = crate::map_loader::shopper_spawn_point();
                 if let Some(shopper) = ShopperNpc::spawn(ecs, &self.npc_walkable, spawn_node, rack, cassa) {
                     self.shoppers.push(shopper);

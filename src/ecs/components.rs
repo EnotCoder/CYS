@@ -1,5 +1,5 @@
 use specs::{Component, VecStorage};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 #[derive(Debug)]
 pub struct Transform {
@@ -93,8 +93,8 @@ pub struct TotalFood(pub i32);
 /// Деньги игрока
 pub struct Money(pub i32);
 
-/// Ресурс: занята ли касса покупателем
-pub struct CassaBusy(pub bool);
+/// Ресурс: какие кассы заняты (по позициям)
+pub struct BusyCassas(pub HashSet<(i32, i32)>);
 
 /// Маркер для забора — текстура зависит от соседей
 #[derive(Debug)]

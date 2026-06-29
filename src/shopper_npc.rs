@@ -119,6 +119,9 @@ impl ShopperNpc {
         taken
     }
 
+    pub fn rack_target(&self) -> Node { self.rack_pos }
+    pub fn cassa_target(&self) -> Node { self.cassa_pos }
+
     /// Деспавн — удаление entity
     pub fn despawn(&mut self, ecs: &mut EcsAdapter) {
         ecs.delete_entity(self.entity);

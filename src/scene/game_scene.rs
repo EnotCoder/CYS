@@ -514,32 +514,44 @@ impl Scene for GameScene {
         self.shopper_timer += dt;
         if self.active && self.shopper_timer >= SHOPPER_SPAWN_INTERVAL && self.shoppers.len() < MAX_SHOPPERS {
             self.shopper_timer = 0.0;
-            let (rack_pos, cassa_pos) = {
+            let (all_racks, all_cassas) = {
                 let tags = ecs.world.read_storage::<ObjectTag>();
                 let foods = ecs.world.read_storage::<FoodStorage>();
                 let transforms = ecs.world.read_storage::<Transform>();
-                let mut rack = None;
-                let mut cassa = None;
+                let mut racks = Vec::new();
+                let mut cassas = Vec::new();
                 for (tag, transform) in (&tags, &transforms).join() {
                     if tag.name == "cassa" {
                         let cx = transform.position[0] as i32;
                         let cy = transform.position[1] as i32;
-                        cassa = Some(Node::new(cx, cy));
+                        cassas.push(Node::new(cx, cy));
                     }
                 }
                 for (tag, food, transform) in (&tags, &foods, &transforms).join() {
                     if tag.name == "rack" && food.food_count > 0 {
                         let rx = transform.position[0] as i32;
                         let ry = transform.position[1] as i32;
-                        rack = Some(Node::new(rx, ry + 1));
+                        racks.push(Node::new(rx, ry + 1));
                     }
                 }
-                (rack, cassa)
+                (racks, cassas)
             };
-            if let (Some(rack), Some(cassa)) = (rack_pos, cassa_pos) {
-                let spawn_x = (rack.x + cassa.x) / 2;
-                let spawn_y = rack.y.min(cassa.y) - 4;
-                let spawn_node = Node::new(spawn_x, spawn_y);
+            if all_racks.is_empty() || all_cassas.is_empty() {
+                // ничего не делаем, ждём следующего тика
+            }
+            // Какие rack/cassa уже заняты другими NPC
+            let occupied_racks: std::collections::HashSet<Node> =
+                self.shoppers.iter().map(|s| s.rack_target()).collect();
+            let occupied_cassas: std::collections::HashSet<Node> =
+                self.shoppers.iter().map(|s| s.cassa_target()).collect();
+            let free_racks: Vec<&Node> = all_racks.iter().filter(|r| !occupied_racks.contains(r)).collect();
+            let free_cassas: Vec<&Node> = all_cassas.iter().filter(|c| !occupied_cassas.contains(c)).collect();
+            if !free_racks.is_empty() && !free_cassas.is_empty() {
+                let seed = std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH).unwrap().subsec_nanos();
+                let rack = *free_racks[(seed as usize) % free_racks.len()];
+                let cassa = *free_cassas[((seed >> 16) as usize) % free_cassas.len()];
+                let spawn_node = crate::map_loader::shopper_spawn_point();
                 if let Some(shopper) = ShopperNpc::spawn(ecs, &self.npc_walkable, spawn_node, rack, cassa) {
                     self.shoppers.push(shopper);
                 }

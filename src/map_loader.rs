@@ -62,6 +62,28 @@ pub fn load_walkable_cells() -> HashSet<Node> {
     cells
 }
 
+/// Находит точку спавна покупателей — самая нижняя клетка `0` (пол магазина),
+/// ближайшая к центру по X.
+pub fn shopper_spawn_point() -> Node {
+    let src = include_str!("../map.txt");
+    let mut best: Option<Node> = None;
+    for (j, line) in src.lines().enumerate() {
+        for (i, token) in line.split_whitespace().enumerate() {
+            if token == "0" {
+                let node = Node::new(i as i32 + WORLD_OFFSET_X as i32, -(j as i32) + WORLD_OFFSET_Y as i32);
+                let better = match best {
+                    None => true,
+                    Some(cur) => node.y < cur.y || (node.y == cur.y && node.x.abs() < cur.x.abs()),
+                };
+                if better {
+                    best = Some(node);
+                }
+            }
+        }
+    }
+    best.unwrap_or(Node::new(0, -4))
+}
+
 fn token_to_texture(token: &str) -> (&str, [i32; 2], [i32; 2]) {
     match token {
         "." => ("tex/grass.png", [0, 0], [4, 4]),

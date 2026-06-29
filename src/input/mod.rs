@@ -34,7 +34,10 @@ pub fn do_input(
         let skip = inventory_mode || input.cursor().map_or(false, |(mx, my)| {
             let (wx, wy) = crate::util::ndc_to_world(mx, my, window_size, 1.0, 0.0, 0.0);
             let col = (wx - SLOT_BAR_X + TILE_HALF) as i32;
-            (wy - SLOT_BAR_Y).abs() < TILE_HALF && col >= 0 && col < slots.len() as i32
+            let on_slot = (wy - SLOT_BAR_Y).abs() < TILE_HALF && col >= 0 && col < slots.len() as i32;
+            let on_icons = (wy - SLOT_BAR_Y).abs() < TILE_HALF
+                && ((wx - ICON_MODE_X).abs() < TILE_HALF || (wx - ACTIVE_X).abs() < TILE_HALF);
+            on_slot || on_icons
         });
         if !skip {
             show_ilm = interact::do_interact(ecs, cursor_entity, new_mode, slots, act_slot);

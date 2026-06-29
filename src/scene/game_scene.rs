@@ -47,6 +47,8 @@ pub struct GameScene {
     slot_tooltip_bg_key: Option<String>,
     shoppers: Vec<ShopperNpc>,
     shopper_timer: f64,
+    active: bool,
+    active_entity: Option<specs::Entity>,
 }
 
 impl GameScene {
@@ -88,6 +90,8 @@ impl GameScene {
             slot_tooltip_bg_key: None,
             shoppers: Vec::new(),
             shopper_timer: 0.0,
+            active: true,
+            active_entity: None,
         }
     }
 
@@ -114,6 +118,8 @@ impl GameScene {
         text_renderer.add_text(ecs, device, queue, "Pre alpha", FONT_SIZE_LOGO, -5.0, 4.0, 2.0, 4.0, WHITE);
 
         let icon_mode = ecs.add_ui(ICON_MODE_X, SLOT_BAR_Y, MODE_ICON_TEX[0]);
+        let active_entity = ecs.add_ui(ACTIVE_X, SLOT_BAR_Y, TEX_ACTIVE);
+        self.active_entity = Some(active_entity);
 
         for (i, slot) in self.slots.iter().enumerate() {
             let ent = ecs.add_ui(
@@ -244,6 +250,8 @@ impl Scene for GameScene {
         self.slot_tooltip_bg_key = None;
         self.shoppers.clear();
         self.shopper_timer = 0.0;
+        self.active = true;
+        self.active_entity = None;
         ecs.world.write_resource::<TotalFood>().0 = 0;
         ecs.world.write_resource::<CassaBusy>().0 = false;
     }
@@ -273,6 +281,32 @@ impl Scene for GameScene {
         self.mode = result.1;
         self.map_size = result.2;
         let show_ilm = result.3;
+
+        // --- Toggle active/not active ---
+        if input.mouse_pressed(MOUSE_BUTTON_LEFT) && !self.inventory.mode {
+            if let Some((mx, my)) = input.cursor() {
+                let (wx, wy) = crate::util::ndc_to_world(mx, my, window_size, 1.0, 0.0, 0.0);
+                if (wx - ACTIVE_X).abs() < TILE_HALF && (wy - SLOT_BAR_Y).abs() < TILE_HALF {
+                    self.active = !self.active;
+                    let tex = if self.active { TEX_ACTIVE } else { TEX_NO_ACTIVE };
+                    if let Some(entity) = self.active_entity {
+                        ecs.update_sprite_texture(entity, tex);
+                    }
+                    if !self.active {
+                        for mut shopper in self.shoppers.drain(..) {
+                            shopper.despawn(ecs);
+                        }
+                        ecs.world.write_resource::<CassaBusy>().0 = false;
+                    }
+                }
+                // --- Клик по mode ---
+                if (wx - ICON_MODE_X).abs() < TILE_HALF && (wy - SLOT_BAR_Y).abs() < TILE_HALF {
+                    let cursor = self.cursor_entity.unwrap();
+                    let icon_mode = self.icon_mode.unwrap();
+                    self.mode = crate::input::interact::cycle_mode(self.mode, ecs, cursor, icon_mode);
+                }
+            }
+        }
 
         if show_ilm && self.ilm_cooldown <= 0.0 && self.ilm_entity.is_none() {
             let ent = text_renderer.add_text(ecs, device, queue, "Minecraft", 48.0, 0.0, -3.0, 2.0, 1.0, WHITE);
@@ -478,7 +512,7 @@ impl Scene for GameScene {
 
         // --- Shopper NPCs ---
         self.shopper_timer += dt;
-        if self.shopper_timer >= SHOPPER_SPAWN_INTERVAL && self.shoppers.len() < MAX_SHOPPERS {
+        if self.active && self.shopper_timer >= SHOPPER_SPAWN_INTERVAL && self.shoppers.len() < MAX_SHOPPERS {
             self.shopper_timer = 0.0;
             let (rack_pos, cassa_pos) = {
                 let tags = ecs.world.read_storage::<ObjectTag>();

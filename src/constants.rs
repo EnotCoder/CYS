@@ -108,6 +108,12 @@ pub const CURSOR_TEX: [&str; 3] = [
 ];
 pub const CURSOR_ERR_TEX: &str = "tex/cursor/err cursor.png";
 
+// === Active toggle ===
+/// Позиция спрайта вкл/выкл NPC (левее mode)
+pub const ACTIVE_X: f32 = ICON_MODE_X + 1.0;
+pub const TEX_ACTIVE: &str = "tex/ui/active/active.png";
+pub const TEX_NO_ACTIVE: &str = "tex/ui/active/no_active.png";
+
 // === Текстуры иконки режима ===
 pub const MODE_ICON_TEX: [&str; 3] = [
     "tex/ui/mode/standart_mode.png",

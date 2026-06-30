@@ -15,19 +15,34 @@ impl EcsAdapter {
         cursor_x: f32, cursor_y: f32,
         width: i32, height: i32,
         valid: bool,
+        tex_path: &str,
+        base_frame: [i32; 2],
+        tex_count: [i32; 2],
     ) {
         self.clear_cursor_preview();
-        let tex = if valid { crate::constants::CURSOR_TEX[1] } else { crate::constants::CURSOR_ERR_TEX };
+        let cur_tex = if valid { crate::constants::CURSOR_TEX[1] } else { crate::constants::CURSOR_ERR_TEX };
+        let ghost_alpha = if valid { 0.5 } else { 0.3 };
 
         for i in 0..width {
             for j in 0..height {
-                if i == 0 && j == 0 {
-                    continue;
+                if i != 0 || j != 0 {
+                    let entity = crate::ecs::factory::create_sprite(
+                        &mut self.world,
+                        cursor_x + i as f32, cursor_y + j as f32, Z_CURSOR,
+                        cur_tex, [0, 0], [1, 1], 1.0, 1.0,
+                    );
+                    self.cursor_preview.push(entity);
                 }
                 let entity = crate::ecs::factory::create_sprite(
                     &mut self.world,
                     cursor_x + i as f32, cursor_y + j as f32, Z_CURSOR,
-                    tex, [0, 0], [1, 1], 1.0, 1.0,
+                    tex_path,
+                    [
+                        (base_frame[0] + i) % tex_count[0],
+                        (base_frame[1] + j) % tex_count[1],
+                    ],
+                    tex_count,
+                    1.0, ghost_alpha,
                 );
                 self.cursor_preview.push(entity);
             }

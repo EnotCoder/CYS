@@ -77,5 +77,12 @@ pub fn update_cursor_preview(ecs: &mut EcsAdapter, mode: i32, slots: &[Slot], ac
     let is_carpet = is_carpet_name(slot.obj.name);
     let is_wall_decor = is_wall_decor_name(slot.obj.name);
     let valid = ecs.can_place_at(cx as i32, cy as i32, slot.obj.width, slot.obj.height, is_carpet, is_wall_decor);
-    ecs.update_cursor_preview(cx, cy, slot.obj.width, slot.obj.height, valid);
+    ecs.update_cursor_preview(
+        cx, cy,
+        slot.obj.width, slot.obj.height,
+        valid,
+        slot.obj.path,
+        slot.obj.texture_frame,
+        slot.obj.texture_count,
+    );
 }

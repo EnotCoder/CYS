@@ -35,6 +35,7 @@ impl MenuScene {
         self.play_label = Some(pl);
         self.quit_bg = Some(qb);
         self.quit_label = Some(ql);
+        ecs.add_ui(LOGO_UI_X, LOGO_UI_Y, TEX_MY_LOGO);
     }
 
     fn is_inside(input: &winit_input_helper::WinitInputHelper, window_size: (f32, f32), bx: f32, by: f32, bw: f32, bh: f32) -> bool {

@@ -283,6 +283,9 @@
         .feature-card:nth-child(4) { animation-delay: 0.7s; }
         .feature-card:nth-child(5) { animation-delay: 0.8s; }
         .feature-card:nth-child(6) { animation-delay: 0.9s; }
+        .feature-card:nth-child(7) { animation-delay: 1.0s; }
+        .feature-card:nth-child(8) { animation-delay: 1.1s; }
+        .feature-card:nth-child(9) { animation-delay: 1.2s; }
 
         .feature-card:hover {
             transform: translateY(-8px) scale(1.02);
@@ -788,8 +791,8 @@
             50% { opacity: 0; }
         }
 
-        /* Rust Code Floating Background */
-        .code-bg {
+        /* Floating Game Blocks Background */
+        .blocks-bg {
             position: fixed;
             top: 0;
             left: 0;
@@ -800,39 +803,41 @@
             overflow: hidden;
         }
 
-        .code-snippet {
+        .float-block {
             position: absolute;
-            font-family: 'SF Mono', 'Fira Code', 'Courier New', monospace;
-            font-size: 0.65rem;
-            line-height: 1.4;
-            color: var(--accent);
-            opacity: 0.07;
-            white-space: pre;
-            animation: code-float 30s infinite linear;
-            text-shadow: 0 0 8px var(--glow);
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+            opacity: 0;
+            animation: block-float 30s infinite linear;
+            filter: drop-shadow(0 0 6px var(--glow));
         }
 
-        [data-theme="light"] .code-snippet {
-            opacity: 0.06;
+        [data-theme="light"] .float-block {
+            opacity: 0;
+            filter: drop-shadow(0 0 4px rgba(210, 153, 34, 0.15));
         }
 
-        .code-snippet:nth-child(1) { left: 3%; top: 10%; animation-duration: 35s; animation-delay: 0s; font-size: 0.6rem; }
-        .code-snippet:nth-child(2) { left: 70%; top: 45%; animation-duration: 28s; animation-delay: -5s; font-size: 0.7rem; }
-        .code-snippet:nth-child(3) { left: 45%; top: 5%; animation-duration: 32s; animation-delay: -10s; font-size: 0.55rem; }
-        .code-snippet:nth-child(4) { left: 15%; top: 70%; animation-duration: 26s; animation-delay: -3s; font-size: 0.65rem; }
-        .code-snippet:nth-child(5) { left: 85%; top: 20%; animation-duration: 38s; animation-delay: -8s; font-size: 0.6rem; }
-        .code-snippet:nth-child(6) { left: 55%; top: 80%; animation-duration: 30s; animation-delay: -15s; font-size: 0.7rem; }
-        .code-snippet:nth-child(7) { left: 10%; top: 40%; animation-duration: 33s; animation-delay: -7s; font-size: 0.55rem; }
-        .code-snippet:nth-child(8) { left: 40%; top: 55%; animation-duration: 27s; animation-delay: -12s; font-size: 0.65rem; }
+        .float-block:nth-child(1) { left: 2%; top: 8%; animation-duration: 32s; animation-delay: 0s; width: 28px; }
+        .float-block:nth-child(2) { left: 12%; top: 55%; animation-duration: 26s; animation-delay: -4s; width: 24px; }
+        .float-block:nth-child(3) { left: 22%; top: 85%; animation-duration: 30s; animation-delay: -8s; width: 32px; }
+        .float-block:nth-child(4) { left: 35%; top: 20%; animation-duration: 28s; animation-delay: -2s; width: 22px; }
+        .float-block:nth-child(5) { left: 48%; top: 70%; animation-duration: 34s; animation-delay: -12s; width: 30px; }
+        .float-block:nth-child(6) { left: 58%; top: 10%; animation-duration: 25s; animation-delay: -6s; width: 26px; }
+        .float-block:nth-child(7) { left: 68%; top: 40%; animation-duration: 31s; animation-delay: -10s; width: 20px; }
+        .float-block:nth-child(8) { left: 78%; top: 75%; animation-duration: 27s; animation-delay: -14s; width: 34px; }
+        .float-block:nth-child(9) { left: 88%; top: 15%; animation-duration: 29s; animation-delay: -3s; width: 24px; }
+        .float-block:nth-child(10) { left: 45%; top: 50%; animation-duration: 33s; animation-delay: -9s; width: 28px; }
+        .float-block:nth-child(11) { left: 72%; top: 88%; animation-duration: 26s; animation-delay: -5s; width: 22px; }
+        .float-block:nth-child(12) { left: 8%; top: 35%; animation-duration: 30s; animation-delay: -11s; width: 30px; }
 
-        @keyframes code-float {
-            0% { transform: translateY(0) translateX(0) rotate(0deg); opacity: 0; }
-            5% { opacity: var(--op, 0.07); }
-            45% { opacity: var(--op, 0.07); }
-            50% { transform: translateY(-80px) translateX(20px) rotate(2deg); }
-            55% { opacity: var(--op, 0.07); }
-            95% { opacity: var(--op, 0.07); }
-            100% { transform: translateY(0) translateX(0) rotate(0deg); opacity: 0; }
+        @keyframes block-float {
+            0% { transform: translateY(0) rotate(0deg) scale(1); opacity: 0; }
+            5% { opacity: 0.12; }
+            45% { opacity: 0.12; }
+            50% { transform: translateY(-60px) rotate(15deg) scale(1.1); }
+            55% { opacity: 0.12; }
+            95% { opacity: 0.12; }
+            100% { transform: translateY(0) rotate(0deg) scale(1); opacity: 0; }
         }
 
         @media (max-width: 768px) {
@@ -848,46 +853,19 @@
 <body>
     <div class="particles" id="particles"></div>
 
-    <div class="code-bg">
-        <pre class="code-snippet">fn main() {
-    let shop = Shop::new();
-    shop.run();
-}</pre>
-        <pre class="code-snippet">struct Shop {
-    grid: [[Tile; 9]; 9],
-    mode: Mode,
-    slot: usize,
-}</pre>
-        <pre class="code-snippet">enum Mode {
-    Standard,
-    Build,
-    Delete,
-}</pre>
-        <pre class="code-snippet">impl Shop {
-    fn place(&mut self, obj: &Object) -> Result&lt;()&gt; {
-        if self.can_place(obj) {
-            self.grid[x][y] = obj;
-            Ok(())
-        } else {
-            Err("invalid position")
-        }
-    }
-}</pre>
-        <pre class="code-snippet">trait Renderable {
-    fn draw(&self, ctx: &mut RenderCtx);
-}</pre>
-        <pre class="code-snippet">fn load_texture(path: &str) -> Texture {
-    let img = image::open(path).unwrap();
-    Texture::from_image(&img)
-}</pre>
-        <pre class="code-snippet">match event {
-    Event::Key(k) => match k {
-        Key::W => cursor.move_up(),
-        Key::F => shop.interact(),
-        _ => {}
-    },
-    _ => {}
-}</pre>
+    <div class="blocks-bg">
+        <img class="float-block" src="tex/ui/icon_slots/box.png" alt="">
+        <img class="float-block" src="tex/ui/icon_slots/sign.png" alt="">
+        <img class="float-block" src="tex/ui/icon_slots/rack.png" alt="">
+        <img class="float-block" src="tex/ui/icon_slots/table.png" alt="">
+        <img class="float-block" src="tex/ui/icon_slots/cassa.png" alt="">
+        <img class="float-block" src="tex/ui/icon_slots/ice_cream.png" alt="">
+        <img class="float-block" src="tex/ui/icon_slots/candies.png" alt="">
+        <img class="float-block" src="tex/ui/icon_slots/arcade_machine.png" alt="">
+        <img class="float-block" src="tex/ui/icon_slots/fence.png" alt="">
+        <img class="float-block" src="tex/ui/icon_slots/red_carpet.png" alt="">
+        <img class="float-block" src="tex/ui/icon_slots/blue_carpet.png" alt="">
+        <img class="float-block" src="tex/ui/icon_slots/welcome.png" alt="">
     </div>
 
     <!-- Theme Toggle -->
@@ -938,17 +916,27 @@
             <div class="feature-card">
                 <div class="feature-icon"><img src="tex/decor/table.png" alt="Building"></div>
                 <h3>Grid-Based Building</h3>
-                <p>Place and remove objects on a 9x9 grid system with precise positioning</p>
+                <p>Place and remove objects on a large map with precise positioning. Build your dream shop!</p>
             </div>
             <div class="feature-card">
                 <div class="feature-icon"><img src="tex/ui/mode/standart_mode.png" alt="Modes"></div>
                 <h3>Multiple Modes</h3>
-                <p>Switch between Standard, Build, and Delete modes for different actions</p>
+                <p>Switch between Standard (interact), Build, and Delete modes for different actions</p>
             </div>
             <div class="feature-card">
-                <div class="feature-icon"><img src="tex/ui/icon_slots/box.png" alt="Inventory"></div>
-                <h3>6 Inventory Slots</h3>
-                <p>Different objects with varying sizes (1x1, 1x2, 2x1) to decorate your shop</p>
+                <div class="feature-icon"><img src="tex/ui/icon_slots/box.png" alt="Food"></div>
+                <h3>Food System</h3>
+                <p>Boxes auto-generate food. Click to collect, click rack to stock. Feed your customers!</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon"><img src="tex/characters/player.png" alt="NPC"></div>
+                <h3>Shopper NPCs</h3>
+                <p>Customers spawn at the entrance, pick food from a rack, pay at the cassa, and leave. Watch your shop come alive!</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon"><img src="tex/ui/active/active.png" alt="Active"></div>
+                <h3>Active Toggle</h3>
+                <p>Toggle NPC spawning on/off with a click. Close the shop when you need to restock!</p>
             </div>
             <div class="feature-card">
                 <div class="feature-icon"><img src="tex/decor/carpet.png" alt="Carpet"></div>
@@ -958,12 +946,17 @@
             <div class="feature-card">
                 <div class="feature-icon"><img src="tex/cursor/def_cursor.png" alt="Controls"></div>
                 <h3>Mouse & Keyboard</h3>
-                <p>Scroll to zoom, WASD to move cursor, and intuitive key bindings</p>
+                <p>Scroll to zoom, WASD/arrows to pan, click to interact, and intuitive key bindings</p>
             </div>
             <div class="feature-card">
-                <div class="feature-icon"><img src="tex/decor/sign.png" alt="Sprites"></div>
-                <h3>Sprite Atlas Support</h3>
-                <p>Objects can use multi-frame textures from texture atlases</p>
+                <div class="feature-icon"><img src="tex/decor/sign.png" alt="Fence"></div>
+                <h3>Smart Fences</h3>
+                <p>Fences auto-connect to neighbors with dynamic textures. Create enclosures effortlessly!</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon"><img src="tex/ui/icon_slots/welcome.png" alt="Inventory"></div>
+                <h3>Inventory System</h3>
+                <p>Press E to open inventory with categorized tabs (Objects, Carpets, Wall Decor). 25 slots!</p>
             </div>
         </div>
 
@@ -974,8 +967,8 @@
             <h2>🖱️ Controls</h2>
             <div class="controls-grid">
                 <div class="control-item">
-                    <span class="control-key">W / A / S / D</span>
-                    <span class="control-action">Move cursor (200ms move delay)</span>
+                    <span class="control-key">Mouse Move</span>
+                    <span class="control-action">Move cursor (hover over tiles)</span>
                 </div>
                 <div class="control-item">
                     <span class="control-key">F</span>
@@ -996,6 +989,22 @@
                 <div class="control-item">
                     <span class="control-key">Mouse Scroll</span>
                     <span class="control-action">Zoom in / out</span>
+                </div>
+                <div class="control-item">
+                    <span class="control-key">E</span>
+                    <span class="control-action">Open/close inventory</span>
+                </div>
+                <div class="control-item">
+                    <span class="control-key">I</span>
+                    <span class="control-action">Toggle tooltip visibility</span>
+                </div>
+                <div class="control-item">
+                    <span class="control-key">G</span>
+                    <span class="control-action">Interact (collect food from box / fill rack)</span>
+                </div>
+                <div class="control-item">
+                    <span class="control-key">Click</span>
+                    <span class="control-action">Interact with mode icon / active toggle</span>
                 </div>
             </div>
         </div>
@@ -1022,22 +1031,34 @@
 
         <!-- Objects -->
         <h2><img class="game-icon" src="tex/ui/icon_slots/box.png" alt=""> Available Objects</h2>
+        <p style="color: var(--text-secondary); margin-bottom: 0.5rem;">Press <strong>E</strong> to open the full inventory with categorized tabs.</p>
         <table class="object-table">
             <thead>
                 <tr>
-                    <th>Slot</th>
                     <th>Object</th>
                     <th>Size</th>
-                    <th>Type</th>
+                    <th>Category</th>
                 </tr>
             </thead>
             <tbody>
-                <tr><td>0</td><td><img class="game-icon-sm" src="tex/ui/icon_slots/box.png" alt=""> Box</td><td>1x1</td><td>Decor</td></tr>
-                <tr><td>1</td><td><img class="game-icon-sm" src="tex/ui/icon_slots/carpet.png" alt=""> Carpet</td><td>1x1</td><td>Carpet</td></tr>
-                <tr><td>2</td><td><img class="game-icon-sm" src="tex/ui/icon_slots/sign.png" alt=""> Sign</td><td>1x1</td><td>Decor</td></tr>
-                <tr><td>3</td><td><img class="game-icon-sm" src="tex/ui/icon_slots/rack.png" alt=""> Rack</td><td>1x2</td><td>Decor</td></tr>
-                <tr><td>4</td><td><img class="game-icon-sm" src="tex/ui/icon_slots/table.png" alt=""> Table</td><td>2x1</td><td>Decor</td></tr>
-                <tr><td>5</td><td><img class="game-icon-sm" src="tex/ui/icon_slots/red_carpet.png" alt=""> Red Carpet</td><td>1x1</td><td>Carpet</td></tr>
+                <tr><td><img class="game-icon-sm" src="tex/ui/icon_slots/box.png" alt=""> Box</td><td>1x1</td><td>Objects</td></tr>
+                <tr><td><img class="game-icon-sm" src="tex/ui/icon_slots/sign.png" alt=""> Sign</td><td>1x1</td><td>Objects</td></tr>
+                <tr><td><img class="game-icon-sm" src="tex/ui/icon_slots/rack.png" alt=""> Rack</td><td>1x2</td><td>Objects</td></tr>
+                <tr><td><img class="game-icon-sm" src="tex/ui/icon_slots/table.png" alt=""> Table</td><td>2x1</td><td>Objects</td></tr>
+                <tr><td><img class="game-icon-sm" src="tex/ui/icon_slots/cassa.png" alt=""> Cassa</td><td>2x2</td><td>Objects</td></tr>
+                <tr><td><img class="game-icon-sm" src="tex/ui/icon_slots/ice_cream.png" alt=""> Ice Cream</td><td>2x1</td><td>Objects</td></tr>
+                <tr><td><img class="game-icon-sm" src="tex/ui/icon_slots/candies.png" alt=""> Candies</td><td>1x2</td><td>Objects</td></tr>
+                <tr><td><img class="game-icon-sm" src="tex/ui/icon_slots/arcade_machine.png" alt=""> Arcade Machine</td><td>1x2</td><td>Objects (animated)</td></tr>
+                <tr><td><img class="game-icon-sm" src="tex/ui/icon_slots/fence.png" alt=""> Fence</td><td>1x1</td><td>Objects (auto-connects)</td></tr>
+                <tr><td><img class="game-icon-sm" src="tex/ui/icon_slots/carpet.png" alt=""> Blue Carpet</td><td>1x1</td><td>Carpets</td></tr>
+                <tr><td><img class="game-icon-sm" src="tex/ui/icon_slots/red_carpet.png" alt=""> Red Carpet</td><td>1x1</td><td>Carpets</td></tr>
+                <tr><td><img class="game-icon-sm" src="tex/ui/icon_slots/green_carpet.png" alt=""> Green Carpet</td><td>1x1</td><td>Carpets</td></tr>
+                <tr><td><img class="game-icon-sm" src="tex/ui/icon_slots/white_carpet.png" alt=""> White Carpet</td><td>1x1</td><td>Carpets</td></tr>
+                <tr><td><img class="game-icon-sm" src="tex/ui/icon_slots/black_carpet.png" alt=""> Black Carpet</td><td>1x1</td><td>Carpets</td></tr>
+                <tr><td><img class="game-icon-sm" src="tex/ui/icon_slots/iron_panel.png" alt=""> Iron Panel</td><td>1x1</td><td>Carpets</td></tr>
+                <tr><td><img class="game-icon-sm" src="tex/ui/icon_slots/gold_panel.png" alt=""> Gold Panel</td><td>1x1</td><td>Carpets</td></tr>
+                <tr><td><img class="game-icon-sm" src="tex/ui/icon_slots/diamond_panel.png" alt=""> Diamond Panel</td><td>1x1</td><td>Carpets</td></tr>
+                <tr><td><img class="game-icon-sm" src="tex/ui/icon_slots/welcome.png" alt=""> Welcome</td><td>2x2</td><td>Wall Decor (animated)</td></tr>
             </tbody>
         </table>
 
@@ -1111,30 +1132,42 @@
         <!-- Known Limitations -->
         <h2>⚠️ Known Limitations</h2>
         <div class="description">
-            <p>• Grid is fixed at 9x9 cells (-4 to 5)<br>
-            • Objects cannot be placed outside grid boundaries<br>
-            • Only one object per cell<br>
-            • Decor objects require a carpet underneath</p>
+            <p>• Map is fixed at 40x29 tiles (loaded from map.txt)<br>
+            • Objects cannot be placed outside walkable tiles<br>
+            • Decor objects require a carpet underneath (red/green/blue carpet, etc.)<br>
+            • Wall decor (welcome sign) can only be placed on wall tiles (@)<br>
+            • Only one building object per cell<br>
+            • NPC pathfinding is simple A* - may not find optimal routes in complex layouts</p>
         </div>
 
         <!-- Recent Changes -->
         <h2>📋 Recent Updates</h2>
         <div class="features-grid">
             <div class="feature-card">
-                <div class="feature-icon"><img src="tex/cursor/cursor.png" alt="Fix"></div>
-                <h3>Version 0.1.0-alpha</h3>
-                <p>• Fixed sprite rendering pipeline<br>
-                • Improved ECS integration<br>
-                • Added group object placement system<br>
-                • Enhanced cursor movement with cooldown</p>
+                <div class="feature-icon"><img src="tex/characters/player.png" alt="NPC"></div>
+                <h3>Shopper NPCs</h3>
+                <p>• NPC shoppers spawn, walk to rack, queue at cassa, pay, and leave<br>
+                • Per-cassa busy tracking allows multiple checkout counters<br>
+                • Active toggle to open/close the shop<br>
+                • Money counter (+5 per purchase)<br>
+                • 3 second spawn interval, max 3 concurrent shoppers</p>
             </div>
             <div class="feature-card">
-                <div class="feature-icon"><img src="tex/characters/player.png" alt="Future"></div>
-                <h3>Planned Features</h3>
-                <p>• Save/load shop layouts<br>
-                • More decorative items<br>
-                • Customer AI and shop management<br>
-                • Sound effects and music</p>
+                <div class="feature-icon"><img src="tex/ui/icon_slots/box.png" alt="Food"></div>
+                <h3>Food & Economy</h3>
+                <p>• Boxes auto-generate food over time<br>
+                • Click box to collect food into reserve<br>
+                • Click rack to stock it from reserve<br>
+                • Shoppers take food from rack and pay at cassa</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon"><img src="tex/ui/icon_slots/welcome.png" alt="Inventory"></div>
+                <h3>Inventory & Objects</h3>
+                <p>• Full inventory system with 3 tabs (Objects, Carpets, Wall Decor)<br>
+                • 18+ placeable objects including fence, ice cream, arcade machine<br>
+                • Smart fences with neighbor-aware textures<br>
+                • Tooltip system (press I to toggle)<br>
+                • Frustum culling for performance</p>
             </div>
         </div>
 

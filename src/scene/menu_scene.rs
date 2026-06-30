@@ -1,3 +1,5 @@
+use std::fs::File;
+use std::io::{BufRead, BufReader};
 use crate::scene::scene_trait::{Scene, SceneAction};
 use crate::constants::*;
 
@@ -36,6 +38,54 @@ impl MenuScene {
         self.quit_bg = Some(qb);
         self.quit_label = Some(ql);
         ecs.add_ui(LOGO_UI_X, LOGO_UI_Y, TEX_MY_LOGO);
+        Self::place_decor(ecs);
+    }
+
+    fn place_decor(ecs: &mut crate::EcsAdapter) {
+        let file = File::open("menu_shop.txt").expect("menu_shop.txt not found!");
+        let reader = BufReader::new(file);
+        for (j, line) in reader.lines().flatten().enumerate() {
+            let parts: Vec<&str> = line.split_whitespace().collect();
+            if parts.is_empty() { continue; }
+            for (i, token) in parts.iter().enumerate() {
+                let name = match *token {
+                    "." => continue,
+                    "b" => "box",
+                    "s" => "sign",
+                    "r" => "rack",
+                    "t" => "table",
+                    "c" => "cassa",
+                    "i" => "ice_cream",
+                    "d" => "candies",
+                    "a" => "arcade_machine",
+                    "f" => "fence",
+                    "w" => "welcome",
+                    "0" => "blue_carpet",
+                    "1" => "red_carpet",
+                    "2" => "green_carpet",
+                    "3" => "white_carpet",
+                    "4" => "black_carpet",
+                    "5" => "iron_panel",
+                    "6" => "gold_panel",
+                    "7" => "diamond_panel",
+                    _ => continue,
+                };
+                let x = i as f32 + WORLD_OFFSET_X;
+                let y = -(j as f32) + WORLD_OFFSET_Y;
+                let slot = crate::slot_object::make_slot(name);
+                ecs.add_group_object(
+                    x as i32, y as i32,
+                    slot.obj.width, slot.obj.height,
+                    slot.obj.path,
+                    slot.obj.texture_frame,
+                    slot.obj.texture_count,
+                    crate::slot_object::is_carpet_name(name),
+                    slot.obj.animated,
+                    slot.obj.frame_paths,
+                );
+            }
+        }
+        ecs.update_fence_textures();
     }
 
     fn is_inside(input: &winit_input_helper::WinitInputHelper, window_size: (f32, f32), bx: f32, by: f32, bw: f32, bh: f32) -> bool {

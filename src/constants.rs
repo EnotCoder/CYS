@@ -94,8 +94,9 @@ pub const INV_CARPETS: &[&str] =
     "iron_panel", "gold_panel", "diamond_panel"
 ];
 pub const INV_WALLDECOR: &[&str] = &["welcome"];
-pub const INV_OUTDOOR: &[&str] = &["street_fence", "tree"];
-pub const OUTDOOR_NAMES: [&str; 2] = ["street_fence", "tree"];
+pub const INV_OUTDOOR: &[&str] = &["street_fence", "tree", "pink_flower"];
+pub const OUTDOOR_NAMES: [&str; 3] = ["street_fence", "tree", "pink_flower"];
+pub const FLOWER_NAMES: [&str; 1] = ["pink_flower"];
 pub const INV_TAB_Y: f32 = 2.0;
 
 // === Текстуры курсора по режимам ===

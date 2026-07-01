@@ -131,6 +131,11 @@ const ALL_OBJECTS: &[Object] = &[
         texture_frame: [0, 1], texture_count: [1, 2],
         animated: false, frame_paths: &[],
     },
+    Object {
+        width: 1, height: 1, name: "pink_flower", path: "tex/decor/pink_flower.png",
+        texture_frame: [0, 0], texture_count: [1, 1],
+        animated: false, frame_paths: &[],
+    },
 ];
 
 const INITIAL_SLOTS: [&str; SLOT_COUNT] = ["box", "sign", "rack", "table", "cassa"];
@@ -171,6 +176,10 @@ pub fn is_outdoor_name(name: &str) -> bool {
     crate::constants::OUTDOOR_NAMES.contains(&name)
 }
 
+pub fn is_flower_name(name: &str) -> bool {
+    crate::constants::FLOWER_NAMES.contains(&name)
+}
+
 // ========================================================================
 //  add: Попытка поставить объект из активного слота под курсор
 // ========================================================================
@@ -180,11 +189,12 @@ pub fn add(ecs: &mut EcsAdapter, slots: &mut Vec<Slot>, act_slot: i32, cursor_en
     let is_carpet = is_carpet_name(active_slot.name);
     let is_wall_decor = is_wall_decor_name(active_slot.name);
     let is_outdoor = is_outdoor_name(active_slot.name);
+    let is_flower = is_flower_name(active_slot.name);
 
     if ecs.can_place_at(
         cursor_x as i32, cursor_y as i32,
         active_slot.width, active_slot.height,
-        is_carpet, is_wall_decor, is_outdoor,
+        is_carpet, is_wall_decor, is_outdoor, is_flower,
     ) {
         ecs.clear_cursor_preview();
         let group_id = ecs.add_group_object(

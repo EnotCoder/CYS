@@ -30,6 +30,7 @@ pub struct EcsAdapter {
     pub wall_positions: HashSet<(i32, i32)>,
     pub floor_positions: HashSet<(i32, i32)>,
     pub outdoor_positions: HashSet<(i32, i32)>,
+    pub flower_positions: HashSet<(i32, i32)>,
 }
 
 impl EcsAdapter {
@@ -57,6 +58,7 @@ impl EcsAdapter {
             wall_positions: HashSet::new(),
             floor_positions: HashSet::new(),
             outdoor_positions: HashSet::new(),
+            flower_positions: HashSet::new(),
         }
     }
 

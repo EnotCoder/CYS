@@ -32,8 +32,11 @@ pub fn load_map_to_ecs(ecs: &mut EcsAdapter) {
                 ecs.wall_positions.insert((grid_x, grid_y));
             } else if *token == "0" {
                 ecs.floor_positions.insert((grid_x, grid_y));
-            } else if matches!(*token, "." | "+" | "$") {
+            } else if *token == "." {
                 ecs.outdoor_positions.insert((grid_x, grid_y));
+            }
+            if *token == "." {
+                ecs.flower_positions.insert((grid_x, grid_y));
             }
 
             crate::ecs::factory::create_sprite(
@@ -50,7 +53,7 @@ pub fn load_walkable_cells() -> HashSet<Node> {
     let mut cells = HashSet::new();
     for (j, line) in src.lines().enumerate() {
         for (i, token) in line.split_whitespace().enumerate() {
-            if matches!(token, "@" | "!" | "." | "~" | "0" | "+" | "*" | "m" | "f" | "l" | "$" | "1" | "2" | "3" | "4" | "5" | "6") {
+            if matches!(token, "@" | "!" | "." | "~" | "0" | "*" | "m" | "f" | "l" | "1" | "2" | "3" | "4" | "5" | "6") {
                 let wx = i as f32 + WORLD_OFFSET_X;
                 let wy = -(j as f32) + WORLD_OFFSET_Y;
                 cells.insert(Node::from_world(wx, wy));
@@ -88,14 +91,12 @@ pub fn shopper_spawn_point() -> Node {
 fn token_to_texture(token: &str) -> (&str, [i32; 2], [i32; 2]) {
     match token {
         "." => ("tex/grass.png", [0, 0], [4, 4]),
-        "+" => ("tex/grass.png", [3, 1], [4, 4]),
         "@" => ("tex/grass.png", [0, 2], [4, 4]),
         "*" => ("tex/grass.png", [2, 2], [4, 4]),
         "m" => ("tex/grass.png", [3, 2], [4, 4]),
         "f" => ("tex/grass.png", [2, 3], [4, 4]),
         "~" => ("tex/grass.png", [1, 2], [4, 4]),
         "l" => ("tex/grass.png", [0, 3], [4, 4]),
-        "$" => ("tex/grass.png", [1, 3], [4, 4]),
         //shadow
         "1" => ("tex/grass.png", [0, 1], [4, 4]),
         "2" => ("tex/grass.png", [1, 1], [4, 4]),

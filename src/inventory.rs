@@ -12,7 +12,6 @@ pub struct Inventory {
     pub selected: i32,
     pub tab: i32,
     grid_entities: Vec<Entity>,
-    pub cursor_entity: Option<Entity>,
     tab_entities: Vec<Entity>,
 }
 
@@ -24,7 +23,6 @@ impl Inventory {
             selected: INV_NONE,
             tab: 0,
             grid_entities: Vec::new(),
-            cursor_entity: None,
             tab_entities: Vec::new(),
         }
     }
@@ -35,7 +33,6 @@ impl Inventory {
         self.selected = INV_NONE;
         self.tab = 0;
         self.grid_entities.clear();
-        self.cursor_entity = None;
         self.tab_entities.clear();
     }
 
@@ -48,7 +45,6 @@ impl Inventory {
         self.selected = INV_NONE;
         self.show_grid(ecs);
         self.show_tabs(ecs);
-        self.cursor_entity = Some(Self::make_cursor(ecs, SLOT_BAR_X, INVENTORY_TOP_Y));
         self.open = true;
         self.mode = true;
     }
@@ -58,9 +54,6 @@ impl Inventory {
         self.hide_tabs(ecs);
         self.open = false;
         self.mode = false;
-        if let Some(old) = self.cursor_entity.take() {
-            ecs.delete_entity(old);
-        }
     }
 
     // ================================================================
@@ -99,12 +92,7 @@ impl Inventory {
             let a = if i as i32 == self.tab { 1.0 } else { 0.5 };
             ecs.update_sprite_alpha(*ent, a);
         }
-        if let Some(old) = self.cursor_entity.take() {
-            ecs.delete_entity(old);
-        }
-        self.cursor_entity = Some(Self::make_cursor(ecs, SLOT_BAR_X, INVENTORY_TOP_Y));
         self.selected = INV_NONE;
-        self.update_cursor(ecs);
     }
 
     // ================================================================
@@ -135,17 +123,12 @@ impl Inventory {
     //  Возвращает true, если нужно сделать transfer
     // ================================================================
 
-    pub fn handle_grid_click(&mut self, col: i32, row: i32, ecs: &mut EcsAdapter) -> bool {
+    pub fn handle_grid_click(&mut self, col: i32, row: i32) -> bool {
         if col < 0 || col >= INVENTORY_COLS || row < 0 || row >= INVENTORY_ROWS {
             return false;
         }
-        let idx = row * INVENTORY_COLS + col;
-        if idx == self.selected {
-            return true;
-        }
-        self.selected = idx;
-        self.update_cursor(ecs);
-        false
+        self.selected = row * INVENTORY_COLS + col;
+        true
     }
 
     // ================================================================
@@ -188,31 +171,11 @@ impl Inventory {
             ecs.update_sprite_alpha(ent, a);
             self.tab_entities.push(ent);
         }
-        self.update_cursor(ecs);
     }
 
     fn hide_tabs(&mut self, ecs: &mut EcsAdapter) {
         let removed: Vec<Entity> = self.tab_entities.drain(..).collect();
         ecs.delete_entities(&removed);
-    }
-
-    // ================================================================
-    //  Курсор инвентаря
-    // ================================================================
-
-    fn update_cursor(&self, ecs: &mut EcsAdapter) {
-        if let Some(cursor) = self.cursor_entity {
-            let col = self.selected % INVENTORY_COLS;
-            let row = self.selected / INVENTORY_COLS;
-            ecs.update_transform_position(cursor, SLOT_BAR_X + col as f32, INVENTORY_BASE_Y + row as f32);
-        }
-    }
-
-    fn make_cursor(ecs: &mut EcsAdapter, x: f32, y: f32) -> Entity {
-        crate::ecs::factory::create_sprite(
-            &mut ecs.world, x, y, Z_UI,
-            SLOT_CURSOR_TEX, [0, 0], [1, 1], 1.0, 1.0,
-        )
     }
 
     // ================================================================

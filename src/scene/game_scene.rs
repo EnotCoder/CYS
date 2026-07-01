@@ -187,7 +187,7 @@ impl GameScene {
         if self.inventory.mode {
             let col = (wx - SLOT_BAR_X + TILE_HALF) as i32;
             let row = (wy - INVENTORY_BASE_Y + TILE_HALF) as i32;
-            if self.inventory.handle_grid_click(col, row, ecs) {
+            if self.inventory.handle_grid_click(col, row) {
                 self.inventory.transfer_to_slot(ecs, self.act_slot as usize, &mut self.slots, &self.slot_entities);
             }
             return;

@@ -83,7 +83,6 @@ pub const MAP_FILE: &str = "map.txt";
 
 // === Инвентарь ===
 pub const INVENTORY_BASE_Y: f32 = SLOT_BAR_Y + 1.0;
-pub const INVENTORY_TOP_Y: f32 = INVENTORY_BASE_Y + (INVENTORY_ROWS - 1) as f32;
 pub const INVENTORY_ROWS: i32 = 5;
 pub const INVENTORY_COLS: i32 = 5;
 pub const INV_NONE: i32 = INVENTORY_ROWS * (INVENTORY_COLS - 1);

@@ -86,7 +86,6 @@ impl MenuScene {
             }
         }
         ecs.update_fence_textures();
-        ecs.update_street_fence_textures();
     }
 
     fn is_inside(input: &winit_input_helper::WinitInputHelper, window_size: (f32, f32), bx: f32, by: f32, bw: f32, bh: f32) -> bool {

@@ -98,16 +98,10 @@ pub struct BusyCassas(pub HashSet<(i32, i32)>);
 
 /// Маркер для забора — текстура зависит от соседей
 #[derive(Debug)]
-pub struct FenceComponent;
-
-impl Component for FenceComponent {
-    type Storage = VecStorage<Self>;
+pub struct FenceComponent {
+    pub name: String,
 }
 
-/// Маркер для уличного забора — текстура зависит от соседей слева/справа
-#[derive(Debug)]
-pub struct StreetFenceComponent;
-
-impl Component for StreetFenceComponent {
+impl Component for FenceComponent {
     type Storage = VecStorage<Self>;
 }

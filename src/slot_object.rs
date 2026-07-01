@@ -146,6 +146,16 @@ const ALL_OBJECTS: &[Object] = &[
         texture_frame: [0, 0], texture_count: [1, 1],
         animated: false, frame_paths: &[],
     },
+    Object {
+        width: 1, height: 1, name: "red_flower", path: "tex/decor/red_flower.png",
+        texture_frame: [0, 0], texture_count: [1, 1],
+        animated: false, frame_paths: &[],
+    },
+    Object {
+        width: 1, height: 1, name: "white_flower", path: "tex/decor/white_flower.png",
+        texture_frame: [0, 0], texture_count: [1, 1],
+        animated: false, frame_paths: &[],
+    },
 ];
 
 const INITIAL_SLOTS: [&str; SLOT_COUNT] = ["box", "sign", "rack", "table", "cassa"];

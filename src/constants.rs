@@ -33,7 +33,6 @@ pub const CAMERA_MAP_MAX_Y: f32 = 13.0;
 
 // === NPC ===
 pub const NPC_SPEED: f32 = 3.0;
-pub const NPC_PAUSE_DURATION: f64 = 0.3;
 pub const WALK_ANIM_INTERVAL: f64 = 0.3;
 pub const NPC_SCALE: f32 = 1.5;
 

@@ -6,7 +6,6 @@ use crate::text_renderer::TextRenderer;
 use crate::constants::*;
 use crate::inventory::Inventory;
 use crate::pathfinding::Node;
-use crate::npc::Npc;
 use crate::ecs::components::{FoodStorage, ObjectTag, TotalFood, BusyCassas, Transform, Money};
 use crate::shopper_npc::ShopperNpc;
 
@@ -25,7 +24,6 @@ pub struct GameScene {
     slot_entities: Vec<specs::Entity>,
     inventory: Inventory,
     npc_walkable: HashSet<Node>,
-    npcs: Vec<Npc>,
     last_frame: std::time::Instant,
     anim_timer: f64,
     camera_offset_x: f32,
@@ -68,7 +66,6 @@ impl GameScene {
             slot_entities: Vec::new(),
             inventory: Inventory::new(),
             npc_walkable: HashSet::new(),
-            npcs: Vec::new(),
             last_frame: std::time::Instant::now(),
             anim_timer: 0.0,
             camera_offset_x: 0.0,
@@ -135,7 +132,6 @@ impl GameScene {
         self.cursor_entity = Some(ecs.add_cursor(0.0, 0.0, CURSOR_TEX[0]));
 
         self.npc_walkable = crate::map_loader::load_walkable_cells();
-        self.npcs = crate::npc::setup_npcs(ecs, &self.npc_walkable);
     }
 
     fn update_animations(&mut self, ecs: &mut crate::EcsAdapter, dt: f64) {
@@ -228,7 +224,6 @@ impl Scene for GameScene {
         self.slot_entities.clear();
         self.inventory.reset();
         self.npc_walkable.clear();
-        self.npcs.clear();
         self.last_frame = std::time::Instant::now();
         self.anim_timer = 0.0;
         self.camera_offset_x = 0.0;
@@ -512,8 +507,6 @@ impl Scene for GameScene {
                 self.ilm_entity = None;
             }
         }
-
-        crate::npc::move_npcs(&mut self.npcs, ecs, dt, &self.npc_walkable);
 
         // --- Shopper NPCs ---
         self.shopper_timer += dt;

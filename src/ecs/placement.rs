@@ -17,8 +17,19 @@ impl EcsAdapter {
         width: i32, height: i32,
         is_carpet: bool,
         is_wall_decor: bool,
+        is_outdoor: bool,
     ) -> bool {
-        if is_wall_decor {
+        if is_outdoor {
+            for i in 0..width {
+                for j in 0..height {
+                    let cx = x + i;
+                    let cy = y + j;
+                    if !self.outdoor_positions.contains(&(cx, cy)) {
+                        return false;
+                    }
+                }
+            }
+        } else if is_wall_decor {
             for i in 0..width {
                 for j in 0..height {
                     let cx = x + i;

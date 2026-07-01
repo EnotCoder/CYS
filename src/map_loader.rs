@@ -30,9 +30,10 @@ pub fn load_map_to_ecs(ecs: &mut EcsAdapter) {
 
             if *token == "=" || *token == "-" {
                 ecs.wall_positions.insert((grid_x, grid_y));
-            }
-            if *token == "0" {
+            } else if *token == "0" {
                 ecs.floor_positions.insert((grid_x, grid_y));
+            } else if matches!(*token, "." | "+" | "$") {
+                ecs.outdoor_positions.insert((grid_x, grid_y));
             }
 
             crate::ecs::factory::create_sprite(

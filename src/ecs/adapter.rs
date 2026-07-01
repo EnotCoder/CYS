@@ -1,7 +1,7 @@
 use specs::{World, WorldExt, Join};
 use std::collections::{HashMap, HashSet};
 use crate::Sprite;
-use crate::ecs::components::{Transform, SpriteComponent, Rotation, ObjectTag, FoodStorage, TotalFood, FenceComponent, BusyCassas, Money};
+use crate::ecs::components::{Transform, SpriteComponent, Rotation, ObjectTag, FoodStorage, TotalFood, FenceComponent, StreetFenceComponent, BusyCassas, Money};
 use crate::{GroupComponent, GroupInfoResource};
 use crate::constants::*;
 
@@ -29,6 +29,7 @@ pub struct EcsAdapter {
     pub cursor_preview: Vec<specs::Entity>,
     pub wall_positions: HashSet<(i32, i32)>,
     pub floor_positions: HashSet<(i32, i32)>,
+    pub outdoor_positions: HashSet<(i32, i32)>,
 }
 
 impl EcsAdapter {
@@ -41,6 +42,7 @@ impl EcsAdapter {
         world.register::<ObjectTag>();
         world.register::<FoodStorage>();
         world.register::<FenceComponent>();
+        world.register::<StreetFenceComponent>();
         world.insert(GroupInfoResource {
             groups: HashMap::new(),
         });
@@ -55,6 +57,7 @@ impl EcsAdapter {
             cursor_preview: Vec::new(),
             wall_positions: HashSet::new(),
             floor_positions: HashSet::new(),
+            outdoor_positions: HashSet::new(),
         }
     }
 
@@ -265,6 +268,29 @@ impl EcsAdapter {
                         sprite.texture_path = tex.clone();
                     }
                 }
+            }
+        }
+    }
+
+    pub fn update_street_fence_textures(&mut self) {
+        use std::path::Path;
+        let transforms = self.world.read_storage::<Transform>();
+        let fences = self.world.read_storage::<StreetFenceComponent>();
+        let positions: HashSet<(i32, i32)> = (&fences, &transforms)
+            .join()
+            .map(|(_, t)| (t.position[0] as i32, t.position[1] as i32))
+            .collect();
+        let mut sprites = self.world.write_storage::<SpriteComponent>();
+        for (_, transform, sprite) in (&fences, &transforms, &mut sprites).join() {
+            let x = transform.position[0] as i32;
+            let y = transform.position[1] as i32;
+            let right = positions.contains(&(x + 1, y));
+            let left = positions.contains(&(x - 1, y));
+            let path = format!("tex/decor/street_fence/street_fence_{}_{}.png", left as u8, right as u8);
+            if Path::new(&path).exists() {
+                sprite.texture_path = path;
+            } else {
+                sprite.texture_path = "tex/decor/street_fence/street_fence_0_0.png".to_string();
             }
         }
     }

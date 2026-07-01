@@ -103,3 +103,11 @@ pub struct FenceComponent;
 impl Component for FenceComponent {
     type Storage = VecStorage<Self>;
 }
+
+/// Маркер для уличного забора — текстура зависит от соседей слева/справа
+#[derive(Debug)]
+pub struct StreetFenceComponent;
+
+impl Component for StreetFenceComponent {
+    type Storage = VecStorage<Self>;
+}

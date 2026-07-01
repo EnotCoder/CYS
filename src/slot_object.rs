@@ -121,6 +121,16 @@ const ALL_OBJECTS: &[Object] = &[
         texture_frame: [0, 0], texture_count: [1, 1],
         animated: false, frame_paths: &[],
     },
+    Object {
+        width: 1, height: 1, name: "street_fence", path: "tex/decor/street_fence/street_fence_0_0.png",
+        texture_frame: [0, 0], texture_count: [1, 1],
+        animated: false, frame_paths: &[],
+    },
+    Object {
+        width: 1, height: 2, name: "tree", path: "tex/decor/tree.png",
+        texture_frame: [0, 1], texture_count: [1, 2],
+        animated: false, frame_paths: &[],
+    },
 ];
 
 const INITIAL_SLOTS: [&str; SLOT_COUNT] = ["box", "sign", "rack", "table", "cassa"];
@@ -157,6 +167,10 @@ pub fn is_wall_decor_name(name: &str) -> bool {
     crate::constants::INV_WALLDECOR.contains(&name)
 }
 
+pub fn is_outdoor_name(name: &str) -> bool {
+    crate::constants::OUTDOOR_NAMES.contains(&name)
+}
+
 // ========================================================================
 //  add: Попытка поставить объект из активного слота под курсор
 // ========================================================================
@@ -165,11 +179,12 @@ pub fn add(ecs: &mut EcsAdapter, slots: &mut Vec<Slot>, act_slot: i32, cursor_en
     let (cursor_x, cursor_y) = ecs.get_transform_position(cursor_entity);
     let is_carpet = is_carpet_name(active_slot.name);
     let is_wall_decor = is_wall_decor_name(active_slot.name);
+    let is_outdoor = is_outdoor_name(active_slot.name);
 
     if ecs.can_place_at(
         cursor_x as i32, cursor_y as i32,
         active_slot.width, active_slot.height,
-        is_carpet, is_wall_decor,
+        is_carpet, is_wall_decor, is_outdoor,
     ) {
         ecs.clear_cursor_preview();
         let group_id = ecs.add_group_object(
@@ -203,6 +218,8 @@ pub fn add(ecs: &mut EcsAdapter, slots: &mut Vec<Slot>, act_slot: i32, cursor_en
                 }).ok();
             } else if active_slot.name == "fence" {
                 ecs.world.write_storage::<crate::FenceComponent>().insert(entity, crate::FenceComponent).ok();
+            } else if active_slot.name == "street_fence" {
+                ecs.world.write_storage::<crate::StreetFenceComponent>().insert(entity, crate::StreetFenceComponent).ok();
             }
         }
     }

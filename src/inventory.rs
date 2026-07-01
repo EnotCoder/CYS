@@ -71,7 +71,8 @@ impl Inventory {
         match self.tab {
             0 => INV_REGULAR,
             1 => INV_CARPETS,
-            _ => INV_WALLDECOR,
+            2 => INV_WALLDECOR,
+            _ => INV_OUTDOOR,
         }
     }
 

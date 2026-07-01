@@ -87,7 +87,7 @@ pub const INVENTORY_TOP_Y: f32 = INVENTORY_BASE_Y + (INVENTORY_ROWS - 1) as f32;
 pub const INVENTORY_ROWS: i32 = 5;
 pub const INVENTORY_COLS: i32 = 5;
 pub const INV_NONE: i32 = INVENTORY_ROWS * (INVENTORY_COLS - 1);
-pub const TAB_TEX: [&str; 3] = ["tex/ui/icon_slots/box.png", "tex/ui/icon_slots/carpet.png", "tex/ui/icon_slots/welcome.png"];
+pub const TAB_TEX: [&str; 4] = ["tex/ui/icon_slots/box.png", "tex/ui/icon_slots/carpet.png", "tex/ui/icon_slots/welcome.png", "tex/ui/icon_slots/tree.png"];
 pub const SLOT_CURSOR_TEX: &str = "tex/ui/icon_slots/cursor.png";
 pub const INV_REGULAR: &[&str] = &["box", "sign", "rack", "table", "cassa", "ice_cream", "arcade_machine", "candies", "fence"];
 pub const INV_CARPETS: &[&str] = 
@@ -96,6 +96,8 @@ pub const INV_CARPETS: &[&str] =
     "iron_panel", "gold_panel", "diamond_panel"
 ];
 pub const INV_WALLDECOR: &[&str] = &["welcome"];
+pub const INV_OUTDOOR: &[&str] = &["street_fence", "tree"];
+pub const OUTDOOR_NAMES: [&str; 2] = ["street_fence", "tree"];
 pub const INV_TAB_Y: f32 = 2.0;
 
 // === Текстуры курсора по режимам ===

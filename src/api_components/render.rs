@@ -31,9 +31,11 @@ pub fn render(
     ui_bind_group: &wgpu::BindGroup,
     sprite_cache: &mut HashMap<String, Sprite>,
 ) {
-    let frame = match surface.get_current_texture() {
-        Ok(frame) => frame,
-        Err(_) => return,
+    let current = surface.get_current_texture();
+    let frame = match current {
+        wgpu::CurrentSurfaceTexture::Success(surface_texture) => surface_texture,
+        wgpu::CurrentSurfaceTexture::Suboptimal(surface_texture) => surface_texture,
+        _ => return,
     };
     let view = frame.texture.create_view(&wgpu::TextureViewDescriptor::default());
 
@@ -55,7 +57,7 @@ pub fn render(
         &mut encoder, &view, ui_bind_group, "ui", false);
 
     queue.submit(std::iter::once(encoder.finish()));
-    frame.present();
+    queue.present(frame);
 }
 
 // ========================================================================
@@ -96,6 +98,7 @@ fn render_group(
         label: Some("Render Pass"),
         color_attachments: &[Some(wgpu::RenderPassColorAttachment {
             view,
+            depth_slice: None,
             resolve_target: None,
             ops: wgpu::Operations { load: color_load, store: wgpu::StoreOp::Store },
         })],
@@ -106,6 +109,7 @@ fn render_group(
         }),
         occlusion_query_set: None,
         timestamp_writes: None,
+        multiview_mask: None,
     });
     render_pass.set_pipeline(pipeline);
 

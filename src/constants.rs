@@ -50,8 +50,7 @@ pub const MAX_SHOPPERS: usize = 3;
 // === Курсор ===
 pub const CURSOR_MOVE_DELAY_MS: u64 = 150;
 pub const EPSILON: f32 = 0.01;
-pub const MOUSE_BUTTON_LEFT: usize = 0;
-pub const MOUSE_BUTTON_MIDDLE: usize = 2;
+// MouseButton теперь из winit::mouse
 
 // === Окно ===
 pub const WINDOW_WIDTH: u32 = 1200;

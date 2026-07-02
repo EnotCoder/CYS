@@ -121,16 +121,16 @@ pub fn init_buffers(
     // Настройка depth_stencil для render pipeline
     let depth_stencil = wgpu::DepthStencilState {
         format: wgpu::TextureFormat::Depth32Float,
-        depth_write_enabled: true,
-        depth_compare: wgpu::CompareFunction::Less,
+        depth_write_enabled: Some(true),
+        depth_compare: Some(wgpu::CompareFunction::Less),
         stencil: wgpu::StencilState::default(),
         bias: wgpu::DepthBiasState::default(),
     };
 
     let transparent_depth_stencil = wgpu::DepthStencilState {
         format: wgpu::TextureFormat::Depth32Float,
-        depth_write_enabled: true,
-        depth_compare: wgpu::CompareFunction::Always,
+        depth_write_enabled: Some(true),
+        depth_compare: Some(wgpu::CompareFunction::Always),
         stencil: wgpu::StencilState::default(),
         bias: wgpu::DepthBiasState::default(),
     };

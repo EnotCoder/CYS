@@ -13,25 +13,21 @@ pub struct SceneManager {
 }
 
 impl SceneManager {
-    pub fn new(text_renderer: &mut crate::text_renderer::TextRenderer) -> Self {
+    pub fn new() -> Self {
         let ecs = crate::EcsAdapter::new();
         let mut scenes: HashMap<String, Box<dyn Scene>> = HashMap::new();
 
         scenes.insert("menu".to_string(), Box::new(crate::scene::MenuScene::new()));
         scenes.insert("game".to_string(), Box::new(crate::scene::GameScene::new()));
 
-        let mut sm = SceneManager {
+        SceneManager {
             ecs,
             scenes,
             current: "menu".to_string(),
             fps_entity: None,
             fps_sprite_key: None,
             current_fps_text: String::new(),
-        };
-        if let Some(scene) = sm.scenes.get_mut(&sm.current) {
-            scene.on_enter(&mut sm.ecs, text_renderer);
         }
-        sm
     }
 
     pub fn switch_to(&mut self, name: &str, text_renderer: &mut crate::text_renderer::TextRenderer) {

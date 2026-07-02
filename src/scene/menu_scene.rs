@@ -96,7 +96,7 @@ impl MenuScene {
     }
 
     fn is_btn_clicked(input: &winit_input_helper::WinitInputHelper, window_size: (f32, f32), bx: f32, by: f32, bw: f32, bh: f32) -> bool {
-        input.mouse_pressed(MOUSE_BUTTON_LEFT) && Self::is_inside(input, window_size, bx, by, bw, bh)
+        input.mouse_pressed(winit::event::MouseButton::Left) && Self::is_inside(input, window_size, bx, by, bw, bh)
     }
 
     fn is_play_clicked(input: &winit_input_helper::WinitInputHelper, window_size: (f32, f32)) -> bool {

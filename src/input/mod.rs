@@ -30,7 +30,7 @@ pub fn do_input(
     let mut new_mode = mode;
     let mut show_ilm = false;
 
-    if input.key_pressed(KeyCode::KeyF) || input.mouse_pressed(MOUSE_BUTTON_LEFT) {
+    if input.key_pressed(KeyCode::KeyF) || input.mouse_pressed(winit::event::MouseButton::Left) {
         let skip = inventory_mode || input.cursor().map_or(false, |(mx, my)| {
             let (wx, wy) = crate::util::ndc_to_world(mx, my, window_size, 1.0, 0.0, 0.0);
             let col = (wx - SLOT_BAR_X + TILE_HALF) as i32;

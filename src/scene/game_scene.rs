@@ -160,7 +160,7 @@ impl GameScene {
             }
         }
 
-        let click = input.mouse_pressed(MOUSE_BUTTON_LEFT);
+        let click = input.mouse_pressed(winit::event::MouseButton::Left);
         if !click {
             return;
         }
@@ -278,7 +278,7 @@ impl Scene for GameScene {
         let show_ilm = result.3;
 
         // --- Toggle active/not active ---
-        if input.mouse_pressed(MOUSE_BUTTON_LEFT) && !self.inventory.mode {
+        if input.mouse_pressed(winit::event::MouseButton::Left) && !self.inventory.mode {
             if let Some((mx, my)) = input.cursor() {
                 let (wx, wy) = crate::util::ndc_to_world(mx, my, window_size, 1.0, 0.0, 0.0);
                 if (wx - ACTIVE_X).abs() < TILE_HALF && (wy - SLOT_BAR_Y).abs() < TILE_HALF {
@@ -331,7 +331,7 @@ impl Scene for GameScene {
 
         let step = CAMERA_SPEED * (dt as f32);
 
-        if input.mouse_held(MOUSE_BUTTON_MIDDLE) {
+        if input.mouse_held(winit::event::MouseButton::Middle) {
             let sensitivity = 0.01;
             let (dx, dy) = input.cursor_diff();
             self.camera_offset_x = (self.camera_offset_x - dx * sensitivity).clamp(cam_min_x.min(cam_max_x), cam_min_x.max(cam_max_x));

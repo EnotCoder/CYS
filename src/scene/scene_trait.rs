@@ -5,6 +5,7 @@
 pub enum SceneAction {
     Switch(String),
     Quit,
+    VsyncToggle(bool),
     None,
 }
 

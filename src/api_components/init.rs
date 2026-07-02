@@ -40,6 +40,7 @@ pub struct WgpuApp {
     pub render_pipeline: wgpu::RenderPipeline,
     pub transparent_pipeline: wgpu::RenderPipeline,
     pub config: wgpu::SurfaceConfiguration,
+    pub surface_caps: wgpu::SurfaceCapabilities,
 
     pub size_buffer: wgpu::Buffer,
     pub size_bind_group: wgpu::BindGroup,
@@ -63,6 +64,7 @@ impl WgpuApp {
         let adapter = Self::request_adapter(&instance, &surface).await;
         let (device, queue) = Self::request_device(&adapter).await;
         let surface_format = Self::pick_format(&surface, &adapter);
+        let surface_caps = surface.get_capabilities(&adapter);
 
         let window_size = window.inner_size();
 
@@ -141,6 +143,7 @@ impl WgpuApp {
             render_pipeline,
             transparent_pipeline,
             config,
+            surface_caps,
             size_buffer,
             size_bind_group,
             ui_uniform_buffer,

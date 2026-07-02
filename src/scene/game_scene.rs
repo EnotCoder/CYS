@@ -47,6 +47,7 @@ pub struct GameScene {
     shopper_timer: f64,
     active: bool,
     active_entity: Option<specs::Entity>,
+    settings: crate::settings::Settings,
 }
 
 impl GameScene {
@@ -89,6 +90,7 @@ impl GameScene {
             shopper_timer: 0.0,
             active: true,
             active_entity: None,
+            settings: crate::settings::Settings::new(),
         }
     }
 
@@ -247,6 +249,7 @@ impl Scene for GameScene {
         self.shopper_timer = 0.0;
         self.active = true;
         self.active_entity = None;
+        self.settings = crate::settings::Settings::new();
         ecs.world.write_resource::<TotalFood>().0 = 0;
         ecs.world.write_resource::<BusyCassas>().0.clear();
     }
@@ -263,59 +266,77 @@ impl Scene for GameScene {
             self.setup_content(ecs, text_renderer, device, queue);
         }
 
-        let cursor = self.cursor_entity.unwrap();
-        let icon_mode = self.icon_mode.unwrap();
-        let icons_slot_cursor = self.icons_slot_cursor.unwrap();
-
-        let result = crate::input::do_input(
-            input, ecs, &mut self.slots, self.act_slot, self.mode, self.map_size,
-            window_size, cursor, icon_mode, icons_slot_cursor, self.inventory.mode,
-            self.camera_offset_x, self.camera_offset_y,
-        );
-        self.act_slot = result.0;
-        self.mode = result.1;
-        self.map_size = result.2;
-        let show_ilm = result.3;
-
-        // --- Toggle active/not active ---
-        if input.mouse_pressed(winit::event::MouseButton::Left) && !self.inventory.mode {
-            if let Some((mx, my)) = input.cursor() {
-                let (wx, wy) = crate::util::ndc_to_world(mx, my, window_size, 1.0, 0.0, 0.0);
-                if (wx - ACTIVE_X).abs() < TILE_HALF && (wy - SLOT_BAR_Y).abs() < TILE_HALF {
-                    self.active = !self.active;
-                    let tex = if self.active { TEX_ACTIVE } else { TEX_NO_ACTIVE };
-                    if let Some(entity) = self.active_entity {
-                        ecs.update_sprite_texture(entity, tex);
-                    }
-                    if !self.active {
-                        for shopper in &mut self.shoppers {
-                            shopper.set_exiting(true);
-                        }
-                    } else {
-                        for shopper in &mut self.shoppers {
-                            if !shopper.has_taken_food() {
-                                shopper.set_exiting(false);
-                            }
-                        }
-                    }
-                }
-                // --- Клик по mode ---
-                if (wx - ICON_MODE_X).abs() < TILE_HALF && (wy - SLOT_BAR_Y).abs() < TILE_HALF {
-                    let cursor = self.cursor_entity.unwrap();
-                    let icon_mode = self.icon_mode.unwrap();
-                    self.mode = crate::input::interact::cycle_mode(self.mode, ecs, cursor, icon_mode);
-                }
+        // --- Toggle settings ---
+        if input.key_pressed(winit::keyboard::KeyCode::Escape) {
+            if self.settings.open {
+                self.settings.close(ecs);
+            } else {
+                self.settings.open(ecs, text_renderer, device, queue);
             }
         }
 
-        if show_ilm && self.ilm_cooldown <= 0.0 && self.ilm_entity.is_none() {
-            let ent = text_renderer.add_text(ecs, device, queue, "Minecraft", 48.0, 0.0, -3.0, 2.0, 1.0, WHITE);
-            self.ilm_entity = Some(ent);
-            self.ilm_timer = 2.0;
-            self.ilm_cooldown = 5.0;
-        }
+        if self.settings.open {
+            self.settings.handle_input(ecs, text_renderer, device, queue, input, window_size);
+            if self.settings.vsync_toggled {
+                self.settings.vsync_toggled = false;
+                let enabled = self.settings.vsync.checked;
+                return SceneAction::VsyncToggle(enabled);
+            }
+        } else {
+            let cursor = self.cursor_entity.unwrap();
+            let icon_mode = self.icon_mode.unwrap();
+            let icons_slot_cursor = self.icons_slot_cursor.unwrap();
 
-        self.handle_inventory_input(ecs, input, window_size);
+            let result = crate::input::do_input(
+                input, ecs, &mut self.slots, self.act_slot, self.mode, self.map_size,
+                window_size, cursor, icon_mode, icons_slot_cursor, self.inventory.mode,
+                self.camera_offset_x, self.camera_offset_y,
+            );
+            self.act_slot = result.0;
+            self.mode = result.1;
+            self.map_size = result.2;
+            let show_ilm = result.3;
+
+            // --- Toggle active/not active ---
+            if input.mouse_pressed(winit::event::MouseButton::Left) && !self.inventory.mode {
+                if let Some((mx, my)) = input.cursor() {
+                    let (wx, wy) = crate::util::ndc_to_world(mx, my, window_size, 1.0, 0.0, 0.0);
+                    if (wx - ACTIVE_X).abs() < TILE_HALF && (wy - SLOT_BAR_Y).abs() < TILE_HALF {
+                        self.active = !self.active;
+                        let tex = if self.active { TEX_ACTIVE } else { TEX_NO_ACTIVE };
+                        if let Some(entity) = self.active_entity {
+                            ecs.update_sprite_texture(entity, tex);
+                        }
+                        if !self.active {
+                            for shopper in &mut self.shoppers {
+                                shopper.set_exiting(true);
+                            }
+                        } else {
+                            for shopper in &mut self.shoppers {
+                                if !shopper.has_taken_food() {
+                                    shopper.set_exiting(false);
+                                }
+                            }
+                        }
+                    }
+                    // --- Клик по mode ---
+                    if (wx - ICON_MODE_X).abs() < TILE_HALF && (wy - SLOT_BAR_Y).abs() < TILE_HALF {
+                        let cursor = self.cursor_entity.unwrap();
+                        let icon_mode = self.icon_mode.unwrap();
+                        self.mode = crate::input::interact::cycle_mode(self.mode, ecs, cursor, icon_mode);
+                    }
+                }
+            }
+
+            if show_ilm && self.ilm_cooldown <= 0.0 && self.ilm_entity.is_none() {
+                let ent = text_renderer.add_text(ecs, device, queue, "Minecraft", 48.0, 0.0, -3.0, 2.0, 1.0, WHITE);
+                self.ilm_entity = Some(ent);
+                self.ilm_timer = 2.0;
+                self.ilm_cooldown = 5.0;
+            }
+
+            self.handle_inventory_input(ecs, input, window_size);
+        }
 
         let now = std::time::Instant::now();
         let dt = (now - self.last_frame).as_secs_f64();

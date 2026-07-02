@@ -17,6 +17,8 @@ mod pathfinding;
 mod shopper_npc;
 mod constants;
 mod util;
+mod ui;
+mod settings;
 
 pub use map_loader::load_map_to_ecs;
 use crate::constants::*;
@@ -41,7 +43,6 @@ struct App {
 impl App {
     fn render(&mut self) {
         let Some(surface) = &self.surface else { return };
-        let Some(ref wgpu_app) = self.wgpu_app else { return };
         let Some(ref window) = self.window else { return };
 
         let window_size = (
@@ -49,7 +50,9 @@ impl App {
             window.inner_size().height as f32,
         );
 
+        // Шаг 1: update сцены — временно берём wgpu_app immutably
         let action = {
+            let Some(ref wgpu_app) = self.wgpu_app else { return };
             let scene = self.scene_manager.scenes.get_mut(&self.scene_manager.current).unwrap();
             scene.update(
                 &mut self.scene_manager.ecs,
@@ -60,6 +63,8 @@ impl App {
                 &wgpu_app.queue,
             )
         };
+
+        // Шаг 2: обрабатываем action — borrow wgpu_app освобождён
         match action {
             scene::SceneAction::Switch(name) => {
                 self.scene_manager.switch_to(&name, &mut self.text_renderer);
@@ -67,8 +72,25 @@ impl App {
             scene::SceneAction::Quit => {
                 self.quit_requested = true;
             }
+            scene::SceneAction::VsyncToggle(enabled) => {
+                if let Some(ref mut wgpu_app) = self.wgpu_app {
+                    if let Some(ref surface) = self.surface {
+                        let desired = if enabled { wgpu::PresentMode::Fifo } else { wgpu::PresentMode::Mailbox };
+                        let mode = if wgpu_app.surface_caps.present_modes.contains(&desired) {
+                            desired
+                        } else {
+                            wgpu_app.surface_caps.present_modes[0]
+                        };
+                        wgpu_app.config.present_mode = mode;
+                        surface.configure(&wgpu_app.device, &wgpu_app.config);
+                    }
+                }
+            }
             scene::SceneAction::None => {}
         }
+
+        // Шаг 3: рендер — снова берём wgpu_app immutably
+        let Some(ref wgpu_app) = self.wgpu_app else { return };
 
         let fps = self.fps_counter.tick();
         self.scene_manager.update_fps(fps, &mut self.text_renderer, &wgpu_app.device, &wgpu_app.queue);
@@ -147,8 +169,9 @@ impl ApplicationHandler for App {
             WindowEvent::Resized(new_size) if new_size.width > 0 && new_size.height > 0 => {
                 if let Some(ref mut wgpu_app) = self.wgpu_app {
                     if let Some(ref surface) = self.surface {
-                        let config = surface_config(wgpu_app.surface_format, new_size.width, new_size.height);
-                        surface.configure(&wgpu_app.device, &config);
+                        wgpu_app.config.width = new_size.width;
+                        wgpu_app.config.height = new_size.height;
+                        surface.configure(&wgpu_app.device, &wgpu_app.config);
                         wgpu_app.depth_buffer.resize(&wgpu_app.device, *new_size);
                     }
                 }

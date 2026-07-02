@@ -1,4 +1,3 @@
-use wgpu::{util::DeviceExt};
 use winit::dpi::PhysicalSize;
 
 //triangle info
@@ -9,13 +8,12 @@ pub struct Vertex {
     pub tex_coord: [f32; 2],
 }
 
-//transform class
+//transform class — matches WGSL Uniforms (2x vec4)
 #[repr(C)]
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct Uniforms {
     pub translation: [f32; 4],
     pub rotation: [f32; 4],
-    pub _padding: [f32; 3],
 }
 
 //depth buffer class
@@ -57,60 +55,31 @@ impl DepthBuffer {
 
 
 pub struct Buffers{
-    pub uniform_buffer: wgpu::Buffer,
+    pub dynamic_bind_group_layout: wgpu::BindGroupLayout,
     pub depth_buffer: DepthBuffer,
     pub depth_stencil: wgpu::DepthStencilState,
     pub transparent_depth_stencil: wgpu::DepthStencilState,
-    pub bind_group_layout: wgpu::BindGroupLayout,
     pub texture_bind_group_layout: wgpu::BindGroupLayout,
-    pub bind_groupprojection: wgpu::BindGroup,
 }
 
 pub fn init_buffers(
     window_size: PhysicalSize<u32>,
-    translation: [f32;4],
-    rotation: [f32;4],
     device: &wgpu::Device,
 ) -> Buffers{
-    let uniforms = Uniforms { 
-        translation,
-        rotation,
-        _padding: [0.0; 3],
-    };
-
-    // Создаём uniform buffer
-    let uniform_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-        label: Some("Uniform Buffer"),
-        contents: bytemuck::cast_slice(&[uniforms]),
-        usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
-    });
-
-
-    // Создаём bind group layout (описывает доступ к uniform буферу в шейдере)
-    let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-        label: Some("Bind Group Layout"),
+    // Bind group layout for dynamic storage buffer (group 0)
+    // Storage instead of Uniform because max_uniform_buffer_binding_size = 65536
+    let dynamic_bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+        label: Some("Dynamic Bind Group Layout"),
         entries: &[
             wgpu::BindGroupLayoutEntry {
                 binding: 0,
                 visibility: wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
                 ty: wgpu::BindingType::Buffer {
-                    ty: wgpu::BufferBindingType::Uniform,
-                    has_dynamic_offset: false,
-                    min_binding_size: None,
+                    ty: wgpu::BufferBindingType::Storage { read_only: true },
+                    has_dynamic_offset: true,
+                    min_binding_size: wgpu::BufferSize::new(std::mem::size_of::<Uniforms>() as u64),
                 },
                 count: None,
-            },
-        ],
-    });
-
-    // Создаём bind group (связывает uniform буфер с шейдером)
-    let bind_groupprojection = device.create_bind_group(&wgpu::BindGroupDescriptor {
-        label: Some("Bind Group"),
-        layout: &bind_group_layout,
-        entries: &[
-            wgpu::BindGroupEntry {
-                binding: 0,
-                resource: uniform_buffer.as_entire_binding(),
             },
         ],
     });
@@ -159,12 +128,10 @@ pub fn init_buffers(
     });
 
     Buffers {
-        uniform_buffer,
+        dynamic_bind_group_layout,
         transparent_depth_stencil,
         depth_buffer,
         depth_stencil,
-        bind_group_layout,
         texture_bind_group_layout,
-        bind_groupprojection,
     }
 }

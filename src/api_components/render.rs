@@ -28,6 +28,9 @@ pub fn render(
     size_bind_group: &wgpu::BindGroup,
     ui_bind_group: &wgpu::BindGroup,
     sprite_cache: &mut HashMap<u64, Sprite>,
+    dynamic_uniform_buffer: &wgpu::Buffer,
+    dynamic_bind_group: &wgpu::BindGroup,
+    dynamic_alignment: u64,
 ) {
     let current = surface.get_current_texture();
     let frame = match current {
@@ -41,8 +44,10 @@ pub fn render(
         label: Some("Render Encoder"),
     });
 
+    let mut buf_offset: u64 = 0;
     render_group(device, queue, render_pipeline, map_sprites, depth_view, sprite_cache,
-        &mut encoder, &view, size_bind_group, "map", true);
+        &mut encoder, &view, size_bind_group, "map", true,
+        dynamic_uniform_buffer, dynamic_bind_group, dynamic_alignment, &mut buf_offset);
 
     let transparent_count = carpet_sprites.len() + decor_sprites.len() + npc_sprites.len() + cursor_sprites.len();
     if transparent_count > 0 {
@@ -52,11 +57,13 @@ pub fn render(
         transparent.extend_from_slice(npc_sprites);
         transparent.extend_from_slice(cursor_sprites);
         render_group(device, queue, transparent_pipeline, &transparent, depth_view, sprite_cache,
-            &mut encoder, &view, size_bind_group, "transparent", false);
+            &mut encoder, &view, size_bind_group, "transparent", false,
+            dynamic_uniform_buffer, dynamic_bind_group, dynamic_alignment, &mut buf_offset);
     }
 
     render_group(device, queue, transparent_pipeline, ui_sprites, depth_view, sprite_cache,
-        &mut encoder, &view, ui_bind_group, "ui", false);
+        &mut encoder, &view, ui_bind_group, "ui", false,
+        dynamic_uniform_buffer, dynamic_bind_group, dynamic_alignment, &mut buf_offset);
 
     queue.submit(std::iter::once(encoder.finish()));
     queue.present(frame);
@@ -65,6 +72,7 @@ pub fn render(
 // ========================================================================
 //  render_group: Рисует группу спрайтов (один render pass).
 //  clear_color = true только для карты (первый pass).
+//  Все uniform'ы записываются одним batch queue.write_buffer.
 // ========================================================================
 fn render_group(
     device: &wgpu::Device,
@@ -78,6 +86,10 @@ fn render_group(
     bind_group: &wgpu::BindGroup,
     key_prefix: &str,
     clear_color: bool,
+    dynamic_uniform_buffer: &wgpu::Buffer,
+    dynamic_bind_group: &wgpu::BindGroup,
+    dynamic_alignment: u64,
+    buf_offset: &mut u64,
 ) {
     if sprites.is_empty() {
         return;
@@ -133,13 +145,16 @@ fn render_group(
         keys.push(key);
     }
 
-    for (data, key) in sprites.iter().zip(keys.iter()) {
+    // Build flat uniforms array: sprites.len() * alignment bytes
+    let uniform_size = std::mem::size_of::<Uniforms>();
+    let write_offset = *buf_offset;
+    let mut uniforms_raw: Vec<u8> = Vec::with_capacity(sprites.len() * dynamic_alignment as usize);
+    for (i, (data, key)) in sprites.iter().zip(keys.iter()).enumerate() {
         let sprite = sprite_cache.get_mut(key).expect("Sprite must exist in cache");
 
         let uniforms = Uniforms {
             translation: [data.position[0], data.position[1], data.position[2], data.alpha],
             rotation: [data.rotation[0], data.rotation[1], data.rotation[2], 1.0],
-            _padding: [0.0; 3],
         };
         let raw: &[u8] = bytemuck::bytes_of(&uniforms);
         let needs_update = match sprite.last_uniform_raw {
@@ -147,15 +162,24 @@ fn render_group(
             Some(last) => &last[..] != raw,
         };
         if needs_update {
-            queue.write_buffer(&sprite.uniform_buffer, 0, raw);
             sprite.last_uniform_raw = Some(raw.try_into().unwrap());
         }
 
-        render_pass.set_bind_group(0, &sprite.uniform_bind_group, &[]);
+        uniforms_raw.extend_from_slice(raw);
+        let pad = dynamic_alignment as usize - uniform_size;
+        uniforms_raw.extend(std::iter::repeat(0u8).take(pad));
+        let dynamic_offset = write_offset + i as u64 * dynamic_alignment;
+
+        render_pass.set_bind_group(0, dynamic_bind_group, &[dynamic_offset as u32]);
         render_pass.set_bind_group(1, &sprite.texture_bind_group, &[]);
         render_pass.set_bind_group(2, bind_group, &[]);
         render_pass.set_vertex_buffer(0, sprite.vertex_buffer.slice(..));
         render_pass.set_index_buffer(sprite.index_buffer.slice(..), sprite.index_format);
         render_pass.draw_indexed(0..sprite.index_count, 0, 0..1);
+    }
+
+    if !uniforms_raw.is_empty() {
+        queue.write_buffer(dynamic_uniform_buffer, write_offset, &uniforms_raw);
+        *buf_offset = write_offset + uniforms_raw.len() as u64;
     }
 }

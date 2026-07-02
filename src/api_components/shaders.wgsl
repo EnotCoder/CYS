@@ -12,7 +12,7 @@ struct Size {
 };
 
 @group(0) @binding(0)
-var<uniform> uniforms: Uniforms;
+var<storage, read> uniforms: Uniforms;
 
 // Текстура и сэмплер
 @group(1) @binding(0)

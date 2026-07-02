@@ -1,19 +1,14 @@
-use wgpu::{util::DeviceExt};
+use wgpu::util::DeviceExt;
 use crate::texture::Texture;
 use crate::Vertex;
-use crate::Uniforms;
 
 pub struct Sprite {
     pub texture_bind_group: wgpu::BindGroup,
     pub vertex_buffer: wgpu::Buffer,
     pub index_buffer: wgpu::Buffer,
-    pub uniform_buffer: wgpu::Buffer,
-    pub uniform_bind_group: wgpu::BindGroup,
     pub index_count: u32,
     pub index_format: wgpu::IndexFormat,
-    /// Сырые байты последнего записанного uniform'а для этого спрайта.
-    /// Если None или отличается от текущего — нужно обновить буфер.
-    pub last_uniform_raw: Option<[u8; 44]>,
+    pub last_uniform_raw: Option<[u8; 32]>,
 }
 
 impl Sprite {
@@ -67,27 +62,11 @@ impl Sprite {
             usage: wgpu::BufferUsages::INDEX | wgpu::BufferUsages::COPY_DST,
         });
 
-        let uniforms = Uniforms { 
-            translation: [0.0, 0.0, 0.0, 0.0],
-            rotation: [0.0, 0.0, 0.0, 0.0],
-            _padding: [0.0; 3],
-        };
-
-        let uniform_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some(&format!("Uniform Buffer: {}", texture_path)),
-            contents: bytemuck::cast_slice(&[uniforms]),
-            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
-        });
-
-        let uniform_bind_group = Self::create_uniform_bind_group(device, &uniform_buffer);
-
         Self {
-            uniform_buffer,
             texture_bind_group,
             vertex_buffer,
             index_buffer,
             index_count,
-            uniform_bind_group,
             index_format: wgpu::IndexFormat::Uint16,
             last_uniform_raw: None,
         }
@@ -125,51 +104,16 @@ impl Sprite {
             usage: wgpu::BufferUsages::INDEX | wgpu::BufferUsages::COPY_DST,
         });
 
-        let uniforms = Uniforms { translation: [0.0; 4], rotation: [0.0; 4], _padding: [0.0; 3] };
-        let uniform_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some(&format!("Uniform Buffer: {}", label)),
-            contents: bytemuck::cast_slice(&[uniforms]),
-            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
-        });
-
-        let uniform_bind_group = Self::create_uniform_bind_group(device, &uniform_buffer);
         let texture_bind_group = Self::create_texture_bind_group(device, texture);
 
         Self {
-            uniform_buffer,
             texture_bind_group,
             vertex_buffer,
             index_buffer,
             index_count,
-            uniform_bind_group,
             index_format: wgpu::IndexFormat::Uint16,
             last_uniform_raw: None,
         }
-    }
-    
-    fn create_uniform_bind_group(device: &wgpu::Device, uniform_buffer: &wgpu::Buffer) -> wgpu::BindGroup {
-        let layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            label: Some("Uniform Bind Group Layout"),
-            entries: &[wgpu::BindGroupLayoutEntry {
-                binding: 0,
-                visibility: wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
-                ty: wgpu::BindingType::Buffer {
-                    ty: wgpu::BufferBindingType::Uniform,
-                    has_dynamic_offset: false,
-                    min_binding_size: None,
-                },
-                count: None,
-            }],
-        });
-        
-        device.create_bind_group(&wgpu::BindGroupDescriptor {
-            label: Some("Uniform Bind Group"),
-            layout: &layout,
-            entries: &[wgpu::BindGroupEntry {
-                binding: 0,
-                resource: uniform_buffer.as_entire_binding(),
-            }],
-        })
     }
     
     fn create_texture_bind_group(device: &wgpu::Device, texture: &Texture) -> wgpu::BindGroup {

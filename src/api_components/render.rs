@@ -8,12 +8,9 @@ use std::collections::HashMap;
 //  render: Главная функция рендера. Рисует слои в правильном порядке.
 //
 //  Порядок слоёв:
-//    1. map    (z=0.0)  — первый, очищает экран и depth buffer
-//    2. carpet (z=1.0)  — ковры
-//    3. decor  (z=1.5)  — декорации
-//    4. npc    (z=1.8)  — NPC / персонажи
-//    5. cursor (z=2.0)  — курсор
-//    6. ui     (z=3.0)  — UI (использует отдельный ui_bind_group)
+//    1. map        (z=0.0)       — первый, очищает экран и depth buffer
+//    2. transparent (z=1.0-2.0)  — carpet + decor + npc + cursor (слиты в 1 pass)
+//    3. ui         (z=3.0)       — UI (использует отдельный ui_bind_group)
 // ========================================================================
 pub fn render(
     surface: &wgpu::Surface,
@@ -46,14 +43,18 @@ pub fn render(
 
     render_group(device, queue, render_pipeline, map_sprites, depth_view, sprite_cache,
         &mut encoder, &view, size_bind_group, "map", true);
-    render_group(device, queue, transparent_pipeline, carpet_sprites, depth_view, sprite_cache,
-        &mut encoder, &view, size_bind_group, "carpet", false);
-    render_group(device, queue, transparent_pipeline, decor_sprites, depth_view, sprite_cache,
-        &mut encoder, &view, size_bind_group, "decor", false);
-    render_group(device, queue, transparent_pipeline, npc_sprites, depth_view, sprite_cache,
-        &mut encoder, &view, size_bind_group, "npc", false);
-    render_group(device, queue, transparent_pipeline, cursor_sprites, depth_view, sprite_cache,
-        &mut encoder, &view, size_bind_group, "cursor", false);
+
+    let transparent_count = carpet_sprites.len() + decor_sprites.len() + npc_sprites.len() + cursor_sprites.len();
+    if transparent_count > 0 {
+        let mut transparent = Vec::with_capacity(transparent_count);
+        transparent.extend_from_slice(carpet_sprites);
+        transparent.extend_from_slice(decor_sprites);
+        transparent.extend_from_slice(npc_sprites);
+        transparent.extend_from_slice(cursor_sprites);
+        render_group(device, queue, transparent_pipeline, &transparent, depth_view, sprite_cache,
+            &mut encoder, &view, size_bind_group, "transparent", false);
+    }
+
     render_group(device, queue, transparent_pipeline, ui_sprites, depth_view, sprite_cache,
         &mut encoder, &view, ui_bind_group, "ui", false);
 

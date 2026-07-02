@@ -38,13 +38,16 @@ pub struct Checkbox {
     pub label: String,
     pub font_size: f32,
     pub checked: bool,
-    /// Единый текстовый entity вида "[X] label" или "[ ] label"
-    pub entity: Option<Entity>,
-    pub sprite_key: Option<u64>,
+    /// Спрайт-галочка (tex/ui/true.png или tex/ui/false.png)
+    pub box_entity: Option<Entity>,
+    pub box_sprite_key: Option<u64>,
+    /// Текст подписи справа от галочки
+    pub label_entity: Option<Entity>,
+    pub label_sprite_key: Option<u64>,
 }
 
 impl Checkbox {
     pub fn new(x: f32, y: f32, label: &str, checked: bool) -> Self {
-        Self { x, y, label: label.to_string(), font_size: 48.0, checked, entity: None, sprite_key: None }
+        Self { x, y, label: label.to_string(), font_size: 48.0, checked, box_entity: None, box_sprite_key: None, label_entity: None, label_sprite_key: None }
     }
 }

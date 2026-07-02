@@ -1,6 +1,7 @@
 use crate::Sprite;
 use crate::ecs::SpriteRenderData;
 use crate::Uniforms;
+use crate::util;
 use std::collections::HashMap;
 
 // ========================================================================
@@ -29,7 +30,7 @@ pub fn render(
     ui_sprites: &[SpriteRenderData],
     size_bind_group: &wgpu::BindGroup,
     ui_bind_group: &wgpu::BindGroup,
-    sprite_cache: &mut HashMap<String, Sprite>,
+    sprite_cache: &mut HashMap<u64, Sprite>,
 ) {
     let current = surface.get_current_texture();
     let frame = match current {
@@ -70,7 +71,7 @@ fn render_group(
     pipeline: &wgpu::RenderPipeline,
     sprites: &[SpriteRenderData],
     depth_view: &wgpu::TextureView,
-    sprite_cache: &mut HashMap<String, Sprite>,
+    sprite_cache: &mut HashMap<u64, Sprite>,
     encoder: &mut wgpu::CommandEncoder,
     view: &wgpu::TextureView,
     bind_group: &wgpu::BindGroup,
@@ -78,22 +79,20 @@ fn render_group(
     clear_color: bool,
 ) {
     if sprites.is_empty() {
-        return; // Нечего рисовать — пропускаем pass
+        return;
     }
 
-    // --- Настройка load operations ---
     let color_load = if clear_color {
         wgpu::LoadOp::Clear(wgpu::Color { r: 0.0, g: 0.0, b: 0.0, a: 1.0 })
     } else {
         wgpu::LoadOp::Load
     };
     let depth_load = if clear_color {
-        wgpu::LoadOp::Clear(crate::constants::DEPTH_CLEAR) // Только первый pass очищает depth
+        wgpu::LoadOp::Clear(crate::constants::DEPTH_CLEAR)
     } else {
         wgpu::LoadOp::Load
     };
 
-    // Создаём render pass
     let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
         label: Some("Render Pass"),
         color_attachments: &[Some(wgpu::RenderPassColorAttachment {
@@ -113,36 +112,29 @@ fn render_group(
     });
     render_pass.set_pipeline(pipeline);
 
-    // --- 1. Создаём недостающие спрайты + сохраняем ключи ---
-    // (ключ уникален для комбинации layer + позиция + текстура)
-    let mut keys: Vec<String> = Vec::with_capacity(sprites.len());
+    let mut keys: Vec<u64> = Vec::with_capacity(sprites.len());
     for data in sprites {
-        // Формируем ключ: "слой_x_y_путь_кадр_атлас"
-        let frame_key = format!("{:?}_{:?}", data.texture_frame, data.texture_count);
-        let key = format!(
-            "{}_{}_{}_{}_{}_{}",
+        let key = util::sprite_cache_key(
             key_prefix,
             data.position[0],
             data.position[1],
-            data.texture_path,
-            frame_key,
+            &data.texture_path,
+            data.texture_frame,
+            data.texture_count,
             data.scale,
         );
 
-        // Если спрайта ещё нет в кеше — создаём
         if !sprite_cache.contains_key(&key) {
             let new_sprite = Sprite::new(device, queue, &data.texture_path,
                 data.texture_frame, data.texture_count, data.scale);
-            sprite_cache.insert(key.clone(), new_sprite);
+            sprite_cache.insert(key, new_sprite);
         }
         keys.push(key);
     }
 
-    // --- 2. Рисуем все спрайты (по immutable ссылкам из кеша) ---
     for (data, key) in sprites.iter().zip(keys.iter()) {
         let sprite = sprite_cache.get(key).expect("Sprite must exist in cache");
 
-        // Обновляем uniform для каждой сущности (позиция в мире)
         let uniforms = Uniforms {
             translation: [data.position[0], data.position[1], data.position[2], data.alpha],
             rotation: [data.rotation[0], data.rotation[1], data.rotation[2], 1.0],
@@ -150,7 +142,6 @@ fn render_group(
         };
         queue.write_buffer(&sprite.uniform_buffer, 0, bytemuck::cast_slice(&[uniforms]));
 
-        // Bind группы: 0=uniform, 1=texture, 2=size/ui
         render_pass.set_bind_group(0, &sprite.uniform_bind_group, &[]);
         render_pass.set_bind_group(1, &sprite.texture_bind_group, &[]);
         render_pass.set_bind_group(2, bind_group, &[]);

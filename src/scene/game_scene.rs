@@ -13,7 +13,7 @@ pub struct GameScene {
     loaded: bool,
     loading: bool,
     loading_text: Option<specs::Entity>,
-    loading_sprite_key: Option<String>,
+    loading_sprite_key: Option<u64>,
     slots: Vec<crate::slot_object::Slot>,
     act_slot: i32,
     mode: i32,
@@ -33,16 +33,16 @@ pub struct GameScene {
     ilm_cooldown: f64,
     food_timer: f64,
     total_food_text: Option<specs::Entity>,
-    total_food_sprite_key: Option<String>,
+    total_food_sprite_key: Option<u64>,
     current_total_food: i32,
     money_text: Option<specs::Entity>,
-    money_sprite_key: Option<String>,
+    money_sprite_key: Option<u64>,
     current_money: i32,
     object_hover_text: Option<specs::Entity>,
     slot_tooltip_text: Option<specs::Entity>,
-    slot_tooltip_text_key: Option<String>,
+    slot_tooltip_text_key: Option<u64>,
     slot_tooltip_bg: Option<specs::Entity>,
-    slot_tooltip_bg_key: Option<String>,
+    slot_tooltip_bg_key: Option<u64>,
     shoppers: Vec<ShopperNpc>,
     shopper_timer: f64,
     active: bool,
@@ -447,8 +447,7 @@ impl Scene for GameScene {
             self.slot_tooltip_text = Some(text_ent);
             let text_key = TextRenderer::sprite_cache_key(tx, ty, &display_name, FONT_SIZE_LOGO, 4.0, WHITE);
             self.slot_tooltip_text_key = Some(text_key);
-            let frame_key = format!("{:?}_{:?}", [0, 0], [1, 1]);
-            let bg_key = format!("ui_{}_{}_{}_{}_1", tx, ty, "tex/black.png", frame_key);
+            let bg_key = crate::util::sprite_cache_key("ui", tx, ty, "tex/black.png", [0, 0], [1, 1], 1.0);
             self.slot_tooltip_bg_key = Some(bg_key);
         } else {
             if let Some(old) = self.slot_tooltip_text.take() {

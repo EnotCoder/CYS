@@ -1,4 +1,17 @@
+use std::hash::{Hash, Hasher};
 use crate::constants::SHADER_SCALE;
+
+pub fn sprite_cache_key(layer: &str, x: f32, y: f32, path: &str, frame: [i32; 2], atlas: [i32; 2], scale: f32) -> u64 {
+    let mut hasher = std::collections::hash_map::DefaultHasher::new();
+    layer.hash(&mut hasher);
+    x.to_bits().hash(&mut hasher);
+    y.to_bits().hash(&mut hasher);
+    path.hash(&mut hasher);
+    frame.hash(&mut hasher);
+    atlas.hash(&mut hasher);
+    scale.to_bits().hash(&mut hasher);
+    hasher.finish()
+}
 
 pub fn ndc_to_world(mx: f32, my: f32, window_size: (f32, f32), map_size: f32, cam_x: f32, cam_y: f32) -> (f32, f32) {
     let aspect = window_size.0 / window_size.1;

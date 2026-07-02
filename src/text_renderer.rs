@@ -20,9 +20,9 @@ impl TextRenderer {
         format!("__text__{}@{}_ol{}_c{:02x}{:02x}{:02x}", text, px_size, outline, color[0], color[1], color[2])
     }
 
-    pub fn sprite_cache_key(x: f32, y: f32, text: &str, px_size: f32, outline: f32, color: [u8; 3]) -> String {
+    pub fn sprite_cache_key(x: f32, y: f32, text: &str, px_size: f32, outline: f32, color: [u8; 3]) -> u64 {
         let tk = Self::cache_key(text, px_size, outline, color);
-        format!("ui_{}_{}_{}_[0, 0]_[1, 1]_1", x, y, tk)
+        crate::util::sprite_cache_key("ui", x, y, &tk, [0, 0], [1, 1], 1.0)
     }
 
     fn rasterize(&mut self, text: &str, px_size: f32, outline: f32, color: [u8; 3]) -> &(Vec<u8>, u32, u32) {
@@ -179,7 +179,7 @@ impl TextRenderer {
         let sprite = Sprite::from_texture(device, &tex, text, world_width, world_height);
 
         let text_key = Self::cache_key(text, font_size, outline, color);
-        let skey = format!("ui_{}_{}_{}_[0, 0]_[1, 1]_1", x, y, text_key);
+        let skey = crate::util::sprite_cache_key("ui", x, y, &text_key, [0, 0], [1, 1], 1.0);
         ecs.sprite_cache.insert(skey, sprite);
 
         ecs.world
@@ -223,7 +223,7 @@ impl TextRenderer {
 
         let text_key = Self::cache_key(text, font_size, outline, color);
         let layer_prefix = if (z - crate::constants::Z_UI).abs() < 0.001 { "ui" } else { "decor" };
-        let skey = format!("{}_{}_{}_{}_[0, 0]_[1, 1]_1", layer_prefix, x, y, text_key);
+        let skey = crate::util::sprite_cache_key(layer_prefix, x, y, &text_key, [0, 0], [1, 1], 1.0);
         ecs.sprite_cache.insert(skey, sprite);
 
         ecs.world

@@ -4,6 +4,7 @@ use crate::Sprite;
 use crate::ecs::components::{Transform, SpriteComponent, Rotation, ObjectTag, FoodStorage, TotalFood, FenceComponent, BusyCassas, Money};
 use crate::{GroupComponent, GroupInfoResource};
 use crate::constants::*;
+use crate::util;
 
 // ========================================================================
 //  SpriteRenderData — плоские данные для рендера (без привязки к ECS)
@@ -24,7 +25,7 @@ pub struct SpriteRenderData {
 // ========================================================================
 pub struct EcsAdapter {
     pub world: World,
-    pub sprite_cache: HashMap<String, Sprite>,
+    pub sprite_cache: HashMap<u64, Sprite>,
     pub next_group_id: u32,
     pub cursor_preview: Vec<specs::Entity>,
     pub wall_positions: HashSet<(i32, i32)>,
@@ -136,8 +137,7 @@ impl EcsAdapter {
         let tex = crate::Texture::from_path(device, queue, texture_path, "ui_sized");
         let sprite = crate::Sprite::from_texture(device, &tex, texture_path, width, height);
 
-        let frame_key = format!("{:?}_{:?}", [0, 0], [1, 1]);
-        let key = format!("ui_{}_{}_{}_{}_1", x, y, texture_path, frame_key);
+        let key = util::sprite_cache_key("ui", x, y, texture_path, [0, 0], [1, 1], 1.0);
         self.sprite_cache.insert(key, sprite);
 
         entity

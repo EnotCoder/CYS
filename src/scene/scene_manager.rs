@@ -8,7 +8,7 @@ pub struct SceneManager {
     pub scenes: HashMap<String, Box<dyn Scene>>,
     pub current: String,
     fps_entity: Option<specs::Entity>,
-    fps_sprite_key: Option<String>,
+    fps_sprite_key: Option<u64>,
     current_fps_text: String,
 }
 

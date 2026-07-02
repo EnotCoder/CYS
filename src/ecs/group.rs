@@ -109,19 +109,22 @@ impl EcsAdapter {
     //  find_group_at_position: Ищет ID группы по координатам сетки
     // ====================================================================
     pub fn find_group_at_position(&self, x: i32, y: i32) -> Option<u32> {
-        for (&gid, group) in &self
-            .world
-            .read_resource::<GroupInfoResource>()
-            .groups
-        {
+        let groups = &self.world.read_resource::<GroupInfoResource>().groups;
+        let mut carpet_gid: Option<u32> = None;
+        for (&gid, group) in groups {
             if x >= group.pos_x
                 && x < group.pos_x + group.width
                 && y >= group.pos_y
                 && y < group.pos_y + group.height
             {
-                return Some(gid);
+                if !group.is_carpet {
+                    return Some(gid);
+                }
+                if carpet_gid.is_none() {
+                    carpet_gid = Some(gid);
+                }
             }
         }
-        None
+        carpet_gid
     }
 }

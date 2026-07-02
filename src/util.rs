@@ -30,3 +30,13 @@ pub fn grid_pos_from_world(wx: f32, wy: f32) -> (i32, i32) {
 pub fn inventory_index(row: i32, col: i32) -> i32 {
     (crate::constants::INVENTORY_ROWS - 1 - row) * crate::constants::INVENTORY_COLS + col
 }
+
+pub fn slot_icon_path(name: &str) -> String {
+    use crate::constants::*;
+    let subdir = if INV_REGULAR.contains(&name) { "regular" }
+        else if INV_CARPETS.contains(&name) { "carpets" }
+        else if INV_WALLDECOR.contains(&name) { "walldecor" }
+        else if INV_OUTDOOR.contains(&name) { "outdoor" }
+        else { return format!("{}{}.png", TEX_UI_ICON_SLOTS_DIR, name) };
+    format!("{}{}/{}.png", TEX_UI_ICON_SLOTS_DIR, subdir, name)
+}

@@ -121,9 +121,10 @@ impl GameScene {
         self.active_entity = Some(active_entity);
 
         for (i, slot) in self.slots.iter().enumerate() {
+            let icon_path = crate::util::slot_icon_path(slot.obj.name);
             let ent = ecs.add_ui(
                 SLOT_BAR_X + i as f32, SLOT_BAR_Y,
-                &format!("{}{}.png", TEX_UI_ICON_SLOTS_DIR, slot.obj.name),
+                &icon_path,
             );
             self.slot_entities.push(ent);
         }

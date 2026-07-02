@@ -242,17 +242,17 @@ impl EcsAdapter {
             for (tag, food, group) in (&tags, &foods, &groups).join() {
                 let tex = if tag.name == "box" {
                     if food.food_count < 8 {
-                        "tex/decor/box/box_0.png"
+                        "tex/decor/regular/box/box_0.png"
                     } else if food.food_count < 12 {
-                        "tex/decor/box/box_1.png"
+                        "tex/decor/regular/box/box_1.png"
                     } else {
-                        "tex/decor/box/box_2.png"
+                        "tex/decor/regular/box/box_2.png"
                     }
                 } else if tag.name == "rack" {
                     if food.food_count == 0 {
-                        "tex/decor/rack/rack_0.png"
+                        "tex/decor/regular/rack/rack_0.png"
                     } else {
-                        "tex/decor/rack/rack_1.png"
+                        "tex/decor/regular/rack/rack_1.png"
                     }
                 } else {
                     continue;
@@ -290,9 +290,9 @@ impl EcsAdapter {
             let up = positions.contains(&(x, y + 1));
             let down = positions.contains(&(x, y - 1));
             let (dir, fallback) = if fence.name == "street_fence" {
-                ("tex/decor/street_fence/street_fence", "tex/decor/street_fence/street_fence_0_0_0_0.png")
+                ("tex/decor/outdoor/street_fence/street_fence", "tex/decor/outdoor/street_fence/street_fence_0_0_0_0.png")
             } else {
-                ("tex/decor/fence/fence", "tex/decor/fence/fence_0_0_0_0.png")
+                ("tex/decor/regular/fence/fence", "tex/decor/regular/fence/fence_0_0_0_0.png")
             };
             let path = format!("{}_{}_{}_{}_{}.png", dir, up as u8, down as u8, left as u8, right as u8);
             if Path::new(&path).exists() {

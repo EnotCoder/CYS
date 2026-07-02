@@ -183,6 +183,6 @@ impl Inventory {
     // ================================================================
 
     fn slot_texture(name: &str) -> String {
-        format!("{}{}.png", TEX_UI_ICON_SLOTS_DIR, name)
+        crate::util::slot_icon_path(name)
     }
 }

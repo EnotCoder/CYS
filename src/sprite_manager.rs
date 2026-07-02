@@ -11,18 +11,9 @@ pub struct Sprite {
     pub uniform_bind_group: wgpu::BindGroup,
     pub index_count: u32,
     pub index_format: wgpu::IndexFormat,
-    buffers_initialized: bool,
-}
-
-impl Drop for Sprite {
-    fn drop(&mut self) {
-        if self.buffers_initialized {
-            //#[cfg(debug_assertions)]
-            //println!("Sprite dropped: {} (resources will be released)", self.texture_path);
-            self.buffers_initialized = false;
-            // texture автоматически очистится при падении Option
-        }
-    }
+    /// Сырые байты последнего записанного uniform'а для этого спрайта.
+    /// Если None или отличается от текущего — нужно обновить буфер.
+    pub last_uniform_raw: Option<[u8; 44]>,
 }
 
 impl Sprite {
@@ -98,7 +89,7 @@ impl Sprite {
             index_count,
             uniform_bind_group,
             index_format: wgpu::IndexFormat::Uint16,
-            buffers_initialized: true,
+            last_uniform_raw: None,
         }
     }
 
@@ -152,7 +143,7 @@ impl Sprite {
             index_count,
             uniform_bind_group,
             index_format: wgpu::IndexFormat::Uint16,
-            buffers_initialized: true,
+            last_uniform_raw: None,
         }
     }
     

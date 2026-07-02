@@ -134,14 +134,22 @@ fn render_group(
     }
 
     for (data, key) in sprites.iter().zip(keys.iter()) {
-        let sprite = sprite_cache.get(key).expect("Sprite must exist in cache");
+        let sprite = sprite_cache.get_mut(key).expect("Sprite must exist in cache");
 
         let uniforms = Uniforms {
             translation: [data.position[0], data.position[1], data.position[2], data.alpha],
             rotation: [data.rotation[0], data.rotation[1], data.rotation[2], 1.0],
             _padding: [0.0; 3],
         };
-        queue.write_buffer(&sprite.uniform_buffer, 0, bytemuck::cast_slice(&[uniforms]));
+        let raw: &[u8] = bytemuck::bytes_of(&uniforms);
+        let needs_update = match sprite.last_uniform_raw {
+            None => true,
+            Some(last) => &last[..] != raw,
+        };
+        if needs_update {
+            queue.write_buffer(&sprite.uniform_buffer, 0, raw);
+            sprite.last_uniform_raw = Some(raw.try_into().unwrap());
+        }
 
         render_pass.set_bind_group(0, &sprite.uniform_bind_group, &[]);
         render_pass.set_bind_group(1, &sprite.texture_bind_group, &[]);

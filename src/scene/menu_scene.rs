@@ -12,6 +12,8 @@ pub struct MenuScene {
     quit_label: Option<specs::Entity>,
     play_hover: bool,
     quit_hover: bool,
+    user_cursor: Option<specs::Entity>,
+    cursor_hover: bool,
 }
 
 impl MenuScene {
@@ -24,6 +26,8 @@ impl MenuScene {
             quit_label: None,
             play_hover: false,
             quit_hover: false,
+            user_cursor: None,
+            cursor_hover: false,
         }
     }
 
@@ -44,6 +48,8 @@ impl MenuScene {
         self.quit_bg = Some(quit_panel);
         self.quit_label = Some(ql);
         ecs.add_ui(LOGO_UI_X, LOGO_UI_Y, TEX_MY_LOGO);
+        let cursor = ecs.add_user_cursor(0.0, 0.0, 0.25, 0.25, "tex/user_cursor/def_cursor.png", device, queue);
+        self.user_cursor = Some(cursor);
         Self::place_decor(ecs);
     }
 
@@ -58,6 +64,9 @@ impl MenuScene {
             ecs.delete_entity(ent);
         }
         if let Some(ent) = self.quit_label.take() {
+            ecs.delete_entity(ent);
+        }
+        if let Some(ent) = self.user_cursor.take() {
             ecs.delete_entity(ent);
         }
     }
@@ -147,6 +156,21 @@ impl Scene for MenuScene {
             self.setup_content(ecs, text_renderer, device, queue);
         }
 
+        // --- User cursor ---
+        if let Some(cursor_ent) = self.user_cursor {
+            if let Some((mx, my)) = input.cursor() {
+                let (wx, wy) = crate::util::ndc_to_world(mx, my, window_size, MENU_MAP_SIZE, 0.0, 0.0);
+                ecs.update_transform_position(cursor_ent, wx, wy);
+            }
+            let over_btn = Self::is_inside(input, window_size, BTN_X, BTN_Y, BTN_W, BTN_H)
+                || Self::is_inside(input, window_size, QUIT_X, QUIT_Y, QUIT_W, QUIT_H);
+            if over_btn != self.cursor_hover {
+                self.cursor_hover = over_btn;
+                let tex = if over_btn { "tex/user_cursor/click_cursor.png" } else { "tex/user_cursor/def_cursor.png" };
+                ecs.update_sprite_texture(cursor_ent, tex);
+            }
+        }
+
         let h = Self::is_inside(input, window_size, BTN_X, BTN_Y, BTN_W, BTN_H);
         if h != self.play_hover {
             self.play_hover = h;
@@ -170,9 +194,9 @@ impl Scene for MenuScene {
         SceneAction::None
     }
 
-    fn sprites(&self, ecs: &crate::EcsAdapter, _visible_bounds: Option<(f32, f32, f32, f32)>) -> (Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>) {
+    fn sprites(&self, ecs: &crate::EcsAdapter, _visible_bounds: Option<(f32, f32, f32, f32)>) -> (Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>) {
         let r = ecs.get_sprites_by_layer(None);
-        (r.0, r.1, r.2, r.3, r.4, r.5)
+        (r.0, r.1, r.2, r.3, r.4, r.5, r.6)
     }
 
     fn map_size(&self) -> f32 { MENU_MAP_SIZE }

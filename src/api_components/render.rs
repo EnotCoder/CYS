@@ -11,6 +11,7 @@ use std::collections::HashMap;
 //    1. map        (z=0.0)       — первый, очищает экран и depth buffer
 //    2. transparent (z=1.0-2.0)  — carpet + decor + npc + cursor (слиты в 1 pass)
 //    3. ui         (z=3.0)       — UI (использует отдельный ui_bind_group)
+//    4. user_cursor (z=4.0)     — кастомный курсор поверх всего
 // ========================================================================
 pub fn render(
     surface: &wgpu::Surface,
@@ -25,6 +26,7 @@ pub fn render(
     npc_sprites: &[SpriteRenderData],
     cursor_sprites: &[SpriteRenderData],
     ui_sprites: &[SpriteRenderData],
+    user_cursor_sprites: &[SpriteRenderData],
     size_bind_group: &wgpu::BindGroup,
     ui_bind_group: &wgpu::BindGroup,
     sprite_cache: &mut HashMap<u64, Sprite>,
@@ -63,6 +65,10 @@ pub fn render(
 
     render_group(device, queue, transparent_pipeline, ui_sprites, depth_view, sprite_cache,
         &mut encoder, &view, ui_bind_group, "ui", false,
+        dynamic_uniform_buffer, dynamic_bind_group, dynamic_alignment, &mut buf_offset);
+
+    render_group(device, queue, transparent_pipeline, user_cursor_sprites, depth_view, sprite_cache,
+        &mut encoder, &view, ui_bind_group, "user_cursor", false,
         dynamic_uniform_buffer, dynamic_bind_group, dynamic_alignment, &mut buf_offset);
 
     queue.submit(std::iter::once(encoder.finish()));

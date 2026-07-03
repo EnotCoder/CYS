@@ -143,6 +143,22 @@ impl EcsAdapter {
         entity
     }
 
+    pub fn add_user_cursor(
+        &mut self,
+        x: f32, y: f32,
+        width: f32, _height: f32,
+        texture_path: &str,
+        _device: &wgpu::Device,
+        _queue: &wgpu::Queue,
+    ) -> specs::Entity {
+        let scale = width;
+        let entity = crate::ecs::factory::create_sprite(
+            &mut self.world, x, y, crate::constants::Z_USER_CURSOR,
+            texture_path, [0, 0], [1, 1], scale, 1.0,
+        );
+        entity
+    }
+
     pub fn add_button(
         &mut self,
         device: &wgpu::Device,
@@ -177,6 +193,7 @@ impl EcsAdapter {
         Vec<SpriteRenderData>,
         Vec<SpriteRenderData>,
         Vec<SpriteRenderData>,
+        Vec<SpriteRenderData>,
     ) {
         let transforms = self.world.read_storage::<Transform>();
         let sprites = self.world.read_storage::<SpriteComponent>();
@@ -189,6 +206,7 @@ impl EcsAdapter {
         let mut npc_sprites = Vec::with_capacity(5);
         let mut cursor_sprites = Vec::with_capacity(1);
         let mut ui_sprites = Vec::with_capacity(10);
+        let mut user_cursor_sprites = Vec::with_capacity(1);
 
         for (transform, sprite, rotation_opt) in (&transforms, &sprites, rotations.maybe()).join() {
             let data = SpriteRenderData {
@@ -225,12 +243,14 @@ impl EcsAdapter {
                 npc_sprites.push(data);
             } else if z == crate::constants::Z_CURSOR {
                 cursor_sprites.push(data);
+            } else if z == crate::constants::Z_USER_CURSOR {
+                user_cursor_sprites.push(data);
             } else {
                 ui_sprites.push(data);
             }
         }
 
-        (map_sprites, carpet_sprites, decor_sprites, npc_sprites, cursor_sprites, ui_sprites)
+        (map_sprites, carpet_sprites, decor_sprites, npc_sprites, cursor_sprites, ui_sprites, user_cursor_sprites)
     }
 
     pub fn update_object_textures(&mut self) {

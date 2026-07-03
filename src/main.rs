@@ -111,7 +111,7 @@ impl App {
         let vis_w = 2.0 * aspect / (SHADER_SCALE * ms);
         let vis_h = 2.0 / (SHADER_SCALE * ms);
         let bounds = Some((cam_x - vis_w/2.0, cam_x + vis_w/2.0, cam_y - vis_h/2.0, cam_y + vis_h/2.0));
-        let (map_sprites, carpet_sprites, decor_sprites, npc_sprites, cursor_sprites, ui_sprites) =
+        let (map_sprites, carpet_sprites, decor_sprites, npc_sprites, cursor_sprites, ui_sprites, user_cursor_sprites) =
             self.scene_manager.scenes.get(&self.scene_manager.current).unwrap().sprites(&self.scene_manager.ecs, bounds);
 
         render(
@@ -127,6 +127,7 @@ impl App {
             &npc_sprites,
             &cursor_sprites,
             &ui_sprites,
+            &user_cursor_sprites,
             &wgpu_app.size_bind_group,
             &wgpu_app.ui_bind_group,
             &mut self.scene_manager.ecs.sprite_cache,
@@ -147,6 +148,7 @@ impl ApplicationHandler for App {
             .with_title("CYS — Create your Shop")
             .with_inner_size(PhysicalSize::new(WINDOW_WIDTH, WINDOW_HEIGHT));
         let window = event_loop.create_window(window_attr).unwrap();
+        window.set_cursor_visible(false);
         let window: &'static Window = Box::leak(Box::new(window));
 
         let wgpu_app = pollster::block_on(WgpuApp::new(window));

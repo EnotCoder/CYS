@@ -15,6 +15,7 @@ pub const Z_DECOR: f32 = 1.5;
 pub const Z_NPC: f32 = 1.8;
 pub const Z_CURSOR: f32 = 2.0;
 pub const Z_UI: f32 = 3.0;
+pub const Z_USER_CURSOR: f32 = 4.0;
 
 // === Шейдер ===
 pub const SHADER_SCALE: f32 = 0.223;

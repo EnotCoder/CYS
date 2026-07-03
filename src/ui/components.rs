@@ -11,7 +11,7 @@ pub struct Panel {
 
 impl Panel {
     pub fn new(x: f32, y: f32, w: f32, h: f32) -> Self {
-        Self { x, y, w, h, alpha: 0.95, entity: None }
+        Self { x, y, w, h, alpha: 0.7, entity: None }
     }
 }
 
@@ -49,5 +49,34 @@ pub struct Checkbox {
 impl Checkbox {
     pub fn new(x: f32, y: f32, label: &str, checked: bool) -> Self {
         Self { x, y, label: label.to_string(), font_size: 48.0, checked, box_entity: None, box_sprite_key: None, label_entity: None, label_sprite_key: None }
+    }
+}
+
+pub struct Slider {
+    pub x: f32,
+    pub y: f32,
+    pub width: f32,
+    pub height: f32,
+    pub min: f32,
+    pub max: f32,
+    pub value: f32,
+    pub label: String,
+    pub font_size: f32,
+    pub track: Option<Entity>,
+    pub thumb: Option<Entity>,
+    pub label_entity: Option<Entity>,
+    pub label_sprite_key: Option<u64>,
+}
+
+impl Slider {
+    pub fn new(x: f32, y: f32, label: &str, min: f32, max: f32, value: f32) -> Self {
+        Self {
+            x, y, width: 3.0, height: 0.3,
+            min, max, value,
+            label: label.to_string(),
+            font_size: 50.0,
+            track: None, thumb: None,
+            label_entity: None, label_sprite_key: None,
+        }
     }
 }

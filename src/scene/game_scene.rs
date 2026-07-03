@@ -48,6 +48,7 @@ pub struct GameScene {
     active: bool,
     active_entity: Option<specs::Entity>,
     settings: crate::settings::Settings,
+    zoom_step: f32,
 }
 
 impl GameScene {
@@ -61,6 +62,7 @@ impl GameScene {
             act_slot: 0,
             mode: 0,
             map_size: 0.8,
+            zoom_step: 0.1,
             cursor_entity: None,
             icon_mode: None,
             icons_slot_cursor: None,
@@ -283,13 +285,17 @@ impl Scene for GameScene {
                 let enabled = self.settings.vsync.checked;
                 return SceneAction::VsyncToggle(enabled);
             }
+            if self.settings.zoom_speed_changed {
+                self.settings.zoom_speed_changed = false;
+                self.zoom_step = self.settings.zoom_speed.value;
+            }
         } else {
             let cursor = self.cursor_entity.unwrap();
             let icon_mode = self.icon_mode.unwrap();
             let icons_slot_cursor = self.icons_slot_cursor.unwrap();
 
             let result = crate::input::do_input(
-                input, ecs, &mut self.slots, self.act_slot, self.mode, self.map_size,
+                input, ecs, &mut self.slots, self.act_slot, self.mode, self.map_size, self.zoom_step,
                 window_size, cursor, icon_mode, icons_slot_cursor, self.inventory.mode,
                 self.camera_offset_x, self.camera_offset_y,
             );

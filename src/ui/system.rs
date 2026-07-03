@@ -2,7 +2,7 @@ use crate::EcsAdapter;
 use crate::text_renderer::TextRenderer;
 use crate::constants::*;
 use winit_input_helper::WinitInputHelper;
-use super::components::{Panel, Button, Checkbox};
+use super::components::{Panel, Button, Checkbox, Slider};
 
 // ========================================================================
 //  Утилиты для проверки кликов (UI: map_size=1.0, cam_x=0, cam_y=0)
@@ -112,4 +112,80 @@ pub fn refresh_checkbox(ecs: &mut EcsAdapter, text_renderer: &mut TextRenderer, 
 pub fn checkbox_clicked(checkbox: &Checkbox, input: &WinitInputHelper, window_size: (f32, f32)) -> bool {
     let half = CHECKBOX_BOX_SIZE / 2.0 + 0.1;
     is_clicked(input, window_size, checkbox.x, checkbox.y, half, half)
+}
+
+// ========================================================================
+//  Slider (горизонтальный)
+// ========================================================================
+
+const SLIDER_TRACK_THICKNESS: f32 = 0.12;
+const SLIDER_THUMB_SIZE: f32 = 0.35;
+const SLIDER_TEXT_WIDTH: f32 = 2.5;
+const SLIDER_LABEL_Y_OFFSET: f32 = 0.3;
+
+fn slider_thumb_x(slider: &Slider) -> f32 {
+    let t = (slider.value - slider.min) / (slider.max - slider.min);
+    let start = slider.x - slider.width / 2.0 + SLIDER_THUMB_SIZE / 2.0;
+    let end = slider.x + slider.width / 2.0 - SLIDER_THUMB_SIZE / 2.0;
+    start + (end - start) * t
+}
+
+pub fn create_slider(ecs: &mut EcsAdapter, text_renderer: &mut TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue, slider: &mut Slider) {
+    destroy_slider(ecs, slider);
+
+    let track = ecs.add_ui_sized(slider.x, slider.y, slider.width, SLIDER_TRACK_THICKNESS, "tex/black.png", device, queue);
+    ecs.update_sprite_alpha(track, 0.3);
+    slider.track = Some(track);
+
+    let thumb_x = slider_thumb_x(slider);
+    let thumb = ecs.add_ui_sized(thumb_x, slider.y, SLIDER_THUMB_SIZE, SLIDER_THUMB_SIZE, "tex/black.png", device, queue);
+    ecs.update_sprite_alpha(thumb, 0.9);
+    slider.thumb = Some(thumb);
+
+    let ly = slider.y + SLIDER_LABEL_Y_OFFSET;
+    let label = text_renderer.add_text(ecs, device, queue, &slider.label, slider.font_size, slider.x, ly, 1.8, 2.0, WHITE);
+    let label_key = TextRenderer::sprite_cache_key(slider.x, ly, &slider.label, slider.font_size, 2.0, WHITE);
+    slider.label_entity = Some(label);
+    slider.label_sprite_key = Some(label_key);
+}
+
+pub fn destroy_slider(ecs: &mut EcsAdapter, slider: &mut Slider) {
+    if let Some(ent) = slider.track.take() {
+        ecs.delete_entity(ent);
+    }
+    if let Some(ent) = slider.thumb.take() {
+        ecs.delete_entity(ent);
+    }
+    if let Some(ent) = slider.label_entity.take() {
+        ecs.delete_entity(ent);
+    }
+    if let Some(key) = slider.label_sprite_key.take() {
+        ecs.sprite_cache.remove(&key);
+    }
+}
+
+/// Возвращает true, если значение изменилось
+pub fn slider_drag(slider: &Slider, input: &WinitInputHelper, window_size: (f32, f32)) -> bool {
+    if !input.mouse_pressed(winit::event::MouseButton::Left) {
+        return false;
+    }
+    let Some((mx, my)) = input.cursor() else { return false };
+    let (wx, wy) = ndc_to_ui(mx, my, window_size);
+    let half_w = slider.width / 2.0 + 0.2;
+    let half_h = SLIDER_THUMB_SIZE / 2.0 + 0.2;
+    if (wx - slider.x).abs() > half_w || (wy - slider.y).abs() > half_h {
+        return false;
+    }
+    true
+}
+
+/// Обновляет позицию thumb по текущему значению; пересоздаёт сущность
+pub fn update_slider_thumb(ecs: &mut EcsAdapter, device: &wgpu::Device, queue: &wgpu::Queue, slider: &mut Slider) {
+    if let Some(ent) = slider.thumb.take() {
+        ecs.delete_entity(ent);
+    }
+    let thumb_x = slider_thumb_x(slider);
+    let thumb = ecs.add_ui_sized(thumb_x, slider.y, SLIDER_THUMB_SIZE, SLIDER_THUMB_SIZE, "tex/black.png", device, queue);
+    ecs.update_sprite_alpha(thumb, 0.9);
+    slider.thumb = Some(thumb);
 }

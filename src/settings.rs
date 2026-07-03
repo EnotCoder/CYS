@@ -1,5 +1,5 @@
 use specs::Entity;
-use crate::ui::{Panel, Checkbox, create_panel, destroy_panel, create_checkbox, destroy_checkbox, refresh_checkbox, checkbox_clicked};
+use crate::ui::{Panel, Checkbox, Slider, create_panel, destroy_panel, create_checkbox, destroy_checkbox, refresh_checkbox, checkbox_clicked, create_slider, destroy_slider, slider_drag, update_slider_thumb};
 use crate::text_renderer::TextRenderer;
 use crate::constants::*;
 use crate::EcsAdapter;
@@ -12,6 +12,9 @@ pub struct Settings {
     pub vsync: Checkbox,
     /// Флаг, что vsync изменился — сцена вернёт SceneAction
     pub vsync_toggled: bool,
+    /// Слайдер скорости зума
+    pub zoom_speed: Slider,
+    pub zoom_speed_changed: bool,
 }
 
 impl Settings {
@@ -22,6 +25,8 @@ impl Settings {
             title: None,
             vsync: Checkbox::new(-1.4, 0.3, "Vertical Sync", true),
             vsync_toggled: false,
+            zoom_speed: Slider::new(-0.1, -0.4, "Zoom Speed", 0.02, 0.3, 0.1),
+            zoom_speed_changed: false,
         }
     }
 
@@ -30,6 +35,7 @@ impl Settings {
         self.open = true;
         create_panel(ecs, device, queue, &mut self.panel);
         create_checkbox(ecs, text_renderer, device, queue, &mut self.vsync);
+        create_slider(ecs, text_renderer, device, queue, &mut self.zoom_speed);
         let title = text_renderer.add_text(ecs, device, queue, "Settings", 64.0, 0.0, 1.8, 4.0, 2.0, WHITE);
         self.title = Some(title);
     }
@@ -39,6 +45,7 @@ impl Settings {
         self.open = false;
         destroy_panel(ecs, &mut self.panel);
         destroy_checkbox(ecs, &mut self.vsync);
+        destroy_slider(ecs, &mut self.zoom_speed);
         if let Some(ent) = self.title.take() {
             ecs.delete_entity(ent);
         }
@@ -53,6 +60,16 @@ impl Settings {
             self.vsync.checked = !self.vsync.checked;
             refresh_checkbox(ecs, text_renderer, device, queue, &mut self.vsync);
             self.vsync_toggled = true;
+            return true;
+        }
+
+        if slider_drag(&self.zoom_speed, input, window_size) {
+            let Some((mx, _)) = input.cursor() else { return false };
+            let (wx, _) = crate::util::ndc_to_world(mx, 0.0, window_size, 1.0, 0.0, 0.0);
+            let t = ((wx - (self.zoom_speed.x - self.zoom_speed.width / 2.0)) / self.zoom_speed.width).clamp(0.0, 1.0);
+            self.zoom_speed.value = self.zoom_speed.min + t * (self.zoom_speed.max - self.zoom_speed.min);
+            update_slider_thumb(ecs, device, queue, &mut self.zoom_speed);
+            self.zoom_speed_changed = true;
             return true;
         }
 

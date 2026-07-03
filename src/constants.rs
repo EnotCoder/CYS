@@ -22,7 +22,6 @@ pub const SHADER_SCALE: f32 = 0.223;
 // === Зум ===
 pub const ZOOM_MIN: f32 = 0.4;
 pub const ZOOM_MAX: f32 = 0.8;
-pub const ZOOM_STEP: f32 = 0.1;
 
 // === Камера ===
 pub const CAMERA_SPEED: f32 = 5.0;

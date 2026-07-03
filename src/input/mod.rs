@@ -18,6 +18,7 @@ pub fn do_input(
     act_slot: i32,
     mode: i32,
     map_size: f32,
+    zoom_step: f32,
     window_size: (f32, f32),
     cursor_entity: Entity,
     icon_button: Entity,
@@ -26,7 +27,7 @@ pub fn do_input(
     cam_x: f32,
     cam_y: f32,
 ) -> (i32, i32, f32, bool) {
-    let new_size = camera::handle_zoom(input, map_size);
+    let new_size = camera::handle_zoom(input, map_size, zoom_step);
     let mut new_mode = mode;
     let mut show_ilm = false;
 

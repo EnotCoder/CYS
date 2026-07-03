@@ -20,7 +20,7 @@ impl Settings {
             open: false,
             panel: Panel::new(0.0, 0.0, 9.0, 6.0),
             title: None,
-            vsync: Checkbox::new(-1.8, 0.3, "Vertical Sync", true),
+            vsync: Checkbox::new(-1.4, 0.3, "Vertical Sync", true),
             vsync_toggled: false,
         }
     }

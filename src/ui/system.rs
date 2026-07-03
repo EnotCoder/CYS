@@ -71,9 +71,9 @@ pub fn button_clicked(btn: &Button, input: &WinitInputHelper, window_size: (f32,
 //  Checkbox
 // ========================================================================
 
-const CHECKBOX_BOX_SIZE: f32 = 0.7;
+const CHECKBOX_BOX_SIZE: f32 = 0.4;
 const CHECKBOX_TEXT_WIDTH: f32 = 2.5;
-const CHECKBOX_TEXT_GAP: f32 = 0.2;
+const CHECKBOX_TEXT_GAP: f32 = 0.08;
 
 pub fn create_checkbox(ecs: &mut EcsAdapter, text_renderer: &mut TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue, checkbox: &mut Checkbox) {
     destroy_checkbox(ecs, checkbox);

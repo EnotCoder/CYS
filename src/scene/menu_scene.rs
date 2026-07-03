@@ -31,11 +31,9 @@ impl MenuScene {
         self.destroy_content(ecs);
         crate::load_map_to_ecs(ecs);
         ecs.add_ui_sized(LOGO_X, LOGO_Y, LOGO_W, LOGO_H, "tex/game_name.png", device, queue);
-        let mut play_panel = Panel::new(BTN_X, BTN_Y, BTN_W, BTN_H);
-        play_panel.alpha = 0.5;
+        let mut play_panel = Panel::new(BTN_X, BTN_Y, BTN_W, BTN_H, 0.5);
         create_panel(ecs, device, queue, &mut play_panel);
-        let mut quit_panel = Panel::new(QUIT_X, QUIT_Y, QUIT_W, QUIT_H);
-        quit_panel.alpha = 0.5;
+        let mut quit_panel = Panel::new(QUIT_X, QUIT_Y, QUIT_W, QUIT_H, 0.5);
         create_panel(ecs, device, queue, &mut quit_panel);
         let pl = text_renderer.add_text(ecs, device, queue, "Play", FONT_SIZE_BTN, BTN_X, BTN_Y + 0.05, BTN_W * 0.75, 1.0, BTN_TEXT_COLOR);
         let ql = text_renderer.add_text(ecs, device, queue, "Quit", FONT_SIZE_BTN, QUIT_X, QUIT_Y + 0.05, QUIT_W * 0.75, 1.0, BTN_TEXT_COLOR);

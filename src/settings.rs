@@ -21,7 +21,7 @@ impl Settings {
     pub fn new() -> Self {
         Self {
             open: false,
-            panel: Panel::new(0.0, 0.0, 9.0, 6.0),
+            panel: Panel::new(0.0, 0.0, 9.0, 6.0, 0.85),
             title: None,
             vsync: Checkbox::new(-1.4, 0.3, "Vertical Sync", true),
             vsync_toggled: false,

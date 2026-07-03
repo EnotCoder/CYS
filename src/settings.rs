@@ -63,7 +63,7 @@ impl Settings {
             return true;
         }
 
-        if slider_drag(&self.zoom_speed, input, window_size) {
+        if slider_drag(&mut self.zoom_speed, input, window_size) {
             let Some((mx, _)) = input.cursor() else { return false };
             let (wx, _) = crate::util::ndc_to_world(mx, 0.0, window_size, 1.0, 0.0, 0.0);
             let t = ((wx - (self.zoom_speed.x - self.zoom_speed.width / 2.0)) / self.zoom_speed.width).clamp(0.0, 1.0);

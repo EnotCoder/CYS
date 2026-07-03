@@ -133,13 +133,11 @@ fn slider_thumb_x(slider: &Slider) -> f32 {
 pub fn create_slider(ecs: &mut EcsAdapter, text_renderer: &mut TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue, slider: &mut Slider) {
     destroy_slider(ecs, slider);
 
-    let track = ecs.add_ui_sized(slider.x, slider.y, slider.width, SLIDER_TRACK_THICKNESS, "tex/black.png", device, queue);
-    ecs.update_sprite_alpha(track, 0.3);
+    let track = ecs.add_ui_sized(slider.x, slider.y, slider.width, SLIDER_TRACK_THICKNESS, "tex/ui/slide/main.png", device, queue);
     slider.track = Some(track);
 
     let thumb_x = slider_thumb_x(slider);
-    let thumb = ecs.add_ui_sized(thumb_x, slider.y, SLIDER_THUMB_SIZE, SLIDER_THUMB_SIZE, "tex/black.png", device, queue);
-    ecs.update_sprite_alpha(thumb, 0.9);
+    let thumb = ecs.add_ui_sized(thumb_x, slider.y, SLIDER_THUMB_SIZE, SLIDER_THUMB_SIZE, "tex/ui/slide/point.png", device, queue);
     slider.thumb = Some(thumb);
 
     let ly = slider.y + SLIDER_LABEL_Y_OFFSET;
@@ -164,17 +162,22 @@ pub fn destroy_slider(ecs: &mut EcsAdapter, slider: &mut Slider) {
     }
 }
 
-/// Возвращает true, если значение изменилось
-pub fn slider_drag(slider: &Slider, input: &WinitInputHelper, window_size: (f32, f32)) -> bool {
-    if !input.mouse_pressed(winit::event::MouseButton::Left) {
+/// Возвращает true, если значение должно обновиться (drag активен)
+pub fn slider_drag(slider: &mut Slider, input: &WinitInputHelper, window_size: (f32, f32)) -> bool {
+    let held = input.mouse_held(winit::event::MouseButton::Left);
+    if !held {
+        slider.dragging = false;
         return false;
     }
-    let Some((mx, my)) = input.cursor() else { return false };
-    let (wx, wy) = ndc_to_ui(mx, my, window_size);
-    let half_w = slider.width / 2.0 + 0.2;
-    let half_h = SLIDER_THUMB_SIZE / 2.0 + 0.2;
-    if (wx - slider.x).abs() > half_w || (wy - slider.y).abs() > half_h {
-        return false;
+    if !slider.dragging {
+        let Some((mx, my)) = input.cursor() else { return false };
+        let (wx, wy) = ndc_to_ui(mx, my, window_size);
+        let half_w = slider.width / 2.0 + 0.2;
+        let half_h = SLIDER_THUMB_SIZE / 2.0 + 0.2;
+        if (wx - slider.x).abs() > half_w || (wy - slider.y).abs() > half_h {
+            return false;
+        }
+        slider.dragging = true;
     }
     true
 }
@@ -185,7 +188,6 @@ pub fn update_slider_thumb(ecs: &mut EcsAdapter, device: &wgpu::Device, queue: &
         ecs.delete_entity(ent);
     }
     let thumb_x = slider_thumb_x(slider);
-    let thumb = ecs.add_ui_sized(thumb_x, slider.y, SLIDER_THUMB_SIZE, SLIDER_THUMB_SIZE, "tex/black.png", device, queue);
-    ecs.update_sprite_alpha(thumb, 0.9);
+    let thumb = ecs.add_ui_sized(thumb_x, slider.y, SLIDER_THUMB_SIZE, SLIDER_THUMB_SIZE, "tex/ui/slide/point.png", device, queue);
     slider.thumb = Some(thumb);
 }

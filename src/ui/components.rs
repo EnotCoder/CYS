@@ -62,6 +62,7 @@ pub struct Slider {
     pub value: f32,
     pub label: String,
     pub font_size: f32,
+    pub dragging: bool,
     pub track: Option<Entity>,
     pub thumb: Option<Entity>,
     pub label_entity: Option<Entity>,
@@ -75,6 +76,7 @@ impl Slider {
             min, max, value,
             label: label.to_string(),
             font_size: 50.0,
+            dragging: false,
             track: None, thumb: None,
             label_entity: None, label_sprite_key: None,
         }

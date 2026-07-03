@@ -470,6 +470,7 @@ impl Scene for GameScene {
             let bg_w = text_w + pad_x * 2.0;
             let bg_h = text_h + pad_y * 2.0;
             let bg_ent = ecs.add_ui_sized(tx, ty, bg_w, bg_h, "tex/black.png", device, queue);
+            ecs.update_sprite_alpha(bg_ent, 0.5);
             self.slot_tooltip_bg = Some(bg_ent);
             let text_ent = text_renderer.add_text_fixed(ecs, device, queue, &display_name, FONT_SIZE_LOGO, tx, ty, text_w, text_h, 4.0, WHITE);
             self.slot_tooltip_text = Some(text_ent);

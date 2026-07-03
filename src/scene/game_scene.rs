@@ -49,8 +49,6 @@ pub struct GameScene {
     active_entity: Option<specs::Entity>,
     settings: crate::settings::Settings,
     zoom_step: f32,
-    user_cursor: Option<specs::Entity>,
-    cursor_hover: bool,
 }
 
 impl GameScene {
@@ -95,8 +93,6 @@ impl GameScene {
             active: true,
             active_entity: None,
             settings: crate::settings::Settings::new(),
-            user_cursor: None,
-            cursor_hover: false,
         }
     }
 
@@ -139,8 +135,6 @@ impl GameScene {
         self.icon_mode = Some(icon_mode);
         self.icons_slot_cursor = Some(icons_slot_cursor);
         self.cursor_entity = Some(ecs.add_cursor(0.0, 0.0, CURSOR_TEX[0]));
-        let user_cursor = ecs.add_user_cursor(0.0, 0.0, 0.25, 0.25, "tex/user_cursor/def_cursor.png", device, queue);
-        self.user_cursor = Some(user_cursor);
 
         self.npc_walkable = crate::map_loader::load_walkable_cells();
     }
@@ -273,27 +267,6 @@ impl Scene for GameScene {
             self.hide_loading(ecs);
             self.loaded = true;
             self.setup_content(ecs, text_renderer, device, queue);
-        }
-
-        // --- User cursor ---
-        if let Some(cursor_ent) = self.user_cursor {
-            if let Some((mx, my)) = input.cursor() {
-                let (wx, wy) = crate::util::ndc_to_world(mx, my, window_size, 1.0, 0.0, 0.0);
-                ecs.update_transform_position(cursor_ent, wx, wy);
-            }
-            let over = self.settings.open && input.cursor().map_or(false, |(mx, my)| {
-                let vsync_half = 0.4 / 2.0 + 0.1;
-                let slider_half_w = self.settings.zoom_speed.width / 2.0 + 0.2;
-                let slider_half_h = 0.35 / 2.0 + 0.2;
-                let (wx, wy) = crate::util::ndc_to_world(mx, my, window_size, 1.0, 0.0, 0.0);
-                (wx - self.settings.vsync.x).abs() < vsync_half && (wy - self.settings.vsync.y).abs() < vsync_half
-                    || (wx - self.settings.zoom_speed.x).abs() < slider_half_w && (wy - self.settings.zoom_speed.y).abs() < slider_half_h
-            });
-            if over != self.cursor_hover {
-                self.cursor_hover = over;
-                let tex = if over { "tex/user_cursor/click_cursor.png" } else { "tex/user_cursor/def_cursor.png" };
-                ecs.update_sprite_texture(cursor_ent, tex);
-            }
         }
 
         // --- Toggle settings ---
@@ -609,7 +582,7 @@ impl Scene for GameScene {
         SceneAction::None
     }
 
-    fn sprites(&self, ecs: &crate::EcsAdapter, visible_bounds: Option<(f32, f32, f32, f32)>) -> (Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>) {
+    fn sprites(&self, ecs: &crate::EcsAdapter, visible_bounds: Option<(f32, f32, f32, f32)>) -> (Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>) {
         ecs.get_sprites_by_layer(visible_bounds)
     }
 

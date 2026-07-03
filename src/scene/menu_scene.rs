@@ -2,12 +2,13 @@ use std::fs::File;
 use std::io::{BufRead, BufReader};
 use crate::scene::scene_trait::{Scene, SceneAction};
 use crate::constants::*;
+use crate::ui::{Panel, create_panel, destroy_panel};
 
 pub struct MenuScene {
     ready: bool,
-    play_bg: Option<specs::Entity>,
+    play_bg: Option<Panel>,
     play_label: Option<specs::Entity>,
-    quit_bg: Option<specs::Entity>,
+    quit_bg: Option<Panel>,
     quit_label: Option<specs::Entity>,
     play_hover: bool,
     quit_hover: bool,
@@ -27,18 +28,38 @@ impl MenuScene {
     }
 
     fn setup_content(&mut self, ecs: &mut crate::EcsAdapter, text_renderer: &mut crate::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) {
+        self.destroy_content(ecs);
         crate::load_map_to_ecs(ecs);
         ecs.add_ui_sized(LOGO_X, LOGO_Y, LOGO_W, LOGO_H, "tex/game_name.png", device, queue);
-        let pb = ecs.add_ui_sized(BTN_X, BTN_Y, BTN_W, BTN_H, "tex/black.png", device, queue);
-        let qb = ecs.add_ui_sized(QUIT_X, QUIT_Y, QUIT_W, QUIT_H, "tex/black.png", device, queue);
+        let mut play_panel = Panel::new(BTN_X, BTN_Y, BTN_W, BTN_H);
+        play_panel.alpha = 0.5;
+        create_panel(ecs, device, queue, &mut play_panel);
+        let mut quit_panel = Panel::new(QUIT_X, QUIT_Y, QUIT_W, QUIT_H);
+        quit_panel.alpha = 0.5;
+        create_panel(ecs, device, queue, &mut quit_panel);
         let pl = text_renderer.add_text(ecs, device, queue, "Play", FONT_SIZE_BTN, BTN_X, BTN_Y + 0.05, BTN_W * 0.75, 1.0, BTN_TEXT_COLOR);
         let ql = text_renderer.add_text(ecs, device, queue, "Quit", FONT_SIZE_BTN, QUIT_X, QUIT_Y + 0.05, QUIT_W * 0.75, 1.0, BTN_TEXT_COLOR);
-        self.play_bg = Some(pb);
+        self.play_bg = Some(play_panel);
         self.play_label = Some(pl);
-        self.quit_bg = Some(qb);
+        self.quit_bg = Some(quit_panel);
         self.quit_label = Some(ql);
         ecs.add_ui(LOGO_UI_X, LOGO_UI_Y, TEX_MY_LOGO);
         Self::place_decor(ecs);
+    }
+
+    fn destroy_content(&mut self, ecs: &mut crate::EcsAdapter) {
+        if let Some(mut p) = self.play_bg.take() {
+            destroy_panel(ecs, &mut p);
+        }
+        if let Some(mut p) = self.quit_bg.take() {
+            destroy_panel(ecs, &mut p);
+        }
+        if let Some(ent) = self.play_label.take() {
+            ecs.delete_entity(ent);
+        }
+        if let Some(ent) = self.quit_label.take() {
+            ecs.delete_entity(ent);
+        }
     }
 
     fn place_decor(ecs: &mut crate::EcsAdapter) {

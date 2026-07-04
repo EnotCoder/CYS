@@ -2,8 +2,7 @@ use std::cell::Cell;
 use std::time::{Instant, Duration};
 use winit_input_helper::WinitInputHelper;
 use specs::Entity;
-use crate::{EcsAdapter, Slot};
-use crate::slot_object::{is_carpet_name, is_wall_decor_name, is_outdoor_name, is_flower_name};
+use crate::{EcsAdapter, data::{Slot, is_carpet_name, is_wall_decor_name, is_outdoor_name, is_flower_name}};
 use crate::constants::*;
 
 thread_local! {

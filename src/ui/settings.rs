@@ -1,6 +1,6 @@
 use specs::Entity;
 use crate::ui::{Panel, Checkbox, Slider, create_panel, destroy_panel, create_checkbox, destroy_checkbox, refresh_checkbox, checkbox_clicked, create_slider, destroy_slider, slider_drag, update_slider_thumb};
-use crate::text_renderer::TextRenderer;
+use crate::ui::text_renderer::TextRenderer;
 use crate::constants::*;
 use crate::EcsAdapter;
 use winit_input_helper::WinitInputHelper;

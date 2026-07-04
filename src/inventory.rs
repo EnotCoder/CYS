@@ -103,11 +103,11 @@ impl Inventory {
         &mut self,
         ecs: &mut EcsAdapter,
         act_slot: usize,
-        hotbar_slots: &mut [crate::slot_object::Slot],
+        hotbar_slots: &mut [crate::data::Slot],
         hotbar_entities: &[Entity],
     ) {
         let Some(name) = self.selected_item_name() else { return };
-        let new_slot = crate::slot_object::make_slot(name);
+        let new_slot = crate::data::make_slot(name);
         if act_slot < hotbar_slots.len() {
             hotbar_slots[act_slot] = new_slot;
             if act_slot < hotbar_entities.len() {

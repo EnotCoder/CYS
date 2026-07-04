@@ -1,5 +1,5 @@
 use crate::EcsAdapter;
-use crate::text_renderer::TextRenderer;
+use crate::ui::text_renderer::TextRenderer;
 use crate::constants::*;
 use winit_input_helper::WinitInputHelper;
 use super::components::{Panel, Button, Checkbox, Slider};

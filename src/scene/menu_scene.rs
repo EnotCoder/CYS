@@ -27,7 +27,7 @@ impl MenuScene {
         }
     }
 
-    fn setup_content(&mut self, ecs: &mut crate::EcsAdapter, text_renderer: &mut crate::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) {
+    fn setup_content(&mut self, ecs: &mut crate::EcsAdapter, text_renderer: &mut crate::ui::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) {
         self.destroy_content(ecs);
         crate::load_map_to_ecs(ecs);
         ecs.add_ui_sized(LOGO_X, LOGO_Y, LOGO_W, LOGO_H, "tex/ui/game_name.png", device, queue);
@@ -91,14 +91,14 @@ impl MenuScene {
                 };
                 let x = i as f32 + WORLD_OFFSET_X;
                 let y = -(j as f32) + WORLD_OFFSET_Y;
-                let slot = crate::slot_object::make_slot(name);
+                let slot = crate::data::make_slot(name);
                 ecs.add_group_object(
                     x as i32, y as i32,
                     slot.obj.width, slot.obj.height,
                     slot.obj.path,
                     slot.obj.texture_frame,
                     slot.obj.texture_count,
-                    crate::slot_object::is_carpet_name(name),
+                    crate::data::is_carpet_name(name),
                     slot.obj.animated,
                     slot.obj.frame_paths,
                 );
@@ -126,7 +126,7 @@ impl MenuScene {
         Self::is_btn_clicked(input, window_size, QUIT_X, QUIT_Y, QUIT_W, QUIT_H)
     }
 
-    fn set_label_texture(ecs: &mut crate::EcsAdapter, label: Option<specs::Entity>, text_renderer: &mut crate::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue, text: &str, x: f32, y: f32, w: f32, h: f32, color: [u8; 3]) -> Option<specs::Entity> {
+    fn set_label_texture(ecs: &mut crate::EcsAdapter, label: Option<specs::Entity>, text_renderer: &mut crate::ui::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue, text: &str, x: f32, y: f32, w: f32, h: f32, color: [u8; 3]) -> Option<specs::Entity> {
         if let Some(old) = label {
             ecs.delete_entity(old);
         }
@@ -135,11 +135,11 @@ impl MenuScene {
 }
 
 impl Scene for MenuScene {
-    fn on_enter(&mut self, _ecs: &mut crate::EcsAdapter, _text_renderer: &mut crate::text_renderer::TextRenderer) {
+    fn on_enter(&mut self, _ecs: &mut crate::EcsAdapter, _text_renderer: &mut crate::ui::text_renderer::TextRenderer) {
         self.ready = false;
     }
 
-    fn update(&mut self, ecs: &mut crate::EcsAdapter, input: &winit_input_helper::WinitInputHelper, window_size: (f32, f32), text_renderer: &mut crate::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) -> SceneAction {
+    fn update(&mut self, ecs: &mut crate::EcsAdapter, input: &winit_input_helper::WinitInputHelper, window_size: (f32, f32), text_renderer: &mut crate::ui::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) -> SceneAction {
         if !self.ready {
             self.ready = true;
             self.setup_content(ecs, text_renderer, device, queue);

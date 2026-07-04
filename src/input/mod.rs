@@ -5,7 +5,7 @@ pub mod cursor;
 use winit::keyboard::KeyCode;
 use winit_input_helper::WinitInputHelper;
 use specs::Entity;
-use crate::{EcsAdapter, Slot};
+use crate::{EcsAdapter, data::Slot};
 use crate::constants::*;
 
 // ========================================================================

@@ -4,36 +4,29 @@ use winit::event_loop::{ActiveEventLoop, EventLoop};
 use winit::window::{Window, WindowId};
 use winit::dpi::PhysicalSize;
 mod api_components;
-mod sprite_manager;
-mod slot_object;
 mod input;
 mod ecs;
-mod text_renderer;
 mod scene;
-mod map_loader;
-mod fps;
+mod map;
 mod inventory;
-mod pathfinding;
-mod shopper_npc;
+mod data;
+mod npc;
 mod constants;
 mod util;
 mod ui;
-mod settings;
 
-pub use map_loader::load_map_to_ecs;
+pub use map::load_map_to_ecs;
 use crate::constants::*;
 
 use api_components::*;
-use sprite_manager::*;
-use slot_object::Slot;
 use ecs::*;
-use fps::FpsCounter;
+use ui::fps::FpsCounter;
 
 struct App {
     window: Option<&'static Window>,
     wgpu_app: Option<WgpuApp>,
     surface: Option<wgpu::Surface<'static>>,
-    text_renderer: text_renderer::TextRenderer,
+    text_renderer: ui::text_renderer::TextRenderer,
     scene_manager: scene::SceneManager,
     input: winit_input_helper::WinitInputHelper,
     fps_counter: FpsCounter,
@@ -205,7 +198,7 @@ async fn main() {
         window: None,
         wgpu_app: None,
         surface: None,
-        text_renderer: text_renderer::TextRenderer::new("font.otf"),
+        text_renderer: ui::text_renderer::TextRenderer::new("font.otf"),
         scene_manager: scene::SceneManager::new(),
         input: winit_input_helper::WinitInputHelper::new(),
         fps_counter: FpsCounter::new(),

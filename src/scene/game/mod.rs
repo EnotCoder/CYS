@@ -2,19 +2,19 @@ use std::collections::HashSet;
 use specs::{WorldExt, Join};
 use winit::keyboard::KeyCode;
 use crate::scene::scene_trait::{Scene, SceneAction};
-use crate::text_renderer::TextRenderer;
 use crate::constants::*;
 use crate::inventory::Inventory;
-use crate::pathfinding::Node;
+use crate::map::pathfinding::Node;
 use crate::ecs::components::{FoodStorage, ObjectTag, TotalFood, BusyCassas, Transform, Money};
-use crate::shopper_npc::ShopperNpc;
+use crate::npc::ShopperNpc;
+use crate::ui::text_renderer::TextRenderer;
 
 pub struct GameScene {
     loaded: bool,
     loading: bool,
     loading_text: Option<specs::Entity>,
     loading_sprite_key: Option<u64>,
-    slots: Vec<crate::slot_object::Slot>,
+    slots: Vec<crate::data::Slot>,
     act_slot: i32,
     mode: i32,
     map_size: f32,
@@ -47,7 +47,7 @@ pub struct GameScene {
     shopper_timer: f64,
     active: bool,
     active_entity: Option<specs::Entity>,
-    settings: crate::settings::Settings,
+    settings: crate::ui::settings::Settings,
     zoom_step: f32,
 }
 
@@ -92,11 +92,11 @@ impl GameScene {
             shopper_timer: 0.0,
             active: true,
             active_entity: None,
-            settings: crate::settings::Settings::new(),
+            settings: crate::ui::settings::Settings::new(),
         }
     }
 
-    fn show_loading(&mut self, ecs: &mut crate::EcsAdapter, text_renderer: &mut crate::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) {
+    fn show_loading(&mut self, ecs: &mut crate::EcsAdapter, text_renderer: &mut crate::ui::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) {
         let entity = text_renderer.add_text(ecs, device, queue, "Loading...", 64.0, 0.0, 0.0, 4.0, 2.0, GRAY);
         self.loading_text = Some(entity);
         self.loading_sprite_key = Some(TextRenderer::sprite_cache_key(0.0, 0.0, "Loading...", 48.0, 2.0, GRAY));
@@ -111,10 +111,10 @@ impl GameScene {
         }
     }
 
-    fn setup_content(&mut self, ecs: &mut crate::EcsAdapter, text_renderer: &mut crate::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) {
+    fn setup_content(&mut self, ecs: &mut crate::EcsAdapter, text_renderer: &mut crate::ui::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) {
         crate::load_map_to_ecs(ecs);
 
-        self.slots = crate::slot_object::get_slot_vec();
+        self.slots = crate::data::get_slot_vec();
 
         text_renderer.add_text(ecs, device, queue, "Pre alpha", FONT_SIZE_LOGO, -5.0, 4.0, 2.0, 4.0, WHITE);
 
@@ -136,7 +136,7 @@ impl GameScene {
         self.icons_slot_cursor = Some(icons_slot_cursor);
         self.cursor_entity = Some(ecs.add_cursor(0.0, 0.0, CURSOR_TEX[0]));
 
-        self.npc_walkable = crate::map_loader::load_walkable_cells();
+        self.npc_walkable = crate::map::load_walkable_cells();
     }
 
     fn update_animations(&mut self, ecs: &mut crate::EcsAdapter, dt: f64) {
@@ -214,7 +214,7 @@ impl GameScene {
 }
 
 impl Scene for GameScene {
-    fn on_enter(&mut self, ecs: &mut crate::EcsAdapter, _text_renderer: &mut crate::text_renderer::TextRenderer) {
+    fn on_enter(&mut self, ecs: &mut crate::EcsAdapter, _text_renderer: &mut crate::ui::text_renderer::TextRenderer) {
         self.loaded = false;
         self.loading = true;
         self.loading_text = None;
@@ -252,12 +252,12 @@ impl Scene for GameScene {
         self.shopper_timer = 0.0;
         self.active = true;
         self.active_entity = None;
-        self.settings = crate::settings::Settings::new();
+        self.settings = crate::ui::settings::Settings::new();
         ecs.world.write_resource::<TotalFood>().0 = 0;
         ecs.world.write_resource::<BusyCassas>().0.clear();
     }
 
-    fn update(&mut self, ecs: &mut crate::EcsAdapter, input: &winit_input_helper::WinitInputHelper, window_size: (f32, f32), text_renderer: &mut crate::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) -> SceneAction {
+    fn update(&mut self, ecs: &mut crate::EcsAdapter, input: &winit_input_helper::WinitInputHelper, window_size: (f32, f32), text_renderer: &mut crate::ui::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) -> SceneAction {
         if !self.loaded {
             if self.loading {
                 self.loading = false;
@@ -563,7 +563,7 @@ impl Scene for GameScene {
                     .duration_since(std::time::UNIX_EPOCH).unwrap().subsec_nanos();
                 let rack = all_racks[(seed as usize) % all_racks.len()];
                 let cassa = all_cassas[((seed >> 16) as usize) % all_cassas.len()];
-                let spawn_node = crate::map_loader::shopper_spawn_point();
+                let spawn_node = crate::map::shopper_spawn_point();
                 if let Some(shopper) = ShopperNpc::spawn(ecs, &self.npc_walkable, spawn_node, rack, cassa) {
                     self.shoppers.push(shopper);
                 }

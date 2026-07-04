@@ -1,3 +1,5 @@
+pub mod pathfinding;
+
 // ========================================================================
 //  Загрузка карты из map.txt в ECS мир
 // ========================================================================
@@ -7,7 +9,7 @@ use std::fs::File;
 use std::io::{BufRead, BufReader};
 use crate::ecs::EcsAdapter;
 use crate::constants::{WORLD_OFFSET_X, WORLD_OFFSET_Y, Z_MAP};
-use crate::pathfinding::Node;
+use crate::map::pathfinding::Node;
 
 /// Загружает map.txt и создаёт для каждой клетки ECS-сущность
 pub fn load_map_to_ecs(ecs: &mut EcsAdapter) {
@@ -49,7 +51,7 @@ pub fn load_map_to_ecs(ecs: &mut EcsAdapter) {
 
 /// Загружает проходимые клетки из map.txt (для NPC pathfinding)
 pub fn load_walkable_cells() -> HashSet<Node> {
-    let src = include_str!("../map.txt");
+    let src = include_str!("../../map.txt");
     let mut cells = HashSet::new();
     for (j, line) in src.lines().enumerate() {
         for (i, token) in line.split_whitespace().enumerate() {
@@ -69,7 +71,7 @@ pub fn load_walkable_cells() -> HashSet<Node> {
 /// Находит точку спавна покупателей — самая нижняя клетка `0` (пол магазина),
 /// ближайшая к центру по X.
 pub fn shopper_spawn_point() -> Node {
-    let src = include_str!("../map.txt");
+    let src = include_str!("../../map.txt");
     let mut best: Option<Node> = None;
     for (j, line) in src.lines().enumerate() {
         for (i, token) in line.split_whitespace().enumerate() {

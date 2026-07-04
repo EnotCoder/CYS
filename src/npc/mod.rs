@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 use specs::WorldExt;
 use specs::Join;
-use crate::pathfinding::{Node, find_path};
+use crate::map::pathfinding::{Node, find_path};
 use crate::constants::*;
 use crate::EcsAdapter;
 use crate::ecs::components::{FoodStorage, ObjectTag, Transform, BusyCassas, Money};

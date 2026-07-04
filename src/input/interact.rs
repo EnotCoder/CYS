@@ -1,6 +1,6 @@
 use specs::{Entity, WorldExt};
-use crate::{EcsAdapter, Slot};
-use crate::slot_object::{add, remove};
+use crate::{EcsAdapter, data::Slot};
+use crate::data::{add, remove};
 use crate::constants::*;
 use crate::ecs::components::{FoodStorage, ObjectTag, TotalFood};
 

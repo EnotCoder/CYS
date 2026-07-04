@@ -30,7 +30,7 @@ impl SceneManager {
         }
     }
 
-    pub fn switch_to(&mut self, name: &str, text_renderer: &mut crate::text_renderer::TextRenderer) {
+    pub fn switch_to(&mut self, name: &str, text_renderer: &mut crate::ui::text_renderer::TextRenderer) {
         self.clear_ecs_world();
         if let Some(scene) = self.scenes.get_mut(name) {
             scene.on_enter(&mut self.ecs, text_renderer);
@@ -41,7 +41,7 @@ impl SceneManager {
     pub fn update_fps(
         &mut self,
         fps: u32,
-        text_renderer: &mut crate::text_renderer::TextRenderer,
+        text_renderer: &mut crate::ui::text_renderer::TextRenderer,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
     ) {
@@ -68,7 +68,7 @@ impl SceneManager {
         );
 
         self.fps_entity = Some(entity);
-        self.fps_sprite_key = Some(crate::text_renderer::TextRenderer::sprite_cache_key(
+        self.fps_sprite_key = Some(crate::ui::text_renderer::TextRenderer::sprite_cache_key(
             5.75, 4.0, &fps_text, 24.0, 1.0, GREEN,
         ));
         self.current_fps_text = fps_text;

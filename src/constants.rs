@@ -36,9 +36,9 @@ pub const WALK_ANIM_INTERVAL: f64 = 0.3;
 pub const NPC_SCALE: f32 = 1.5;
 
 // === Текстовые текстуры игрока ===
-pub const TEX_PLAYER_IDLE: &str = "tex/characters/player.png";
-pub const TEX_PLAYER_WALK_1: &str = "tex/characters/player_walk_1.png";
-pub const TEX_PLAYER_WALK_2: &str = "tex/characters/player_walk_2.png";
+pub const TEX_PLAYER_IDLE: &str = "tex/characters/player/player.png";
+pub const TEX_PLAYER_WALK_1: &str = "tex/characters/player/player_walk_1.png";
+pub const TEX_PLAYER_WALK_2: &str = "tex/characters/player/player_walk_2.png";
 
 // === Shopping NPC ===
 /// Сколько секунд покупатель стоит у кассы

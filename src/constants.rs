@@ -73,7 +73,8 @@ pub const GREEN: [u8; 3] = [0, 255, 0];
 pub const BTN_TEXT_COLOR: [u8; 3] = [220, 220, 220];
 
 // === Общие пути ===
-pub const TEX_UI_ICON_SLOTS_DIR: &str = "tex/ui/icon_slots/";
+pub const TEX_UI_ICON_SLOTS_OBJECT_DIR: &str = "tex/ui/icon_slots/icon_slots_object/";
+pub const TEX_UI_ICON_SLOTS_MAP_DIR: &str = "tex/ui/icon_slots/";
 pub const TEX_FALLBACK: &str = "tex/dev_tools/null.png";
 
 pub const MAP_FILE: &str = "map.txt";
@@ -83,7 +84,7 @@ pub const INVENTORY_BASE_Y: f32 = SLOT_BAR_Y + 1.0;
 pub const INVENTORY_ROWS: i32 = 5;
 pub const INVENTORY_COLS: i32 = 5;
 pub const INV_NONE: i32 = INVENTORY_ROWS * (INVENTORY_COLS - 1);
-pub const TAB_TEX: [&str; 4] = ["tex/ui/icon_slots/regular/box.png", "tex/ui/icon_slots/carpets/blue_carpet.png", "tex/ui/icon_slots/walldecor/welcome.png", "tex/ui/icon_slots/outdoor/tree.png"];
+pub const TAB_TEX: [&str; 4] = ["tex/ui/icon_slots/icon_slots_object/regular/box.png", "tex/ui/icon_slots/icon_slots_object/carpets/blue_carpet.png", "tex/ui/icon_slots/icon_slots_object/walldecor/welcome.png", "tex/ui/icon_slots/icon_slots_object/outdoor/tree.png"];
 pub const SLOT_CURSOR_TEX: &str = "tex/ui/icon_slots/cursor.png";
 pub const INV_REGULAR: &[&str] = &["box", "sign", "rack", "table", "cassa", "ice_cream", "arcade_machine", "candies", "fence"];
 pub const INV_CARPETS: &[&str] = 

@@ -143,7 +143,7 @@ impl Inventory {
                 let tex = if item_idx < items.len() {
                     Self::slot_texture(items[item_idx])
                 } else {
-                    format!("{}{}", TEX_UI_ICON_SLOTS_DIR, "null.png")
+                    format!("{}{}", TEX_UI_ICON_SLOTS_MAP_DIR, "null.png")
                 };
                 let ent = ecs.add_ui(
                     SLOT_BAR_X + col as f32,

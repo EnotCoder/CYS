@@ -157,7 +157,7 @@ pub const DESIRED_FRAME_LATENCY: u32 = 2;
 
 // === Динамический storage buffer ===
 /// Максимум спрайтов, которые могут быть записаны в dynamic storage buffer за кадр.
-pub const MAX_DYNAMIC_SPRITES: usize = 2048;
+pub const MAX_DYNAMIC_SPRITES: usize = 8192;
 
 // === Индексный буфер квадрата ===
 pub const QUAD_INDICES: [u16; 6] = [0, 1, 2, 2, 3, 0];

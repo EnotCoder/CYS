@@ -18,6 +18,105 @@ pub fn is_flower_name(name: &str) -> bool {
     crate::constants::FLOWER_NAMES.contains(&name)
 }
 
+fn is_grass_token(token: &str) -> bool {
+    matches!(token, "." | "@" | "*" | "m" | "f" | "~" | "l" | "1" | "2" | "3" | "4" | "5" | "6")
+}
+
+fn update_walls_around(ecs: &mut EcsAdapter, gx: i32, gy: i32) {
+    let dirs: [(i32, i32, &str); 8] = [
+        (0, -1, "&"), (0, 1, "&"), (-1, 0, "/"), (1, 0, "|"),
+        (-1, -1, "p"), (1, -1, "i"), (-1, 1, "/"), (1, 1, "|"),
+    ];
+    for &(dx, dy, wall_tok) in &dirs {
+        let nx = gx + dx;
+        let ny = gy + dy;
+        let file_col = nx + 21;
+        let file_row = 14 - ny;
+        if file_row < 0 || file_row >= ecs.map_grid.len() as i32 { continue; }
+        if file_col < 0 || file_col >= ecs.map_grid[file_row as usize].len() as i32 { continue; }
+        let token = ecs.map_grid[file_row as usize][file_col as usize].clone();
+        if !is_grass_token(&token) { continue; }
+        ecs.map_grid[file_row as usize][file_col as usize] = wall_tok.to_string();
+        ecs.flower_positions.remove(&(nx, ny));
+        if let Some(&map_entity) = ecs.map_entities.get(&(nx, ny)) {
+            ecs.update_sprite_texture(map_entity, "tex/map/wall.png");
+            let mut sprites = ecs.world.write_storage::<crate::SpriteComponent>();
+            if let Some(sprite) = sprites.get_mut(map_entity) {
+                let (tf, tc) = wall_frame_count(wall_tok);
+                sprite.texture_frame = tf;
+                sprite.texture_count = tc;
+            }
+        }
+    }
+}
+
+fn refresh_walls_around(ecs: &mut EcsAdapter, gx: i32, gy: i32) {
+    let dirs: [(i32, i32); 8] = [
+        (0, -1), (0, 1), (-1, 0), (1, 0),
+        (-1, -1), (1, -1), (-1, 1), (1, 1),
+    ];
+    for &(dx, dy) in &dirs {
+        let nx = gx + dx;
+        let ny = gy + dy;
+        let file_col = nx + 21;
+        let file_row = 14 - ny;
+        if file_row < 0 || file_row >= ecs.map_grid.len() as i32 { continue; }
+        if file_col < 0 || file_col >= ecs.map_grid[file_row as usize].len() as i32 { continue; }
+        let token = ecs.map_grid[file_row as usize][file_col as usize].clone();
+        if token == "0" || is_grass_token(&token) { continue; }
+        if let Some(new_token) = recompute_wall_token(ecs, nx, ny) {
+            if new_token != token {
+                ecs.map_grid[file_row as usize][file_col as usize] = new_token.clone();
+                if let Some(&map_entity) = ecs.map_entities.get(&(nx, ny)) {
+                    ecs.update_sprite_texture(map_entity, "tex/map/wall.png");
+                    let mut sprites = ecs.world.write_storage::<crate::SpriteComponent>();
+                    if let Some(sprite) = sprites.get_mut(map_entity) {
+                        let (tf, tc) = wall_frame_count(&new_token);
+                        sprite.texture_frame = tf;
+                        sprite.texture_count = tc;
+                    }
+                }
+            }
+        }
+    }
+}
+
+fn recompute_wall_token(ecs: &EcsAdapter, wx: i32, wy: i32) -> Option<String> {
+    let f = |x: i32, y: i32| ecs.floor_positions.contains(&(x, y));
+    let s = f(wx, wy+1); let n = f(wx, wy-1);
+    let e = f(wx+1, wy); let w = f(wx-1, wy);
+    let se = f(wx+1, wy+1); let sw = f(wx-1, wy+1);
+    let ne = f(wx+1, wy-1); let nw = f(wx-1, wy-1);
+    let count = [s, n, e, w, se, sw, ne, nw].iter().filter(|&&x| x).count();
+    if count == 0 { return None; }
+    if count == 1 {
+        if s { return Some("&".to_string()); } if n { return Some("&".to_string()); }
+        if e { return Some("/".to_string()); } if w { return Some("|".to_string()); }
+        if se { return Some("p".to_string()); } if sw { return Some("i".to_string()); }
+        if ne { return Some("/".to_string()); } if nw { return Some("|".to_string()); }
+    }
+    if s || n { return Some("&".to_string()); }
+    if e || ne { return Some("/".to_string()); }
+    if w || nw { return Some("|".to_string()); }
+    if se { return Some("p".to_string()); } if sw { return Some("i".to_string()); }
+    None
+}
+
+fn wall_frame_count(token: &str) -> ([i32; 2], [i32; 2]) {
+    match token {
+        "=" => ([0, 0], [5, 5]), "-" => ([0, 1], [5, 5]),
+        "^" => ([1, 0], [5, 5]), "&" => ([2, 2], [5, 5]),
+        "/" => ([0, 2], [5, 5]), "|" => ([1, 2], [5, 5]),
+        "(" => ([0, 3], [5, 5]), "{" => ([0, 4], [5, 5]),
+        ")" => ([1, 3], [5, 5]), "}" => ([1, 4], [5, 5]),
+        "[" => ([2, 0], [5, 5]), "]" => ([4, 0], [5, 5]),
+        ":" => ([2, 1], [5, 5]), ";" => ([4, 1], [5, 5]),
+        "o" => ([3, 0], [5, 5]), "%" => ([3, 1], [5, 5]),
+        "p" => ([3, 3], [5, 5]), "i" => ([4, 3], [5, 5]),
+        _ => ([0, 0], [5, 5]),
+    }
+}
+
 pub fn add(ecs: &mut EcsAdapter, slots: &mut Vec<Slot>, act_slot: i32, cursor_entity: Entity) {
     let active_slot = &slots[act_slot as usize].obj;
     let (cursor_x, cursor_y) = ecs.get_transform_position(cursor_entity);
@@ -72,11 +171,13 @@ pub fn add(ecs: &mut EcsAdapter, slots: &mut Vec<Slot>, act_slot: i32, cursor_en
                                     sprite.texture_count = [2, 2];
                                 }
                             }
+                            update_walls_around(ecs, cx, cy);
+                            refresh_walls_around(ecs, cx, cy);
                         }
                     }
                 }
             }
-            ecs.save_map_grid();
+            // map.txt не сохраняем — пол и стены только в памяти
         }
 
         let first = {

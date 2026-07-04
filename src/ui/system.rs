@@ -77,7 +77,7 @@ const CHECKBOX_TEXT_GAP: f32 = 0.08;
 
 pub fn create_checkbox(ecs: &mut EcsAdapter, text_renderer: &mut TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue, checkbox: &mut Checkbox) {
     destroy_checkbox(ecs, checkbox);
-    let tex = if checkbox.checked { "tex/ui/true.png" } else { "tex/ui/false.png" };
+    let tex = if checkbox.checked { "tex/ui/checkbox/true.png" } else { "tex/ui/checkbox/false.png" };
     let box_ent = ecs.add_ui_sized(checkbox.x, checkbox.y, CHECKBOX_BOX_SIZE, CHECKBOX_BOX_SIZE, tex, device, queue);
     let box_key = crate::util::sprite_cache_key("ui", checkbox.x, checkbox.y, tex, [0, 0], [1, 1], 1.0);
     checkbox.box_entity = Some(box_ent);

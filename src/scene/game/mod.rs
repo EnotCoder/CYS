@@ -49,6 +49,9 @@ pub struct GameScene {
     active_entity: Option<specs::Entity>,
     settings: crate::ui::settings::Settings,
     zoom_step: f32,
+    build_mode: bool,
+    build_entity: Option<specs::Entity>,
+    saved_slot_names: Vec<String>,
 }
 
 impl GameScene {
@@ -93,6 +96,9 @@ impl GameScene {
             active: true,
             active_entity: None,
             settings: crate::ui::settings::Settings::new(),
+            build_mode: false,
+            build_entity: None,
+            saved_slot_names: Vec::new(),
         }
     }
 
@@ -121,6 +127,8 @@ impl GameScene {
         let icon_mode = ecs.add_ui(ICON_MODE_X, SLOT_BAR_Y, MODE_ICON_TEX[0]);
         let active_entity = ecs.add_ui(ACTIVE_X, SLOT_BAR_Y, TEX_ACTIVE);
         self.active_entity = Some(active_entity);
+        let build_entity = ecs.add_ui(BUILD_X, BUILD_Y, TEX_BUILD_BUTTON);
+        self.build_entity = Some(build_entity);
 
         for (i, slot) in self.slots.iter().enumerate() {
             let icon_path = crate::util::slot_icon_path(slot.obj.name);
@@ -157,6 +165,7 @@ impl GameScene {
     }
 
     fn handle_inventory_input(&mut self, ecs: &mut crate::EcsAdapter, input: &winit_input_helper::WinitInputHelper, window_size: (f32, f32)) {
+        if self.build_mode { return; }
         if input.key_pressed(winit::keyboard::KeyCode::KeyE) {
             if self.inventory.open {
                 self.inventory.exit(ecs);
@@ -211,6 +220,41 @@ impl GameScene {
             }
         }
     }
+
+    fn toggle_build_mode(&mut self, ecs: &mut crate::EcsAdapter) {
+        if !self.build_mode {
+            self.saved_slot_names = self.slots.iter().map(|s| s.obj.name.to_string()).collect();
+            for i in 0..self.slots.len() {
+                self.slots[i] = crate::data::make_slot("floor");
+                let icon_path = crate::util::slot_icon_path("floor");
+                ecs.update_sprite_texture(self.slot_entities[i], &icon_path);
+            }
+            let cursor = self.cursor_entity.unwrap();
+            let icon_mode = self.icon_mode.unwrap();
+            self.mode = 1;
+            ecs.update_sprite_texture(cursor, CURSOR_TEX[1]);
+            ecs.update_sprite_texture(icon_mode, MODE_ICON_TEX[1]);
+            if self.inventory.open {
+                self.inventory.exit(ecs);
+            }
+            self.build_mode = true;
+        } else {
+            for (i, name) in self.saved_slot_names.iter().enumerate() {
+                if i < self.slots.len() {
+                    self.slots[i] = crate::data::make_slot(name);
+                    let icon_path = crate::util::slot_icon_path(name);
+                    ecs.update_sprite_texture(self.slot_entities[i], &icon_path);
+                }
+            }
+            self.saved_slot_names.clear();
+            let cursor = self.cursor_entity.unwrap();
+            let icon_mode = self.icon_mode.unwrap();
+            self.mode = 0;
+            ecs.update_sprite_texture(cursor, CURSOR_TEX[0]);
+            ecs.update_sprite_texture(icon_mode, MODE_ICON_TEX[0]);
+            self.build_mode = false;
+        }
+    }
 }
 
 impl Scene for GameScene {
@@ -253,6 +297,9 @@ impl Scene for GameScene {
         self.active = true;
         self.active_entity = None;
         self.settings = crate::ui::settings::Settings::new();
+        self.build_mode = false;
+        self.build_entity = None;
+        self.saved_slot_names.clear();
         ecs.world.write_resource::<TotalFood>().0 = 0;
         ecs.world.write_resource::<BusyCassas>().0.clear();
     }
@@ -303,6 +350,16 @@ impl Scene for GameScene {
             self.mode = result.1;
             self.map_size = result.2;
             let show_ilm = result.3;
+
+            // --- Build button ---
+            if input.mouse_pressed(winit::event::MouseButton::Left) && !self.inventory.mode {
+                if let Some((mx, my)) = input.cursor() {
+                    let (wx, wy) = crate::util::ndc_to_world(mx, my, window_size, 1.0, 0.0, 0.0);
+                    if (wx - BUILD_X).abs() < TILE_HALF && (wy - BUILD_Y).abs() < TILE_HALF {
+                        self.toggle_build_mode(ecs);
+                    }
+                }
+            }
 
             // --- Toggle active/not active ---
             if input.mouse_pressed(winit::event::MouseButton::Left) && !self.inventory.mode {

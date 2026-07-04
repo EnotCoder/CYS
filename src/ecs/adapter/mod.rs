@@ -37,6 +37,9 @@ pub struct EcsAdapter {
     pub floor_positions: HashSet<(i32, i32)>,
     pub outdoor_positions: HashSet<(i32, i32)>,
     pub flower_positions: HashSet<(i32, i32)>,
+    pub floor_placed_positions: HashSet<(i32, i32)>,
+    pub map_grid: Vec<Vec<String>>,
+    pub map_entities: HashMap<(i32, i32), specs::Entity>,
 }
 
 impl EcsAdapter {
@@ -65,6 +68,9 @@ impl EcsAdapter {
             floor_positions: HashSet::new(),
             outdoor_positions: HashSet::new(),
             flower_positions: HashSet::new(),
+            floor_placed_positions: HashSet::new(),
+            map_grid: Vec::new(),
+            map_entities: HashMap::new(),
         }
     }
 
@@ -146,6 +152,16 @@ impl EcsAdapter {
         self.sprite_cache.insert(key, sprite);
 
         entity
+    }
+
+    pub fn save_map_grid(&self) {
+        use std::io::Write;
+        if let Ok(mut file) = std::fs::File::create(crate::constants::MAP_FILE) {
+            for row in &self.map_grid {
+                let line = row.join(" ");
+                let _ = writeln!(file, "{}", line);
+            }
+        }
     }
 
     pub fn add_button(

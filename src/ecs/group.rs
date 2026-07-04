@@ -18,12 +18,15 @@ impl EcsAdapter {
         is_carpet: bool,
         animated: bool,
         frame_paths: &[&str],
+        is_floor: bool,
     ) -> u32 {
         let group_id = self.next_group_id;
         self.next_group_id += 1;
 
         let mut entities = Vec::with_capacity((width * height) as usize);
-        let z: f32 = if is_carpet {
+        let z: f32 = if is_floor {
+            crate::constants::Z_MAP
+        } else if is_carpet {
             crate::constants::Z_CARPET
         } else {
             crate::constants::Z_DECOR
@@ -56,6 +59,14 @@ impl EcsAdapter {
             }
         }
 
+        if is_floor {
+            for i in 0..width {
+                for j in 0..height {
+                    self.floor_placed_positions.insert((x + i, y + j));
+                }
+            }
+        }
+
         self.world
             .write_resource::<GroupInfoResource>()
             .groups
@@ -68,6 +79,7 @@ impl EcsAdapter {
                     pos_x: x,
                     pos_y: y,
                     is_carpet,
+                    is_floor,
                 },
             );
 
@@ -84,6 +96,16 @@ impl EcsAdapter {
             .groups
             .get(&group_id)
             .cloned();
+
+        if let Some(ref group) = group {
+            if group.is_floor {
+                for i in 0..group.width {
+                    for j in 0..group.height {
+                        self.floor_placed_positions.remove(&(group.pos_x + i, group.pos_y + j));
+                    }
+                }
+            }
+        }
 
         if let Some(group) = group {
             let entities = self.world.entities();

@@ -166,6 +166,11 @@ const ALL_OBJECTS: &[Object] = &[
         texture_frame: [0, 1], texture_count: [3, 2],
         animated: false, frame_paths: &[],
     },
+    Object {
+        width: 1, height: 1, name: "floor", path: "tex/map/floor.png",
+        texture_frame: [0, 0], texture_count: [2, 2],
+        animated: false, frame_paths: &[],
+    },
 ];
 
 const INITIAL_SLOTS: [&str; SLOT_COUNT] = ["box", "sign", "rack", "table", "cassa"];

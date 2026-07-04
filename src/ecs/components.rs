@@ -51,6 +51,7 @@ pub struct GroupInfo {
     pub pos_x: i32,
     pub pos_y: i32,
     pub is_carpet: bool,
+    pub is_floor: bool,
 }
 
 #[derive(Debug)]

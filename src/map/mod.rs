@@ -22,7 +22,9 @@ pub fn load_map_to_ecs(ecs: &mut EcsAdapter) {
             continue;
         }
 
+        let mut grid_row: Vec<String> = Vec::new();
         for (i, token) in parts.iter().enumerate() {
+            grid_row.push(token.to_string());
             let (tex_path, tex_pos, tex_count) = token_to_texture(token);
 
             let x = i as f32 + WORLD_OFFSET_X;
@@ -30,22 +32,24 @@ pub fn load_map_to_ecs(ecs: &mut EcsAdapter) {
             let grid_x = (x + 0.5).floor() as i32;
             let grid_y = (y + 0.5).floor() as i32;
 
+            let is_grass = matches!(*token, "." | "@" | "*" | "m" | "f" | "~" | "l" | "1" | "2" | "3" | "4" | "5" | "6");
             if *token == "=" || *token == "-" {
                 ecs.wall_positions.insert((grid_x, grid_y));
             } else if *token == "0" {
                 ecs.floor_positions.insert((grid_x, grid_y));
-            } else if *token == "." {
-                ecs.outdoor_positions.insert((grid_x, grid_y));
             }
-            if *token == "." {
+            if is_grass {
+                ecs.outdoor_positions.insert((grid_x, grid_y));
                 ecs.flower_positions.insert((grid_x, grid_y));
             }
 
-            crate::ecs::factory::create_sprite(
+            let entity = crate::ecs::factory::create_sprite(
                 &mut ecs.world, x, y, Z_MAP,
                 tex_path, tex_pos, tex_count, 1.0, 1.0,
             );
+            ecs.map_entities.insert((grid_x, grid_y), entity);
         }
+        ecs.map_grid.push(grid_row);
     }
 }
 

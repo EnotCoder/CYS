@@ -38,7 +38,8 @@ pub fn do_input(
             let on_slot = (wy - SLOT_BAR_Y).abs() < TILE_HALF && col >= 0 && col < slots.len() as i32;
             let on_icons = (wy - SLOT_BAR_Y).abs() < TILE_HALF
                 && ((wx - ICON_MODE_X).abs() < TILE_HALF || (wx - ACTIVE_X).abs() < TILE_HALF);
-            on_slot || on_icons
+            let on_build_btn = (wx - BUILD_X).abs() < TILE_HALF && (wy - BUILD_Y).abs() < TILE_HALF;
+            on_slot || on_icons || on_build_btn
         });
         if !skip {
             show_ilm = interact::do_interact(ecs, cursor_entity, new_mode, slots, act_slot);

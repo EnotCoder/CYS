@@ -117,6 +117,11 @@ pub const LOGO_UI_X: f32 = ACTIVE_X + 0.2;
 pub const LOGO_UI_Y: f32 = SLOT_BAR_Y + 0.1;
 pub const TEX_MY_LOGO: &str = "tex/ui/my_logo.png";
 
+// === Build button (над active toggle) ===
+pub const BUILD_X: f32 = ACTIVE_X;
+pub const BUILD_Y: f32 = SLOT_BAR_Y + 1.0;
+pub const TEX_BUILD_BUTTON: &str = "tex/ui/icon_slots/replace_slots.png";
+
 // === Текстуры иконки режима ===
 pub const MODE_ICON_TEX: [&str; 3] = [
     "tex/ui/mode/standart_mode.png",

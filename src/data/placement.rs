@@ -25,15 +25,19 @@ pub fn add(ecs: &mut EcsAdapter, slots: &mut Vec<Slot>, act_slot: i32, cursor_en
     let is_wall_decor = is_wall_decor_name(active_slot.name);
     let is_outdoor = is_outdoor_name(active_slot.name);
     let is_flower = is_flower_name(active_slot.name);
+    let is_floor = active_slot.name == "floor";
+
+    let gx = cursor_x as i32;
+    let gy = cursor_y as i32;
 
     if ecs.can_place_at(
-        cursor_x as i32, cursor_y as i32,
+        gx, gy,
         active_slot.width, active_slot.height,
-        is_carpet, is_wall_decor, is_outdoor, is_flower,
+        is_carpet, is_wall_decor, is_outdoor, is_flower, is_floor,
     ) {
         ecs.clear_cursor_preview();
         let group_id = ecs.add_group_object(
-            cursor_x as i32, cursor_y as i32,
+            gx, gy,
             active_slot.width, active_slot.height,
             active_slot.path,
             active_slot.texture_frame,
@@ -41,7 +45,40 @@ pub fn add(ecs: &mut EcsAdapter, slots: &mut Vec<Slot>, act_slot: i32, cursor_en
             is_carpet,
             active_slot.animated,
             active_slot.frame_paths,
+            is_floor,
         );
+
+        if is_floor && !ecs.map_grid.is_empty() {
+            for i in 0..active_slot.width {
+                for j in 0..active_slot.height {
+                    let cx = gx + i;
+                    let cy = gy + j;
+                    let file_col = cx + 21;
+                    let file_row = 14 - cy;
+                    if file_row >= 0 && file_row < ecs.map_grid.len() as i32 &&
+                       file_col >= 0 && file_col < ecs.map_grid[file_row as usize].len() as i32
+                    {
+                        let token = ecs.map_grid[file_row as usize][file_col as usize].clone();
+                        if token != "0" {
+                            ecs.map_grid[file_row as usize][file_col as usize] = "0".to_string();
+                            ecs.floor_positions.insert((cx, cy));
+                            ecs.outdoor_positions.remove(&(cx, cy));
+                            ecs.flower_positions.remove(&(cx, cy));
+                            if let Some(&map_entity) = ecs.map_entities.get(&(cx, cy)) {
+                                ecs.update_sprite_texture(map_entity, "tex/map/floor.png");
+                                let mut sprites = ecs.world.write_storage::<crate::SpriteComponent>();
+                                if let Some(sprite) = sprites.get_mut(map_entity) {
+                                    sprite.texture_frame = [0, 0];
+                                    sprite.texture_count = [2, 2];
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            ecs.save_map_grid();
+        }
+
         let first = {
             let groups = ecs.world.read_resource::<crate::GroupInfoResource>();
             groups.groups.get(&group_id).and_then(|g| g.entities.first().copied())

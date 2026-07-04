@@ -124,7 +124,7 @@ impl GameScene {
 
         self.slots = crate::data::get_slot_vec();
 
-        text_renderer.add_text(ecs, device, queue, "Pre alpha", FONT_SIZE_LOGO, -5.0, 4.0, 2.0, 4.0, WHITE);
+        text_renderer.add_text(ecs, device, queue, "Alpha", FONT_SIZE_LOGO, -5.0, 4.0, 2.0, 4.0, WHITE);
 
         let icon_mode = ecs.add_ui(ICON_MODE_X, SLOT_BAR_Y, MODE_ICON_TEX[0]);
         let active_entity = ecs.add_ui(ACTIVE_X, SLOT_BAR_Y, TEX_ACTIVE);
@@ -367,7 +367,7 @@ impl Scene for GameScene {
             }
 
             // --- Inv button (toggle inventory) ---
-            if input.mouse_pressed(winit::event::MouseButton::Left) {
+            if input.mouse_pressed(winit::event::MouseButton::Left) && !self.build_mode {
                 if let Some((mx, my)) = input.cursor() {
                     let (wx, wy) = crate::util::ndc_to_world(mx, my, window_size, 1.0, 0.0, 0.0);
                     if (wx - INV_BTN_X).abs() < TILE_HALF && (wy - SLOT_BAR_Y).abs() < TILE_HALF {

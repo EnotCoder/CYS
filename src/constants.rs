@@ -65,6 +65,8 @@ pub const SLOT_COUNT: usize = 5;
 pub const SLOT_BAR_Y: f32 = -4.0;
 pub const SLOT_BAR_X: f32 = -5.0;
 pub const ICON_MODE_X: f32 = 5.0;
+pub const INV_BTN_X: f32 = SLOT_BAR_X + SLOT_COUNT as f32;
+pub const TEX_INV_BUTTON: &str = "tex/ui/icon_slots/inv.png";
 
 // === Текст (цвета, размеры) ===
 pub const WHITE: [u8; 3] = [255, 255, 255];

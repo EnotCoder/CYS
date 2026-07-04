@@ -51,6 +51,7 @@ pub struct GameScene {
     zoom_step: f32,
     build_mode: bool,
     build_entity: Option<specs::Entity>,
+    inv_entity: Option<specs::Entity>,
     saved_slot_names: Vec<String>,
 }
 
@@ -98,6 +99,7 @@ impl GameScene {
             settings: crate::ui::settings::Settings::new(),
             build_mode: false,
             build_entity: None,
+            inv_entity: None,
             saved_slot_names: Vec::new(),
         }
     }
@@ -129,6 +131,8 @@ impl GameScene {
         self.active_entity = Some(active_entity);
         let build_entity = ecs.add_ui(BUILD_X, BUILD_Y, TEX_BUILD_BUTTON);
         self.build_entity = Some(build_entity);
+        let inv_entity = ecs.add_ui(INV_BTN_X, SLOT_BAR_Y, TEX_INV_BUTTON);
+        self.inv_entity = Some(inv_entity);
 
         for (i, slot) in self.slots.iter().enumerate() {
             let icon_path = crate::util::slot_icon_path(slot.obj.name);
@@ -299,6 +303,7 @@ impl Scene for GameScene {
         self.settings = crate::ui::settings::Settings::new();
         self.build_mode = false;
         self.build_entity = None;
+        self.inv_entity = None;
         self.saved_slot_names.clear();
         ecs.world.write_resource::<TotalFood>().0 = 0;
         ecs.world.write_resource::<BusyCassas>().0.clear();
@@ -357,6 +362,20 @@ impl Scene for GameScene {
                     let (wx, wy) = crate::util::ndc_to_world(mx, my, window_size, 1.0, 0.0, 0.0);
                     if (wx - BUILD_X).abs() < TILE_HALF && (wy - BUILD_Y).abs() < TILE_HALF {
                         self.toggle_build_mode(ecs);
+                    }
+                }
+            }
+
+            // --- Inv button (toggle inventory) ---
+            if input.mouse_pressed(winit::event::MouseButton::Left) {
+                if let Some((mx, my)) = input.cursor() {
+                    let (wx, wy) = crate::util::ndc_to_world(mx, my, window_size, 1.0, 0.0, 0.0);
+                    if (wx - INV_BTN_X).abs() < TILE_HALF && (wy - SLOT_BAR_Y).abs() < TILE_HALF {
+                        if self.inventory.open {
+                            self.inventory.exit(ecs);
+                        } else {
+                            self.inventory.enter(ecs);
+                        }
                     }
                 }
             }

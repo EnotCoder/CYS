@@ -15,7 +15,6 @@ bytemuck = { version = "1.22", features = ["derive"] }
 image = "0.25"
 specs = "0.18"
 ab_glyph = "0.2"
-dotenvy = "0.15"
 
 [profile.release]
 lto = true

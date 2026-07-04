@@ -4,7 +4,6 @@ use winit::event_loop::{ActiveEventLoop, EventLoop};
 use winit::window::{Window, WindowId};
 use winit::dpi::PhysicalSize;
 mod api_components;
-mod config;
 mod inventory;
 mod input;
 mod ecs;
@@ -193,8 +192,6 @@ impl ApplicationHandler for App {
 
 #[tokio::main]
 async fn main() {
-    config::init();
-
     let event_loop = EventLoop::new().unwrap();
 
     let mut app = App {

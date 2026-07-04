@@ -99,11 +99,11 @@ pub const INV_TAB_Y: f32 = 2.0;
 
 // === Текстуры курсора по режимам ===
 pub const CURSOR_TEX: [&str; 3] = [
-    "tex/cursor/def_cursor.png",  // mode 0
-    "tex/cursor/cursor.png",      // mode 1 (build)
-    "tex/cursor/del_cursor.png",  // mode 2 (delete)
+    "tex/ui/cursor/def_cursor.png",  // mode 0
+    "tex/ui/cursor/cursor.png",      // mode 1 (build)
+    "tex/ui/cursor/del_cursor.png",  // mode 2 (delete)
 ];
-pub const CURSOR_ERR_TEX: &str = "tex/cursor/err cursor.png";
+pub const CURSOR_ERR_TEX: &str = "tex/ui/cursor/err cursor.png";
 
 // === Active toggle ===
 /// Позиция спрайта вкл/выкл NPC (левее mode)

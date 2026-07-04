@@ -117,6 +117,11 @@ const ALL_OBJECTS: &[Object] = &[
         animated: true, frame_paths: &["tex/decor/walldecor/welcome/welcome_0.png", "tex/decor/walldecor/welcome/welcome_1.png"],
     },
     Object {
+        width: 1, height: 2, name: "fnaf", path: "tex/decor/walldecor/fnaf.png",
+        texture_frame: [0, 1], texture_count: [1, 2],
+        animated: false, frame_paths: &[],
+    },
+    Object {
         width: 1, height: 1, name: "fence", path: "tex/decor/regular/fence/fence_0_0_0_0.png",
         texture_frame: [0, 0], texture_count: [1, 1],
         animated: false, frame_paths: &[],

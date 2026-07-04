@@ -74,7 +74,7 @@ pub const BTN_TEXT_COLOR: [u8; 3] = [220, 220, 220];
 
 // === Общие пути ===
 pub const TEX_UI_ICON_SLOTS_DIR: &str = "tex/ui/icon_slots/";
-pub const TEX_FALLBACK: &str = "tex/null.png";
+pub const TEX_FALLBACK: &str = "tex/dev_tools/null.png";
 
 pub const MAP_FILE: &str = "map.txt";
 
@@ -114,7 +114,7 @@ pub const TEX_NO_ACTIVE: &str = "tex/ui/active/no_active.png";
 // === Лого в правом нижнем углу ===
 pub const LOGO_UI_X: f32 = ACTIVE_X + 0.2;
 pub const LOGO_UI_Y: f32 = SLOT_BAR_Y + 0.1;
-pub const TEX_MY_LOGO: &str = "tex/my_logo.png";
+pub const TEX_MY_LOGO: &str = "tex/ui/my_logo.png";
 
 // === Текстуры иконки режима ===
 pub const MODE_ICON_TEX: [&str; 3] = [

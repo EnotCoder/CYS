@@ -469,14 +469,14 @@ impl Scene for GameScene {
             let pad_y = 0.04;
             let bg_w = text_w + pad_x * 2.0;
             let bg_h = text_h + pad_y * 2.0;
-            let bg_ent = ecs.add_ui_sized(tx, ty, bg_w, bg_h, "tex/black.png", device, queue);
+            let bg_ent = ecs.add_ui_sized(tx, ty, bg_w, bg_h, "tex/dev_tools/black.png", device, queue);
             ecs.update_sprite_alpha(bg_ent, 0.5);
             self.slot_tooltip_bg = Some(bg_ent);
             let text_ent = text_renderer.add_text_fixed(ecs, device, queue, &display_name, FONT_SIZE_LOGO, tx, ty, text_w, text_h, 4.0, WHITE);
             self.slot_tooltip_text = Some(text_ent);
             let text_key = TextRenderer::sprite_cache_key(tx, ty, &display_name, FONT_SIZE_LOGO, 4.0, WHITE);
             self.slot_tooltip_text_key = Some(text_key);
-            let bg_key = crate::util::sprite_cache_key("ui", tx, ty, "tex/black.png", [0, 0], [1, 1], 1.0);
+            let bg_key = crate::util::sprite_cache_key("ui", tx, ty, "tex/dev_tools/black.png", [0, 0], [1, 1], 1.0);
             self.slot_tooltip_bg_key = Some(bg_key);
         } else {
             if let Some(old) = self.slot_tooltip_text.take() {

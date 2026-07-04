@@ -31,7 +31,7 @@ pub fn is_clicked(input: &WinitInputHelper, window_size: (f32, f32), cx: f32, cy
 
 pub fn create_panel(ecs: &mut EcsAdapter, device: &wgpu::Device, queue: &wgpu::Queue, panel: &mut Panel) {
     destroy_panel(ecs, panel);
-    let ent = ecs.add_ui_sized(panel.x, panel.y, panel.w, panel.h, "tex/black.png", device, queue);
+    let ent = ecs.add_ui_sized(panel.x, panel.y, panel.w, panel.h, "tex/dev_tools/black.png", device, queue);
     ecs.update_sprite_alpha(ent, panel.alpha);
     panel.entity = Some(ent);
 }
@@ -48,7 +48,7 @@ pub fn destroy_panel(ecs: &mut EcsAdapter, panel: &mut Panel) {
 
 pub fn create_button(ecs: &mut EcsAdapter, text_renderer: &mut TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue, btn: &mut Button) {
     destroy_button(ecs, btn);
-    let bg = ecs.add_ui_sized(btn.x, btn.y, btn.w, btn.h, "tex/black.png", device, queue);
+    let bg = ecs.add_ui_sized(btn.x, btn.y, btn.w, btn.h, "tex/dev_tools/black.png", device, queue);
     let label = text_renderer.add_text(ecs, device, queue, &btn.label, btn.font_size, btn.x, btn.y, btn.w * 0.7, 1.0, WHITE);
     btn.bg = Some(bg);
     btn.text = Some(label);

@@ -155,7 +155,7 @@ impl EcsAdapter {
         font_size: f32,
         text_renderer: &mut crate::text_renderer::TextRenderer,
     ) -> (specs::Entity, specs::Entity) {
-        let bg = self.add_ui_sized(x, y, width, height, "tex/black.png", device, queue);
+        let bg = self.add_ui_sized(x, y, width, height, "tex/dev_tools/black.png", device, queue);
         let label = text_renderer.add_text(
             self, device, queue,
             text, font_size, x, y + 0.05, width * 0.75, 1.0, BTN_TEXT_COLOR,

@@ -40,6 +40,7 @@ pub struct EcsAdapter {
     pub floor_placed_positions: HashSet<(i32, i32)>,
     pub map_grid: Vec<Vec<String>>,
     pub map_entities: HashMap<(i32, i32), specs::Entity>,
+    pub original_tokens: HashMap<(i32, i32), String>,
 }
 
 impl EcsAdapter {
@@ -71,6 +72,7 @@ impl EcsAdapter {
             floor_placed_positions: HashSet::new(),
             map_grid: Vec::new(),
             map_entities: HashMap::new(),
+            original_tokens: HashMap::new(),
         }
     }
 

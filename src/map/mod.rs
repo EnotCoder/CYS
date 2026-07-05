@@ -32,6 +32,8 @@ pub fn load_map_to_ecs(ecs: &mut EcsAdapter) {
             let grid_x = (x + 0.5).floor() as i32;
             let grid_y = (y + 0.5).floor() as i32;
 
+            ecs.original_tokens.insert((grid_x, grid_y), token.to_string());
+
             let is_grass = matches!(*token, "." | "@" | "*" | "m" | "f" | "~" | "l" | "1" | "2" | "3" | "4" | "5" | "6");
             if *token == "=" || *token == "-" {
                 ecs.wall_positions.insert((grid_x, grid_y));
@@ -94,7 +96,7 @@ pub fn shopper_spawn_point() -> Node {
     best.unwrap_or(Node::new(0, -4))
 }
 
-fn token_to_texture(token: &str) -> (&str, [i32; 2], [i32; 2]) {
+pub fn token_to_texture(token: &str) -> (&str, [i32; 2], [i32; 2]) {
     match token {
         "." => ("tex/map/grass.png", [0, 0], [4, 4]),
         "@" => ("tex/map/grass.png", [0, 2], [4, 4]),

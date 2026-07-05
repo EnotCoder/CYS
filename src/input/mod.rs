@@ -31,6 +31,8 @@ pub fn do_input(
     let mut new_mode = mode;
     let mut show_ilm = false;
 
+    cursor::handle_mouse_movement(input, ecs, cursor_entity, new_mode, slots, act_slot, new_size, window_size, cam_x, cam_y);
+
     if input.key_pressed(KeyCode::KeyF) || input.mouse_pressed(winit::event::MouseButton::Left) {
         let skip = inventory_mode || input.cursor().map_or(false, |(mx, my)| {
             let (wx, wy) = crate::util::ndc_to_world(mx, my, window_size, 1.0, 0.0, 0.0);
@@ -43,15 +45,17 @@ pub fn do_input(
             on_slot || on_icons || on_build_btn || on_inv_btn
         });
         if !skip {
-            show_ilm = interact::do_interact(ecs, cursor_entity, new_mode, slots, act_slot);
+            let (gx, gy) = input.cursor().map_or((-99, -99), |(mx, my)| {
+                let (wx, wy) = crate::util::ndc_to_world(mx, my, window_size, new_size, cam_x, cam_y);
+                ((wx + TILE_HALF).floor() as i32, (wy + TILE_HALF).floor() as i32)
+            });
+            show_ilm = interact::do_interact(ecs, gx, gy, new_mode, slots, act_slot);
         }
     }
 
     if input.key_pressed(KeyCode::Tab) {
         new_mode = interact::cycle_mode(new_mode, ecs, cursor_entity, icon_button);
     }
-
-    cursor::handle_mouse_movement(input, ecs, cursor_entity, new_mode, slots, act_slot, new_size, window_size, cam_x, cam_y);
 
     if new_mode == 1 {
         cursor::update_cursor_validity(ecs, cursor_entity, slots, act_slot);

@@ -1,4 +1,4 @@
-use specs::{Entity, WorldExt};
+use specs::WorldExt;
 use crate::EcsAdapter;
 use super::Slot;
 
@@ -77,6 +77,27 @@ fn refresh_walls_around(ecs: &mut EcsAdapter, gx: i32, gy: i32) {
                     }
                 }
             }
+        } else {
+            revert_to_grass(ecs, nx, ny, file_row, file_col);
+        }
+    }
+}
+
+fn revert_to_grass(ecs: &mut EcsAdapter, nx: i32, ny: i32, file_row: i32, file_col: i32) {
+    ecs.floor_positions.remove(&(nx, ny));
+    let original = ecs.original_tokens.get(&(nx, ny)).cloned().unwrap_or_else(|| ".".to_string());
+    ecs.map_grid[file_row as usize][file_col as usize] = original.clone();
+    if is_grass_token(&original) {
+        ecs.outdoor_positions.insert((nx, ny));
+        ecs.flower_positions.insert((nx, ny));
+    }
+    let (tex, frame, count) = crate::map::token_to_texture(&original);
+    if let Some(&map_entity) = ecs.map_entities.get(&(nx, ny)) {
+        ecs.update_sprite_texture(map_entity, tex);
+        let mut sprites = ecs.world.write_storage::<crate::SpriteComponent>();
+        if let Some(sprite) = sprites.get_mut(map_entity) {
+            sprite.texture_frame = frame;
+            sprite.texture_count = count;
         }
     }
 }
@@ -117,101 +138,120 @@ fn wall_frame_count(token: &str) -> ([i32; 2], [i32; 2]) {
     }
 }
 
-pub fn add(ecs: &mut EcsAdapter, slots: &mut Vec<Slot>, act_slot: i32, cursor_entity: Entity) {
+pub fn add(ecs: &mut EcsAdapter, slots: &mut Vec<Slot>, act_slot: i32, gx: i32, gy: i32) {
     let active_slot = &slots[act_slot as usize].obj;
-    let (cursor_x, cursor_y) = ecs.get_transform_position(cursor_entity);
     let is_carpet = is_carpet_name(active_slot.name);
     let is_wall_decor = is_wall_decor_name(active_slot.name);
     let is_outdoor = is_outdoor_name(active_slot.name);
     let is_flower = is_flower_name(active_slot.name);
     let is_floor = active_slot.name == "floor";
 
-    let gx = cursor_x as i32;
-    let gy = cursor_y as i32;
-
-    if ecs.can_place_at(
+    if !ecs.can_place_at(
         gx, gy,
         active_slot.width, active_slot.height,
         is_carpet, is_wall_decor, is_outdoor, is_flower, is_floor,
     ) {
-        ecs.clear_cursor_preview();
-        let group_id = ecs.add_group_object(
-            gx, gy,
-            active_slot.width, active_slot.height,
-            active_slot.path,
-            active_slot.texture_frame,
-            active_slot.texture_count,
-            is_carpet,
-            active_slot.animated,
-            active_slot.frame_paths,
-            is_floor,
-        );
+        return;
+    }
 
-        if is_floor && !ecs.map_grid.is_empty() {
-            for i in 0..active_slot.width {
-                for j in 0..active_slot.height {
-                    let cx = gx + i;
-                    let cy = gy + j;
-                    let file_col = cx + 21;
-                    let file_row = 14 - cy;
-                    if file_row >= 0 && file_row < ecs.map_grid.len() as i32 &&
-                       file_col >= 0 && file_col < ecs.map_grid[file_row as usize].len() as i32
-                    {
-                        let token = ecs.map_grid[file_row as usize][file_col as usize].clone();
-                        if token != "0" {
-                            ecs.map_grid[file_row as usize][file_col as usize] = "0".to_string();
-                            ecs.floor_positions.insert((cx, cy));
-                            ecs.outdoor_positions.remove(&(cx, cy));
-                            ecs.flower_positions.remove(&(cx, cy));
-                            if let Some(&map_entity) = ecs.map_entities.get(&(cx, cy)) {
-                                ecs.update_sprite_texture(map_entity, "tex/map/floor.png");
-                                let mut sprites = ecs.world.write_storage::<crate::SpriteComponent>();
-                                if let Some(sprite) = sprites.get_mut(map_entity) {
-                                    sprite.texture_frame = [0, 0];
-                                    sprite.texture_count = [2, 2];
-                                }
+    ecs.clear_cursor_preview();
+
+    if is_floor && !ecs.map_grid.is_empty() {
+        for i in 0..active_slot.width {
+            for j in 0..active_slot.height {
+                let cx = gx + i;
+                let cy = gy + j;
+                let file_col = cx + 21;
+                let file_row = 14 - cy;
+                if file_row >= 0 && file_row < ecs.map_grid.len() as i32 &&
+                   file_col >= 0 && file_col < ecs.map_grid[file_row as usize].len() as i32
+                {
+                    let token = ecs.map_grid[file_row as usize][file_col as usize].clone();
+                    if token != "0" {
+                        ecs.original_tokens.entry((cx, cy)).or_insert_with(|| token.clone());
+                        ecs.map_grid[file_row as usize][file_col as usize] = "0".to_string();
+                        ecs.floor_positions.insert((cx, cy));
+                        ecs.outdoor_positions.remove(&(cx, cy));
+                        ecs.flower_positions.remove(&(cx, cy));
+                        if let Some(&map_entity) = ecs.map_entities.get(&(cx, cy)) {
+                            ecs.update_sprite_texture(map_entity, "tex/map/floor.png");
+                            let mut sprites = ecs.world.write_storage::<crate::SpriteComponent>();
+                            if let Some(sprite) = sprites.get_mut(map_entity) {
+                                sprite.texture_frame = [0, 0];
+                                sprite.texture_count = [2, 2];
                             }
-                            update_walls_around(ecs, cx, cy);
-                            refresh_walls_around(ecs, cx, cy);
                         }
+                        update_walls_around(ecs, cx, cy);
+                        refresh_walls_around(ecs, cx, cy);
                     }
                 }
             }
-            // map.txt не сохраняем — пол и стены только в памяти
         }
+        // map.txt не сохраняем — пол и стены только в памяти
+        return;
+    }
 
-        let first = {
-            let groups = ecs.world.read_resource::<crate::GroupInfoResource>();
-            groups.groups.get(&group_id).and_then(|g| g.entities.first().copied())
-        };
-        if let Some(entity) = first {
-            use specs::WorldExt;
-            ecs.world.write_storage::<crate::ObjectTag>().insert(entity, crate::ObjectTag {
-                name: active_slot.name.to_string(),
+    let group_id = ecs.add_group_object(
+        gx, gy,
+        active_slot.width, active_slot.height,
+        active_slot.path,
+        active_slot.texture_frame,
+        active_slot.texture_count,
+        is_carpet,
+        active_slot.animated,
+        active_slot.frame_paths,
+        false, // is_floor is always false here
+    );
+
+    let first = {
+        let groups = ecs.world.read_resource::<crate::GroupInfoResource>();
+        groups.groups.get(&group_id).and_then(|g| g.entities.first().copied())
+    };
+    if let Some(entity) = first {
+        use specs::WorldExt;
+        ecs.world.write_storage::<crate::ObjectTag>().insert(entity, crate::ObjectTag {
+            name: active_slot.name.to_string(),
+        }).ok();
+        if active_slot.name == "box" {
+            ecs.world.write_storage::<crate::FoodStorage>().insert(entity, crate::FoodStorage {
+                food_count: 0,
+                max_food: 20,
             }).ok();
-            if active_slot.name == "box" {
-                ecs.world.write_storage::<crate::FoodStorage>().insert(entity, crate::FoodStorage {
-                    food_count: 0,
-                    max_food: 20,
-                }).ok();
-            } else if active_slot.name == "rack" {
-                ecs.world.write_storage::<crate::FoodStorage>().insert(entity, crate::FoodStorage {
-                    food_count: 0,
-                    max_food: 15,
-                }).ok();
-            } else if active_slot.name == "fence" || active_slot.name == "street_fence" {
-                ecs.world.write_storage::<crate::FenceComponent>().insert(entity, crate::FenceComponent { name: active_slot.name.to_string() }).ok();
-            }
+        } else if active_slot.name == "rack" {
+            ecs.world.write_storage::<crate::FoodStorage>().insert(entity, crate::FoodStorage {
+                food_count: 0,
+                max_food: 15,
+            }).ok();
+        } else if active_slot.name == "fence" || active_slot.name == "street_fence" {
+            ecs.world.write_storage::<crate::FenceComponent>().insert(entity, crate::FenceComponent { name: active_slot.name.to_string() }).ok();
         }
     }
 }
 
-pub fn remove(ecs: &mut EcsAdapter, cursor_entity: Entity) -> bool {
-    let (cursor_x, cursor_y) = ecs.get_transform_position(cursor_entity);
-    if let Some(group_id) = ecs.find_group_at_position(cursor_x as i32, cursor_y as i32) {
+pub fn remove(ecs: &mut EcsAdapter, gx: i32, gy: i32) -> bool {
+    if let Some(group_id) = ecs.find_group_at_position(gx, gy) {
         ecs.delete_group(group_id);
-        true
-    } else {
-        false
+        return true;
     }
+    let file_col = gx + 21;
+    let file_row = 14 - gy;
+    if file_row >= 0 && file_row < ecs.map_grid.len() as i32 &&
+       file_col >= 0 && file_col < ecs.map_grid[file_row as usize].len() as i32
+    {
+        let token = &ecs.map_grid[file_row as usize][file_col as usize];
+        if token == "0" {
+            revert_to_grass(ecs, gx, gy, file_row, file_col);
+            refresh_walls_around(ecs, gx, gy);
+            return true;
+        }
+        if !is_grass_token(token) {
+            let original = ecs.original_tokens.get(&(gx, gy));
+            if original.map_or(false, |o| is_grass_token(o)) {
+                revert_to_grass(ecs, gx, gy, file_row, file_col);
+                refresh_walls_around(ecs, gx, gy);
+                return true;
+            }
+        }
+    }
+    false
 }

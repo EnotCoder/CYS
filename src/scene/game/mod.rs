@@ -124,7 +124,7 @@ impl GameScene {
 
         self.slots = crate::data::get_slot_vec();
 
-        text_renderer.add_text(ecs, device, queue, "Alpha", FONT_SIZE_LOGO, -5.0, 4.0, 2.0, 4.0, WHITE);
+        text_renderer.add_text(ecs, device, queue, "Alpha", FONT_SIZE_ALPHA, -5.5, 4.0, 1.0, 4.0, WHITE);
 
         let icon_mode = ecs.add_ui(ICON_MODE_X, SLOT_BAR_Y, MODE_ICON_TEX[0]);
         let active_entity = ecs.add_ui(ACTIVE_X, SLOT_BAR_Y, TEX_ACTIVE);

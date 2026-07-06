@@ -150,6 +150,7 @@ pub const LOGO_W: f32 = 2.5;
 pub const LOGO_H: f32 = 2.5;
 pub const FONT_SIZE_BTN: f32 = 48.0;
 pub const FONT_SIZE_LOGO: f32 = 128.0;
+pub const FONT_SIZE_ALPHA: f32 = 64.0;
 
 // === Рендер ===
 pub const DEPTH_CLEAR: f32 = 1.0;

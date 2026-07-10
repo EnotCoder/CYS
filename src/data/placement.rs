@@ -37,7 +37,9 @@ fn update_walls_around(ecs: &mut EcsAdapter, gx: i32, gy: i32) {
         let token = ecs.map_grid[file_row as usize][file_col as usize].clone();
         if !is_grass_token(&token) { continue; }
         ecs.map_grid[file_row as usize][file_col as usize] = wall_tok.to_string();
-        if matches!(wall_tok, "/" | "|" | "&") {
+        if wall_tok == "&" && dy == 1 {
+            ecs.floor_placeable_positions.remove(&(nx, ny));
+        } else if matches!(wall_tok, "/" | "|" | "&") {
             ecs.floor_placeable_positions.insert((nx, ny));
         } else {
             ecs.floor_placeable_positions.remove(&(nx, ny));
@@ -72,7 +74,17 @@ fn refresh_walls_around(ecs: &mut EcsAdapter, gx: i32, gy: i32) {
         if let Some(new_token) = recompute_wall_token(ecs, nx, ny) {
             if new_token != token {
                 ecs.map_grid[file_row as usize][file_col as usize] = new_token.clone();
-                if matches!(new_token.as_str(), "/" | "|" | "&") {
+                if new_token == "&" {
+                    let is_bottom = file_row > 0
+                        && ecs.map_grid.get(file_row as usize - 1)
+                            .and_then(|row| row.get(file_col as usize))
+                            .map_or(false, |t| t == "0");
+                    if is_bottom {
+                        ecs.floor_placeable_positions.remove(&(nx, ny));
+                    } else {
+                        ecs.floor_placeable_positions.insert((nx, ny));
+                    }
+                } else if matches!(new_token.as_str(), "/" | "|") {
                     ecs.floor_placeable_positions.insert((nx, ny));
                 } else {
                     ecs.floor_placeable_positions.remove(&(nx, ny));
@@ -98,7 +110,17 @@ fn revert_to_grass(ecs: &mut EcsAdapter, nx: i32, ny: i32, file_row: i32, file_c
     ecs.floor_placed_positions.remove(&(nx, ny));
     let original = ecs.original_tokens.get(&(nx, ny)).cloned().unwrap_or_else(|| ".".to_string());
     ecs.map_grid[file_row as usize][file_col as usize] = original.clone();
-    if !matches!(original.as_str(), "/" | "|" | "." | "&") {
+    if original == "&" {
+        let is_bottom = file_row > 0
+            && ecs.map_grid.get(file_row as usize - 1)
+                .and_then(|row| row.get(file_col as usize))
+                .map_or(false, |t| t == "0");
+        if is_bottom {
+            ecs.floor_placeable_positions.remove(&(nx, ny));
+        } else {
+            ecs.floor_placeable_positions.insert((nx, ny));
+        }
+    } else if !matches!(original.as_str(), "/" | "|" | ".") {
         ecs.floor_placeable_positions.remove(&(nx, ny));
     }
     if is_grass_token(&original) {

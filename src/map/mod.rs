@@ -44,8 +44,15 @@ pub fn load_map_to_ecs(ecs: &mut EcsAdapter) {
                 ecs.outdoor_positions.insert((grid_x, grid_y));
                 ecs.flower_positions.insert((grid_x, grid_y));
             }
-            if matches!(*token, "/" | "|" | "." | "&") {
+            if matches!(*token, "/" | "|" | ".") {
                 ecs.floor_placeable_positions.insert((grid_x, grid_y));
+            } else if *token == "&" {
+                let is_bottom_wall = j > 0 && ecs.map_grid.get(j - 1)
+                    .and_then(|row| row.get(i))
+                    .map_or(false, |t| t == "0");
+                if !is_bottom_wall {
+                    ecs.floor_placeable_positions.insert((grid_x, grid_y));
+                }
             }
 
             let entity = crate::ecs::factory::create_sprite(

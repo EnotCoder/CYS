@@ -37,6 +37,11 @@ fn update_walls_around(ecs: &mut EcsAdapter, gx: i32, gy: i32) {
         let token = ecs.map_grid[file_row as usize][file_col as usize].clone();
         if !is_grass_token(&token) { continue; }
         ecs.map_grid[file_row as usize][file_col as usize] = wall_tok.to_string();
+        if matches!(wall_tok, "/" | "|" | "&") {
+            ecs.floor_placeable_positions.insert((nx, ny));
+        } else {
+            ecs.floor_placeable_positions.remove(&(nx, ny));
+        }
         ecs.flower_positions.remove(&(nx, ny));
         if let Some(&map_entity) = ecs.map_entities.get(&(nx, ny)) {
             ecs.update_sprite_texture(map_entity, "tex/map/wall.png");
@@ -67,6 +72,11 @@ fn refresh_walls_around(ecs: &mut EcsAdapter, gx: i32, gy: i32) {
         if let Some(new_token) = recompute_wall_token(ecs, nx, ny) {
             if new_token != token {
                 ecs.map_grid[file_row as usize][file_col as usize] = new_token.clone();
+                if matches!(new_token.as_str(), "/" | "|" | "&") {
+                    ecs.floor_placeable_positions.insert((nx, ny));
+                } else {
+                    ecs.floor_placeable_positions.remove(&(nx, ny));
+                }
                 if let Some(&map_entity) = ecs.map_entities.get(&(nx, ny)) {
                     ecs.update_sprite_texture(map_entity, "tex/map/wall.png");
                     let mut sprites = ecs.world.write_storage::<crate::SpriteComponent>();
@@ -85,8 +95,12 @@ fn refresh_walls_around(ecs: &mut EcsAdapter, gx: i32, gy: i32) {
 
 fn revert_to_grass(ecs: &mut EcsAdapter, nx: i32, ny: i32, file_row: i32, file_col: i32) {
     ecs.floor_positions.remove(&(nx, ny));
+    ecs.floor_placed_positions.remove(&(nx, ny));
     let original = ecs.original_tokens.get(&(nx, ny)).cloned().unwrap_or_else(|| ".".to_string());
     ecs.map_grid[file_row as usize][file_col as usize] = original.clone();
+    if !matches!(original.as_str(), "/" | "|" | "." | "&") {
+        ecs.floor_placeable_positions.remove(&(nx, ny));
+    }
     if is_grass_token(&original) {
         ecs.outdoor_positions.insert((nx, ny));
         ecs.flower_positions.insert((nx, ny));
@@ -171,6 +185,7 @@ pub fn add(ecs: &mut EcsAdapter, slots: &mut Vec<Slot>, act_slot: i32, gx: i32, 
                         ecs.original_tokens.entry((cx, cy)).or_insert_with(|| token.clone());
                         ecs.map_grid[file_row as usize][file_col as usize] = "0".to_string();
                         ecs.floor_positions.insert((cx, cy));
+                        ecs.floor_placed_positions.insert((cx, cy));
                         ecs.outdoor_positions.remove(&(cx, cy));
                         ecs.flower_positions.remove(&(cx, cy));
                         if let Some(&map_entity) = ecs.map_entities.get(&(cx, cy)) {

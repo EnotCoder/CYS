@@ -44,6 +44,9 @@ pub fn load_map_to_ecs(ecs: &mut EcsAdapter) {
                 ecs.outdoor_positions.insert((grid_x, grid_y));
                 ecs.flower_positions.insert((grid_x, grid_y));
             }
+            if matches!(*token, "/" | "|" | "." | "&") {
+                ecs.floor_placeable_positions.insert((grid_x, grid_y));
+            }
 
             let entity = crate::ecs::factory::create_sprite(
                 &mut ecs.world, x, y, Z_MAP,

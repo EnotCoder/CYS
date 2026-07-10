@@ -36,7 +36,7 @@ impl EcsAdapter {
                 for j in 0..height {
                     let cx = x + i;
                     let cy = y + j;
-                    if !self.outdoor_positions.contains(&(cx, cy)) && self.floor_positions.contains(&(cx, cy)) {
+                    if !self.floor_placeable_positions.contains(&(cx, cy)) {
                         return false;
                     }
                     if self.floor_placed_positions.contains(&(cx, cy)) {

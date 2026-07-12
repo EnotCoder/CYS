@@ -46,6 +46,7 @@ pub struct GameScene {
     shoppers: Vec<ShopperNpc>,
     shopper_timer: f64,
     shopper_idx: usize,
+    exit_cooldown: f64,
     active: bool,
     active_entity: Option<specs::Entity>,
     settings: crate::ui::settings::Settings,
@@ -96,6 +97,7 @@ impl GameScene {
             shoppers: Vec::new(),
             shopper_timer: 0.0,
             shopper_idx: 0,
+            exit_cooldown: 0.0,
             active: true,
             active_entity: None,
             settings: crate::ui::settings::Settings::new(),
@@ -151,6 +153,44 @@ impl GameScene {
         self.cursor_entity = Some(ecs.add_cursor(0.0, 0.0, CURSOR_TEX[0]));
 
         self.npc_walkable = crate::map::load_walkable_cells();
+    }
+
+    fn spawn_shopper(&mut self, ecs: &mut crate::EcsAdapter) {
+        let (all_racks, all_cassas) = {
+            let tags = ecs.world.read_storage::<ObjectTag>();
+            let foods = ecs.world.read_storage::<FoodStorage>();
+            let transforms = ecs.world.read_storage::<Transform>();
+            let mut racks = Vec::new();
+            let mut cassas = Vec::new();
+            for (tag, transform) in (&tags, &transforms).join() {
+                if tag.name == "cassa" {
+                    cassas.push(Node::new(transform.position[0] as i32, transform.position[1] as i32));
+                }
+            }
+            for (tag, food, transform) in (&tags, &foods, &transforms).join() {
+                if tag.name == "rack" && food.food_count > 0 {
+                    racks.push(Node::new(transform.position[0] as i32, transform.position[1] as i32 + 1));
+                }
+            }
+            (racks, cassas)
+        };
+        if !all_racks.is_empty() && !all_cassas.is_empty() {
+            let seed = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH).unwrap().subsec_nanos();
+            let rack = all_racks[(seed as usize) % all_racks.len()];
+            let cassa = all_cassas[((seed >> 16) as usize) % all_cassas.len()];
+            let spawn_node = crate::map::shopper_spawn_point();
+            let tex_set = self.shopper_idx % 3;
+            self.shopper_idx += 1;
+            let (tex_idle, tex_walk_1, tex_walk_2) = match tex_set {
+                0 => (TEX_BOB_IDLE, TEX_BOB_WALK_1, TEX_BOB_WALK_2),
+                1 => (TEX_PLAYER_IDLE, TEX_PLAYER_WALK_1, TEX_PLAYER_WALK_2),
+                _ => (TEX_SASHA_IDLE, TEX_SASHA_WALK_1, TEX_SASHA_WALK_2),
+            };
+            if let Some(shopper) = ShopperNpc::spawn(ecs, &self.npc_walkable, spawn_node, rack, cassa, tex_idle, tex_walk_1, tex_walk_2) {
+                self.shoppers.push(shopper);
+            }
+        }
     }
 
     fn update_animations(&mut self, ecs: &mut crate::EcsAdapter, dt: f64) {
@@ -301,6 +341,7 @@ impl Scene for GameScene {
         self.shoppers.clear();
         self.shopper_timer = 0.0;
         self.shopper_idx = 0;
+        self.exit_cooldown = 0.0;
         self.active = true;
         self.active_entity = None;
         self.settings = crate::ui::settings::Settings::new();
@@ -617,44 +658,17 @@ impl Scene for GameScene {
 
         // --- Shopper NPCs ---
         self.shopper_timer += dt;
-            if self.active && self.shopper_timer >= 3.0 && self.shoppers.len() < MAX_SHOPPERS {
-                self.shopper_timer = 0.0;
-                let (all_racks, all_cassas) = {
-                    let tags = ecs.world.read_storage::<ObjectTag>();
-                    let foods = ecs.world.read_storage::<FoodStorage>();
-                    let transforms = ecs.world.read_storage::<Transform>();
-                    let mut racks = Vec::new();
-                    let mut cassas = Vec::new();
-                    for (tag, transform) in (&tags, &transforms).join() {
-                        if tag.name == "cassa" {
-                            cassas.push(Node::new(transform.position[0] as i32, transform.position[1] as i32));
-                        }
-                    }
-                    for (tag, food, transform) in (&tags, &foods, &transforms).join() {
-                        if tag.name == "rack" && food.food_count > 0 {
-                            racks.push(Node::new(transform.position[0] as i32, transform.position[1] as i32 + 1));
-                        }
-                    }
-                    (racks, cassas)
-                };
-                if !all_racks.is_empty() && !all_cassas.is_empty() {
-                    let seed = std::time::SystemTime::now()
-                        .duration_since(std::time::UNIX_EPOCH).unwrap().subsec_nanos();
-                    let rack = all_racks[(seed as usize) % all_racks.len()];
-                    let cassa = all_cassas[((seed >> 16) as usize) % all_cassas.len()];
-                    let spawn_node = crate::map::shopper_spawn_point();
-                    let tex_set = self.shopper_idx % 3;
-                    self.shopper_idx += 1;
-                    let (tex_idle, tex_walk_1, tex_walk_2) = match tex_set {
-                        0 => (TEX_BOB_IDLE, TEX_BOB_WALK_1, TEX_BOB_WALK_2),
-                        1 => (TEX_PLAYER_IDLE, TEX_PLAYER_WALK_1, TEX_PLAYER_WALK_2),
-                        _ => (TEX_SASHA_IDLE, TEX_SASHA_WALK_1, TEX_SASHA_WALK_2),
-                    };
-                    if let Some(shopper) = ShopperNpc::spawn(ecs, &self.npc_walkable, spawn_node, rack, cassa, tex_idle, tex_walk_1, tex_walk_2) {
-                        self.shoppers.push(shopper);
-                    }
-                }
+        if self.exit_cooldown > 0.0 {
+            self.exit_cooldown -= dt;
+            if self.exit_cooldown <= 0.0 && self.active && self.shoppers.len() < MAX_SHOPPERS {
+                self.spawn_shopper(ecs);
             }
+        }
+        if self.active && self.shopper_timer >= 3.0 && self.shoppers.len() < MAX_SHOPPERS && self.exit_cooldown <= 0.0 {
+            self.shopper_timer = 0.0;
+            self.spawn_shopper(ecs);
+        }
+        let prev_len = self.shoppers.len();
         self.shoppers.retain_mut(|shopper| {
             let done = shopper.update(ecs, dt, &self.npc_walkable);
             if done {
@@ -662,6 +676,9 @@ impl Scene for GameScene {
             }
             !done
         });
+        if self.shoppers.len() < prev_len {
+            self.exit_cooldown = 2.0;
+        }
 
         self.update_animations(ecs, dt);
 

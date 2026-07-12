@@ -164,7 +164,55 @@ impl ShopperNpc {
         ecs.delete_entity(self.entity);
     }
 
+    fn cassa_exists(&self, ecs: &EcsAdapter) -> bool {
+        let tags = ecs.world.read_storage::<ObjectTag>();
+        let transforms = ecs.world.read_storage::<Transform>();
+        for (tag, transform) in (&tags, &transforms).join() {
+            if tag.name == "cassa"
+                && transform.position[0] as i32 == self.cassa_pos.x
+                && transform.position[1] as i32 == self.cassa_pos.y
+            {
+                return true;
+            }
+        }
+        false
+    }
+
+    fn find_any_cassa(ecs: &EcsAdapter) -> Option<Node> {
+        let tags = ecs.world.read_storage::<ObjectTag>();
+        let transforms = ecs.world.read_storage::<Transform>();
+        for (tag, transform) in (&tags, &transforms).join() {
+            if tag.name == "cassa" {
+                return Some(Node::new(transform.position[0] as i32, transform.position[1] as i32));
+            }
+        }
+        None
+    }
+
+    fn reroute_to_cassa(&mut self, ecs: &mut EcsAdapter, walkable: &HashSet<Node>, cp: Node) {
+        ecs.world.write_resource::<BusyCassas>().0.remove(&(self.cassa_pos.x, self.cassa_pos.y));
+        ecs.world.write_resource::<BusyCassas>().0.insert((cp.x, cp.y));
+        self.cassa_pos = cp;
+        if self.start_path(walkable, cp) {
+            self.state = ShopperState::GoingToCassa;
+        }
+    }
+
     pub fn update(&mut self, ecs: &mut EcsAdapter, dt: f64, walkable: &HashSet<Node>) -> bool {
+        // Если касса удалена — переключиться на другую или уйти
+        if !matches!(self.state, ShopperState::GoingToRack | ShopperState::GoingToExit)
+            && self.food_taken && !self.cassa_exists(ecs) {
+            if let Some(cassa) = Self::find_any_cassa(ecs) {
+                self.reroute_to_cassa(ecs, walkable, cassa);
+            } else {
+                // Касс нет — уходим как при закрытии магазина
+                if self.start_path(walkable, self.spawn_point) {
+                    self.state = ShopperState::GoingToExit;
+                }
+                return false;
+            }
+        }
+
         // Если active=false и ещё не взял еду — уходим
         if self.exiting && !self.food_taken && matches!(self.state, ShopperState::GoingToRack) {
             if self.start_path(walkable, self.spawn_point) {
@@ -184,6 +232,15 @@ impl ShopperNpc {
                     self.set_idle(ecs);
                     if self.exiting {
                         return true; // уходим сразу если active=false
+                    }
+                    // Если касса удалена — найти другую или уйти
+                    if !self.cassa_exists(ecs) {
+                        ecs.world.write_resource::<BusyCassas>().0.remove(&(self.cassa_pos.x, self.cassa_pos.y));
+                        if let Some(cassa) = Self::find_any_cassa(ecs) {
+                            self.cassa_pos = cassa;
+                        } else {
+                            return true; // касс нет — уходим
+                        }
                     }
                     let cp = (self.cassa_pos.x, self.cassa_pos.y);
                     if ecs.world.read_resource::<BusyCassas>().0.contains(&cp) {

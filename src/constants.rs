@@ -40,6 +40,14 @@ pub const TEX_PLAYER_IDLE: &str = "tex/characters/player/player.png";
 pub const TEX_PLAYER_WALK_1: &str = "tex/characters/player/player_walk_1.png";
 pub const TEX_PLAYER_WALK_2: &str = "tex/characters/player/player_walk_2.png";
 
+pub const TEX_BOB_IDLE: &str = "tex/characters/bob/bob.png";
+pub const TEX_BOB_WALK_1: &str = "tex/characters/bob/bob_walk_1.png";
+pub const TEX_BOB_WALK_2: &str = "tex/characters/bob/bob_walk_2.png";
+
+pub const TEX_SASHA_IDLE: &str = "tex/characters/sasha/sasha.png";
+pub const TEX_SASHA_WALK_1: &str = "tex/characters/sasha/sasha_walk_1.png";
+pub const TEX_SASHA_WALK_2: &str = "tex/characters/sasha/sasha_walk_2.png";
+
 // === Shopping NPC ===
 /// Сколько секунд покупатель стоит у кассы
 pub const CASSA_WAIT_SECS: f64 = 1.0;

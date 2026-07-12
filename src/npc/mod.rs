@@ -27,15 +27,18 @@ pub struct ShopperNpc {
     food_taken: bool,
     walk_timer: f64,
     walk_frame: i32,
+    tex_idle: &'static str,
+    tex_walk_1: &'static str,
+    tex_walk_2: &'static str,
 }
 
 impl ShopperNpc {
-    pub fn spawn(ecs: &mut EcsAdapter, walkable: &HashSet<Node>, spawn_pos: Node, rack_pos: Node, cassa_pos: Node) -> Option<Self> {
+    pub fn spawn(ecs: &mut EcsAdapter, walkable: &HashSet<Node>, spawn_pos: Node, rack_pos: Node, cassa_pos: Node, tex_idle: &'static str, tex_walk_1: &'static str, tex_walk_2: &'static str) -> Option<Self> {
         let path = find_path(walkable, spawn_pos, rack_pos)?;
         let (sx, sy) = spawn_pos.to_world();
         let entity = crate::ecs::factory::create_sprite(
             &mut ecs.world, sx, sy, Z_NPC,
-            TEX_PLAYER_IDLE, [0, 0], [1, 1], NPC_SCALE, 1.0,
+            tex_idle, [0, 0], [1, 1], NPC_SCALE, 1.0,
         );
         ecs.world.write_storage::<crate::Rotation>().insert(entity, crate::Rotation { rotation: [0.0; 3] }).ok();
         Some(ShopperNpc {
@@ -52,6 +55,9 @@ impl ShopperNpc {
             food_taken: false,
             walk_timer: 0.0,
             walk_frame: 0,
+            tex_idle,
+            tex_walk_1,
+            tex_walk_2,
         })
     }
 
@@ -65,6 +71,15 @@ impl ShopperNpc {
 
     fn set_texture(&self, ecs: &mut EcsAdapter, texture_path: &str) {
         ecs.update_sprite_texture(self.entity, texture_path);
+    }
+
+    fn set_idle(&self, ecs: &mut EcsAdapter) {
+        self.set_texture(ecs, self.tex_idle);
+    }
+
+    fn set_walk(&self, ecs: &mut EcsAdapter) {
+        let tex = if self.walk_frame == 0 { self.tex_walk_1 } else { self.tex_walk_2 };
+        self.set_texture(ecs, tex);
     }
 
     fn start_path(&mut self, walkable: &HashSet<Node>, to: Node) -> bool {
@@ -89,8 +104,7 @@ impl ShopperNpc {
             self.walk_timer = 0.0;
             self.walk_frame = 1 - self.walk_frame;
         }
-        let tex = if self.walk_frame == 0 { TEX_PLAYER_WALK_1 } else { TEX_PLAYER_WALK_2 };
-        self.set_texture(ecs, tex);
+        self.set_walk(ecs);
 
         let target = self.path[self.path_index];
         let (tx, ty) = target.to_world();
@@ -167,7 +181,7 @@ impl ShopperNpc {
         match self.state {
             ShopperState::GoingToRack => {
                 if self.path_index >= self.path.len() {
-                    self.set_texture(ecs, TEX_PLAYER_IDLE);
+                    self.set_idle(ecs);
                     if self.exiting {
                         return true; // уходим сразу если active=false
                     }
@@ -189,7 +203,7 @@ impl ShopperNpc {
 
             ShopperState::GoingToCassa => {
                 if self.path_index >= self.path.len() {
-                    self.set_texture(ecs, TEX_PLAYER_IDLE);
+                    self.set_idle(ecs);
                     self.state = ShopperState::AtCassa;
                     self.state_timer = CASSA_WAIT_SECS;
                     return false;
@@ -199,7 +213,7 @@ impl ShopperNpc {
 
             ShopperState::AtCassa => {
                 self.state_timer -= dt;
-                self.set_texture(ecs, TEX_PLAYER_IDLE);
+                self.set_idle(ecs);
                 if self.state_timer <= 0.0 {
                     ecs.world.write_resource::<BusyCassas>().0.remove(&(self.cassa_pos.x, self.cassa_pos.y));
                     ecs.world.write_resource::<Money>().0 += 5;

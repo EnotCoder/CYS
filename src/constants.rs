@@ -52,7 +52,7 @@ pub const TEX_SASHA_WALK_2: &str = "tex/characters/sasha/sasha_walk_2.png";
 /// Сколько секунд покупатель стоит у кассы
 pub const CASSA_WAIT_SECS: f64 = 1.0;
 /// Максимум активных покупателей
-pub const MAX_SHOPPERS: usize = 3;
+pub const MAX_SHOPPERS: usize = 15;
 
 // === Курсор ===
 pub const CURSOR_MOVE_DELAY_MS: u64 = 150;

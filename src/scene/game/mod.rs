@@ -661,6 +661,7 @@ impl Scene for GameScene {
         if self.exit_cooldown > 0.0 {
             self.exit_cooldown -= dt;
             if self.exit_cooldown <= 0.0 && self.active && self.shoppers.len() < MAX_SHOPPERS {
+                self.shopper_timer = 0.0;
                 self.spawn_shopper(ecs);
             }
         }

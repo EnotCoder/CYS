@@ -178,6 +178,22 @@ impl ShopperNpc {
         false
     }
 
+    fn rack_exists(&self, ecs: &EcsAdapter) -> bool {
+        let tags = ecs.world.read_storage::<ObjectTag>();
+        let transforms = ecs.world.read_storage::<Transform>();
+        let foods = ecs.world.read_storage::<FoodStorage>();
+        for (tag, transform, food) in (&tags, &transforms, &foods).join() {
+            if tag.name == "rack"
+                && transform.position[0] as i32 == self.rack_pos.x
+                && (transform.position[1] as i32 == self.rack_pos.y || transform.position[1] as i32 == self.rack_pos.y - 1)
+                && food.food_count > 0
+            {
+                return true;
+            }
+        }
+        false
+    }
+
     fn find_any_cassa(ecs: &EcsAdapter) -> Option<Node> {
         let tags = ecs.world.read_storage::<ObjectTag>();
         let transforms = ecs.world.read_storage::<Transform>();
@@ -200,17 +216,26 @@ impl ShopperNpc {
 
     pub fn update(&mut self, ecs: &mut EcsAdapter, dt: f64, walkable: &HashSet<Node>) -> bool {
         // Если касса удалена — переключиться на другую или уйти
-        if !matches!(self.state, ShopperState::GoingToRack | ShopperState::GoingToExit)
-            && self.food_taken && !self.cassa_exists(ecs) {
+        if !matches!(self.state, ShopperState::GoingToExit) && !self.cassa_exists(ecs) {
             if let Some(cassa) = Self::find_any_cassa(ecs) {
-                self.reroute_to_cassa(ecs, walkable, cassa);
+                if self.food_taken {
+                    self.reroute_to_cassa(ecs, walkable, cassa);
+                } else {
+                    self.cassa_pos = cassa;
+                }
             } else {
-                // Касс нет — уходим как при закрытии магазина
+                // Касс нет — уходим
                 if self.start_path(walkable, self.spawn_point) {
                     self.state = ShopperState::GoingToExit;
+                    return false;
                 }
-                return false;
+                return true;
             }
+        }
+
+        // Если стеллаж удалён или пуст — деспавн
+        if !self.food_taken && matches!(self.state, ShopperState::GoingToRack) && !self.rack_exists(ecs) {
+            return true;
         }
 
         // Если active=false и ещё не взял еду — уходим
@@ -239,7 +264,10 @@ impl ShopperNpc {
                         if let Some(cassa) = Self::find_any_cassa(ecs) {
                             self.cassa_pos = cassa;
                         } else {
-                            return true; // касс нет — уходим
+                            if self.start_path(walkable, self.spawn_point) {
+                                self.state = ShopperState::GoingToExit;
+                            }
+                            return false;
                         }
                     }
                     let cp = (self.cassa_pos.x, self.cassa_pos.y);

@@ -7,12 +7,9 @@ edition = "2021"
 winit = "0.30"
 winit_input_helper = "0.17"
 wgpu = "30"
-tokio = { version = "1", features = ["full"] }
-env_logger = "0.11"
-log = "0.4"
 pollster = "0.4"
 bytemuck = { version = "1.22", features = ["derive"] }
-image = "0.25"
+image = { version = "0.25", default-features = false, features = ["png"] }
 specs = "0.18"
 ab_glyph = "0.2"
 

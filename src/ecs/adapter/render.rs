@@ -1,5 +1,6 @@
 use specs::{WorldExt, Join};
 use std::collections::HashSet;
+use std::sync::Arc;
 use crate::ecs::components::{Transform, SpriteComponent, Rotation, ObjectTag, FoodStorage, FenceComponent};
 use crate::GroupComponent;
 use super::SpriteRenderData;
@@ -32,7 +33,7 @@ impl super::EcsAdapter {
             let data = SpriteRenderData {
                 position: transform.position,
                 rotation: rotation_opt.map(|r| r.rotation).unwrap_or([0.0; 3]),
-                texture_path: sprite.texture_path.clone(),
+                texture_path: Arc::clone(&sprite.texture_path),
                 texture_frame: sprite.texture_frame,
                 texture_count: sprite.texture_count,
                 scale: sprite.scale,
@@ -72,30 +73,30 @@ impl super::EcsAdapter {
     }
 
     pub fn update_object_textures(&mut self) {
-        let mut updates: Vec<(u32, String)> = Vec::new();
+        let mut updates: Vec<(u32, Arc<str>)> = Vec::new();
         {
             let tags = self.world.read_storage::<ObjectTag>();
             let foods = self.world.read_storage::<FoodStorage>();
             let groups = self.world.read_storage::<GroupComponent>();
             for (tag, food, group) in (&tags, &foods, &groups).join() {
-                let tex = if tag.name == "box" {
+                let tex: Arc<str> = if tag.name == "box" {
                     if food.food_count < 8 {
-                        "tex/decor/regular/box/box_0.png"
+                        Arc::from("tex/decor/regular/box/box_0.png")
                     } else if food.food_count < 12 {
-                        "tex/decor/regular/box/box_1.png"
+                        Arc::from("tex/decor/regular/box/box_1.png")
                     } else {
-                        "tex/decor/regular/box/box_2.png"
+                        Arc::from("tex/decor/regular/box/box_2.png")
                     }
                 } else if tag.name == "rack" {
                     if food.food_count == 0 {
-                        "tex/decor/regular/rack/rack_0.png"
+                        Arc::from("tex/decor/regular/rack/rack_0.png")
                     } else {
-                        "tex/decor/regular/rack/rack_1.png"
+                        Arc::from("tex/decor/regular/rack/rack_1.png")
                     }
                 } else {
                     continue;
                 };
-                updates.push((group.group_id, tex.to_string()));
+                updates.push((group.group_id, tex));
             }
         }
         let group_info = self.world.read_resource::<crate::GroupInfoResource>();
@@ -104,7 +105,7 @@ impl super::EcsAdapter {
             if let Some(info) = group_info.groups.get(gid) {
                 for &entity in &info.entities {
                     if let Some(sprite) = sprites.get_mut(entity) {
-                        sprite.texture_path = tex.clone();
+                        sprite.texture_path = Arc::clone(tex);
                     }
                 }
             }
@@ -127,16 +128,16 @@ impl super::EcsAdapter {
             let left = positions.contains(&(x - 1, y));
             let up = positions.contains(&(x, y + 1));
             let down = positions.contains(&(x, y - 1));
-            let (dir, fallback) = if fence.name == "street_fence" {
-                ("tex/decor/outdoor/street_fence/street_fence", "tex/decor/outdoor/street_fence/street_fence_0_0_0_0.png")
+            let (dir, fallback_arc) = if fence.name == "street_fence" {
+                ("tex/decor/outdoor/street_fence/street_fence", Arc::from("tex/decor/outdoor/street_fence/street_fence_0_0_0_0.png"))
             } else {
-                ("tex/decor/regular/fence/fence", "tex/decor/regular/fence/fence_0_0_0_0.png")
+                ("tex/decor/regular/fence/fence", Arc::from("tex/decor/regular/fence/fence_0_0_0_0.png"))
             };
             let path = format!("{}_{}_{}_{}_{}.png", dir, up as u8, down as u8, left as u8, right as u8);
             if Path::new(&path).exists() {
-                sprite.texture_path = path;
+                sprite.texture_path = Arc::from(path.into_boxed_str());
             } else {
-                sprite.texture_path = fallback.to_string();
+                sprite.texture_path = fallback_arc;
             }
         }
     }

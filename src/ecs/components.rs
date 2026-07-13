@@ -1,5 +1,6 @@
 use specs::{Component, VecStorage};
 use std::collections::{HashMap, HashSet};
+use std::sync::Arc;
 
 #[derive(Debug)]
 pub struct Transform {
@@ -13,7 +14,7 @@ impl Component for Transform {
 // SpriteComponent
 #[derive(Debug)]
 pub struct SpriteComponent {
-    pub texture_path: String,
+    pub texture_path: Arc<str>,
     pub texture_frame: [i32; 2],
     pub texture_count: [i32; 2],
     pub scale: f32,

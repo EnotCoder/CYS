@@ -1,6 +1,34 @@
+use std::sync::OnceLock;
 use wgpu::util::DeviceExt;
 use crate::texture::Texture;
 use crate::Vertex;
+
+fn shared_texture_layout(device: &wgpu::Device) -> &wgpu::BindGroupLayout {
+    static LAYOUT: OnceLock<wgpu::BindGroupLayout> = OnceLock::new();
+    LAYOUT.get_or_init(|| {
+        device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            label: Some("Texture Bind Group Layout"),
+            entries: &[
+                wgpu::BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Texture {
+                        multisampled: false,
+                        view_dimension: wgpu::TextureViewDimension::D2,
+                        sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                    },
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 1,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                    count: None,
+                },
+            ],
+        })
+    })
+}
 
 pub struct Sprite {
     pub texture_bind_group: wgpu::BindGroup,
@@ -29,8 +57,6 @@ impl Sprite {
         let tile_w = 1.0 / atlas_width;
         let tile_h = 1.0 / atlas_height;
         
-        // Отступ в долях texel'а — чтобы на границах атласа не было грязи
-        // (ClampToEdge + небольшой inset убирает серые линии между тайлами)
         let eps = crate::constants::TEXEL_EPSILON;
         let left   = sprite_x as f32 * tile_w + eps;
         let right  = (sprite_x as f32 + 1.0) * tile_w - eps;
@@ -48,7 +74,20 @@ impl Sprite {
         let index_count = indices.len() as u32;
 
         let texture = Texture::from_path(device, queue, texture_path, "sprite_texture");
-        let texture_bind_group = Self::create_texture_bind_group(device, &texture);
+        let texture_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: Some("Texture Bind Group"),
+            layout: shared_texture_layout(device),
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: wgpu::BindingResource::TextureView(&texture.view),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: wgpu::BindingResource::Sampler(&texture.sampler),
+                },
+            ],
+        });
         
         let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some(&format!("Vertex Buffer: {}", texture_path)),
@@ -104,44 +143,9 @@ impl Sprite {
             usage: wgpu::BufferUsages::INDEX | wgpu::BufferUsages::COPY_DST,
         });
 
-        let texture_bind_group = Self::create_texture_bind_group(device, texture);
-
-        Self {
-            texture_bind_group,
-            vertex_buffer,
-            index_buffer,
-            index_count,
-            index_format: wgpu::IndexFormat::Uint16,
-            last_uniform_raw: None,
-        }
-    }
-    
-    fn create_texture_bind_group(device: &wgpu::Device, texture: &Texture) -> wgpu::BindGroup {
-        let layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            label: Some("Texture Bind Group Layout"),
-            entries: &[
-                wgpu::BindGroupLayoutEntry {
-                    binding: 0,
-                    visibility: wgpu::ShaderStages::FRAGMENT,
-                    ty: wgpu::BindingType::Texture {
-                        multisampled: false,
-                        view_dimension: wgpu::TextureViewDimension::D2,
-                        sample_type: wgpu::TextureSampleType::Float { filterable: true },
-                    },
-                    count: None,
-                },
-                wgpu::BindGroupLayoutEntry {
-                    binding: 1,
-                    visibility: wgpu::ShaderStages::FRAGMENT,
-                    ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
-                    count: None,
-                },
-            ],
-        });
-        
-        device.create_bind_group(&wgpu::BindGroupDescriptor {
+        let texture_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("Texture Bind Group"),
-            layout: &layout,
+            layout: shared_texture_layout(device),
             entries: &[
                 wgpu::BindGroupEntry {
                     binding: 0,
@@ -152,6 +156,15 @@ impl Sprite {
                     resource: wgpu::BindingResource::Sampler(&texture.sampler),
                 },
             ],
-        })
+        });
+
+        Self {
+            texture_bind_group,
+            vertex_buffer,
+            index_buffer,
+            index_count,
+            index_format: wgpu::IndexFormat::Uint16,
+            last_uniform_raw: None,
+        }
     }
 }

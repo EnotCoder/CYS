@@ -1,4 +1,5 @@
 use specs::{World, Entity, Builder, WorldExt};
+use std::sync::Arc;
 use crate::ecs::components::{Transform, SpriteComponent};
 
 pub fn create_sprite(
@@ -10,7 +11,7 @@ pub fn create_sprite(
         .create_entity()
         .with(Transform { position: [x, y, z] })
         .with(SpriteComponent {
-            texture_path: texture_path.to_string(),
+            texture_path: Arc::from(texture_path),
             texture_frame: frame,
             texture_count: count,
             scale,

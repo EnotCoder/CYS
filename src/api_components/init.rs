@@ -50,7 +50,7 @@ pub struct WgpuApp {
 }
 
 impl WgpuApp {
-    pub async fn new(window: &Window) -> Self {
+    pub fn new(window: &Window) -> Self {
         let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
             backends: wgpu::Backends::PRIMARY,
             flags: wgpu::InstanceFlags::default(),
@@ -61,8 +61,8 @@ impl WgpuApp {
         let surface = instance.create_surface(window)
             .expect("Failed to create surface");
 
-        let adapter = Self::request_adapter(&instance, &surface).await;
-        let (device, queue) = Self::request_device(&adapter).await;
+        let adapter = pollster::block_on(Self::request_adapter(&instance, &surface));
+        let (device, queue) = pollster::block_on(Self::request_device(&adapter));
         let surface_format = Self::pick_format(&surface, &adapter);
         let surface_caps = surface.get_capabilities(&adapter);
 

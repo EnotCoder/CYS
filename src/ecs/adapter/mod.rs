@@ -2,6 +2,7 @@ pub mod render;
 
 use specs::{World, WorldExt};
 use std::collections::{HashMap, HashSet};
+use std::sync::Arc;
 use crate::Sprite;
 use crate::ecs::components::{
     FenceComponent, FoodStorage, Money, ObjectTag, Rotation,
@@ -18,7 +19,7 @@ use crate::util;
 pub struct SpriteRenderData {
     pub position: [f32; 3],
     pub rotation: [f32; 3],
-    pub texture_path: String,
+    pub texture_path: Arc<str>,
     pub texture_frame: [i32; 2],
     pub texture_count: [i32; 2],
     pub scale: f32,
@@ -84,7 +85,7 @@ impl EcsAdapter {
 
     pub fn update_sprite_texture(&mut self, entity: specs::Entity, texture_path: &str) {
         if let Some(sprite) = self.world.write_storage::<SpriteComponent>().get_mut(entity) {
-            sprite.texture_path = texture_path.to_string();
+            sprite.texture_path = Arc::from(texture_path);
         }
     }
 

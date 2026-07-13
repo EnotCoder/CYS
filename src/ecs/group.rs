@@ -1,4 +1,5 @@
 use specs::{WorldExt, Builder};
+use std::sync::Arc;
 use crate::ecs::adapter::EcsAdapter;
 use crate::ecs::components::{Transform, SpriteComponent};
 use crate::{GroupComponent, GroupInfoResource, GroupInfo};
@@ -41,7 +42,7 @@ impl EcsAdapter {
                         position: [(x + i) as f32, (y + j) as f32, z],
                     })
                     .with(SpriteComponent {
-                        texture_path: texture_path.to_string(),
+                        texture_path: Arc::from(texture_path),
                         texture_frame: [
                             (base_frame[0] + i) % tex_count[0],
                             (base_frame[1] + j) % tex_count[1],

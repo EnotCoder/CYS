@@ -1,19 +1,22 @@
 use std::collections::HashMap;
+use std::sync::Arc;
 use ab_glyph::{FontRef, Font, PxScale, ScaleFont, Point};
 use image::RgbaImage;
 use specs::{WorldExt, Builder};
 use crate::{Sprite, Texture};
 
 pub struct TextRenderer {
-    font_data: Vec<u8>,
+    font: FontRef<'static>,
     tex_cache: HashMap<String, (Vec<u8>, u32, u32)>,
 }
 
 impl TextRenderer {
     pub fn new(font_path: &str) -> Self {
-        let font_data = std::fs::read(font_path)
-            .expect("Failed to read font file");
-        Self { font_data, tex_cache: HashMap::new() }
+        let font_data: &'static [u8] = Box::leak(std::fs::read(font_path)
+            .expect("Failed to read font file").into_boxed_slice());
+        let font = FontRef::try_from_slice(font_data)
+            .expect("Failed to parse font");
+        Self { font, tex_cache: HashMap::new() }
     }
 
     fn cache_key(text: &str, px_size: f32, outline: f32, color: [u8; 3]) -> String {
@@ -28,10 +31,8 @@ impl TextRenderer {
     fn rasterize(&mut self, text: &str, px_size: f32, outline: f32, color: [u8; 3]) -> &(Vec<u8>, u32, u32) {
         let key = Self::cache_key(text, px_size, outline, color);
         if !self.tex_cache.contains_key(&key) {
-            let font = FontRef::try_from_slice(&self.font_data)
-                .expect("Failed to parse font");
             let scale = PxScale::from(px_size);
-            let scaled_font = font.as_scaled(scale);
+            let scaled_font = self.font.as_scaled(scale);
 
             let mut total_w = 0u32;
             let mut min_px_top = 0.0f32;
@@ -188,7 +189,7 @@ impl TextRenderer {
                 position: [x, y, crate::constants::Z_UI],
             })
             .with(crate::SpriteComponent {
-                texture_path: text_key,
+                texture_path: Arc::from(text_key.as_str()),
                 texture_frame: [0, 0],
                 texture_count: [1, 1],
                 scale: 1.0,
@@ -232,7 +233,7 @@ impl TextRenderer {
                 position: [x, y, z],
             })
             .with(crate::SpriteComponent {
-                texture_path: text_key,
+                texture_path: Arc::from(text_key.as_str()),
                 texture_frame: [0, 0],
                 texture_count: [1, 1],
                 scale: 1.0,

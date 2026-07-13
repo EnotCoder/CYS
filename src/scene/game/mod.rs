@@ -203,7 +203,7 @@ impl GameScene {
                     let n = sprite.frame_paths.len() as i32;
                     sprite.current_frame = (sprite.current_frame + 1) % n;
                     if let Some(path) = sprite.frame_paths.get(sprite.current_frame as usize) {
-                        sprite.texture_path = path.clone();
+                        sprite.texture_path = std::sync::Arc::from(path.as_str());
                     }
                 }
             }

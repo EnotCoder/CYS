@@ -142,7 +142,7 @@ impl ApplicationHandler for App {
         let window = event_loop.create_window(window_attr).unwrap();
         let window: &'static Window = Box::leak(Box::new(window));
 
-        let wgpu_app = pollster::block_on(WgpuApp::new(window));
+        let wgpu_app = WgpuApp::new(window);
         let surface = wgpu_app.instance.create_surface(window).expect("Failed to create surface");
         let config = surface_config(wgpu_app.surface_format, window.inner_size().width, window.inner_size().height);
         surface.configure(&wgpu_app.device, &config);
@@ -190,8 +190,7 @@ impl ApplicationHandler for App {
     }
 }
 
-#[tokio::main]
-async fn main() {
+fn main() {
     let event_loop = EventLoop::new().unwrap();
 
     let mut app = App {

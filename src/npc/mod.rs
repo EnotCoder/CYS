@@ -6,6 +6,10 @@ use crate::constants::*;
 use crate::EcsAdapter;
 use crate::ecs::components::{FoodStorage, ObjectTag, Transform, BusyCassas, Money};
 
+fn spawn_path_node() -> Node {
+    Node::new(0, -4)
+}
+
 enum ShopperState {
     GoingToRack,
     GoingToCassa,
@@ -22,7 +26,8 @@ pub struct ShopperNpc {
     state_timer: f64,
     rack_pos: Node,
     cassa_pos: Node,
-    spawn_point: Node,
+    spawn_world: (f32, f32),
+    exit_target: Option<(f32, f32)>,
     exiting: bool,
     food_taken: bool,
     walk_timer: f64,
@@ -36,6 +41,8 @@ impl ShopperNpc {
     pub fn spawn(ecs: &mut EcsAdapter, walkable: &HashSet<Node>, spawn_pos: Node, rack_pos: Node, cassa_pos: Node, tex_idle: &'static str, tex_walk_1: &'static str, tex_walk_2: &'static str) -> Option<Self> {
         let path = find_path(walkable, spawn_pos, rack_pos)?;
         let (sx, sy) = spawn_pos.to_world();
+        let sx = sx;
+        let sy = sy + 0.5;
         let entity = crate::ecs::factory::create_sprite(
             &mut ecs.world, sx, sy, Z_NPC,
             tex_idle, [0, 0], [1, 1], NPC_SCALE, 1.0,
@@ -45,12 +52,13 @@ impl ShopperNpc {
             entity,
             pos: (sx, sy),
             path,
-            path_index: 0,
+            path_index: 1,
             state: ShopperState::GoingToRack,
             state_timer: 0.0,
             rack_pos,
             cassa_pos,
-            spawn_point: spawn_pos,
+            spawn_world: (sx, sy),
+            exit_target: None,
             exiting: false,
             food_taken: false,
             walk_timer: 0.0,
@@ -89,6 +97,9 @@ impl ShopperNpc {
             self.path_index = 0;
             self.walk_timer = 0.0;
             self.walk_frame = 0;
+            if to == spawn_path_node() {
+                self.exit_target = Some(self.spawn_world);
+            }
             true
         } else {
             false
@@ -225,7 +236,7 @@ impl ShopperNpc {
                 }
             } else {
                 // Касс нет — уходим
-                if self.start_path(walkable, self.spawn_point) {
+                if self.start_path(walkable, spawn_path_node()) {
                     self.state = ShopperState::GoingToExit;
                     return false;
                 }
@@ -240,7 +251,7 @@ impl ShopperNpc {
 
         // Если active=false и ещё не взял еду — уходим
         if self.exiting && !self.food_taken && matches!(self.state, ShopperState::GoingToRack) {
-            if self.start_path(walkable, self.spawn_point) {
+            if self.start_path(walkable, spawn_path_node()) {
                 self.state = ShopperState::GoingToExit;
             }
         }
@@ -264,7 +275,7 @@ impl ShopperNpc {
                         if let Some(cassa) = Self::find_any_cassa(ecs) {
                             self.cassa_pos = cassa;
                         } else {
-                            if self.start_path(walkable, self.spawn_point) {
+                            if self.start_path(walkable, spawn_path_node()) {
                                 self.state = ShopperState::GoingToExit;
                             }
                             return false;
@@ -303,7 +314,7 @@ impl ShopperNpc {
                     ecs.world.write_resource::<BusyCassas>().0.remove(&(self.cassa_pos.x, self.cassa_pos.y));
                     ecs.world.write_resource::<Money>().0 += 5;
                     // Всегда идём на выход после покупки
-                    if self.start_path(walkable, self.spawn_point) {
+                    if self.start_path(walkable, spawn_path_node()) {
                         self.state = ShopperState::GoingToExit;
                     }
                 }
@@ -311,6 +322,20 @@ impl ShopperNpc {
 
             ShopperState::GoingToExit => {
                 if self.path_index >= self.path.len() {
+                    if let Some((ex, ey)) = self.exit_target {
+                        let (cx, cy) = self.pos;
+                        let step = NPC_SPEED * dt as f32;
+                        let dx = ex - cx;
+                        let dy = ey - cy;
+                        let dist = (dx * dx + dy * dy).sqrt();
+                        if dist <= step || dist < EPSILON {
+                            return true;
+                        }
+                        self.pos = (cx + dx / dist * step, cy + dy / dist * step);
+                        let (nx, ny) = self.pos;
+                        ecs.update_transform_position(self.entity, nx, ny);
+                        return false;
+                    }
                     return true; // деспавн
                 }
                 self.walk_toward(ecs, dt);

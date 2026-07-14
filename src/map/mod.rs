@@ -148,7 +148,8 @@ pub fn token_to_texture(token: &str) -> (&str, [i32; 2], [i32; 2]) {
         ":" => ("tex/map/wall.png", [2, 1], [5, 5]),
         ";" => ("tex/map/wall.png", [4, 1], [5, 5]),
         "o" => ("tex/map/wall.png", [3, 0], [5, 5]),
-        "%" => ("tex/map/wall.png", [3, 1], [5, 5]),
+        "%" => ("tex/map/wall.png", [3, 2], [5, 5]),
+        "q" => ("tex/map/wall.png", [2, 3], [5, 5]),
         "p" => ("tex/map/wall.png", [3, 3], [5, 5]),
         "i" => ("tex/map/wall.png", [4, 3], [5, 5]),
         //default

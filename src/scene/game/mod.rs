@@ -14,7 +14,6 @@ struct SavedObject {
     slot_name: &'static str,
     x: i32,
     y: i32,
-    group_id: u32,
 }
 
 struct LevelState {
@@ -287,7 +286,7 @@ impl GameScene {
         let mut objects = Vec::new();
         let groups = ecs.world.read_resource::<crate::GroupInfoResource>();
         let tags = ecs.world.read_storage::<ObjectTag>();
-        for (&gid, group) in &groups.groups {
+        for (_, group) in &groups.groups {
             let name = group.entities.first()
                 .and_then(|e| tags.get(*e))
                 .map(|t| t.name)
@@ -296,7 +295,6 @@ impl GameScene {
                 slot_name: name,
                 x: group.pos_x,
                 y: group.pos_y,
-                group_id: gid,
             });
         }
         self.level_states.insert(self.current_level, LevelState {
@@ -306,8 +304,12 @@ impl GameScene {
         });
     }
 
-    fn load_level(&mut self, ecs: &mut crate::EcsAdapter, _text_renderer: &mut crate::ui::text_renderer::TextRenderer, _device: &wgpu::Device, _queue: &wgpu::Queue, level: i32) {
+    fn load_level(&mut self, ecs: &mut crate::EcsAdapter, text_renderer: &mut crate::ui::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue, level: i32) {
         self.save_current_level(ecs);
+
+        if self.inventory.open {
+            self.inventory.exit(ecs);
+        }
 
         ecs.clear_world();
         ecs.world.write_resource::<BusyCassas>().0.clear();
@@ -326,13 +328,41 @@ impl GameScene {
                 ecs.map_entities.insert(pos, entity);
                 ecs.map_grid[(-wy + WORLD_OFFSET_Y) as usize][(wx + -WORLD_OFFSET_X) as usize] = token;
             }
+            for (j, row) in ecs.map_grid.iter().enumerate() {
+                for (i, token) in row.iter().enumerate() {
+                    let x = i as f32 + WORLD_OFFSET_X;
+                    let y = -(j as f32) + WORLD_OFFSET_Y;
+                    let gx = (x + 0.5).floor() as i32;
+                    let gy = (y + 0.5).floor() as i32;
+                    let is_grass = matches!(token.as_str(), "." | "@" | "*" | "m" | "f" | "~" | "l" | "1" | "2" | "3" | "4" | "5" | "6");
+                    if token == "=" || token == "-" {
+                        ecs.wall_positions.insert((gx, gy));
+                    } else if token == "0" {
+                        ecs.floor_positions.insert((gx, gy));
+                    }
+                    if is_grass {
+                        ecs.outdoor_positions.insert((gx, gy));
+                        ecs.flower_positions.insert((gx, gy));
+                    }
+                    if matches!(token.as_str(), "/" | "|" | ".") {
+                        ecs.floor_placeable_positions.insert((gx, gy));
+                    } else if token == "&" {
+                        let is_bottom_wall = j > 0 && ecs.map_grid.get(j - 1)
+                            .and_then(|r| r.get(i))
+                            .map_or(false, |t| t == "0");
+                        if !is_bottom_wall {
+                            ecs.floor_placeable_positions.insert((gx, gy));
+                        }
+                    }
+                }
+            }
             for obj in &state.objects {
                 let slot = crate::data::make_slot(obj.slot_name);
                 let is_carpet = crate::data::is_carpet_name(obj.slot_name);
                 let _is_outdoor = crate::data::is_outdoor_name(obj.slot_name);
                 let _is_flower = crate::data::is_flower_name(obj.slot_name);
                 let _is_wall_decor = crate::data::is_wall_decor_name(obj.slot_name);
-                ecs.add_group_object(
+                let new_group_id = ecs.add_group_object(
                     obj.x, obj.y,
                     slot.obj.width, slot.obj.height,
                     slot.obj.path,
@@ -343,7 +373,7 @@ impl GameScene {
                     slot.obj.frame_paths,
                 );
                 let groups = ecs.world.read_resource::<crate::GroupInfoResource>();
-                if let Some(info) = groups.groups.get(&obj.group_id) {
+                if let Some(info) = groups.groups.get(&new_group_id) {
                     if let Some(&entity) = info.entities.first() {
                         if obj.slot_name == "basement" || obj.slot_name == "rack" || obj.slot_name == "cassa" || obj.slot_name == "fence" || obj.slot_name == "street_fence" {
                             let tag = ObjectTag { name: obj.slot_name };
@@ -363,6 +393,7 @@ impl GameScene {
                     }
                 }
             }
+            ecs.update_fence_textures();
         } else {
             if level == -1 {
                 crate::map::load_basement_to_ecs(ecs);
@@ -375,6 +406,30 @@ impl GameScene {
         self.camera_offset_x = 0.0;
         self.camera_offset_y = 0.0;
         self.map_size = 0.8;
+
+        self.rebuild_ui(ecs, text_renderer, device, queue);
+    }
+
+    fn rebuild_ui(&mut self, ecs: &mut crate::EcsAdapter, text_renderer: &mut crate::ui::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) {
+        self.slot_entities.clear();
+        for (i, slot) in self.slots.iter().enumerate() {
+            let icon_path = crate::util::slot_icon_path(slot.obj.name);
+            let ent = ecs.add_ui(SLOT_BAR_X + i as f32, SLOT_BAR_Y, &icon_path);
+            self.slot_entities.push(ent);
+        }
+        let cursor_x = SLOT_BAR_X + self.act_slot as f32;
+        let icons_slot_cursor = ecs.add_ui(cursor_x, SLOT_BAR_Y, SLOT_CURSOR_TEX);
+        self.icons_slot_cursor = Some(icons_slot_cursor);
+        let icon_mode = ecs.add_ui(ICON_MODE_X, SLOT_BAR_Y, MODE_ICON_TEX[self.mode as usize]);
+        self.icon_mode = Some(icon_mode);
+        let active_entity = ecs.add_ui(ACTIVE_X, SLOT_BAR_Y, TEX_ACTIVE);
+        self.active_entity = Some(active_entity);
+        let inv_entity = ecs.add_ui(INV_BTN_X, SLOT_BAR_Y, TEX_INV_BUTTON);
+        self.inv_entity = Some(inv_entity);
+        self.cursor_entity = Some(ecs.add_cursor(0.0, 0.0, CURSOR_TEX[self.mode as usize]));
+
+        text_renderer.add_text(ecs, device, queue, "Alpha", FONT_SIZE_ALPHA, -5.5, 4.0, 1.0, 4.0, WHITE);
+        self.npc_walkable = crate::map::load_walkable_cells();
     }
 
     fn place_basement_exit(&mut self, ecs: &mut crate::EcsAdapter) {
@@ -537,7 +592,6 @@ impl Scene for GameScene {
             if switch_level == 2 {
                 let new_level = if self.current_level == 0 { -1 } else { 0 };
                 self.load_level(ecs, text_renderer, device, queue, new_level);
-                self.setup_ui(ecs, text_renderer, device, queue);
                 return SceneAction::None;
             }
 

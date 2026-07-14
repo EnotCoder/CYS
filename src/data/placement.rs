@@ -22,41 +22,6 @@ fn is_grass_token(token: &str) -> bool {
     matches!(token, "." | "@" | "*" | "m" | "f" | "~" | "l" | "1" | "2" | "3" | "4" | "5" | "6")
 }
 
-fn update_walls_around(ecs: &mut EcsAdapter, gx: i32, gy: i32) {
-    let dirs: [(i32, i32, &str); 8] = [
-        (0, -1, "&"), (0, 1, "&"), (-1, 0, "/"), (1, 0, "|"),
-        (-1, -1, "p"), (1, -1, "i"), (-1, 1, "/"), (1, 1, "|"),
-    ];
-    for &(dx, dy, wall_tok) in &dirs {
-        let nx = gx + dx;
-        let ny = gy + dy;
-        let file_col = nx + 21;
-        let file_row = 14 - ny;
-        if file_row < 0 || file_row >= ecs.map_grid.len() as i32 { continue; }
-        if file_col < 0 || file_col >= ecs.map_grid[file_row as usize].len() as i32 { continue; }
-        let token = ecs.map_grid[file_row as usize][file_col as usize].clone();
-        if !is_grass_token(&token) { continue; }
-        ecs.map_grid[file_row as usize][file_col as usize] = wall_tok.to_string();
-        if wall_tok == "&" && dy == 1 {
-            ecs.floor_placeable_positions.remove(&(nx, ny));
-        } else if matches!(wall_tok, "/" | "|" | "&") {
-            ecs.floor_placeable_positions.insert((nx, ny));
-        } else {
-            ecs.floor_placeable_positions.remove(&(nx, ny));
-        }
-        ecs.flower_positions.remove(&(nx, ny));
-        if let Some(&map_entity) = ecs.map_entities.get(&(nx, ny)) {
-            ecs.update_sprite_texture(map_entity, "tex/map/wall.png");
-            let mut sprites = ecs.world.write_storage::<crate::SpriteComponent>();
-            if let Some(sprite) = sprites.get_mut(map_entity) {
-                let (tf, tc) = wall_frame_count(wall_tok);
-                sprite.texture_frame = tf;
-                sprite.texture_count = tc;
-            }
-        }
-    }
-}
-
 fn refresh_walls_around(ecs: &mut EcsAdapter, gx: i32, gy: i32) {
     let dirs: [(i32, i32); 8] = [
         (0, -1), (0, 1), (-1, 0), (1, 0),
@@ -180,53 +145,23 @@ pub fn add(ecs: &mut EcsAdapter, slots: &mut Vec<Slot>, act_slot: i32, gx: i32, 
     let is_wall_decor = is_wall_decor_name(active_slot.name);
     let is_outdoor = is_outdoor_name(active_slot.name);
     let is_flower = is_flower_name(active_slot.name);
-    let is_floor = active_slot.name == "floor";
+
+    // В подвале нельзя ставить кассу, стеллаж и лестницу
+    if ecs.current_level == -1 {
+        if active_slot.name == "cassa" || active_slot.name == "rack" || active_slot.name == "basement" {
+            return;
+        }
+    }
 
     if !ecs.can_place_at(
         gx, gy,
         active_slot.width, active_slot.height,
-        is_carpet, is_wall_decor, is_outdoor, is_flower, is_floor,
+        is_carpet, is_wall_decor, is_outdoor, is_flower,
     ) {
         return;
     }
 
     ecs.clear_cursor_preview();
-
-    if is_floor && !ecs.map_grid.is_empty() {
-        for i in 0..active_slot.width {
-            for j in 0..active_slot.height {
-                let cx = gx + i;
-                let cy = gy + j;
-                let file_col = cx + 21;
-                let file_row = 14 - cy;
-                if file_row >= 0 && file_row < ecs.map_grid.len() as i32 &&
-                   file_col >= 0 && file_col < ecs.map_grid[file_row as usize].len() as i32
-                {
-                    let token = ecs.map_grid[file_row as usize][file_col as usize].clone();
-                    if token != "0" {
-                        ecs.original_tokens.entry((cx, cy)).or_insert_with(|| token.clone());
-                        ecs.map_grid[file_row as usize][file_col as usize] = "0".to_string();
-                        ecs.floor_positions.insert((cx, cy));
-                        ecs.floor_placed_positions.insert((cx, cy));
-                        ecs.outdoor_positions.remove(&(cx, cy));
-                        ecs.flower_positions.remove(&(cx, cy));
-                        if let Some(&map_entity) = ecs.map_entities.get(&(cx, cy)) {
-                            ecs.update_sprite_texture(map_entity, "tex/map/floor.png");
-                            let mut sprites = ecs.world.write_storage::<crate::SpriteComponent>();
-                            if let Some(sprite) = sprites.get_mut(map_entity) {
-                                sprite.texture_frame = [0, 0];
-                                sprite.texture_count = [2, 2];
-                            }
-                        }
-                        update_walls_around(ecs, cx, cy);
-                        refresh_walls_around(ecs, cx, cy);
-                    }
-                }
-            }
-        }
-        // map.txt не сохраняем — пол и стены только в памяти
-        return;
-    }
 
     let group_id = ecs.add_group_object(
         gx, gy,
@@ -237,7 +172,6 @@ pub fn add(ecs: &mut EcsAdapter, slots: &mut Vec<Slot>, act_slot: i32, gx: i32, 
         is_carpet,
         active_slot.animated,
         active_slot.frame_paths,
-        false, // is_floor is always false here
     );
 
     let first = {

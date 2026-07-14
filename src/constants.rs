@@ -88,6 +88,7 @@ pub const TEX_UI_ICON_SLOTS_MAP_DIR: &str = "tex/ui/icon_slots/";
 pub const TEX_FALLBACK: &str = "tex/dev_tools/null.png";
 
 pub const MAP_FILE: &str = "map.txt";
+pub const BASEMENT_FILE: &str = "basement.txt";
 
 // === Инвентарь ===
 pub const INVENTORY_BASE_Y: f32 = SLOT_BAR_Y + 1.0;
@@ -96,7 +97,7 @@ pub const INVENTORY_COLS: i32 = 5;
 pub const INV_NONE: i32 = INVENTORY_ROWS * (INVENTORY_COLS - 1);
 pub const TAB_TEX: [&str; 4] = ["tex/ui/icon_slots/icon_slots_object/regular/box.png", "tex/ui/icon_slots/icon_slots_object/carpets/blue_carpet.png", "tex/ui/icon_slots/icon_slots_object/walldecor/welcome.png", "tex/ui/icon_slots/icon_slots_object/outdoor/tree.png"];
 pub const SLOT_CURSOR_TEX: &str = "tex/ui/icon_slots/cursor.png";
-pub const INV_REGULAR: &[&str] = &["box", "sign", "rack", "table", "cassa", "ice_cream", "arcade_machine", "candies", "fence"];
+pub const INV_REGULAR: &[&str] = &["box", "sign", "rack", "table", "cassa", "ice_cream", "arcade_machine", "candies", "fence", "basement"];
 pub const INV_CARPETS: &[&str] = 
 &[
     "blue_carpet", "red_carpet", "green_carpet", "white_carpet", "black_carpet", 
@@ -126,11 +127,6 @@ pub const TEX_NO_ACTIVE: &str = "tex/ui/active/no_active.png";
 pub const LOGO_UI_X: f32 = ACTIVE_X + 0.2;
 pub const LOGO_UI_Y: f32 = SLOT_BAR_Y + 0.1;
 pub const TEX_MY_LOGO: &str = "tex/ui/my_logo.png";
-
-// === Build button (над active toggle) ===
-pub const BUILD_X: f32 = ACTIVE_X;
-pub const BUILD_Y: f32 = SLOT_BAR_Y + 1.0;
-pub const TEX_BUILD_BUTTON: &str = "tex/ui/icon_slots/replace_slots.png";
 
 // === Текстуры иконки режима ===
 pub const MODE_ICON_TEX: [&str; 3] = [

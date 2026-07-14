@@ -59,9 +59,8 @@ pub fn update_cursor_validity(ecs: &mut EcsAdapter, cursor: Entity, slots: &[Slo
     let is_wall_decor = is_wall_decor_name(slot.obj.name);
     let is_outdoor = is_outdoor_name(slot.obj.name);
     let is_flower = is_flower_name(slot.obj.name);
-    let is_floor = slot.obj.name == "floor";
 
-    if ecs.can_place_at(x as i32, y as i32, slot.obj.width, slot.obj.height, is_carpet, is_wall_decor, is_outdoor, is_flower, is_floor) {
+    if ecs.can_place_at(x as i32, y as i32, slot.obj.width, slot.obj.height, is_carpet, is_wall_decor, is_outdoor, is_flower) {
         ecs.update_sprite_texture(cursor, CURSOR_TEX[1]);
     } else {
         ecs.update_sprite_texture(cursor, CURSOR_ERR_TEX);
@@ -80,8 +79,7 @@ pub fn update_cursor_preview(ecs: &mut EcsAdapter, mode: i32, slots: &[Slot], ac
     let is_wall_decor = is_wall_decor_name(slot.obj.name);
     let is_outdoor = is_outdoor_name(slot.obj.name);
     let is_flower = is_flower_name(slot.obj.name);
-    let is_floor = slot.obj.name == "floor";
-    let valid = ecs.can_place_at(cx as i32, cy as i32, slot.obj.width, slot.obj.height, is_carpet, is_wall_decor, is_outdoor, is_flower, is_floor);
+    let valid = ecs.can_place_at(cx as i32, cy as i32, slot.obj.width, slot.obj.height, is_carpet, is_wall_decor, is_outdoor, is_flower);
     ecs.update_cursor_preview(
         cx, cy,
         slot.obj.width, slot.obj.height,

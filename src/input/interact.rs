@@ -4,7 +4,7 @@ use crate::data::{add, remove};
 use crate::constants::*;
 use crate::ecs::components::{FoodStorage, ObjectTag, TotalFood};
 
-pub fn try_interact(ecs: &mut EcsAdapter, gx: i32, gy: i32) -> bool {
+pub fn try_interact(ecs: &mut EcsAdapter, gx: i32, gy: i32) -> i32 {
     if let Some(gid) = ecs.find_group_at_position(gx, gy) {
         let first_entity = {
             let groups = ecs.world.read_resource::<crate::GroupInfoResource>();
@@ -52,18 +52,20 @@ pub fn try_interact(ecs: &mut EcsAdapter, gx: i32, gy: i32) -> bool {
                             }
                         }
                     }
+                } else if name == "basement" {
+                    return 2; // signal: switch level
                 }
             }
 
             let sprites = ecs.world.read_storage::<crate::SpriteComponent>();
             if let Some(sprite) = sprites.get(entity) {
                 if sprite.texture_path.contains("arcade_machine") {
-                    return true;
+                    return 1;
                 }
             }
         }
     }
-    false
+    0
 }
 
 pub fn cycle_mode(mode: i32, ecs: &mut EcsAdapter, cursor: Entity, icon: Entity) -> i32 {
@@ -80,13 +82,13 @@ pub fn do_interact(
     mode: i32,
     slots: &mut Vec<Slot>,
     act_slot: i32,
-) -> bool {
-    let mut show_ilm = false;
+) -> i32 {
+    let mut result = 0;
     match mode {
-        0 => { show_ilm = try_interact(ecs, gx, gy); }
+        0 => { result = try_interact(ecs, gx, gy); }
         1 => add(ecs, slots, act_slot, gx, gy),
         2 => { remove(ecs, gx, gy); }
         _ => {}
     }
-    show_ilm
+    result
 }

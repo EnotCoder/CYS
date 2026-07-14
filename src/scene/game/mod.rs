@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::{HashSet, HashMap};
 use specs::{WorldExt, Join};
 use winit::keyboard::KeyCode;
 use crate::scene::scene_trait::{Scene, SceneAction};
@@ -8,6 +8,20 @@ use crate::map::pathfinding::Node;
 use crate::ecs::components::{FoodStorage, ObjectTag, TotalFood, BusyCassas, Transform, Money};
 use crate::npc::ShopperNpc;
 use crate::ui::text_renderer::TextRenderer;
+
+#[derive(Clone)]
+struct SavedObject {
+    slot_name: &'static str,
+    x: i32,
+    y: i32,
+    group_id: u32,
+}
+
+struct LevelState {
+    map_grid: Vec<Vec<String>>,
+    original_tokens: HashMap<(i32, i32), String>,
+    objects: Vec<SavedObject>,
+}
 
 pub struct GameScene {
     loaded: bool,
@@ -51,10 +65,9 @@ pub struct GameScene {
     active_entity: Option<specs::Entity>,
     settings: crate::ui::settings::Settings,
     zoom_step: f32,
-    build_mode: bool,
-    build_entity: Option<specs::Entity>,
     inv_entity: Option<specs::Entity>,
-    saved_slot_names: Vec<String>,
+    current_level: i32,
+    level_states: HashMap<i32, LevelState>,
 }
 
 impl GameScene {
@@ -101,10 +114,9 @@ impl GameScene {
             active: true,
             active_entity: None,
             settings: crate::ui::settings::Settings::new(),
-            build_mode: false,
-            build_entity: None,
             inv_entity: None,
-            saved_slot_names: Vec::new(),
+            current_level: 0,
+            level_states: HashMap::new(),
         }
     }
 
@@ -124,8 +136,14 @@ impl GameScene {
     }
 
     fn setup_content(&mut self, ecs: &mut crate::EcsAdapter, text_renderer: &mut crate::ui::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) {
-        crate::load_map_to_ecs(ecs);
+        self.setup_ui(ecs, text_renderer, device, queue);
+        if self.current_level == 0 {
+            crate::map::load_map_to_ecs(ecs);
+            self.npc_walkable = crate::map::load_walkable_cells();
+        }
+    }
 
+    fn setup_ui(&mut self, ecs: &mut crate::EcsAdapter, text_renderer: &mut crate::ui::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) {
         self.slots = crate::data::get_slot_vec();
 
         text_renderer.add_text(ecs, device, queue, "Alpha", FONT_SIZE_ALPHA, -5.5, 4.0, 1.0, 4.0, WHITE);
@@ -133,8 +151,6 @@ impl GameScene {
         let icon_mode = ecs.add_ui(ICON_MODE_X, SLOT_BAR_Y, MODE_ICON_TEX[0]);
         let active_entity = ecs.add_ui(ACTIVE_X, SLOT_BAR_Y, TEX_ACTIVE);
         self.active_entity = Some(active_entity);
-        let build_entity = ecs.add_ui(BUILD_X, BUILD_Y, TEX_BUILD_BUTTON);
-        self.build_entity = Some(build_entity);
         let inv_entity = ecs.add_ui(INV_BTN_X, SLOT_BAR_Y, TEX_INV_BUTTON);
         self.inv_entity = Some(inv_entity);
 
@@ -211,7 +227,6 @@ impl GameScene {
     }
 
     fn handle_inventory_input(&mut self, ecs: &mut crate::EcsAdapter, input: &winit_input_helper::WinitInputHelper, window_size: (f32, f32)) {
-        if self.build_mode { return; }
         if input.key_pressed(winit::keyboard::KeyCode::KeyE) {
             if self.inventory.open {
                 self.inventory.exit(ecs);
@@ -267,38 +282,111 @@ impl GameScene {
         }
     }
 
-    fn toggle_build_mode(&mut self, ecs: &mut crate::EcsAdapter) {
-        if !self.build_mode {
-            self.saved_slot_names = self.slots.iter().map(|s| s.obj.name.to_string()).collect();
-            for i in 0..self.slots.len() {
-                self.slots[i] = crate::data::make_slot("floor");
-                let icon_path = crate::util::slot_icon_path("floor");
-                ecs.update_sprite_texture(self.slot_entities[i], &icon_path);
+
+    fn save_current_level(&mut self, ecs: &mut crate::EcsAdapter) {
+        let mut objects = Vec::new();
+        let groups = ecs.world.read_resource::<crate::GroupInfoResource>();
+        let tags = ecs.world.read_storage::<ObjectTag>();
+        for (&gid, group) in &groups.groups {
+            let name = group.entities.first()
+                .and_then(|e| tags.get(*e))
+                .map(|t| t.name)
+                .unwrap_or("");
+            objects.push(SavedObject {
+                slot_name: name,
+                x: group.pos_x,
+                y: group.pos_y,
+                group_id: gid,
+            });
+        }
+        self.level_states.insert(self.current_level, LevelState {
+            map_grid: ecs.map_grid.clone(),
+            original_tokens: ecs.original_tokens.clone(),
+            objects,
+        });
+    }
+
+    fn load_level(&mut self, ecs: &mut crate::EcsAdapter, _text_renderer: &mut crate::ui::text_renderer::TextRenderer, _device: &wgpu::Device, _queue: &wgpu::Queue, level: i32) {
+        self.save_current_level(ecs);
+
+        ecs.clear_world();
+        ecs.world.write_resource::<BusyCassas>().0.clear();
+
+        self.current_level = level;
+        ecs.current_level = level;
+
+        if let Some(state) = self.level_states.get(&level) {
+            ecs.map_grid = state.map_grid.clone();
+            ecs.original_tokens = state.original_tokens.clone();
+            for (pos, _) in ecs.original_tokens.clone() {
+                let token = ecs.original_tokens.get(&pos).cloned().unwrap_or_default();
+                let (tex, frame, count) = crate::map::token_to_texture(&token);
+                let (wx, wy) = (pos.0 as f32, pos.1 as f32);
+                let entity = crate::ecs::factory::create_sprite(&mut ecs.world, wx, wy, Z_MAP, tex, frame, count, 1.0, 1.0);
+                ecs.map_entities.insert(pos, entity);
+                ecs.map_grid[(-wy + WORLD_OFFSET_Y) as usize][(wx + -WORLD_OFFSET_X) as usize] = token;
             }
-            let cursor = self.cursor_entity.unwrap();
-            let icon_mode = self.icon_mode.unwrap();
-            self.mode = 1;
-            ecs.update_sprite_texture(cursor, CURSOR_TEX[1]);
-            ecs.update_sprite_texture(icon_mode, MODE_ICON_TEX[1]);
-            if self.inventory.open {
-                self.inventory.exit(ecs);
-            }
-            self.build_mode = true;
-        } else {
-            for (i, name) in self.saved_slot_names.iter().enumerate() {
-                if i < self.slots.len() {
-                    self.slots[i] = crate::data::make_slot(name);
-                    let icon_path = crate::util::slot_icon_path(name);
-                    ecs.update_sprite_texture(self.slot_entities[i], &icon_path);
+            for obj in &state.objects {
+                let slot = crate::data::make_slot(obj.slot_name);
+                let is_carpet = crate::data::is_carpet_name(obj.slot_name);
+                let _is_outdoor = crate::data::is_outdoor_name(obj.slot_name);
+                let _is_flower = crate::data::is_flower_name(obj.slot_name);
+                let _is_wall_decor = crate::data::is_wall_decor_name(obj.slot_name);
+                ecs.add_group_object(
+                    obj.x, obj.y,
+                    slot.obj.width, slot.obj.height,
+                    slot.obj.path,
+                    slot.obj.texture_frame,
+                    slot.obj.texture_count,
+                    is_carpet,
+                    slot.obj.animated,
+                    slot.obj.frame_paths,
+                );
+                let groups = ecs.world.read_resource::<crate::GroupInfoResource>();
+                if let Some(info) = groups.groups.get(&obj.group_id) {
+                    if let Some(&entity) = info.entities.first() {
+                        if obj.slot_name == "basement" || obj.slot_name == "rack" || obj.slot_name == "cassa" || obj.slot_name == "fence" || obj.slot_name == "street_fence" {
+                            let tag = ObjectTag { name: obj.slot_name };
+                            ecs.world.write_storage::<crate::ObjectTag>().insert(entity, tag).ok();
+                            if obj.slot_name == "rack" || obj.slot_name == "box" {
+                                ecs.world.write_storage::<crate::FoodStorage>().insert(entity, crate::FoodStorage {
+                                    food_count: 0,
+                                    max_food: if obj.slot_name == "rack" { 15 } else { 20 },
+                                }).ok();
+                            }
+                            if obj.slot_name == "fence" || obj.slot_name == "street_fence" {
+                                ecs.world.write_storage::<crate::FenceComponent>().insert(entity, crate::FenceComponent { name: obj.slot_name }).ok();
+                            }
+                        }
+                    }
                 }
             }
-            self.saved_slot_names.clear();
-            let cursor = self.cursor_entity.unwrap();
-            let icon_mode = self.icon_mode.unwrap();
-            self.mode = 0;
-            ecs.update_sprite_texture(cursor, CURSOR_TEX[0]);
-            ecs.update_sprite_texture(icon_mode, MODE_ICON_TEX[0]);
-            self.build_mode = false;
+        } else {
+            if level == -1 {
+                crate::map::load_basement_to_ecs(ecs);
+                self.place_basement_exit(ecs);
+            } else {
+                crate::map::load_map_to_ecs(ecs);
+            }
+        }
+
+        self.camera_offset_x = 0.0;
+        self.camera_offset_y = 0.0;
+        self.map_size = 0.8;
+    }
+
+    fn place_basement_exit(&mut self, ecs: &mut crate::EcsAdapter) {
+        let gid = ecs.add_group_object(
+            -6, 3, 1, 2,
+            "tex/decor/regular/basement.png",
+            [0, 1], [1, 2],
+            false, false, &[],
+        );
+        let groups = ecs.world.read_resource::<crate::GroupInfoResource>();
+        if let Some(info) = groups.groups.get(&gid) {
+            if let Some(&entity) = info.entities.first() {
+                ecs.world.write_storage::<crate::ObjectTag>().insert(entity, ObjectTag { name: "basement" }).ok();
+            }
         }
     }
 }
@@ -344,11 +432,7 @@ impl Scene for GameScene {
         self.exit_cooldown = 0.0;
         self.active = true;
         self.active_entity = None;
-        self.settings = crate::ui::settings::Settings::new();
-        self.build_mode = false;
-        self.build_entity = None;
         self.inv_entity = None;
-        self.saved_slot_names.clear();
         ecs.world.write_resource::<TotalFood>().0 = 0;
         ecs.world.write_resource::<BusyCassas>().0.clear();
     }
@@ -399,19 +483,10 @@ impl Scene for GameScene {
             self.mode = result.1;
             self.map_size = result.2;
             let show_ilm = result.3;
-
-            // --- Build button ---
-            if input.mouse_pressed(winit::event::MouseButton::Left) && !self.inventory.mode {
-                if let Some((mx, my)) = input.cursor() {
-                    let (wx, wy) = crate::util::ndc_to_world(mx, my, window_size, 1.0, 0.0, 0.0);
-                    if (wx - BUILD_X).abs() < TILE_HALF && (wy - BUILD_Y).abs() < TILE_HALF {
-                        self.toggle_build_mode(ecs);
-                    }
-                }
-            }
+            let switch_level = result.4;
 
             // --- Inv button (toggle inventory) ---
-            if input.mouse_pressed(winit::event::MouseButton::Left) && !self.build_mode {
+            if input.mouse_pressed(winit::event::MouseButton::Left) {
                 if let Some((mx, my)) = input.cursor() {
                     let (wx, wy) = crate::util::ndc_to_world(mx, my, window_size, 1.0, 0.0, 0.0);
                     if (wx - INV_BTN_X).abs() < TILE_HALF && (wy - SLOT_BAR_Y).abs() < TILE_HALF {
@@ -453,6 +528,14 @@ impl Scene for GameScene {
                         self.mode = crate::input::interact::cycle_mode(self.mode, ecs, cursor, icon_mode);
                     }
                 }
+            }
+
+            // --- Switch level ---
+            if switch_level == 2 {
+                let new_level = if self.current_level == 0 { -1 } else { 0 };
+                self.load_level(ecs, text_renderer, device, queue, new_level);
+                self.setup_ui(ecs, text_renderer, device, queue);
+                return SceneAction::None;
             }
 
             if show_ilm && self.ilm_cooldown <= 0.0 && self.ilm_entity.is_none() {

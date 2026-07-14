@@ -29,7 +29,6 @@ pub fn slot_icon_path(name: &str) -> String {
         else if INV_CARPETS.contains(&name) { "carpets" }
         else if INV_WALLDECOR.contains(&name) { "walldecor" }
         else if INV_OUTDOOR.contains(&name) { "outdoor" }
-        else if name == "floor" { return format!("{}icon_slots_map/{}.png", TEX_UI_ICON_SLOTS_MAP_DIR, name) }
         else { return format!("{}{}.png", TEX_UI_ICON_SLOTS_MAP_DIR, name) };
     format!("{}{}/{}.png", TEX_UI_ICON_SLOTS_OBJECT_DIR, subdir, name)
 }

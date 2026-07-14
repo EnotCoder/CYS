@@ -33,6 +33,7 @@ pub struct EcsAdapter {
     pub world: World,
     pub sprite_cache: HashMap<u64, Sprite>,
     pub next_group_id: u32,
+    pub current_level: i32,
     pub cursor_preview: Vec<specs::Entity>,
     pub wall_positions: HashSet<(i32, i32)>,
     pub floor_positions: HashSet<(i32, i32)>,
@@ -66,6 +67,7 @@ impl EcsAdapter {
             world,
             sprite_cache: HashMap::new(),
             next_group_id: 1,
+            current_level: 0,
             cursor_preview: Vec::new(),
             wall_positions: HashSet::new(),
             floor_positions: HashSet::new(),
@@ -157,6 +159,43 @@ impl EcsAdapter {
         self.sprite_cache.insert(key, sprite);
 
         entity
+    }
+
+    pub fn clear_world(&mut self) {
+        use specs::Join;
+        let delete_entities: Vec<specs::Entity> = {
+            let entities = self.world.entities();
+            let transforms = self.world.read_storage::<Transform>();
+            let sprites = self.world.read_storage::<SpriteComponent>();
+            (&entities, &transforms, &sprites).join()
+                .map(|(e, _, _)| e)
+                .collect()
+        };
+        {
+            let mut transforms = self.world.write_storage::<Transform>();
+            let mut sprites = self.world.write_storage::<SpriteComponent>();
+            let mut group_comps = self.world.write_storage::<GroupComponent>();
+            let entities = self.world.entities();
+            for e in delete_entities {
+                transforms.remove(e);
+                sprites.remove(e);
+                group_comps.remove(e);
+                let _ = entities.delete(e);
+            }
+        }
+        self.sprite_cache.clear();
+        self.cursor_preview.clear();
+        self.next_group_id = 1;
+        self.map_grid.clear();
+        self.map_entities.clear();
+        self.original_tokens.clear();
+        self.wall_positions.clear();
+        self.floor_positions.clear();
+        self.outdoor_positions.clear();
+        self.flower_positions.clear();
+        self.floor_placed_positions.clear();
+        self.floor_placeable_positions.clear();
+        self.world.write_resource::<crate::GroupInfoResource>().groups.clear();
     }
 
     pub fn save_map_grid(&self) {

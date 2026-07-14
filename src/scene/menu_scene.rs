@@ -101,7 +101,6 @@ impl MenuScene {
                     crate::data::is_carpet_name(name),
                     slot.obj.animated,
                     slot.obj.frame_paths,
-                    false,
                 );
             }
         }

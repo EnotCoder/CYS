@@ -19,7 +19,6 @@ impl EcsAdapter {
         is_wall_decor: bool,
         is_outdoor: bool,
         is_flower: bool,
-        is_floor: bool,
     ) -> bool {
         if is_flower {
             for i in 0..width {
@@ -27,19 +26,6 @@ impl EcsAdapter {
                     let cx = x + i;
                     let cy = y + j;
                     if !self.flower_positions.contains(&(cx, cy)) {
-                        return false;
-                    }
-                }
-            }
-        } else if is_floor {
-            for i in 0..width {
-                for j in 0..height {
-                    let cx = x + i;
-                    let cy = y + j;
-                    if !self.floor_placeable_positions.contains(&(cx, cy)) {
-                        return false;
-                    }
-                    if self.floor_placed_positions.contains(&(cx, cy)) {
                         return false;
                     }
                 }
@@ -92,11 +78,7 @@ impl EcsAdapter {
                                 if existing.is_carpet {
                                     return false;
                                 }
-                            } else if is_floor {
-                                if !existing.is_carpet && !existing.is_floor {
-                                    return false;
-                                }
-                            } else if !existing.is_carpet && !existing.is_floor {
+                            } else if !existing.is_carpet {
                                 return false;
                             }
                         }

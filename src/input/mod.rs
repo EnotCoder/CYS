@@ -26,10 +26,11 @@ pub fn do_input(
     inventory_mode: bool,
     cam_x: f32,
     cam_y: f32,
-) -> (i32, i32, f32, bool) {
+) -> (i32, i32, f32, bool, i32) {
     let new_size = camera::handle_zoom(input, map_size, zoom_step);
     let mut new_mode = mode;
     let mut show_ilm = false;
+    let mut switch_level = 0;
 
     cursor::handle_mouse_movement(input, ecs, cursor_entity, new_mode, slots, act_slot, new_size, window_size, cam_x, cam_y);
 
@@ -40,16 +41,17 @@ pub fn do_input(
             let on_slot = (wy - SLOT_BAR_Y).abs() < TILE_HALF && col >= 0 && col < slots.len() as i32;
             let on_icons = (wy - SLOT_BAR_Y).abs() < TILE_HALF
                 && ((wx - ICON_MODE_X).abs() < TILE_HALF || (wx - ACTIVE_X).abs() < TILE_HALF);
-            let on_build_btn = (wx - BUILD_X).abs() < TILE_HALF && (wy - BUILD_Y).abs() < TILE_HALF;
             let on_inv_btn = (wy - SLOT_BAR_Y).abs() < TILE_HALF && (wx - INV_BTN_X).abs() < TILE_HALF;
-            on_slot || on_icons || on_build_btn || on_inv_btn
+            on_slot || on_icons || on_inv_btn
         });
         if !skip {
             let (gx, gy) = input.cursor().map_or((-99, -99), |(mx, my)| {
                 let (wx, wy) = crate::util::ndc_to_world(mx, my, window_size, new_size, cam_x, cam_y);
                 ((wx + TILE_HALF).floor() as i32, (wy + TILE_HALF).floor() as i32)
             });
-            show_ilm = interact::do_interact(ecs, gx, gy, new_mode, slots, act_slot);
+            let interact_result = interact::do_interact(ecs, gx, gy, new_mode, slots, act_slot);
+            show_ilm = interact_result == 1;
+            switch_level = interact_result;
         }
     }
 
@@ -63,5 +65,5 @@ pub fn do_input(
 
     cursor::update_cursor_preview(ecs, new_mode, slots, act_slot, cursor_entity);
 
-    (act_slot, new_mode, new_size, show_ilm)
+    (act_slot, new_mode, new_size, show_ilm, switch_level)
 }

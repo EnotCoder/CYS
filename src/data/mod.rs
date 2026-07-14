@@ -166,9 +166,10 @@ const ALL_OBJECTS: &[Object] = &[
         texture_frame: [0, 1], texture_count: [3, 2],
         animated: false, frame_paths: &[],
     },
+    //basement
     Object {
-        width: 1, height: 1, name: "floor", path: "tex/map/floor.png",
-        texture_frame: [0, 0], texture_count: [2, 2],
+        width: 1, height: 2, name: "basement", path: "tex/decor/regular/basement.png",
+        texture_frame: [0, 1], texture_count: [1, 2],
         animated: false, frame_paths: &[],
     },
 ];

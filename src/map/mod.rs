@@ -6,15 +6,24 @@ pub mod pathfinding;
 
 use std::collections::HashSet;
 use std::fs::File;
-use std::io::{BufRead, BufReader};
+use std::io::{BufRead};
 use crate::ecs::EcsAdapter;
 use crate::constants::{WORLD_OFFSET_X, WORLD_OFFSET_Y, Z_MAP};
 use crate::map::pathfinding::Node;
 
-/// Загружает map.txt и создаёт для каждой клетки ECS-сущность
+/// Загружает карту из файла и создаёт для каждой клетки ECS-сущность
 pub fn load_map_to_ecs(ecs: &mut EcsAdapter) {
     let file = File::open(crate::constants::MAP_FILE).expect("map.txt not found!");
-    let reader = BufReader::new(file);
+    load_map_from_reader(ecs, file, false);
+}
+
+pub fn load_basement_to_ecs(ecs: &mut EcsAdapter) {
+    let file = File::open(crate::constants::BASEMENT_FILE).expect("basement.txt not found!");
+    load_map_from_reader(ecs, file, true);
+}
+
+fn load_map_from_reader(ecs: &mut EcsAdapter, reader: impl std::io::Read, _is_basement: bool) {
+    let reader = std::io::BufReader::new(reader);
 
     for (j, line) in reader.lines().flatten().enumerate() {
         let parts: Vec<&str> = line.split_whitespace().collect();

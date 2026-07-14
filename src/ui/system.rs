@@ -79,12 +79,12 @@ pub fn create_checkbox(ecs: &mut EcsAdapter, text_renderer: &mut TextRenderer, d
     destroy_checkbox(ecs, checkbox);
     let tex = if checkbox.checked { "tex/ui/checkbox/true.png" } else { "tex/ui/checkbox/false.png" };
     let box_ent = ecs.add_ui_sized(checkbox.x, checkbox.y, CHECKBOX_BOX_SIZE, CHECKBOX_BOX_SIZE, tex, device, queue);
-    let box_key = crate::util::sprite_cache_key("ui", checkbox.x, checkbox.y, tex, [0, 0], [1, 1], 1.0);
+    let box_key = crate::util::sprite_cache_key("ui", tex, [0, 0], [1, 1], 1.0);
     checkbox.box_entity = Some(box_ent);
     checkbox.box_sprite_key = Some(box_key);
     let lx = checkbox.x + CHECKBOX_BOX_SIZE / 2.0 + CHECKBOX_TEXT_GAP + CHECKBOX_TEXT_WIDTH / 2.0;
     let label_ent = text_renderer.add_text(ecs, device, queue, &checkbox.label, checkbox.font_size, lx, checkbox.y, CHECKBOX_TEXT_WIDTH, 2.0, WHITE);
-    let label_key = TextRenderer::sprite_cache_key(lx, checkbox.y, &checkbox.label, checkbox.font_size, 2.0, WHITE);
+    let label_key = TextRenderer::sprite_cache_key(&checkbox.label, checkbox.font_size, 2.0, WHITE);
     checkbox.label_entity = Some(label_ent);
     checkbox.label_sprite_key = Some(label_key);
 }
@@ -142,7 +142,7 @@ pub fn create_slider(ecs: &mut EcsAdapter, text_renderer: &mut TextRenderer, dev
 
     let ly = slider.y + SLIDER_LABEL_Y_OFFSET;
     let label = text_renderer.add_text(ecs, device, queue, &slider.label, slider.font_size, slider.x, ly, 1.8, 2.0, WHITE);
-    let label_key = TextRenderer::sprite_cache_key(slider.x, ly, &slider.label, slider.font_size, 2.0, WHITE);
+    let label_key = TextRenderer::sprite_cache_key(&slider.label, slider.font_size, 2.0, WHITE);
     slider.label_entity = Some(label);
     slider.label_sprite_key = Some(label_key);
 }

@@ -111,7 +111,7 @@ impl Inventory {
         if act_slot < hotbar_slots.len() {
             hotbar_slots[act_slot] = new_slot;
             if act_slot < hotbar_entities.len() {
-                let path = Self::slot_texture(name);
+                let path = crate::util::slot_icon_path(name);
                 ecs.update_sprite_texture(hotbar_entities[act_slot], &path);
             }
         }
@@ -141,7 +141,7 @@ impl Inventory {
             for col in 0..INVENTORY_COLS {
                 let item_idx = crate::util::inventory_index(row, col) as usize;
                 let tex = if item_idx < items.len() {
-                    Self::slot_texture(items[item_idx])
+                    crate::util::slot_icon_path(items[item_idx])
                 } else {
                     format!("{}{}", TEX_UI_ICON_SLOTS_MAP_DIR, "null.png")
                 };
@@ -176,13 +176,5 @@ impl Inventory {
     fn hide_tabs(&mut self, ecs: &mut EcsAdapter) {
         let removed: Vec<Entity> = self.tab_entities.drain(..).collect();
         ecs.delete_entities(&removed);
-    }
-
-    // ================================================================
-    //  Утилиты
-    // ================================================================
-
-    fn slot_texture(name: &str) -> String {
-        crate::util::slot_icon_path(name)
     }
 }

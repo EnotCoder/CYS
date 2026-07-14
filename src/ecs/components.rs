@@ -72,7 +72,7 @@ impl Component for Rotation {
 #[derive(Debug)]
 pub struct ObjectTag {
     #[allow(dead_code)]
-    pub name: String,
+    pub name: &'static str,
 }
 
 impl Component for ObjectTag {
@@ -101,7 +101,7 @@ pub struct BusyCassas(pub HashSet<(i32, i32)>);
 /// Маркер для забора — текстура зависит от соседей
 #[derive(Debug)]
 pub struct FenceComponent {
-    pub name: String,
+    pub name: &'static str,
 }
 
 impl Component for FenceComponent {

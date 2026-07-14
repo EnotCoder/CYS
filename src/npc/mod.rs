@@ -41,7 +41,6 @@ impl ShopperNpc {
     pub fn spawn(ecs: &mut EcsAdapter, walkable: &HashSet<Node>, spawn_pos: Node, rack_pos: Node, cassa_pos: Node, tex_idle: &'static str, tex_walk_1: &'static str, tex_walk_2: &'static str) -> Option<Self> {
         let path = find_path(walkable, spawn_pos, rack_pos)?;
         let (sx, sy) = spawn_pos.to_world();
-        let sx = sx;
         let sy = sy + 0.5;
         let entity = crate::ecs::factory::create_sprite(
             &mut ecs.world, sx, sy, Z_NPC,

@@ -16,7 +16,7 @@ pub fn try_interact(ecs: &mut EcsAdapter, gx: i32, gy: i32) -> bool {
             {
                 let tags = ecs.world.read_storage::<ObjectTag>();
                 if let Some(tag) = tags.get(entity) {
-                    obj_name = Some(tag.name.clone());
+                    obj_name = Some(tag.name);
                 }
                 let foods = ecs.world.read_storage::<FoodStorage>();
                 if let Some(storage) = foods.get(entity) {

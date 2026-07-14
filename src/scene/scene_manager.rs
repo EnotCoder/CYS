@@ -9,7 +9,7 @@ pub struct SceneManager {
     pub current: String,
     fps_entity: Option<specs::Entity>,
     fps_sprite_key: Option<u64>,
-    current_fps_text: String,
+    last_fps: u32,
 }
 
 impl SceneManager {
@@ -26,7 +26,7 @@ impl SceneManager {
             current: "menu".to_string(),
             fps_entity: None,
             fps_sprite_key: None,
-            current_fps_text: String::new(),
+            last_fps: 0,
         }
     }
 
@@ -45,15 +45,16 @@ impl SceneManager {
         device: &wgpu::Device,
         queue: &wgpu::Queue,
     ) {
-        let fps_text = format!("FPS: {}", fps);
-
-        if fps_text == self.current_fps_text {
+        if fps == self.last_fps {
             if let Some(entity) = self.fps_entity {
                 if self.ecs.world.entities().is_alive(entity) {
                     return;
                 }
             }
         }
+        self.last_fps = fps;
+
+        let fps_text = format!("FPS: {}", fps);
 
         if let Some(entity) = self.fps_entity.take() {
             self.ecs.delete_entity(entity);
@@ -69,11 +70,9 @@ impl SceneManager {
 
         self.fps_entity = Some(entity);
         self.fps_sprite_key = Some(crate::ui::text_renderer::TextRenderer::sprite_cache_key(
-            5.75, 4.0, &fps_text, 24.0, 1.0, GREEN,
+            &fps_text, 24.0, 1.0, GREEN,
         ));
-        self.current_fps_text = fps_text;
     }
-
     fn clear_ecs_world(&mut self) {
         use specs::Join;
         let delete_entities: Vec<specs::Entity> = {

@@ -129,8 +129,6 @@ fn render_group(
     for data in sprites {
         let key = util::sprite_cache_key(
             key_prefix,
-            data.position[0],
-            data.position[1],
             &data.texture_path,
             data.texture_frame,
             data.texture_count,

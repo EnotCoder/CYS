@@ -111,7 +111,7 @@ impl GameScene {
     fn show_loading(&mut self, ecs: &mut crate::EcsAdapter, text_renderer: &mut crate::ui::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) {
         let entity = text_renderer.add_text(ecs, device, queue, "Loading...", 64.0, 0.0, 0.0, 4.0, 2.0, GRAY);
         self.loading_text = Some(entity);
-        self.loading_sprite_key = Some(TextRenderer::sprite_cache_key(0.0, 0.0, "Loading...", 48.0, 2.0, GRAY));
+        self.loading_sprite_key = Some(TextRenderer::sprite_cache_key("Loading...", 48.0, 2.0, GRAY));
     }
 
     fn hide_loading(&mut self, ecs: &mut crate::EcsAdapter) {
@@ -482,8 +482,8 @@ impl Scene for GameScene {
         if input.mouse_held(winit::event::MouseButton::Middle) {
             let sensitivity = 0.01;
             let (dx, dy) = input.cursor_diff();
-            self.camera_offset_x = (self.camera_offset_x - dx * sensitivity).clamp(cam_min_x.min(cam_max_x), cam_min_x.max(cam_max_x));
-            self.camera_offset_y = (self.camera_offset_y + dy * sensitivity).clamp(cam_min_y.min(cam_max_y), cam_min_y.max(cam_max_y));
+            self.camera_offset_x = (self.camera_offset_x - dx * sensitivity).clamp(cam_min_x, cam_max_x);
+            self.camera_offset_y = (self.camera_offset_y + dy * sensitivity).clamp(cam_min_y, cam_max_y);
         }
 
         if input.key_held(KeyCode::ArrowLeft) {
@@ -498,8 +498,8 @@ impl Scene for GameScene {
         if input.key_held(KeyCode::ArrowUp) {
             self.camera_offset_y = (self.camera_offset_y + step).min(cam_max_y);
         }
-        self.camera_offset_x = self.camera_offset_x.clamp(cam_min_x.min(cam_max_x), cam_min_x.max(cam_max_x));
-        self.camera_offset_y = self.camera_offset_y.clamp(cam_min_y.min(cam_max_y), cam_min_y.max(cam_max_y));
+        self.camera_offset_x = self.camera_offset_x.clamp(cam_min_x, cam_max_x);
+        self.camera_offset_y = self.camera_offset_y.clamp(cam_min_y, cam_max_y);
 
         // --- Обновление всех объектов по компонентам ---
         self.food_timer += dt;
@@ -528,7 +528,7 @@ impl Scene for GameScene {
                         let foods = ecs.world.read_storage::<FoodStorage>();
                         let tags = ecs.world.read_storage::<ObjectTag>();
                         if let Some(f) = foods.get(*first) {
-                            let name = tags.get(*first).map(|t| t.name.clone()).unwrap_or("Object".to_string());
+                            let name = tags.get(*first).map(|t| t.name).unwrap_or("Object");
                             return Some((f.food_count, f.max_food, name));
                         }
                     }
@@ -594,9 +594,9 @@ impl Scene for GameScene {
             self.slot_tooltip_bg = Some(bg_ent);
             let text_ent = text_renderer.add_text_fixed(ecs, device, queue, &display_name, FONT_SIZE_LOGO, tx, ty, text_w, text_h, 4.0, WHITE);
             self.slot_tooltip_text = Some(text_ent);
-            let text_key = TextRenderer::sprite_cache_key(tx, ty, &display_name, FONT_SIZE_LOGO, 4.0, WHITE);
+            let text_key = TextRenderer::sprite_cache_key(&display_name, FONT_SIZE_LOGO, 4.0, WHITE);
             self.slot_tooltip_text_key = Some(text_key);
-            let bg_key = crate::util::sprite_cache_key("ui", tx, ty, "tex/dev_tools/black.png", [0, 0], [1, 1], 1.0);
+            let bg_key = crate::util::sprite_cache_key("ui", "tex/dev_tools/black.png", [0, 0], [1, 1], 1.0);
             self.slot_tooltip_bg_key = Some(bg_key);
         } else {
             if let Some(old) = self.slot_tooltip_text.take() {
@@ -625,7 +625,7 @@ impl Scene for GameScene {
                 let text = format!("Food: {}", total);
                 let ent = text_renderer.add_text(ecs, device, queue, &text, 64.0, 5.75, 3.5, 1.0, 4.0, WHITE);
                 self.total_food_text = Some(ent);
-                self.total_food_sprite_key = Some(TextRenderer::sprite_cache_key(5.75, 3.5, &text, 24.0, 1.0, GREEN));
+                self.total_food_sprite_key = Some(TextRenderer::sprite_cache_key(&text, 24.0, 1.0, GREEN));
             }
         }
         {
@@ -641,7 +641,7 @@ impl Scene for GameScene {
                 let text = format!("Money: {}", money);
                 let ent = text_renderer.add_text(ecs, device, queue, &text, 64.0, 5.75, 3.0, 1.0, 4.0, WHITE);
                 self.money_text = Some(ent);
-                self.money_sprite_key = Some(TextRenderer::sprite_cache_key(5.75, 3.0, &text, 24.0, 1.0, GREEN));
+                self.money_sprite_key = Some(TextRenderer::sprite_cache_key(&text, 24.0, 1.0, GREEN));
             }
         }
 

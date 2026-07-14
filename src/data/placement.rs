@@ -73,7 +73,7 @@ fn refresh_walls_around(ecs: &mut EcsAdapter, gx: i32, gy: i32) {
         if token == "0" || is_grass_token(&token) { continue; }
         if let Some(new_token) = recompute_wall_token(ecs, nx, ny) {
             if new_token != token {
-                ecs.map_grid[file_row as usize][file_col as usize] = new_token.clone();
+                ecs.map_grid[file_row as usize][file_col as usize] = new_token.to_string();
                 if new_token == "&" {
                     let is_bottom = file_row > 0
                         && ecs.map_grid.get(file_row as usize - 1)
@@ -84,7 +84,7 @@ fn refresh_walls_around(ecs: &mut EcsAdapter, gx: i32, gy: i32) {
                     } else {
                         ecs.floor_placeable_positions.insert((nx, ny));
                     }
-                } else if matches!(new_token.as_str(), "/" | "|") {
+                } else if matches!(new_token, "/" | "|") {
                     ecs.floor_placeable_positions.insert((nx, ny));
                 } else {
                     ecs.floor_placeable_positions.remove(&(nx, ny));
@@ -138,7 +138,7 @@ fn revert_to_grass(ecs: &mut EcsAdapter, nx: i32, ny: i32, file_row: i32, file_c
     }
 }
 
-fn recompute_wall_token(ecs: &EcsAdapter, wx: i32, wy: i32) -> Option<String> {
+fn recompute_wall_token(ecs: &EcsAdapter, wx: i32, wy: i32) -> Option<&'static str> {
     let f = |x: i32, y: i32| ecs.floor_positions.contains(&(x, y));
     let s = f(wx, wy+1); let n = f(wx, wy-1);
     let e = f(wx+1, wy); let w = f(wx-1, wy);
@@ -147,15 +147,15 @@ fn recompute_wall_token(ecs: &EcsAdapter, wx: i32, wy: i32) -> Option<String> {
     let count = [s, n, e, w, se, sw, ne, nw].iter().filter(|&&x| x).count();
     if count == 0 { return None; }
     if count == 1 {
-        if s { return Some("&".to_string()); } if n { return Some("&".to_string()); }
-        if e { return Some("/".to_string()); } if w { return Some("|".to_string()); }
-        if se { return Some("p".to_string()); } if sw { return Some("i".to_string()); }
-        if ne { return Some("/".to_string()); } if nw { return Some("|".to_string()); }
+        if s { return Some("&"); } if n { return Some("&"); }
+        if e { return Some("/"); } if w { return Some("|"); }
+        if se { return Some("p"); } if sw { return Some("i"); }
+        if ne { return Some("/"); } if nw { return Some("|"); }
     }
-    if s || n { return Some("&".to_string()); }
-    if e || ne { return Some("/".to_string()); }
-    if w || nw { return Some("|".to_string()); }
-    if se { return Some("p".to_string()); } if sw { return Some("i".to_string()); }
+    if s || n { return Some("&"); }
+    if e || ne { return Some("/"); }
+    if w || nw { return Some("|"); }
+    if se { return Some("p"); } if sw { return Some("i"); }
     None
 }
 
@@ -245,9 +245,8 @@ pub fn add(ecs: &mut EcsAdapter, slots: &mut Vec<Slot>, act_slot: i32, gx: i32, 
         groups.groups.get(&group_id).and_then(|g| g.entities.first().copied())
     };
     if let Some(entity) = first {
-        use specs::WorldExt;
         ecs.world.write_storage::<crate::ObjectTag>().insert(entity, crate::ObjectTag {
-            name: active_slot.name.to_string(),
+            name: active_slot.name,
         }).ok();
         if active_slot.name == "box" {
             ecs.world.write_storage::<crate::FoodStorage>().insert(entity, crate::FoodStorage {
@@ -260,7 +259,7 @@ pub fn add(ecs: &mut EcsAdapter, slots: &mut Vec<Slot>, act_slot: i32, gx: i32, 
                 max_food: 15,
             }).ok();
         } else if active_slot.name == "fence" || active_slot.name == "street_fence" {
-            ecs.world.write_storage::<crate::FenceComponent>().insert(entity, crate::FenceComponent { name: active_slot.name.to_string() }).ok();
+            ecs.world.write_storage::<crate::FenceComponent>().insert(entity, crate::FenceComponent { name: active_slot.name }).ok();
         }
     }
 }

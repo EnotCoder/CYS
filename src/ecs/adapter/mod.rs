@@ -153,7 +153,7 @@ impl EcsAdapter {
         let tex = crate::Texture::from_path(device, queue, texture_path, "ui_sized");
         let sprite = crate::Sprite::from_texture(device, &tex, texture_path, width, height);
 
-        let key = util::sprite_cache_key("ui", x, y, texture_path, [0, 0], [1, 1], 1.0);
+        let key = util::sprite_cache_key("ui", texture_path, [0, 0], [1, 1], 1.0);
         self.sprite_cache.insert(key, sprite);
 
         entity

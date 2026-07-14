@@ -1,6 +1,7 @@
 use std::collections::{HashSet, HashMap};
 use specs::{WorldExt, Join};
 use winit::keyboard::KeyCode;
+use serde::{Serialize, Deserialize};
 use crate::scene::scene_trait::{Scene, SceneAction};
 use crate::constants::*;
 use crate::inventory::Inventory;
@@ -11,9 +12,12 @@ use crate::ui::text_renderer::TextRenderer;
 
 #[derive(Clone)]
 struct SavedObject {
-    slot_name: &'static str,
+    slot_name: String,
     x: i32,
     y: i32,
+    food_count: i32,
+    max_food: i32,
+    is_carpet: bool,
 }
 
 struct LevelState {
@@ -286,15 +290,21 @@ impl GameScene {
         let mut objects = Vec::new();
         let groups = ecs.world.read_resource::<crate::GroupInfoResource>();
         let tags = ecs.world.read_storage::<ObjectTag>();
+        let foods = ecs.world.read_storage::<FoodStorage>();
         for (_, group) in &groups.groups {
             let name = group.entities.first()
                 .and_then(|e| tags.get(*e))
-                .map(|t| t.name)
+                .map(|t| t.name.as_str())
                 .unwrap_or("");
+            let food_storage = group.entities.first()
+                .and_then(|e| foods.get(*e));
             objects.push(SavedObject {
-                slot_name: name,
+                slot_name: name.to_string(),
                 x: group.pos_x,
                 y: group.pos_y,
+                food_count: food_storage.map_or(0, |f| f.food_count),
+                max_food: food_storage.map_or(0, |f| f.max_food),
+                is_carpet: group.is_carpet,
             });
         }
         self.level_states.insert(self.current_level, LevelState {
@@ -304,8 +314,10 @@ impl GameScene {
         });
     }
 
-    fn load_level(&mut self, ecs: &mut crate::EcsAdapter, text_renderer: &mut crate::ui::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue, level: i32) {
-        self.save_current_level(ecs);
+    fn load_level(&mut self, ecs: &mut crate::EcsAdapter, text_renderer: &mut crate::ui::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue, level: i32, skip_save: bool) {
+        if !skip_save {
+            self.save_current_level(ecs);
+        }
 
         if self.inventory.open {
             self.inventory.exit(ecs);
@@ -357,11 +369,11 @@ impl GameScene {
                 }
             }
             for obj in &state.objects {
-                let slot = crate::data::make_slot(obj.slot_name);
-                let is_carpet = crate::data::is_carpet_name(obj.slot_name);
-                let _is_outdoor = crate::data::is_outdoor_name(obj.slot_name);
-                let _is_flower = crate::data::is_flower_name(obj.slot_name);
-                let _is_wall_decor = crate::data::is_wall_decor_name(obj.slot_name);
+                let slot = crate::data::make_slot(&obj.slot_name);
+                let is_carpet = crate::data::is_carpet_name(&obj.slot_name);
+                let _is_outdoor = crate::data::is_outdoor_name(&obj.slot_name);
+                let _is_flower = crate::data::is_flower_name(&obj.slot_name);
+                let _is_wall_decor = crate::data::is_wall_decor_name(&obj.slot_name);
                 let new_group_id = ecs.add_group_object(
                     obj.x, obj.y,
                     slot.obj.width, slot.obj.height,
@@ -376,18 +388,18 @@ impl GameScene {
                 if let Some(info) = groups.groups.get(&new_group_id) {
                     if let Some(&entity) = info.entities.first() {
                         if obj.slot_name == "basement" || obj.slot_name == "rack" || obj.slot_name == "cassa" || obj.slot_name == "fence" || obj.slot_name == "street_fence" {
-                            let tag = ObjectTag { name: obj.slot_name };
+                            let tag = ObjectTag { name: obj.slot_name.clone() };
                             ecs.world.write_storage::<crate::ObjectTag>().insert(entity, tag).ok();
                             if obj.slot_name == "basement" {
                                 ecs.world.write_resource::<crate::ecs::components::BasementPlaced>().0 = true;
                             } else if obj.slot_name == "rack" || obj.slot_name == "box" {
                                 ecs.world.write_storage::<crate::FoodStorage>().insert(entity, crate::FoodStorage {
-                                    food_count: 0,
-                                    max_food: if obj.slot_name == "rack" { 15 } else { 20 },
+                                    food_count: obj.food_count,
+                                    max_food: obj.max_food,
                                 }).ok();
                             }
                             if obj.slot_name == "fence" || obj.slot_name == "street_fence" {
-                                ecs.world.write_storage::<crate::FenceComponent>().insert(entity, crate::FenceComponent { name: obj.slot_name }).ok();
+                                ecs.world.write_storage::<crate::FenceComponent>().insert(entity, crate::FenceComponent { name: obj.slot_name.clone() }).ok();
                             }
                         }
                     }
@@ -408,6 +420,13 @@ impl GameScene {
         self.map_size = 0.8;
 
         self.rebuild_ui(ecs, text_renderer, device, queue);
+
+        self.total_food_text = None;
+        self.total_food_sprite_key = None;
+        self.current_total_food = -1;
+        self.money_text = None;
+        self.money_sprite_key = None;
+        self.current_money = -1;
     }
 
     fn rebuild_ui(&mut self, ecs: &mut crate::EcsAdapter, text_renderer: &mut crate::ui::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) {
@@ -432,6 +451,135 @@ impl GameScene {
         self.npc_walkable = crate::map::load_walkable_cells();
     }
 
+    fn save_to_disk(&mut self, ecs: &mut crate::EcsAdapter) {
+        self.save_current_level(ecs);
+        #[derive(Serialize)]
+        struct ObjSave {
+            slot_name: String, x: i32, y: i32,
+            food_count: i32, max_food: i32, is_carpet: bool,
+        }
+        #[derive(Serialize)]
+        struct LevelSave {
+            map_grid: Vec<Vec<String>>,
+            original_tokens: Vec<(i32, i32, String)>,
+            objects: Vec<ObjSave>,
+        }
+        #[derive(Serialize)]
+        struct Data {
+            levels: HashMap<i32, LevelSave>,
+            current_level: i32,
+            money: i32, total_food: i32,
+            slots: Vec<String>, act_slot: i32, mode: i32,
+            camera_offset_x: f32, camera_offset_y: f32, map_size: f32,
+            active: bool, basement_placed: bool,
+            busy_cassas: Vec<(i32, i32)>,
+        }
+        let mut levels = HashMap::new();
+        for (&lvl, ls) in &self.level_states {
+            let objects: Vec<ObjSave> = ls.objects.iter().map(|o| ObjSave {
+                slot_name: o.slot_name.clone(),
+                x: o.x, y: o.y,
+                food_count: o.food_count, max_food: o.max_food, is_carpet: o.is_carpet,
+            }).collect();
+            let original_tokens: Vec<(i32, i32, String)> = ls.original_tokens.iter()
+                .map(|((x, y), t)| (*x, *y, t.clone()))
+                .collect();
+            levels.insert(lvl, LevelSave {
+                map_grid: ls.map_grid.clone(),
+                original_tokens,
+                objects,
+            });
+        }
+        let basement_placed = ecs.world.read_resource::<crate::ecs::components::BasementPlaced>().0;
+        let busy_cassas: Vec<(i32, i32)> = ecs.world.read_resource::<BusyCassas>().0.iter().copied().collect();
+        let money = ecs.world.read_resource::<Money>().0;
+        let total_food = ecs.world.read_resource::<TotalFood>().0;
+        let slots: Vec<String> = self.slots.iter().map(|s| s.obj.name.to_string()).collect();
+        let data = Data {
+            levels,
+            current_level: self.current_level,
+            money, total_food,
+            slots, act_slot: self.act_slot, mode: self.mode,
+            camera_offset_x: self.camera_offset_x,
+            camera_offset_y: self.camera_offset_y,
+            map_size: self.map_size,
+            active: self.active,
+            basement_placed,
+            busy_cassas,
+        };
+        if let Ok(json) = serde_json::to_string_pretty(&data) {
+            let _ = std::fs::write("save.json", json);
+        }
+    }
+
+    fn load_from_disk(&mut self, ecs: &mut crate::EcsAdapter, text_renderer: &mut crate::ui::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) {
+        let content = match std::fs::read_to_string("save.json") {
+            Ok(c) => c,
+            Err(_) => return,
+        };
+        #[derive(Deserialize)]
+        struct ObjSave {
+            slot_name: String, x: i32, y: i32,
+            food_count: i32, max_food: i32, is_carpet: bool,
+        }
+        #[derive(Deserialize)]
+        struct LevelSave {
+            map_grid: Vec<Vec<String>>,
+            original_tokens: Vec<(i32, i32, String)>,
+            objects: Vec<ObjSave>,
+        }
+        #[derive(Deserialize)]
+        struct Data {
+            levels: HashMap<i32, LevelSave>,
+            current_level: i32,
+            money: i32, total_food: i32,
+            slots: Vec<String>, act_slot: i32, mode: i32,
+            camera_offset_x: f32, camera_offset_y: f32, map_size: f32,
+            active: bool, basement_placed: bool,
+            busy_cassas: Vec<(i32, i32)>,
+        }
+        let data: Data = match serde_json::from_str(&content) {
+            Ok(d) => d,
+            Err(_) => return,
+        };
+
+        ecs.clear_world();
+        ecs.world.write_resource::<BusyCassas>().0 = data.busy_cassas.into_iter().collect();
+        ecs.world.write_resource::<Money>().0 = data.money;
+        ecs.world.write_resource::<TotalFood>().0 = data.total_food;
+        ecs.world.write_resource::<crate::ecs::components::BasementPlaced>().0 = data.basement_placed;
+
+        self.slots = data.slots.iter().map(|n| crate::data::make_slot(n)).collect();
+        self.act_slot = data.act_slot;
+        self.mode = data.mode;
+        self.camera_offset_x = data.camera_offset_x;
+        self.camera_offset_y = data.camera_offset_y;
+        self.map_size = data.map_size;
+        self.active = data.active;
+        self.current_level = data.current_level;
+        ecs.current_level = data.current_level;
+
+        self.level_states.clear();
+        for (lvl, ls) in &data.levels {
+            let mut original_tokens = HashMap::new();
+            for (x, y, t) in &ls.original_tokens {
+                original_tokens.insert((*x, *y), t.clone());
+            }
+            let objects: Vec<SavedObject> = ls.objects.iter().map(|o| SavedObject {
+                slot_name: o.slot_name.clone(),
+                x: o.x, y: o.y,
+                food_count: o.food_count, max_food: o.max_food, is_carpet: o.is_carpet,
+            }).collect();
+            self.level_states.insert(*lvl, LevelState {
+                map_grid: ls.map_grid.clone(),
+                original_tokens,
+                objects,
+            });
+        }
+
+        self.load_level(ecs, text_renderer, device, queue, self.current_level, true);
+    }
+
     fn place_basement_exit(&mut self, ecs: &mut crate::EcsAdapter) {
         let gid = ecs.add_group_object(
             -6, 3, 1, 2,
@@ -442,7 +590,7 @@ impl GameScene {
         let groups = ecs.world.read_resource::<crate::GroupInfoResource>();
         if let Some(info) = groups.groups.get(&gid) {
             if let Some(&entity) = info.entities.first() {
-                ecs.world.write_storage::<crate::ObjectTag>().insert(entity, ObjectTag { name: "basement" }).ok();
+                ecs.world.write_storage::<crate::ObjectTag>().insert(entity, ObjectTag { name: "basement".to_string() }).ok();
             }
         }
         ecs.world.write_resource::<crate::ecs::components::BasementPlaced>().0 = true;
@@ -514,6 +662,15 @@ impl Scene for GameScene {
             } else {
                 self.settings.open(ecs, text_renderer, device, queue);
             }
+        }
+
+        // --- Save / Load ---
+        if input.held_control() && input.key_pressed(KeyCode::KeyS) {
+            self.save_to_disk(ecs);
+        }
+        if input.held_control() && input.key_pressed(KeyCode::KeyL) {
+            self.load_from_disk(ecs, text_renderer, device, queue);
+            return SceneAction::None;
         }
 
         if self.settings.open {
@@ -591,7 +748,7 @@ impl Scene for GameScene {
             // --- Switch level ---
             if switch_level == 2 {
                 let new_level = if self.current_level == 0 { -1 } else { 0 };
-                self.load_level(ecs, text_renderer, device, queue, new_level);
+                self.load_level(ecs, text_renderer, device, queue, new_level, false);
                 return SceneAction::None;
             }
 
@@ -668,7 +825,7 @@ impl Scene for GameScene {
                         let foods = ecs.world.read_storage::<FoodStorage>();
                         let tags = ecs.world.read_storage::<ObjectTag>();
                         if let Some(f) = foods.get(*first) {
-                            let name = tags.get(*first).map(|t| t.name).unwrap_or("Object");
+                            let name = tags.get(*first).map(|t| t.name.clone()).unwrap_or("Object".to_string());
                             return Some((f.food_count, f.max_food, name));
                         }
                     }

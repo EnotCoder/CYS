@@ -187,7 +187,7 @@ pub fn add(ecs: &mut EcsAdapter, slots: &mut Vec<Slot>, act_slot: i32, gx: i32, 
     };
     if let Some(entity) = first {
         ecs.world.write_storage::<crate::ObjectTag>().insert(entity, crate::ObjectTag {
-            name: active_slot.name,
+            name: active_slot.name.to_string(),
         }).ok();
         if active_slot.name == "basement" {
             ecs.world.write_resource::<BasementPlaced>().0 = true;
@@ -202,7 +202,7 @@ pub fn add(ecs: &mut EcsAdapter, slots: &mut Vec<Slot>, act_slot: i32, gx: i32, 
                 max_food: 15,
             }).ok();
         } else if active_slot.name == "fence" || active_slot.name == "street_fence" {
-            ecs.world.write_storage::<crate::FenceComponent>().insert(entity, crate::FenceComponent { name: active_slot.name }).ok();
+            ecs.world.write_storage::<crate::FenceComponent>().insert(entity, crate::FenceComponent { name: active_slot.name.to_string() }).ok();
         }
     }
 }

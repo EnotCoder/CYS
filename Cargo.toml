@@ -12,6 +12,8 @@ bytemuck = { version = "1.22", features = ["derive"] }
 image = { version = "0.25", default-features = false, features = ["png"] }
 specs = "0.18"
 ab_glyph = "0.2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
 
 [profile.release]
 lto = true

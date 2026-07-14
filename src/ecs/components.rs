@@ -71,7 +71,7 @@ impl Component for Rotation {
 #[derive(Debug)]
 pub struct ObjectTag {
     #[allow(dead_code)]
-    pub name: &'static str,
+    pub name: String,
 }
 
 impl Component for ObjectTag {
@@ -103,7 +103,7 @@ pub struct BasementPlaced(pub bool);
 /// Маркер для забора — текстура зависит от соседей
 #[derive(Debug)]
 pub struct FenceComponent {
-    pub name: &'static str,
+    pub name: String,
 }
 
 impl Component for FenceComponent {

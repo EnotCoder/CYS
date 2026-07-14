@@ -97,6 +97,9 @@ pub struct Money(pub i32);
 /// Ресурс: какие кассы заняты (по позициям)
 pub struct BusyCassas(pub HashSet<(i32, i32)>);
 
+/// Ресурс: установлен ли подвал (максимум 1 на магазин)
+pub struct BasementPlaced(pub bool);
+
 /// Маркер для забора — текстура зависит от соседей
 #[derive(Debug)]
 pub struct FenceComponent {

@@ -348,7 +348,9 @@ impl GameScene {
                         if obj.slot_name == "basement" || obj.slot_name == "rack" || obj.slot_name == "cassa" || obj.slot_name == "fence" || obj.slot_name == "street_fence" {
                             let tag = ObjectTag { name: obj.slot_name };
                             ecs.world.write_storage::<crate::ObjectTag>().insert(entity, tag).ok();
-                            if obj.slot_name == "rack" || obj.slot_name == "box" {
+                            if obj.slot_name == "basement" {
+                                ecs.world.write_resource::<crate::ecs::components::BasementPlaced>().0 = true;
+                            } else if obj.slot_name == "rack" || obj.slot_name == "box" {
                                 ecs.world.write_storage::<crate::FoodStorage>().insert(entity, crate::FoodStorage {
                                     food_count: 0,
                                     max_food: if obj.slot_name == "rack" { 15 } else { 20 },
@@ -388,6 +390,7 @@ impl GameScene {
                 ecs.world.write_storage::<crate::ObjectTag>().insert(entity, ObjectTag { name: "basement" }).ok();
             }
         }
+        ecs.world.write_resource::<crate::ecs::components::BasementPlaced>().0 = true;
     }
 }
 

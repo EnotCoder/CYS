@@ -5,7 +5,7 @@ use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use crate::Sprite;
 use crate::ecs::components::{
-    FenceComponent, FoodStorage, Money, ObjectTag, Rotation,
+    BasementPlaced, FenceComponent, FoodStorage, Money, ObjectTag, Rotation,
     SpriteComponent, TotalFood, Transform, BusyCassas,
 };
 use crate::{GroupComponent, GroupInfoResource};
@@ -62,6 +62,7 @@ impl EcsAdapter {
         world.insert(TotalFood(0));
         world.insert(BusyCassas(HashSet::new()));
         world.insert(Money(0));
+        world.insert(BasementPlaced(false));
 
         Self {
             world,
@@ -196,6 +197,7 @@ impl EcsAdapter {
         self.floor_placed_positions.clear();
         self.floor_placeable_positions.clear();
         self.world.write_resource::<crate::GroupInfoResource>().groups.clear();
+        self.world.write_resource::<BasementPlaced>().0 = false;
     }
 
     pub fn save_map_grid(&self) {

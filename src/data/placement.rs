@@ -1,6 +1,7 @@
 use specs::WorldExt;
 use crate::EcsAdapter;
 use super::Slot;
+use crate::ecs::components::BasementPlaced;
 
 pub fn is_carpet_name(name: &str) -> bool {
     crate::constants::CARPET_NAMES.contains(&name)
@@ -153,6 +154,11 @@ pub fn add(ecs: &mut EcsAdapter, slots: &mut Vec<Slot>, act_slot: i32, gx: i32, 
         }
     }
 
+    // Только один подвал на магазин
+    if active_slot.name == "basement" && ecs.world.read_resource::<BasementPlaced>().0 {
+        return;
+    }
+
     if !ecs.can_place_at(
         gx, gy,
         active_slot.width, active_slot.height,
@@ -182,7 +188,9 @@ pub fn add(ecs: &mut EcsAdapter, slots: &mut Vec<Slot>, act_slot: i32, gx: i32, 
         ecs.world.write_storage::<crate::ObjectTag>().insert(entity, crate::ObjectTag {
             name: active_slot.name,
         }).ok();
-        if active_slot.name == "box" {
+        if active_slot.name == "basement" {
+            ecs.world.write_resource::<BasementPlaced>().0 = true;
+        } else if active_slot.name == "box" {
             ecs.world.write_storage::<crate::FoodStorage>().insert(entity, crate::FoodStorage {
                 food_count: 0,
                 max_food: 20,
@@ -200,6 +208,16 @@ pub fn add(ecs: &mut EcsAdapter, slots: &mut Vec<Slot>, act_slot: i32, gx: i32, 
 
 pub fn remove(ecs: &mut EcsAdapter, gx: i32, gy: i32) -> bool {
     if let Some(group_id) = ecs.find_group_at_position(gx, gy) {
+        let entity = {
+            let groups = ecs.world.read_resource::<crate::GroupInfoResource>();
+            groups.groups.get(&group_id).and_then(|g| g.entities.first().copied())
+        };
+        if let Some(entity) = entity {
+            let is_basement = ecs.world.read_storage::<crate::ObjectTag>().get(entity).map(|t| t.name == "basement").unwrap_or(false);
+            if is_basement {
+                ecs.world.write_resource::<BasementPlaced>().0 = false;
+            }
+        }
         ecs.delete_group(group_id);
         return true;
     }

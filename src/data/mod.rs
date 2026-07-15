@@ -122,6 +122,11 @@ const ALL_OBJECTS: &[Object] = &[
         animated: false, frame_paths: &[],
     },
     Object {
+        width: 1, height: 1, name: "watch", path: "tex/decor/walldecor/watch.png",
+        texture_frame: [0, 0], texture_count: [1, 1],
+        animated: false, frame_paths: &[],
+    },
+    Object {
         width: 1, height: 1, name: "fence", path: "tex/decor/regular/fence/fence_0_0_0_0.png",
         texture_frame: [0, 0], texture_count: [1, 1],
         animated: false, frame_paths: &[],

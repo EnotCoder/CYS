@@ -7,7 +7,7 @@ use crate::EcsAdapter;
 use crate::ecs::components::{FoodStorage, ObjectTag, Transform, BusyCassas, Money};
 
 fn spawn_path_node() -> Node {
-    Node::new(0, -4)
+    Node::new(0, -3)
 }
 
 enum ShopperState {

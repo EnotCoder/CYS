@@ -201,6 +201,11 @@ pub fn add(ecs: &mut EcsAdapter, slots: &mut Vec<Slot>, act_slot: i32, gx: i32, 
                 food_count: 0,
                 max_food: 15,
             }).ok();
+        } else if active_slot.name == "candies" {
+            ecs.world.write_storage::<crate::FoodStorage>().insert(entity, crate::FoodStorage {
+                food_count: 10,
+                max_food: 10,
+            }).ok();
         } else if active_slot.name == "fence" || active_slot.name == "street_fence" {
             ecs.world.write_storage::<crate::FenceComponent>().insert(entity, crate::FenceComponent { name: active_slot.name.to_string() }).ok();
         }

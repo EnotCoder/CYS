@@ -14,6 +14,8 @@ enum ShopperState {
     GoingToRack,
     GoingToCassa,
     AtCassa,
+    GoingToCandies,
+    AtCandies,
     GoingToExit,
 }
 
@@ -26,6 +28,8 @@ pub struct ShopperNpc {
     state_timer: f64,
     rack_pos: Node,
     cassa_pos: Node,
+    candy_pos: Option<Node>,
+    candy_taken: bool,
     spawn_world: (f32, f32),
     exit_target: Option<(f32, f32)>,
     exiting: bool,
@@ -38,7 +42,7 @@ pub struct ShopperNpc {
 }
 
 impl ShopperNpc {
-    pub fn spawn(ecs: &mut EcsAdapter, walkable: &HashSet<Node>, spawn_pos: Node, rack_pos: Node, cassa_pos: Node, tex_idle: &'static str, tex_walk_1: &'static str, tex_walk_2: &'static str) -> Option<Self> {
+    pub fn spawn(ecs: &mut EcsAdapter, walkable: &HashSet<Node>, spawn_pos: Node, rack_pos: Node, cassa_pos: Node, candy_pos: Option<Node>, tex_idle: &'static str, tex_walk_1: &'static str, tex_walk_2: &'static str) -> Option<Self> {
         let path = find_path(walkable, spawn_pos, rack_pos)?;
         let (sx, sy) = spawn_pos.to_world();
         let sy = sy + 0.5;
@@ -56,6 +60,8 @@ impl ShopperNpc {
             state_timer: 0.0,
             rack_pos,
             cassa_pos,
+            candy_pos,
+            candy_taken: false,
             spawn_world: (sx, sy),
             exit_target: None,
             exiting: false,
@@ -174,6 +180,50 @@ impl ShopperNpc {
         ecs.delete_entity(self.entity);
     }
 
+    fn candy_exists(&self, ecs: &EcsAdapter) -> bool {
+        let Some(cp) = self.candy_pos else { return false };
+        let tags = ecs.world.read_storage::<ObjectTag>();
+        let transforms = ecs.world.read_storage::<Transform>();
+        let foods = ecs.world.read_storage::<FoodStorage>();
+        for (tag, transform, food) in (&tags, &transforms, &foods).join() {
+            if tag.name == "candies"
+                && transform.position[0] as i32 == cp.x
+                && transform.position[1] as i32 == cp.y
+                && food.food_count > 0
+            {
+                return true;
+            }
+        }
+        false
+    }
+
+    fn take_candy(&mut self, ecs: &mut EcsAdapter) -> bool {
+        let Some(cp) = self.candy_pos else { return false };
+        let taken = {
+            let tags = ecs.world.read_storage::<ObjectTag>();
+            let transforms = ecs.world.read_storage::<Transform>();
+            let mut foods = ecs.world.write_storage::<FoodStorage>();
+            let mut taken = false;
+            for (tag, transform, food) in (&tags, &transforms, &mut foods).join() {
+                if tag.name == "candies"
+                    && transform.position[0] as i32 == cp.x
+                    && transform.position[1] as i32 == cp.y
+                    && food.food_count > 0
+                {
+                    food.food_count -= 1;
+                    taken = true;
+                    break;
+                }
+            }
+            taken
+        };
+        if taken {
+            ecs.update_object_textures();
+            self.candy_taken = true;
+        }
+        taken
+    }
+
     fn cassa_exists(&self, ecs: &EcsAdapter) -> bool {
         let tags = ecs.world.read_storage::<ObjectTag>();
         let transforms = ecs.world.read_storage::<Transform>();
@@ -266,9 +316,8 @@ impl ShopperNpc {
                 if self.path_index >= self.path.len() {
                     self.set_idle(ecs);
                     if self.exiting {
-                        return true; // уходим сразу если active=false
+                        return true;
                     }
-                    // Если касса удалена — найти другую или уйти
                     if !self.cassa_exists(ecs) {
                         ecs.world.write_resource::<BusyCassas>().0.remove(&(self.cassa_pos.x, self.cassa_pos.y));
                         if let Some(cassa) = Self::find_any_cassa(ecs) {
@@ -312,7 +361,50 @@ impl ShopperNpc {
                 if self.state_timer <= 0.0 {
                     ecs.world.write_resource::<BusyCassas>().0.remove(&(self.cassa_pos.x, self.cassa_pos.y));
                     ecs.world.write_resource::<Money>().0 += 5;
-                    // Всегда идём на выход после покупки
+                    // 20% chance to visit candies
+                    let want_candy = self.candy_pos.is_some()
+                        && std::time::SystemTime::now()
+                            .duration_since(std::time::UNIX_EPOCH).unwrap().subsec_nanos() % 5 == 0
+                        && self.candy_exists(ecs);
+                    if want_candy {
+                        if self.start_path(walkable, self.candy_pos.unwrap()) {
+                            self.state = ShopperState::GoingToCandies;
+                        } else {
+                            if self.start_path(walkable, spawn_path_node()) {
+                                self.state = ShopperState::GoingToExit;
+                            }
+                        }
+                    } else {
+                        if self.start_path(walkable, spawn_path_node()) {
+                            self.state = ShopperState::GoingToExit;
+                        }
+                    }
+                }
+            }
+
+            ShopperState::GoingToCandies => {
+                // If candy was deleted or ran out, skip to exit
+                if !self.candy_exists(ecs) {
+                    if self.start_path(walkable, spawn_path_node()) {
+                        self.state = ShopperState::GoingToExit;
+                    }
+                    return false;
+                }
+                if self.path_index >= self.path.len() {
+                    self.set_idle(ecs);
+                    self.take_candy(ecs);
+                    self.state = ShopperState::AtCandies;
+                    self.state_timer = 3.0;
+                    return false;
+                }
+                self.walk_toward(ecs, dt);
+            }
+
+            ShopperState::AtCandies => {
+                self.state_timer -= dt;
+                self.set_idle(ecs);
+                if self.state_timer <= 0.0 {
+                    ecs.world.write_resource::<Money>().0 += 1;
                     if self.start_path(walkable, spawn_path_node()) {
                         self.state = ShopperState::GoingToExit;
                     }
@@ -335,7 +427,7 @@ impl ShopperNpc {
                         ecs.update_transform_position(self.entity, nx, ny);
                         return false;
                     }
-                    return true; // деспавн
+                    return true;
                 }
                 self.walk_toward(ecs, dt);
             }

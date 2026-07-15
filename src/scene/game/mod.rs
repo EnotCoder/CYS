@@ -175,12 +175,13 @@ impl GameScene {
     }
 
     fn spawn_shopper(&mut self, ecs: &mut crate::EcsAdapter) {
-        let (all_racks, all_cassas) = {
+        let (all_racks, all_cassas, all_candies) = {
             let tags = ecs.world.read_storage::<ObjectTag>();
             let foods = ecs.world.read_storage::<FoodStorage>();
             let transforms = ecs.world.read_storage::<Transform>();
             let mut racks = Vec::new();
             let mut cassas = Vec::new();
+            let mut candies = Vec::new();
             for (tag, transform) in (&tags, &transforms).join() {
                 if tag.name == "cassa" {
                     cassas.push(Node::new(transform.position[0] as i32, transform.position[1] as i32));
@@ -190,14 +191,22 @@ impl GameScene {
                 if tag.name == "rack" && food.food_count > 0 {
                     racks.push(Node::new(transform.position[0] as i32, transform.position[1] as i32 + 1));
                 }
+                if tag.name == "candies" && food.food_count > 0 {
+                    candies.push(Node::new(transform.position[0] as i32, transform.position[1] as i32));
+                }
             }
-            (racks, cassas)
+            (racks, cassas, candies)
         };
         if !all_racks.is_empty() && !all_cassas.is_empty() {
             let seed = std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH).unwrap().subsec_nanos();
             let rack = all_racks[(seed as usize) % all_racks.len()];
             let cassa = all_cassas[((seed >> 16) as usize) % all_cassas.len()];
+            let candy_pos = if !all_candies.is_empty() {
+                Some(all_candies[((seed >> 8) as usize) % all_candies.len()])
+            } else {
+                None
+            };
             let spawn_node = crate::map::shopper_spawn_point();
             let tex_set = self.shopper_idx % 3;
             self.shopper_idx += 1;
@@ -206,7 +215,7 @@ impl GameScene {
                 1 => (TEX_PLAYER_IDLE, TEX_PLAYER_WALK_1, TEX_PLAYER_WALK_2),
                 _ => (TEX_SASHA_IDLE, TEX_SASHA_WALK_1, TEX_SASHA_WALK_2),
             };
-            if let Some(shopper) = ShopperNpc::spawn(ecs, &self.npc_walkable, spawn_node, rack, cassa, tex_idle, tex_walk_1, tex_walk_2) {
+            if let Some(shopper) = ShopperNpc::spawn(ecs, &self.npc_walkable, spawn_node, rack, cassa, candy_pos, tex_idle, tex_walk_1, tex_walk_2) {
                 self.shoppers.push(shopper);
             }
         }
@@ -387,20 +396,18 @@ impl GameScene {
                 let groups = ecs.world.read_resource::<crate::GroupInfoResource>();
                 if let Some(info) = groups.groups.get(&new_group_id) {
                     if let Some(&entity) = info.entities.first() {
-                        if obj.slot_name == "basement" || obj.slot_name == "rack" || obj.slot_name == "cassa" || obj.slot_name == "fence" || obj.slot_name == "street_fence" {
-                            let tag = ObjectTag { name: obj.slot_name.clone() };
-                            ecs.world.write_storage::<crate::ObjectTag>().insert(entity, tag).ok();
-                            if obj.slot_name == "basement" {
-                                ecs.world.write_resource::<crate::ecs::components::BasementPlaced>().0 = true;
-                            } else if obj.slot_name == "rack" || obj.slot_name == "box" {
-                                ecs.world.write_storage::<crate::FoodStorage>().insert(entity, crate::FoodStorage {
-                                    food_count: obj.food_count,
-                                    max_food: obj.max_food,
-                                }).ok();
-                            }
-                            if obj.slot_name == "fence" || obj.slot_name == "street_fence" {
-                                ecs.world.write_storage::<crate::FenceComponent>().insert(entity, crate::FenceComponent { name: obj.slot_name.clone() }).ok();
-                            }
+                        let tag = ObjectTag { name: obj.slot_name.clone() };
+                        ecs.world.write_storage::<crate::ObjectTag>().insert(entity, tag).ok();
+                        if obj.slot_name == "basement" {
+                            ecs.world.write_resource::<crate::ecs::components::BasementPlaced>().0 = true;
+                        } else if obj.slot_name == "rack" || obj.slot_name == "box" || obj.slot_name == "candies" {
+                            ecs.world.write_storage::<crate::FoodStorage>().insert(entity, crate::FoodStorage {
+                                food_count: obj.food_count,
+                                max_food: obj.max_food,
+                            }).ok();
+                        }
+                        if obj.slot_name == "fence" || obj.slot_name == "street_fence" {
+                            ecs.world.write_storage::<crate::FenceComponent>().insert(entity, crate::FenceComponent { name: obj.slot_name.clone() }).ok();
                         }
                     }
                 }

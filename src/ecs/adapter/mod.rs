@@ -34,6 +34,7 @@ pub struct EcsAdapter {
     pub sprite_cache: HashMap<u64, Sprite>,
     pub next_group_id: u32,
     pub current_level: i32,
+    pub clear_count: u64,
     pub cursor_preview: Vec<specs::Entity>,
     pub wall_positions: HashSet<(i32, i32)>,
     pub floor_positions: HashSet<(i32, i32)>,
@@ -69,6 +70,7 @@ impl EcsAdapter {
             sprite_cache: HashMap::new(),
             next_group_id: 1,
             current_level: 0,
+            clear_count: 0,
             cursor_preview: Vec::new(),
             wall_positions: HashSet::new(),
             floor_positions: HashSet::new(),
@@ -187,6 +189,7 @@ impl EcsAdapter {
         self.sprite_cache.clear();
         self.cursor_preview.clear();
         self.next_group_id = 1;
+        self.clear_count += 1;
         self.map_grid.clear();
         self.map_entities.clear();
         self.original_tokens.clear();

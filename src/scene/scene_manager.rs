@@ -10,6 +10,7 @@ pub struct SceneManager {
     fps_entity: Option<specs::Entity>,
     fps_sprite_key: Option<u64>,
     last_fps: u32,
+    last_clear_count: u64,
 }
 
 impl SceneManager {
@@ -27,6 +28,7 @@ impl SceneManager {
             fps_entity: None,
             fps_sprite_key: None,
             last_fps: 0,
+            last_clear_count: 0,
         }
     }
 
@@ -45,13 +47,11 @@ impl SceneManager {
         device: &wgpu::Device,
         queue: &wgpu::Queue,
     ) {
-        if fps == self.last_fps {
-            if let Some(entity) = self.fps_entity {
-                if self.ecs.world.entities().is_alive(entity) {
-                    return;
-                }
-            }
+        let cleared = self.last_clear_count != self.ecs.clear_count;
+        if !cleared && fps == self.last_fps {
+            return;
         }
+        self.last_clear_count = self.ecs.clear_count;
         self.last_fps = fps;
 
         let fps_text = format!("FPS: {}", fps);
@@ -99,5 +99,9 @@ impl SceneManager {
         self.ecs.cursor_preview.clear();
         self.ecs.next_group_id = 1;
         self.ecs.world.write_resource::<crate::GroupInfoResource>().groups.clear();
+
+        self.fps_entity = None;
+        self.fps_sprite_key = None;
+        self.last_fps = 0;
     }
 }

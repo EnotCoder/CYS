@@ -2,6 +2,12 @@
 
 <p>
   <img src="logo.png" width="400" alt="Первая">
+
+</p>
+
+<p align="center">
+  <img src="Screenshots/s_1.png" width="400" alt="screenshot 1">
+  <img src="Screenshots/s_2.png" width="400" alt="screenshot 2">
 </p>
 
 <p>
@@ -9,7 +15,7 @@
   <small><br>
     Hello everyone this is my first 2d game that i made using wgpu api.<br>
     For now it is my favorite project. I use winit for window and wgpu for rendering graphics.<br>
-    The game is in pre-Alpha stage.<br>
+    The game is in Alpha stage.<br>
   </small>
 
   <strong>Update history:</strong>

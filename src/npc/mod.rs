@@ -39,6 +39,8 @@ pub struct ShopperNpc {
     tex_idle: &'static str,
     tex_walk_1: &'static str,
     tex_walk_2: &'static str,
+    alpha: f32,
+    despawning: bool,
 }
 
 impl ShopperNpc {
@@ -48,7 +50,7 @@ impl ShopperNpc {
         let sy = sy + 0.5;
         let entity = crate::ecs::factory::create_sprite(
             &mut ecs.world, sx, sy, Z_NPC,
-            tex_idle, [0, 0], [1, 1], NPC_SCALE, 1.0,
+            tex_idle, [0, 0], [1, 1], NPC_SCALE, 0.0,
         );
         ecs.world.write_storage::<crate::Rotation>().insert(entity, crate::Rotation { rotation: [0.0; 3] }).ok();
         Some(ShopperNpc {
@@ -71,6 +73,8 @@ impl ShopperNpc {
             tex_idle,
             tex_walk_1,
             tex_walk_2,
+            alpha: 0.0,
+            despawning: false,
         })
     }
 
@@ -275,6 +279,20 @@ impl ShopperNpc {
     }
 
     pub fn update(&mut self, ecs: &mut EcsAdapter, dt: f64, walkable: &HashSet<Node>) -> bool {
+        if self.despawning {
+            self.alpha = (self.alpha - dt as f32 * 2.0).max(0.0);
+            ecs.update_sprite_alpha(self.entity, self.alpha);
+            if self.alpha <= 0.0 {
+                return true;
+            }
+            return false;
+        }
+
+        if self.alpha < 1.0 {
+            self.alpha = (self.alpha + dt as f32 * 2.0).min(1.0);
+            ecs.update_sprite_alpha(self.entity, self.alpha);
+        }
+
         // Если касса удалена — переключиться на другую или уйти
         if !matches!(self.state, ShopperState::GoingToExit) && !self.cassa_exists(ecs) {
             if let Some(cassa) = Self::find_any_cassa(ecs) {
@@ -289,13 +307,15 @@ impl ShopperNpc {
                     self.state = ShopperState::GoingToExit;
                     return false;
                 }
-                return true;
+                self.despawning = true;
+                return false;
             }
         }
 
         // Если стеллаж удалён или пуст — деспавн
         if !self.food_taken && matches!(self.state, ShopperState::GoingToRack) && !self.rack_exists(ecs) {
-            return true;
+            self.despawning = true;
+            return false;
         }
 
         // Если active=false и ещё не взял еду — уходим
@@ -316,7 +336,8 @@ impl ShopperNpc {
                 if self.path_index >= self.path.len() {
                     self.set_idle(ecs);
                     if self.exiting {
-                        return true;
+                        self.despawning = true;
+                        return false;
                     }
                     if !self.cassa_exists(ecs) {
                         ecs.world.write_resource::<BusyCassas>().0.remove(&(self.cassa_pos.x, self.cassa_pos.y));
@@ -334,7 +355,8 @@ impl ShopperNpc {
                         return false;
                     }
                     if !self.take_food(ecs) {
-                        return true;
+                        self.despawning = true;
+                        return false;
                     }
                     ecs.world.write_resource::<BusyCassas>().0.insert(cp);
                     if self.start_path(walkable, self.cassa_pos) {
@@ -420,14 +442,16 @@ impl ShopperNpc {
                         let dy = ey - cy;
                         let dist = (dx * dx + dy * dy).sqrt();
                         if dist <= step || dist < EPSILON {
-                            return true;
+                            self.despawning = true;
+                            return false;
                         }
                         self.pos = (cx + dx / dist * step, cy + dy / dist * step);
                         let (nx, ny) = self.pos;
                         ecs.update_transform_position(self.entity, nx, ny);
                         return false;
                     }
-                    return true;
+                    self.despawning = true;
+                    return false;
                 }
                 self.walk_toward(ecs, dt);
             }

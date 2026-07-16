@@ -76,6 +76,7 @@ pub struct GameScene {
     time_text_key: Option<u64>,
     current_time_string: String,
     time_update_timer: f64,
+    info_panel: Option<specs::Entity>,
 }
 
 impl GameScene {
@@ -129,7 +130,8 @@ impl GameScene {
             time_text: None,
             time_text_key: None,
             current_time_string: String::new(),
-            time_update_timer: 0.0,
+            time_update_timer: 1.0,
+            info_panel: None,
         }
     }
 
@@ -180,6 +182,10 @@ impl GameScene {
         self.icon_mode = Some(icon_mode);
         self.icons_slot_cursor = Some(icons_slot_cursor);
         self.cursor_entity = Some(ecs.add_cursor(0.0, 0.0, CURSOR_TEX[0]));
+
+        let panel = ecs.add_ui_sized(5.75, 3.25, 1.2, 2.2, "tex/dev_tools/black.png", device, queue);
+        ecs.update_sprite_alpha(panel, 0.5);
+        self.info_panel = Some(panel);
 
         self.npc_walkable = crate::map::load_walkable_cells();
     }
@@ -447,7 +453,8 @@ impl GameScene {
         self.time_text = None;
         self.time_text_key = None;
         self.current_time_string.clear();
-        self.time_update_timer = 0.0;
+        self.info_panel = None;
+        self.time_update_timer = 1.0;
     }
 
     fn rebuild_ui(&mut self, ecs: &mut crate::EcsAdapter, text_renderer: &mut crate::ui::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) {
@@ -467,6 +474,10 @@ impl GameScene {
         let inv_entity = ecs.add_ui(INV_BTN_X, SLOT_BAR_Y, TEX_INV_BUTTON);
         self.inv_entity = Some(inv_entity);
         self.cursor_entity = Some(ecs.add_cursor(0.0, 0.0, CURSOR_TEX[self.mode as usize]));
+
+        let panel = ecs.add_ui_sized(5.75, 3.25, 2.6, 2.2, "tex/dev_tools/black.png", device, queue);
+        ecs.update_sprite_alpha(panel, 0.5);
+        self.info_panel = Some(panel);
 
         text_renderer.add_text(ecs, device, queue, "Alpha", FONT_SIZE_ALPHA, -5.5, 4.0, 1.0, 4.0, WHITE);
         self.npc_walkable = crate::map::load_walkable_cells();
@@ -664,7 +675,8 @@ impl Scene for GameScene {
         self.time_text = None;
         self.time_text_key = None;
         self.current_time_string.clear();
-        self.time_update_timer = 0.0;
+        self.info_panel = None;
+        self.time_update_timer = 1.0;
         ecs.world.write_resource::<TotalFood>().0 = 0;
         ecs.world.write_resource::<BusyCassas>().0.clear();
     }

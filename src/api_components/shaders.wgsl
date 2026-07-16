@@ -9,6 +9,7 @@ struct Size {
     aspect: f32,
     offset_x: f32,
     offset_y: f32,
+    night_factor: f32,
 };
 
 @group(0) @binding(0)
@@ -93,5 +94,6 @@ fn fs_main(
     @location(0) tex_coord: vec2<f32>,
 ) -> @location(0) vec4<f32> {
     let color = textureSample(my_texture, my_sampler, tex_coord);
-    return vec4<f32>(color.rgb, color.a * uniforms.translation.w);
+    let darken = 1.0 - size_uniform.night_factor * 0.7;
+    return vec4<f32>(color.rgb * darken, color.a * uniforms.translation.w);
 }

@@ -90,13 +90,14 @@ impl App {
 
         let ms = self.scene_manager.scenes.get(&self.scene_manager.current).unwrap().map_size();
         let (cam_x, cam_y) = self.scene_manager.scenes.get(&self.scene_manager.current).unwrap().camera_offset();
+        let nf = self.scene_manager.scenes.get(&self.scene_manager.current).unwrap().night_factor();
         let aspect = window_size.0 / window_size.1;
-        let size_data = Size { map_size: ms, aspect, offset_x: cam_x, offset_y: cam_y };
+        let size_data = Size { map_size: ms, aspect, offset_x: cam_x, offset_y: cam_y, night_factor: nf };
         wgpu_app
             .queue
             .write_buffer(&wgpu_app.size_buffer, 0, bytemuck::cast_slice(&[size_data]));
 
-        let ui_uniforms = UiUniforms { size: 1.0, aspect, _padding: [0.0; 2] };
+        let ui_uniforms = UiUniforms { size: 1.0, aspect, _padding: [0.0; 2], night_factor: 0.0 };
         wgpu_app
             .queue
             .write_buffer(&wgpu_app.ui_uniform_buffer, 0, bytemuck::cast_slice(&[ui_uniforms]));

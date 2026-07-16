@@ -71,6 +71,11 @@ pub struct GameScene {
     inv_entity: Option<specs::Entity>,
     current_level: i32,
     level_states: HashMap<i32, LevelState>,
+    day_night_elapsed: f64,
+    time_text: Option<specs::Entity>,
+    time_text_key: Option<u64>,
+    current_time_string: String,
+    time_update_timer: f64,
 }
 
 impl GameScene {
@@ -120,6 +125,11 @@ impl GameScene {
             inv_entity: None,
             current_level: 0,
             level_states: HashMap::new(),
+            day_night_elapsed: 0.0,
+            time_text: None,
+            time_text_key: None,
+            current_time_string: String::new(),
+            time_update_timer: 0.0,
         }
     }
 
@@ -434,6 +444,10 @@ impl GameScene {
         self.money_text = None;
         self.money_sprite_key = None;
         self.current_money = -1;
+        self.time_text = None;
+        self.time_text_key = None;
+        self.current_time_string.clear();
+        self.time_update_timer = 0.0;
     }
 
     fn rebuild_ui(&mut self, ecs: &mut crate::EcsAdapter, text_renderer: &mut crate::ui::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) {
@@ -646,6 +660,11 @@ impl Scene for GameScene {
         self.active = true;
         self.active_entity = None;
         self.inv_entity = None;
+        self.day_night_elapsed = 0.0;
+        self.time_text = None;
+        self.time_text_key = None;
+        self.current_time_string.clear();
+        self.time_update_timer = 0.0;
         ecs.world.write_resource::<TotalFood>().0 = 0;
         ecs.world.write_resource::<BusyCassas>().0.clear();
     }
@@ -772,6 +791,8 @@ impl Scene for GameScene {
         let now = std::time::Instant::now();
         let dt = (now - self.last_frame).as_secs_f64();
         self.last_frame = now;
+
+        self.day_night_elapsed += dt;
 
         let aspect = window_size.0 / window_size.1;
         let vis_w = 2.0 * aspect / (SHADER_SCALE * self.map_size);
@@ -948,6 +969,27 @@ impl Scene for GameScene {
                 self.money_sprite_key = Some(TextRenderer::sprite_cache_key(&text, 24.0, 1.0, GREEN));
             }
         }
+        {
+            let total_sec = self.day_night_elapsed % 120.0;
+            let hours_f = total_sec / 120.0 * 24.0;
+            let hours = (hours_f as i32) % 24;
+            let minutes = ((hours_f - hours_f.floor()) * 60.0) as i32;
+            let time_str = format!("{:02}:{:02}", hours, minutes);
+            self.time_update_timer += dt;
+            if time_str != self.current_time_string && self.time_update_timer >= 1.0 {
+                self.time_update_timer = 0.0;
+                self.current_time_string = time_str;
+                if let Some(entity) = self.time_text.take() {
+                    ecs.delete_entity(entity);
+                }
+                if let Some(key) = self.time_text_key.take() {
+                    ecs.sprite_cache.remove(&key);
+                }
+                let ent = text_renderer.add_text(ecs, device, queue, &self.current_time_string, 64.0, 5.75, 2.5, 1.0, 4.0, WHITE);
+                self.time_text = Some(ent);
+                self.time_text_key = Some(TextRenderer::sprite_cache_key(&self.current_time_string, 24.0, 1.0, GREEN));
+            }
+        }
 
         if self.ilm_cooldown > 0.0 {
             self.ilm_cooldown -= dt;
@@ -1000,5 +1042,18 @@ impl Scene for GameScene {
 
     fn camera_offset(&self) -> (f32, f32) {
         (self.camera_offset_x, self.camera_offset_y)
+    }
+
+    fn night_factor(&self) -> f32 {
+        let cycle_sec = self.day_night_elapsed % 120.0;
+        if cycle_sec < 55.0 {
+            0.0
+        } else if cycle_sec < 60.0 {
+            ((cycle_sec - 55.0) / 5.0) as f32
+        } else if cycle_sec < 115.0 {
+            1.0
+        } else {
+            (1.0 - (cycle_sec - 115.0) / 5.0) as f32
+        }
     }
 }

@@ -15,4 +15,5 @@ pub trait Scene {
     fn sprites(&self, ecs: &crate::EcsAdapter, visible_bounds: Option<(f32, f32, f32, f32)>) -> (Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>);
     fn map_size(&self) -> f32;
     fn camera_offset(&self) -> (f32, f32);
+    fn night_factor(&self) -> f32 { 0.0 }
 }

@@ -11,6 +11,7 @@ pub struct Size {
     pub aspect: f32,
     pub offset_x: f32,
     pub offset_y: f32,
+    pub night_factor: f32,
 }
 
 #[repr(C)]
@@ -19,6 +20,7 @@ pub struct UiUniforms {
     pub size: f32,
     pub aspect: f32,
     pub _padding: [f32; 2],
+    pub night_factor: f32,
 }
 
 #[allow(dead_code)]
@@ -195,7 +197,7 @@ impl WgpuApp {
             label: Some(label),
             entries: &[BindGroupLayoutEntry {
                 binding: 0,
-                visibility: ShaderStages::VERTEX,
+                visibility: ShaderStages::VERTEX_FRAGMENT,
                 ty: BindingType::Buffer {
                     ty: BufferBindingType::Uniform,
                     has_dynamic_offset: false,
@@ -218,7 +220,7 @@ impl WgpuApp {
     }
 
     fn create_size_buffer(device: &wgpu::Device) -> wgpu::Buffer {
-        let size = Size { map_size: 1.0, aspect: 1.0, offset_x: 0.0, offset_y: 0.0 };
+        let size = Size { map_size: 1.0, aspect: 1.0, offset_x: 0.0, offset_y: 0.0, night_factor: 0.0 };
         device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Size Buffer"),
             contents: bytemuck::bytes_of(&size),
@@ -227,7 +229,7 @@ impl WgpuApp {
     }
 
     fn create_ui_buffer(device: &wgpu::Device) -> wgpu::Buffer {
-        let ui_uniforms = UiUniforms { size: 1.0, aspect: 1.0, _padding: [0.0; 2] };
+        let ui_uniforms = UiUniforms { size: 1.0, aspect: 1.0, _padding: [0.0; 2], night_factor: 0.0 };
         device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("UI_Buffer"),
             contents: bytemuck::cast_slice(&[ui_uniforms]),

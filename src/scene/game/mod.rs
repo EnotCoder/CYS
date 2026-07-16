@@ -974,7 +974,7 @@ impl Scene for GameScene {
             let hours_f = total_sec / 120.0 * 24.0;
             let hours = (hours_f as i32) % 24;
             let minutes = ((hours_f - hours_f.floor()) * 60.0) as i32;
-            let time_str = format!("{:02}:{:02}", hours, minutes);
+            let time_str = format!("T:  {:02}:{:02}", hours, minutes);
             self.time_update_timer += dt;
             if time_str != self.current_time_string && self.time_update_timer >= 1.0 {
                 self.time_update_timer = 0.0;

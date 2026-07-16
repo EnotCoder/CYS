@@ -104,8 +104,8 @@ pub const INV_CARPETS: &[&str] =
     "iron_panel", "gold_panel", "diamond_panel"
 ];
 pub const INV_WALLDECOR: &[&str] = &["welcome", "fnaf", "watch"];
-pub const INV_OUTDOOR: &[&str] = &["street_fence", "tree", "pink_flower", "blue_flower", "yellow_flower", "red_flower", "white_flower", "street_ice_cream", "trashcan"];
-pub const OUTDOOR_NAMES: [&str; 9] = ["street_fence", "tree", "pink_flower", "blue_flower", "yellow_flower", "red_flower", "white_flower", "street_ice_cream", "trashcan"];
+pub const INV_OUTDOOR: &[&str] = &["street_fence", "tree", "pink_flower", "blue_flower", "yellow_flower", "red_flower", "white_flower", "street_ice_cream", "trashcan", "bench"];
+pub const OUTDOOR_NAMES: [&str; 10] = ["street_fence", "tree", "pink_flower", "blue_flower", "yellow_flower", "red_flower", "white_flower", "street_ice_cream", "trashcan", "bench"];
 pub const FLOWER_NAMES: [&str; 5] = ["pink_flower", "blue_flower", "yellow_flower", "red_flower", "white_flower"];
 pub const INV_TAB_Y: f32 = 2.0;
 

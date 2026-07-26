@@ -475,7 +475,7 @@ impl GameScene {
         self.inv_entity = Some(inv_entity);
         self.cursor_entity = Some(ecs.add_cursor(0.0, 0.0, CURSOR_TEX[self.mode as usize]));
 
-        let panel = ecs.add_ui_sized(5.75, 3.25, 2.6, 2.2, "tex/dev_tools/black.png", device, queue);
+        let panel = ecs.add_ui_sized(5.75, 3.25, 1.2, 2.2, "tex/dev_tools/black.png", device, queue);
         ecs.update_sprite_alpha(panel, 0.5);
         self.info_panel = Some(panel);
 

@@ -933,7 +933,7 @@ impl Scene for GameScene {
             self.slot_tooltip_text = Some(text_ent);
             let text_key = TextRenderer::sprite_cache_key(&display_name, FONT_SIZE_LOGO, 4.0, WHITE);
             self.slot_tooltip_text_key = Some(text_key);
-            let bg_key = crate::util::sprite_cache_key("ui", "tex/dev_tools/black.png", [0, 0], [1, 1], 1.0);
+            let bg_key = crate::util::sprite_cache_key("ui", &format!("tex/dev_tools/black.png@{bg_w:.2}x{bg_h:.2}"), [0, 0], [1, 1], 1.0);
             self.slot_tooltip_bg_key = Some(bg_key);
         } else {
             if let Some(old) = self.slot_tooltip_text.take() {

@@ -150,15 +150,17 @@ impl EcsAdapter {
         device: &wgpu::Device,
         queue: &wgpu::Queue,
     ) -> specs::Entity {
+        let unique = format!("{}@{:.2}x{:.2}", texture_path, width, height);
+
         let entity = crate::ecs::factory::create_sprite(
             &mut self.world, x, y, Z_UI,
-            texture_path, [0, 0], [1, 1], 1.0, 1.0,
+            &unique, [0, 0], [1, 1], 1.0, 1.0,
         );
 
         let tex = crate::Texture::from_path(device, queue, texture_path, "ui_sized");
-        let sprite = crate::Sprite::from_texture(device, &tex, texture_path, width, height);
+        let sprite = crate::Sprite::from_texture(device, &tex, &unique, width, height);
 
-        let key = util::sprite_cache_key("ui", texture_path, [0, 0], [1, 1], 1.0);
+        let key = util::sprite_cache_key("ui", &unique, [0, 0], [1, 1], 1.0);
         self.sprite_cache.insert(key, sprite);
 
         entity

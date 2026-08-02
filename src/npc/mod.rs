@@ -86,20 +86,82 @@ impl ShopperNpc {
         self.food_taken
     }
 
-    fn set_texture(&self, ecs: &mut EcsAdapter, texture_path: &str) {
+    // ================================================================
+    //  API для Lua-скриптов (src/script/npc.rs)
+    // ================================================================
+
+    pub fn state_int(&self) -> i32 {
+        match self.state {
+            ShopperState::GoingToRack => 1,
+            ShopperState::GoingToCassa => 2,
+            ShopperState::AtCassa => 3,
+            ShopperState::GoingToCandies => 4,
+            ShopperState::AtCandies => 5,
+            ShopperState::GoingToExit => 6,
+        }
+    }
+
+    pub fn set_state_int(&mut self, s: i32) {
+        self.state = match s {
+            2 => ShopperState::GoingToCassa,
+            3 => ShopperState::AtCassa,
+            4 => ShopperState::GoingToCandies,
+            5 => ShopperState::AtCandies,
+            6 => ShopperState::GoingToExit,
+            _ => ShopperState::GoingToRack,
+        };
+    }
+
+    pub fn path_done(&self) -> bool {
+        self.path_index >= self.path.len()
+    }
+
+    pub fn state_timer(&self) -> f64 {
+        self.state_timer
+    }
+
+    pub fn set_state_timer(&mut self, t: f64) {
+        self.state_timer = t;
+    }
+
+    pub fn pos(&self) -> (f32, f32) {
+        self.pos
+    }
+
+    pub fn rack_pos(&self) -> Node {
+        self.rack_pos
+    }
+
+    pub fn cassa_pos(&self) -> Node {
+        self.cassa_pos
+    }
+
+    pub fn candy_pos(&self) -> Option<Node> {
+        self.candy_pos
+    }
+
+    pub fn is_food_taken(&self) -> bool {
+        self.food_taken
+    }
+
+    pub fn is_exiting(&self) -> bool {
+        self.exiting
+    }
+
+    pub(crate) fn set_texture(&self, ecs: &mut EcsAdapter, texture_path: &str) {
         ecs.update_sprite_texture(self.entity, texture_path);
     }
 
-    fn set_idle(&self, ecs: &mut EcsAdapter) {
+    pub(crate) fn set_idle(&self, ecs: &mut EcsAdapter) {
         self.set_texture(ecs, self.tex_idle);
     }
 
-    fn set_walk(&self, ecs: &mut EcsAdapter) {
+    pub(crate) fn set_walk(&self, ecs: &mut EcsAdapter) {
         let tex = if self.walk_frame == 0 { self.tex_walk_1 } else { self.tex_walk_2 };
         self.set_texture(ecs, tex);
     }
 
-    fn start_path(&mut self, walkable: &HashSet<Node>, to: Node) -> bool {
+    pub(crate) fn start_path(&mut self, walkable: &HashSet<Node>, to: Node) -> bool {
         let from = Node::from_world(self.pos.0, self.pos.1);
         if let Some(path) = find_path(walkable, from, to) {
             self.path = path;
@@ -115,7 +177,7 @@ impl ShopperNpc {
         }
     }
 
-    fn walk_toward(&mut self, ecs: &mut EcsAdapter, dt: f64) {
+    pub(crate) fn walk_toward(&mut self, ecs: &mut EcsAdapter, dt: f64) {
         if self.path_index >= self.path.len() {
             return;
         }
@@ -153,7 +215,27 @@ impl ShopperNpc {
         }
     }
 
-    fn take_food(&mut self, ecs: &mut EcsAdapter) -> bool {
+    /// Финал пути к выходу: движение к точке спавна без навигации.
+    /// Возвращает true, когда достигнут выход (нужен деспавн).
+    pub(crate) fn walk_to_exit(&mut self, ecs: &mut EcsAdapter, dt: f64) -> bool {
+        let Some((ex, ey)) = self.exit_target else {
+            return true;
+        };
+        let (cx, cy) = self.pos;
+        let step = NPC_SPEED * dt as f32;
+        let dx = ex - cx;
+        let dy = ey - cy;
+        let dist = (dx * dx + dy * dy).sqrt();
+        if dist <= step || dist < EPSILON {
+            return true;
+        }
+        self.pos = (cx + dx / dist * step, cy + dy / dist * step);
+        let (nx, ny) = self.pos;
+        ecs.update_transform_position(self.entity, nx, ny);
+        false
+    }
+
+    pub(crate) fn take_food(&mut self, ecs: &mut EcsAdapter) -> bool {
         let rn = self.rack_pos;
         let taken = {
             let tags = ecs.world.read_storage::<ObjectTag>();
@@ -184,7 +266,7 @@ impl ShopperNpc {
         ecs.delete_entity(self.entity);
     }
 
-    fn candy_exists(&self, ecs: &EcsAdapter) -> bool {
+    pub(crate) fn candy_exists(&self, ecs: &EcsAdapter) -> bool {
         let Some(cp) = self.candy_pos else { return false };
         let tags = ecs.world.read_storage::<ObjectTag>();
         let transforms = ecs.world.read_storage::<Transform>();
@@ -201,7 +283,7 @@ impl ShopperNpc {
         false
     }
 
-    fn take_candy(&mut self, ecs: &mut EcsAdapter) -> bool {
+    pub(crate) fn take_candy(&mut self, ecs: &mut EcsAdapter) -> bool {
         let Some(cp) = self.candy_pos else { return false };
         let taken = {
             let tags = ecs.world.read_storage::<ObjectTag>();
@@ -228,7 +310,7 @@ impl ShopperNpc {
         taken
     }
 
-    fn cassa_exists(&self, ecs: &EcsAdapter) -> bool {
+    pub(crate) fn cassa_exists(&self, ecs: &EcsAdapter) -> bool {
         let tags = ecs.world.read_storage::<ObjectTag>();
         let transforms = ecs.world.read_storage::<Transform>();
         for (tag, transform) in (&tags, &transforms).join() {
@@ -242,7 +324,7 @@ impl ShopperNpc {
         false
     }
 
-    fn rack_exists(&self, ecs: &EcsAdapter) -> bool {
+    pub(crate) fn rack_exists(&self, ecs: &EcsAdapter) -> bool {
         let tags = ecs.world.read_storage::<ObjectTag>();
         let transforms = ecs.world.read_storage::<Transform>();
         let foods = ecs.world.read_storage::<FoodStorage>();
@@ -258,7 +340,7 @@ impl ShopperNpc {
         false
     }
 
-    fn find_any_cassa(ecs: &EcsAdapter) -> Option<Node> {
+    pub(crate) fn find_any_cassa(ecs: &EcsAdapter) -> Option<Node> {
         let tags = ecs.world.read_storage::<ObjectTag>();
         let transforms = ecs.world.read_storage::<Transform>();
         for (tag, transform) in (&tags, &transforms).join() {
@@ -269,7 +351,7 @@ impl ShopperNpc {
         None
     }
 
-    fn reroute_to_cassa(&mut self, ecs: &mut EcsAdapter, walkable: &HashSet<Node>, cp: Node) {
+    pub(crate) fn reroute_to_cassa(&mut self, ecs: &mut EcsAdapter, walkable: &HashSet<Node>, cp: Node) {
         ecs.world.write_resource::<BusyCassas>().0.remove(&(self.cassa_pos.x, self.cassa_pos.y));
         ecs.world.write_resource::<BusyCassas>().0.insert((cp.x, cp.y));
         self.cassa_pos = cp;
@@ -278,7 +360,12 @@ impl ShopperNpc {
         }
     }
 
-    pub fn update(&mut self, ecs: &mut EcsAdapter, dt: f64, walkable: &HashSet<Node>) -> bool {
+    /// Запускает деспавн (фейд-аут). Вызывается из Lua.
+    pub(crate) fn request_despawn(&mut self) {
+        self.despawning = true;
+    }
+
+    pub fn update(&mut self, ecs: &mut EcsAdapter, dt: f64, walkable: &HashSet<Node>, script: Option<&crate::script::npc::NpcScript>) -> bool {
         if self.despawning {
             self.alpha = (self.alpha - dt as f32 * 2.0).max(0.0);
             ecs.update_sprite_alpha(self.entity, self.alpha);
@@ -292,6 +379,21 @@ impl ShopperNpc {
             self.alpha = (self.alpha + dt as f32 * 2.0).min(1.0);
             ecs.update_sprite_alpha(self.entity, self.alpha);
         }
+
+        // Пытаемся использовать Lua-скрипт. При ошибке — fallback на Rust-автомат.
+        if let Some(script) = script {
+            if script.update(self, ecs, dt, walkable).is_err() {
+                self.update_fallback(ecs, dt, walkable);
+            }
+            // Фейд-аут уже обрабатывается в начале update на следующих кадрах.
+            return false;
+        }
+
+        self.update_fallback(ecs, dt, walkable)
+    }
+
+    /// Оригинальный Rust-автомат (fallback, если не загружен/упал Lua-скрипт).
+    fn update_fallback(&mut self, ecs: &mut EcsAdapter, dt: f64, walkable: &HashSet<Node>) -> bool {
 
         // Если касса удалена — переключиться на другую или уйти
         if !matches!(self.state, ShopperState::GoingToExit) && !self.cassa_exists(ecs) {

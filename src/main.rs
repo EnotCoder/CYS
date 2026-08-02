@@ -14,6 +14,7 @@ mod npc;
 mod constants;
 mod util;
 mod ui;
+mod script;
 
 pub use map::load_map_to_ecs;
 use crate::constants::*;

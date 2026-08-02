@@ -77,6 +77,7 @@ pub struct GameScene {
     current_time_string: String,
     time_update_timer: f64,
     info_panel: Option<specs::Entity>,
+    npc_script: Option<crate::script::npc::NpcScript>,
 }
 
 impl GameScene {
@@ -132,6 +133,7 @@ impl GameScene {
             current_time_string: String::new(),
             time_update_timer: 1.0,
             info_panel: None,
+            npc_script: Some(crate::script::npc::NpcScript::new()),
         }
     }
 
@@ -1029,7 +1031,7 @@ impl Scene for GameScene {
         }
         let prev_len = self.shoppers.len();
         self.shoppers.retain_mut(|shopper| {
-            let done = shopper.update(ecs, dt, &self.npc_walkable);
+            let done = shopper.update(ecs, dt, &self.npc_walkable, self.npc_script.as_ref());
             if done {
                 shopper.despawn(ecs);
             }

@@ -31,8 +31,7 @@ pub const CAMERA_MAP_MIN_Y: f32 = -13.0;
 pub const CAMERA_MAP_MAX_Y: f32 = 13.0;
 
 // === NPC ===
-pub const NPC_SPEED: f32 = 3.0;
-pub const WALK_ANIM_INTERVAL: f64 = 0.3;
+/// Масштаб спрайта покупателя (движение/анимация — в scripts/config.lua)
 pub const NPC_SCALE: f32 = 1.5;
 
 // === Текстовые текстуры игрока ===
@@ -49,10 +48,7 @@ pub const TEX_SASHA_WALK_1: &str = "tex/characters/sasha/sasha_walk_1.png";
 pub const TEX_SASHA_WALK_2: &str = "tex/characters/sasha/sasha_walk_2.png";
 
 // === Shopping NPC ===
-/// Сколько секунд покупатель стоит у кассы
-pub const CASSA_WAIT_SECS: f64 = 1.0;
-/// Максимум активных покупателей
-pub const MAX_SHOPPERS: usize = 15;
+// (тайминги и экономика покупателя — в scripts/config.lua)
 
 // === Курсор ===
 pub const CURSOR_MOVE_DELAY_MS: u64 = 150;

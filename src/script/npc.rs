@@ -32,6 +32,10 @@ pub struct NpcScript {
 impl NpcScript {
     pub fn new() -> Self {
         let lua = Lua::new();
+        let config = crate::script::config::BalanceConfig::load();
+        if let Err(e) = config.publish_to_lua(&lua) {
+            eprintln!("[config] ошибка публикации CONFIG в Lua: {e}");
+        }
         let path_exists = Path::new(SCRIPT_PATH).exists();
         if path_exists {
             if let Err(e) = lua.load(std::fs::read_to_string(SCRIPT_PATH).unwrap()).exec() {
@@ -125,10 +129,12 @@ impl NpcScript {
 
             let start_path = ctx.create_function({
                 let npc = npc_cell_ref;
+                let ecs = ecs_cell_ref;
                 let walkable = walkable_ref;
                 move |_, (tbl, x, y): (Table, i32, i32)| -> mlua::Result<bool> {
                     let mut npc_borrow = npc.borrow_mut();
-                    let ok = npc_borrow.start_path(walkable, Node::new(x, y));
+                    let mut ecs_borrow = ecs.borrow_mut();
+                    let ok = npc_borrow.start_path(&mut **ecs_borrow, walkable, Node::new(x, y));
                     tbl.set("done", npc_borrow.path_done())?;
                     Ok(ok)
                 }

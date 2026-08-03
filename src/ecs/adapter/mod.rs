@@ -64,6 +64,7 @@ impl EcsAdapter {
         world.insert(BusyCassas(HashSet::new()));
         world.insert(Money(0));
         world.insert(BasementPlaced(false));
+        world.insert(crate::script::config::BalanceConfig::default());
 
         Self {
             world,

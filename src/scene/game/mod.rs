@@ -77,11 +77,13 @@ pub struct GameScene {
     current_time_string: String,
     time_update_timer: f64,
     info_panel: Option<specs::Entity>,
+    config: crate::script::config::BalanceConfig,
     npc_script: Option<crate::script::npc::NpcScript>,
 }
 
 impl GameScene {
     pub fn new() -> Self {
+        let config = crate::script::config::BalanceConfig::load();
         GameScene {
             loaded: false,
             loading: false,
@@ -133,6 +135,7 @@ impl GameScene {
             current_time_string: String::new(),
             time_update_timer: 1.0,
             info_panel: None,
+            config: config,
             npc_script: Some(crate::script::npc::NpcScript::new()),
         }
     }
@@ -647,6 +650,7 @@ impl Scene for GameScene {
         self.slot_entities.clear();
         self.inventory.reset();
         self.npc_walkable.clear();
+        *ecs.world.write_resource::<crate::script::config::BalanceConfig>() = self.config.clone();
         self.last_frame = std::time::Instant::now();
         self.anim_timer = 0.0;
         self.camera_offset_x = 0.0;
@@ -842,14 +846,14 @@ impl Scene for GameScene {
 
         // --- Обновление всех объектов по компонентам ---
         self.food_timer += dt;
-        if self.food_timer >= 1.0 {
-            self.food_timer -= 1.0;
+        if self.food_timer >= self.config.food_regen_tick {
+            self.food_timer -= self.config.food_regen_tick;
             {
                 let tags = ecs.world.read_storage::<ObjectTag>();
                 let mut foods = ecs.world.write_storage::<FoodStorage>();
                 for (tag, storage) in (&tags, &mut foods).join() {
                     if tag.name == "box" && storage.food_count < storage.max_food {
-                        storage.food_count += 1;
+                        storage.food_count += self.config.food_regen_amount;
                     }
                 }
             }
@@ -984,8 +988,9 @@ impl Scene for GameScene {
             }
         }
         {
-            let total_sec = self.day_night_elapsed % 120.0;
-            let hours_f = total_sec / 120.0 * 24.0;
+            let cycle = self.config.day_cycle_secs;
+            let total_sec = self.day_night_elapsed % cycle;
+            let hours_f = total_sec / cycle * 24.0;
             let hours = (hours_f as i32) % 24;
             let minutes = ((hours_f - hours_f.floor()) * 60.0) as i32;
             let time_str = format!("T:  {:02}:{:02}", hours, minutes);
@@ -1020,12 +1025,12 @@ impl Scene for GameScene {
         self.shopper_timer += dt;
         if self.exit_cooldown > 0.0 {
             self.exit_cooldown -= dt;
-            if self.exit_cooldown <= 0.0 && self.active && self.shoppers.len() < MAX_SHOPPERS {
+            if self.exit_cooldown <= 0.0 && self.active && self.shoppers.len() < self.config.max_shoppers {
                 self.shopper_timer = 0.0;
                 self.spawn_shopper(ecs);
             }
         }
-        if self.active && self.shopper_timer >= 3.0 && self.shoppers.len() < MAX_SHOPPERS && self.exit_cooldown <= 0.0 {
+        if self.active && self.shopper_timer >= self.config.shopper_spawn_interval && self.shoppers.len() < self.config.max_shoppers && self.exit_cooldown <= 0.0 {
             self.shopper_timer = 0.0;
             self.spawn_shopper(ecs);
         }
@@ -1038,7 +1043,7 @@ impl Scene for GameScene {
             !done
         });
         if self.shoppers.len() < prev_len {
-            self.exit_cooldown = 2.0;
+            self.exit_cooldown = self.config.shopper_spawn_cooldown;
         }
 
         self.update_animations(ecs, dt);
@@ -1059,15 +1064,16 @@ impl Scene for GameScene {
     }
 
     fn night_factor(&self) -> f32 {
-        let cycle_sec = self.day_night_elapsed % 120.0;
-        if cycle_sec < 55.0 {
+        let cycle_sec = self.day_night_elapsed % self.config.day_cycle_secs;
+        let fade = self.config.fade_secs;
+        if cycle_sec < self.config.day_secs {
             0.0
-        } else if cycle_sec < 60.0 {
-            ((cycle_sec - 55.0) / 5.0) as f32
-        } else if cycle_sec < 115.0 {
+        } else if cycle_sec < self.config.night_start_secs {
+            ((cycle_sec - self.config.day_secs) / fade) as f32
+        } else if cycle_sec < self.config.night_secs {
             1.0
         } else {
-            (1.0 - (cycle_sec - 115.0) / 5.0) as f32
+            (1.0 - (cycle_sec - self.config.night_secs) / fade) as f32
         }
     }
 }

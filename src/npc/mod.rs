@@ -6,8 +6,9 @@ use crate::constants::*;
 use crate::EcsAdapter;
 use crate::ecs::components::{FoodStorage, ObjectTag, Transform, BusyCassas, Money};
 
-fn spawn_path_node() -> Node {
-    Node::new(0, -3)
+fn spawn_path_node(ecs: &EcsAdapter) -> Node {
+    let cfg = ecs.world.read_resource::<crate::script::config::BalanceConfig>();
+    Node::new(cfg.spawn_x, cfg.spawn_y)
 }
 
 enum ShopperState {
@@ -161,14 +162,14 @@ impl ShopperNpc {
         self.set_texture(ecs, tex);
     }
 
-    pub(crate) fn start_path(&mut self, walkable: &HashSet<Node>, to: Node) -> bool {
+    pub(crate) fn start_path(&mut self, ecs: &EcsAdapter, walkable: &HashSet<Node>, to: Node) -> bool {
         let from = Node::from_world(self.pos.0, self.pos.1);
         if let Some(path) = find_path(walkable, from, to) {
             self.path = path;
             self.path_index = 0;
             self.walk_timer = 0.0;
             self.walk_frame = 0;
-            if to == spawn_path_node() {
+            if to == spawn_path_node(ecs) {
                 self.exit_target = Some(self.spawn_world);
             }
             true
@@ -181,8 +182,12 @@ impl ShopperNpc {
         if self.path_index >= self.path.len() {
             return;
         }
+        let (anim_interval, speed) = {
+            let cfg = ecs.world.read_resource::<crate::script::config::BalanceConfig>();
+            (cfg.walk_anim_interval, cfg.npc_speed)
+        };
         self.walk_timer += dt;
-        if self.walk_timer > WALK_ANIM_INTERVAL {
+        if self.walk_timer > anim_interval {
             self.walk_timer = 0.0;
             self.walk_frame = 1 - self.walk_frame;
         }
@@ -192,7 +197,7 @@ impl ShopperNpc {
         let (tx, ty) = target.to_world();
         let (cx, cy) = self.pos;
 
-        let step = NPC_SPEED * dt as f32;
+        let step = speed * dt as f32;
         let dx = tx - cx;
         let dy = ty - cy;
         let dist = (dx * dx + dy * dy).sqrt();
@@ -222,7 +227,7 @@ impl ShopperNpc {
             return true;
         };
         let (cx, cy) = self.pos;
-        let step = NPC_SPEED * dt as f32;
+        let step = ecs.world.read_resource::<crate::script::config::BalanceConfig>().npc_speed * dt as f32;
         let dx = ex - cx;
         let dy = ey - cy;
         let dist = (dx * dx + dy * dy).sqrt();
@@ -355,7 +360,7 @@ impl ShopperNpc {
         ecs.world.write_resource::<BusyCassas>().0.remove(&(self.cassa_pos.x, self.cassa_pos.y));
         ecs.world.write_resource::<BusyCassas>().0.insert((cp.x, cp.y));
         self.cassa_pos = cp;
-        if self.start_path(walkable, cp) {
+        if self.start_path(ecs, walkable, cp) {
             self.state = ShopperState::GoingToCassa;
         }
     }
@@ -366,8 +371,9 @@ impl ShopperNpc {
     }
 
     pub fn update(&mut self, ecs: &mut EcsAdapter, dt: f64, walkable: &HashSet<Node>, script: Option<&crate::script::npc::NpcScript>) -> bool {
+        let fade = ecs.world.read_resource::<crate::script::config::BalanceConfig>().npc_fade_speed;
         if self.despawning {
-            self.alpha = (self.alpha - dt as f32 * 2.0).max(0.0);
+            self.alpha = (self.alpha - dt as f32 * fade).max(0.0);
             ecs.update_sprite_alpha(self.entity, self.alpha);
             if self.alpha <= 0.0 {
                 return true;
@@ -376,7 +382,7 @@ impl ShopperNpc {
         }
 
         if self.alpha < 1.0 {
-            self.alpha = (self.alpha + dt as f32 * 2.0).min(1.0);
+            self.alpha = (self.alpha + dt as f32 * fade).min(1.0);
             ecs.update_sprite_alpha(self.entity, self.alpha);
         }
 
@@ -405,7 +411,7 @@ impl ShopperNpc {
                 }
             } else {
                 // Касс нет — уходим
-                if self.start_path(walkable, spawn_path_node()) {
+                if self.start_path(ecs, walkable, spawn_path_node(ecs)) {
                     self.state = ShopperState::GoingToExit;
                     return false;
                 }
@@ -422,13 +428,13 @@ impl ShopperNpc {
 
         // Если active=false и ещё не взял еду — уходим
         if self.exiting && !self.food_taken && matches!(self.state, ShopperState::GoingToRack) {
-            if self.start_path(walkable, spawn_path_node()) {
+            if self.start_path(ecs, walkable, spawn_path_node(ecs)) {
                 self.state = ShopperState::GoingToExit;
             }
         }
         // Если active=true и шёл на выход без покупки — возвращаемся к rack
         if !self.exiting && !self.food_taken && matches!(self.state, ShopperState::GoingToExit) {
-            if self.start_path(walkable, self.rack_pos) {
+            if self.start_path(ecs, walkable, self.rack_pos) {
                 self.state = ShopperState::GoingToRack;
             }
         }
@@ -446,7 +452,7 @@ impl ShopperNpc {
                         if let Some(cassa) = Self::find_any_cassa(ecs) {
                             self.cassa_pos = cassa;
                         } else {
-                            if self.start_path(walkable, spawn_path_node()) {
+                            if self.start_path(ecs, walkable, spawn_path_node(ecs)) {
                                 self.state = ShopperState::GoingToExit;
                             }
                             return false;
@@ -461,7 +467,7 @@ impl ShopperNpc {
                         return false;
                     }
                     ecs.world.write_resource::<BusyCassas>().0.insert(cp);
-                    if self.start_path(walkable, self.cassa_pos) {
+                    if self.start_path(ecs, walkable, self.cassa_pos) {
                         self.state = ShopperState::GoingToCassa;
                     }
                     return false;
@@ -473,7 +479,7 @@ impl ShopperNpc {
                 if self.path_index >= self.path.len() {
                     self.set_idle(ecs);
                     self.state = ShopperState::AtCassa;
-                    self.state_timer = CASSA_WAIT_SECS;
+                    self.state_timer = ecs.world.read_resource::<crate::script::config::BalanceConfig>().cassa_wait_secs;
                     return false;
                 }
                 self.walk_toward(ecs, dt);
@@ -484,22 +490,24 @@ impl ShopperNpc {
                 self.set_idle(ecs);
                 if self.state_timer <= 0.0 {
                     ecs.world.write_resource::<BusyCassas>().0.remove(&(self.cassa_pos.x, self.cassa_pos.y));
-                    ecs.world.write_resource::<Money>().0 += 5;
-                    // 20% chance to visit candies
+                    let cfg = ecs.world.read_resource::<crate::script::config::BalanceConfig>();
+                    ecs.world.write_resource::<Money>().0 += cfg.money_at_cassa;
+                    // Шанс зайти за конфетами (config.candy_chance)
                     let want_candy = self.candy_pos.is_some()
+                        && (cfg.candy_chance as f64) > 0.0
                         && std::time::SystemTime::now()
-                            .duration_since(std::time::UNIX_EPOCH).unwrap().subsec_nanos() % 5 == 0
+                            .duration_since(std::time::UNIX_EPOCH).unwrap().subsec_nanos() % 100 < (cfg.candy_chance * 100.0) as u32
                         && self.candy_exists(ecs);
                     if want_candy {
-                        if self.start_path(walkable, self.candy_pos.unwrap()) {
+                        if self.start_path(ecs, walkable, self.candy_pos.unwrap()) {
                             self.state = ShopperState::GoingToCandies;
                         } else {
-                            if self.start_path(walkable, spawn_path_node()) {
+                            if self.start_path(ecs, walkable, spawn_path_node(ecs)) {
                                 self.state = ShopperState::GoingToExit;
                             }
                         }
                     } else {
-                        if self.start_path(walkable, spawn_path_node()) {
+                        if self.start_path(ecs, walkable, spawn_path_node(ecs)) {
                             self.state = ShopperState::GoingToExit;
                         }
                     }
@@ -509,7 +517,7 @@ impl ShopperNpc {
             ShopperState::GoingToCandies => {
                 // If candy was deleted or ran out, skip to exit
                 if !self.candy_exists(ecs) {
-                    if self.start_path(walkable, spawn_path_node()) {
+                    if self.start_path(ecs, walkable, spawn_path_node(ecs)) {
                         self.state = ShopperState::GoingToExit;
                     }
                     return false;
@@ -518,7 +526,7 @@ impl ShopperNpc {
                     self.set_idle(ecs);
                     self.take_candy(ecs);
                     self.state = ShopperState::AtCandies;
-                    self.state_timer = 3.0;
+                    self.state_timer = ecs.world.read_resource::<crate::script::config::BalanceConfig>().candy_wait_secs;
                     return false;
                 }
                 self.walk_toward(ecs, dt);
@@ -528,8 +536,8 @@ impl ShopperNpc {
                 self.state_timer -= dt;
                 self.set_idle(ecs);
                 if self.state_timer <= 0.0 {
-                    ecs.world.write_resource::<Money>().0 += 1;
-                    if self.start_path(walkable, spawn_path_node()) {
+                    ecs.world.write_resource::<Money>().0 += ecs.world.read_resource::<crate::script::config::BalanceConfig>().money_at_candy;
+                    if self.start_path(ecs, walkable, spawn_path_node(ecs)) {
                         self.state = ShopperState::GoingToExit;
                     }
                 }
@@ -539,7 +547,7 @@ impl ShopperNpc {
                 if self.path_index >= self.path.len() {
                     if let Some((ex, ey)) = self.exit_target {
                         let (cx, cy) = self.pos;
-                        let step = NPC_SPEED * dt as f32;
+                        let step = ecs.world.read_resource::<crate::script::config::BalanceConfig>().npc_speed * dt as f32;
                         let dx = ex - cx;
                         let dy = ey - cy;
                         let dist = (dx * dx + dy * dy).sqrt();

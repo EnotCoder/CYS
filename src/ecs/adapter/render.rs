@@ -73,6 +73,8 @@ impl super::EcsAdapter {
     }
 
     pub fn update_object_textures(&mut self) {
+        let cfg = self.world.read_resource::<crate::script::config::BalanceConfig>();
+        let (t1, t2) = (cfg.box_tex_threshold_1, cfg.box_tex_threshold_2);
         let mut updates: Vec<(u32, Arc<str>)> = Vec::new();
         {
             let tags = self.world.read_storage::<ObjectTag>();
@@ -80,9 +82,9 @@ impl super::EcsAdapter {
             let groups = self.world.read_storage::<GroupComponent>();
             for (tag, food, group) in (&tags, &foods, &groups).join() {
                 let tex: Arc<str> = if tag.name == "box" {
-                    if food.food_count < 8 {
+                    if food.food_count < t1 {
                         Arc::from("tex/decor/regular/box/box_0.png")
-                    } else if food.food_count < 12 {
+                    } else if food.food_count < t2 {
                         Arc::from("tex/decor/regular/box/box_1.png")
                     } else {
                         Arc::from("tex/decor/regular/box/box_2.png")

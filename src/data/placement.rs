@@ -192,19 +192,23 @@ pub fn add(ecs: &mut EcsAdapter, slots: &mut Vec<Slot>, act_slot: i32, gx: i32, 
         if active_slot.name == "basement" {
             ecs.world.write_resource::<BasementPlaced>().0 = true;
         } else if active_slot.name == "box" {
+            let max_food = ecs.world.read_resource::<crate::script::config::BalanceConfig>().max_food_box;
             ecs.world.write_storage::<crate::FoodStorage>().insert(entity, crate::FoodStorage {
                 food_count: 0,
-                max_food: 20,
+                max_food,
             }).ok();
         } else if active_slot.name == "rack" {
+            let max_food = ecs.world.read_resource::<crate::script::config::BalanceConfig>().max_food_rack;
             ecs.world.write_storage::<crate::FoodStorage>().insert(entity, crate::FoodStorage {
                 food_count: 0,
-                max_food: 15,
+                max_food,
             }).ok();
         } else if active_slot.name == "candies" {
+            let cfg = ecs.world.read_resource::<crate::script::config::BalanceConfig>();
+            let (max_food, start) = (cfg.max_food_candies, cfg.candies_start_food);
             ecs.world.write_storage::<crate::FoodStorage>().insert(entity, crate::FoodStorage {
-                food_count: 10,
-                max_food: 10,
+                food_count: start,
+                max_food,
             }).ok();
         } else if active_slot.name == "fence" || active_slot.name == "street_fence" {
             ecs.world.write_storage::<crate::FenceComponent>().insert(entity, crate::FenceComponent { name: active_slot.name.to_string() }).ok();

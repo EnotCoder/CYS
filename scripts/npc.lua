@@ -15,15 +15,13 @@ local ST_GOING_TO_CANDIES = 4
 local ST_AT_CANDIES = 5
 local ST_GOING_TO_EXIT = 6
 
--- Конфиг-параметры (вынесены из констант Rust)
-local CASSA_WAIT_SECS = 1.0
-local CANDY_WAIT_SECS = 3.0
-local MONEY_AT_CASSA = 5
-local MONEY_AT_CANDY = 1
-local CANDY_CHANCE = 0.2   -- 20%
-
--- Точка выхода (спавн)
-local EXIT_X, EXIT_Y = 0, -3
+-- Конфиг-параметры читаются из глобального CONFIG (scripts/config.lua)
+local CASSA_WAIT_SECS = CONFIG.cassa_wait_secs
+local CANDY_WAIT_SECS = CONFIG.candy_wait_secs
+local MONEY_AT_CASSA = CONFIG.money_at_cassa
+local MONEY_AT_CANDY = CONFIG.money_at_candy
+local CANDY_CHANCE = CONFIG.candy_chance
+local EXIT_X, EXIT_Y = CONFIG.spawn_x, CONFIG.spawn_y
 
 function npc_update(npc, dt)
     -- 1. Касса удалена: переключиться на другую или уйти

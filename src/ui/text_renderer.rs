@@ -161,6 +161,77 @@ impl TextRenderer {
         self.add_text_z(ecs, device, queue, text, font_size, x, y, world_width, outline, color, crate::constants::Z_UI)
     }
 
+    /// Инкрементальная установка текста: если текст не изменился — спрайт не трогается,
+    /// иначе обновляется текстура на существующем спрайте или создаётся новый.
+    /// Позиция обновляется всегда. Возвращает (сущность, ключ кэша).
+    pub fn set_text(
+        &mut self,
+        ecs: &mut crate::EcsAdapter,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        entity: Option<specs::Entity>,
+        key: Option<u64>,
+        text: &str,
+        font_size: f32,
+        x: f32,
+        y: f32,
+        world_width: f32,
+        outline: f32,
+        color: [u8; 3],
+    ) -> (Option<specs::Entity>, Option<u64>) {
+        let new_key = Self::sprite_cache_key(text, font_size, outline, color);
+
+        if let Some(e) = entity {
+            ecs.update_transform_position(e, x, y);
+        }
+
+        if key == Some(new_key) {
+            return (entity, key);
+        }
+
+        if let Some(old) = key {
+            ecs.sprite_cache.remove(&old);
+        }
+
+        let (rgba, tw, th) = {
+            let r = self.rasterize(text, font_size, outline, color);
+            (r.0.clone(), r.1, r.2)
+        };
+        let aspect = tw as f32 / th as f32;
+        let world_h = if aspect > 0.0 { world_width / aspect } else { world_width };
+
+        let tex = crate::Texture::from_rgba(device, queue, &rgba, tw, th, text);
+        let sprite = crate::Sprite::from_texture(device, &tex, text, world_width, world_h);
+        ecs.sprite_cache.insert(new_key, sprite);
+
+        let text_key = Self::cache_key(text, font_size, outline, color);
+        match entity {
+            Some(e) => {
+                ecs.update_sprite_texture(e, &text_key);
+                (Some(e), Some(new_key))
+            }
+            None => {
+                let e = ecs.world
+                    .create_entity()
+                    .with(crate::Transform {
+                        position: [x, y, crate::constants::Z_UI],
+                    })
+                    .with(crate::SpriteComponent {
+                        texture_path: std::sync::Arc::from(text_key.as_str()),
+                        texture_frame: [0, 0],
+                        texture_count: [1, 1],
+                        scale: 1.0,
+                        alpha: 1.0,
+                        animated: false,
+                        frame_paths: Vec::new(),
+                        current_frame: 0,
+                    })
+                    .build();
+                (Some(e), Some(new_key))
+            }
+        }
+    }
+
     pub fn add_text_fixed(
         &mut self,
         ecs: &mut crate::EcsAdapter,

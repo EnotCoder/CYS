@@ -1,4 +1,4 @@
-use std::collections::{HashSet, HashMap};
+use std::collections::{HashMap, HashSet};
 use specs::{WorldExt, Join};
 use winit::keyboard::KeyCode;
 use serde::{Serialize, Deserialize};
@@ -6,9 +6,14 @@ use crate::scene::scene_trait::{Scene, SceneAction};
 use crate::constants::*;
 use crate::inventory::Inventory;
 use crate::map::pathfinding::Node;
-use crate::ecs::components::{FoodStorage, ObjectTag, TotalFood, BusyCassas, Transform, Money};
-use crate::npc::ShopperNpc;
-use crate::ui::text_renderer::TextRenderer;
+use crate::ecs::components::{FoodStorage, ObjectTag, TotalFood, BusyCassas, Money};
+use crate::scene::game::day_night::DayNightCycle;
+use crate::scene::game::hud::GameHud;
+use crate::scene::game::shoppers::ShopperManager;
+
+mod day_night;
+mod hud;
+mod shoppers;
 
 #[derive(Clone)]
 struct SavedObject {
@@ -29,12 +34,11 @@ struct LevelState {
 pub struct GameScene {
     loaded: bool,
     loading: bool,
-    loading_text: Option<specs::Entity>,
-    loading_sprite_key: Option<u64>,
     slots: Vec<crate::data::Slot>,
     act_slot: i32,
     mode: i32,
     map_size: f32,
+    zoom_step: f32,
     cursor_entity: Option<specs::Entity>,
     icon_mode: Option<specs::Entity>,
     icons_slot_cursor: Option<specs::Entity>,
@@ -49,36 +53,17 @@ pub struct GameScene {
     ilm_timer: f64,
     ilm_cooldown: f64,
     food_timer: f64,
-    total_food_text: Option<specs::Entity>,
-    total_food_sprite_key: Option<u64>,
-    current_total_food: i32,
-    money_text: Option<specs::Entity>,
-    money_sprite_key: Option<u64>,
-    current_money: i32,
-    object_hover_text: Option<specs::Entity>,
-    slot_tooltip_text: Option<specs::Entity>,
-    slot_tooltip_text_key: Option<u64>,
-    slot_tooltip_bg: Option<specs::Entity>,
-    slot_tooltip_bg_key: Option<u64>,
-    shoppers: Vec<ShopperNpc>,
-    shopper_timer: f64,
-    shopper_idx: usize,
-    exit_cooldown: f64,
     active: bool,
     active_entity: Option<specs::Entity>,
     settings: crate::ui::settings::Settings,
-    zoom_step: f32,
     inv_entity: Option<specs::Entity>,
     current_level: i32,
     level_states: HashMap<i32, LevelState>,
-    day_night_elapsed: f64,
-    time_text: Option<specs::Entity>,
-    time_text_key: Option<u64>,
-    current_time_string: String,
-    time_update_timer: f64,
-    info_panel: Option<specs::Entity>,
     config: crate::script::config::BalanceConfig,
     npc_script: Option<crate::script::npc::NpcScript>,
+    hud: GameHud,
+    shoppers: ShopperManager,
+    day_night: DayNightCycle,
 }
 
 impl GameScene {
@@ -87,8 +72,6 @@ impl GameScene {
         GameScene {
             loaded: false,
             loading: false,
-            loading_text: None,
-            loading_sprite_key: None,
             slots: Vec::new(),
             act_slot: 0,
             mode: 0,
@@ -108,51 +91,26 @@ impl GameScene {
             ilm_timer: 0.0,
             ilm_cooldown: 0.0,
             food_timer: 0.0,
-            total_food_text: None,
-            total_food_sprite_key: None,
-            current_total_food: -1,
-            money_text: None,
-            money_sprite_key: None,
-            current_money: -1,
-            object_hover_text: None,
-            slot_tooltip_text: None,
-            slot_tooltip_text_key: None,
-            slot_tooltip_bg: None,
-            slot_tooltip_bg_key: None,
-            shoppers: Vec::new(),
-            shopper_timer: 0.0,
-            shopper_idx: 0,
-            exit_cooldown: 0.0,
             active: true,
             active_entity: None,
             settings: crate::ui::settings::Settings::new(),
             inv_entity: None,
             current_level: 0,
             level_states: HashMap::new(),
-            day_night_elapsed: 0.0,
-            time_text: None,
-            time_text_key: None,
-            current_time_string: String::new(),
-            time_update_timer: 1.0,
-            info_panel: None,
-            config: config,
+            config,
             npc_script: Some(crate::script::npc::NpcScript::new()),
+            hud: GameHud::new(),
+            shoppers: ShopperManager::new(),
+            day_night: DayNightCycle::new(),
         }
     }
 
     fn show_loading(&mut self, ecs: &mut crate::EcsAdapter, text_renderer: &mut crate::ui::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) {
-        let entity = text_renderer.add_text(ecs, device, queue, "Loading...", 64.0, 0.0, 0.0, 4.0, 2.0, GRAY);
-        self.loading_text = Some(entity);
-        self.loading_sprite_key = Some(TextRenderer::sprite_cache_key("Loading...", 48.0, 2.0, GRAY));
+        self.hud.show_loading(ecs, text_renderer, device, queue);
     }
 
     fn hide_loading(&mut self, ecs: &mut crate::EcsAdapter) {
-        if let Some(entity) = self.loading_text.take() {
-            ecs.delete_entity(entity);
-        }
-        if let Some(key) = self.loading_sprite_key.take() {
-            ecs.sprite_cache.remove(&key);
-        }
+        self.hud.hide_loading(ecs);
     }
 
     fn setup_content(&mut self, ecs: &mut crate::EcsAdapter, text_renderer: &mut crate::ui::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) {
@@ -188,58 +146,8 @@ impl GameScene {
         self.icons_slot_cursor = Some(icons_slot_cursor);
         self.cursor_entity = Some(ecs.add_cursor(0.0, 0.0, CURSOR_TEX[0]));
 
-        let panel = ecs.add_ui_sized(5.75, 3.25, 1.2, 2.2, "tex/dev_tools/black.png", device, queue);
-        ecs.update_sprite_alpha(panel, 0.5);
-        self.info_panel = Some(panel);
-
+        self.hud.create_info_panel(ecs, device, queue);
         self.npc_walkable = crate::map::load_walkable_cells();
-    }
-
-    fn spawn_shopper(&mut self, ecs: &mut crate::EcsAdapter) {
-        let (all_racks, all_cassas, all_candies) = {
-            let tags = ecs.world.read_storage::<ObjectTag>();
-            let foods = ecs.world.read_storage::<FoodStorage>();
-            let transforms = ecs.world.read_storage::<Transform>();
-            let mut racks = Vec::new();
-            let mut cassas = Vec::new();
-            let mut candies = Vec::new();
-            for (tag, transform) in (&tags, &transforms).join() {
-                if tag.name == "cassa" {
-                    cassas.push(Node::new(transform.position[0] as i32, transform.position[1] as i32));
-                }
-            }
-            for (tag, food, transform) in (&tags, &foods, &transforms).join() {
-                if tag.name == "rack" && food.food_count > 0 {
-                    racks.push(Node::new(transform.position[0] as i32, transform.position[1] as i32 + 1));
-                }
-                if tag.name == "candies" && food.food_count > 0 {
-                    candies.push(Node::new(transform.position[0] as i32, transform.position[1] as i32));
-                }
-            }
-            (racks, cassas, candies)
-        };
-        if !all_racks.is_empty() && !all_cassas.is_empty() {
-            let seed = std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH).unwrap().subsec_nanos();
-            let rack = all_racks[(seed as usize) % all_racks.len()];
-            let cassa = all_cassas[((seed >> 16) as usize) % all_cassas.len()];
-            let candy_pos = if !all_candies.is_empty() {
-                Some(all_candies[((seed >> 8) as usize) % all_candies.len()])
-            } else {
-                None
-            };
-            let spawn_node = crate::map::shopper_spawn_point();
-            let tex_set = self.shopper_idx % 3;
-            self.shopper_idx += 1;
-            let (tex_idle, tex_walk_1, tex_walk_2) = match tex_set {
-                0 => (TEX_BOB_IDLE, TEX_BOB_WALK_1, TEX_BOB_WALK_2),
-                1 => (TEX_PLAYER_IDLE, TEX_PLAYER_WALK_1, TEX_PLAYER_WALK_2),
-                _ => (TEX_SASHA_IDLE, TEX_SASHA_WALK_1, TEX_SASHA_WALK_2),
-            };
-            if let Some(shopper) = ShopperNpc::spawn(ecs, &self.npc_walkable, spawn_node, rack, cassa, candy_pos, tex_idle, tex_walk_1, tex_walk_2) {
-                self.shoppers.push(shopper);
-            }
-        }
     }
 
     fn update_animations(&mut self, ecs: &mut crate::EcsAdapter, dt: f64) {
@@ -314,7 +222,6 @@ impl GameScene {
             }
         }
     }
-
 
     fn save_current_level(&mut self, ecs: &mut crate::EcsAdapter) {
         let mut objects = Vec::new();
@@ -447,19 +354,8 @@ impl GameScene {
         self.camera_offset_y = 0.0;
         self.map_size = 0.8;
 
+        self.hud.reset();
         self.rebuild_ui(ecs, text_renderer, device, queue);
-
-        self.total_food_text = None;
-        self.total_food_sprite_key = None;
-        self.current_total_food = -1;
-        self.money_text = None;
-        self.money_sprite_key = None;
-        self.current_money = -1;
-        self.time_text = None;
-        self.time_text_key = None;
-        self.current_time_string.clear();
-        self.info_panel = None;
-        self.time_update_timer = 1.0;
     }
 
     fn rebuild_ui(&mut self, ecs: &mut crate::EcsAdapter, text_renderer: &mut crate::ui::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) {
@@ -480,9 +376,7 @@ impl GameScene {
         self.inv_entity = Some(inv_entity);
         self.cursor_entity = Some(ecs.add_cursor(0.0, 0.0, CURSOR_TEX[self.mode as usize]));
 
-        let panel = ecs.add_ui_sized(5.75, 3.25, 1.2, 2.2, "tex/dev_tools/black.png", device, queue);
-        ecs.update_sprite_alpha(panel, 0.5);
-        self.info_panel = Some(panel);
+        self.hud.create_info_panel(ecs, device, queue);
 
         text_renderer.add_text(ecs, device, queue, "Alpha", FONT_SIZE_ALPHA, -5.5, 4.0, 1.0, 4.0, WHITE);
         self.npc_walkable = crate::map::load_walkable_cells();
@@ -638,8 +532,6 @@ impl Scene for GameScene {
     fn on_enter(&mut self, ecs: &mut crate::EcsAdapter, _text_renderer: &mut crate::ui::text_renderer::TextRenderer) {
         self.loaded = false;
         self.loading = true;
-        self.loading_text = None;
-        self.loading_sprite_key = None;
         self.slots = Vec::new();
         self.act_slot = 0;
         self.mode = 0;
@@ -659,30 +551,12 @@ impl Scene for GameScene {
         self.ilm_timer = 0.0;
         self.ilm_cooldown = 0.0;
         self.food_timer = 0.0;
-        self.total_food_text = None;
-        self.total_food_sprite_key = None;
-        self.current_total_food = -1;
-        self.money_text = None;
-        self.money_sprite_key = None;
-        self.current_money = -1;
-        self.object_hover_text = None;
-        self.slot_tooltip_text = None;
-        self.slot_tooltip_text_key = None;
-        self.slot_tooltip_bg = None;
-        self.slot_tooltip_bg_key = None;
-        self.shoppers.clear();
-        self.shopper_timer = 0.0;
-        self.shopper_idx = 0;
-        self.exit_cooldown = 0.0;
         self.active = true;
         self.active_entity = None;
         self.inv_entity = None;
-        self.day_night_elapsed = 0.0;
-        self.time_text = None;
-        self.time_text_key = None;
-        self.current_time_string.clear();
-        self.info_panel = None;
-        self.time_update_timer = 1.0;
+        self.hud.reset();
+        self.shoppers.clear();
+        self.day_night.reset();
         ecs.world.write_resource::<TotalFood>().0 = 0;
         ecs.world.write_resource::<BusyCassas>().0.clear();
     }
@@ -768,17 +642,7 @@ impl Scene for GameScene {
                         if let Some(entity) = self.active_entity {
                             ecs.update_sprite_texture(entity, tex);
                         }
-                        if !self.active {
-                            for shopper in &mut self.shoppers {
-                                shopper.set_exiting(true);
-                            }
-                        } else {
-                            for shopper in &mut self.shoppers {
-                                if !shopper.has_taken_food() {
-                                    shopper.set_exiting(false);
-                                }
-                            }
-                        }
+                        self.shoppers.set_active(self.active);
                     }
                     // --- Клик по mode ---
                     if (wx - ICON_MODE_X).abs() < TILE_HALF && (wy - SLOT_BAR_Y).abs() < TILE_HALF {
@@ -810,7 +674,7 @@ impl Scene for GameScene {
         let dt = (now - self.last_frame).as_secs_f64();
         self.last_frame = now;
 
-        self.day_night_elapsed += dt;
+        self.day_night.tick(dt);
 
         let aspect = window_size.0 / window_size.1;
         let vis_w = 2.0 * aspect / (SHADER_SCALE * self.map_size);
@@ -879,16 +743,8 @@ impl Scene for GameScene {
             }
             None
         });
-        if let Some((food, max, name)) = hovered_object {
-            let text = format!("{}: {}/{}", name, food, max);
-            if let Some(old_ent) = self.object_hover_text.take() {
-                ecs.delete_entity(old_ent);
-            }
-            let ent = text_renderer.add_text(ecs, device, queue, &text, 48.0, 0.0, -3.0, 2.0, 1.0, WHITE);
-            self.object_hover_text = Some(ent);
-        } else if let Some(ent) = self.object_hover_text.take() {
-            ecs.delete_entity(ent);
-        }
+        self.hud.update_hover(ecs, text_renderer, device, queue, hovered_object);
+
         // --- Tooltip для ячеек инвентаря ---
         let slot_tooltip = if self.inventory.mode {
             input.cursor().and_then(|(mx, my)| {
@@ -900,7 +756,7 @@ impl Scene for GameScene {
                     let items = self.inventory.items();
                     if item_idx < items.len() {
                         let name = items[item_idx];
-                        Some((name, SLOT_BAR_X + col as f32, INVENTORY_BASE_Y + row as f32 - 0.55))
+                        Some((name.to_string(), SLOT_BAR_X + col as f32, INVENTORY_BASE_Y + row as f32 - 0.55))
                     } else {
                         None
                     }
@@ -911,104 +767,16 @@ impl Scene for GameScene {
         } else {
             None
         };
-        if let Some((name, tx, ty)) = slot_tooltip {
-            if let Some(old) = self.slot_tooltip_text.take() {
-                ecs.delete_entity(old);
-            }
-            if let Some(old_key) = self.slot_tooltip_text_key.take() {
-                ecs.sprite_cache.remove(&old_key);
-            }
-            if let Some(old_bg) = self.slot_tooltip_bg.take() {
-                ecs.delete_entity(old_bg);
-            }
-            if let Some(old_key) = self.slot_tooltip_bg_key.take() {
-                ecs.sprite_cache.remove(&old_key);
-            }
-            let display_name = name.replace('_', " ");
-            let char_w = 0.14;
-            let text_w = (display_name.len() as f32).max(1.0) * char_w;
-            let (_, text_h) = text_renderer.text_world_size(&display_name, FONT_SIZE_LOGO, text_w, 4.0, WHITE);
-            let pad_x = 0.10;
-            let pad_y = 0.04;
-            let bg_w = text_w + pad_x * 2.0;
-            let bg_h = text_h + pad_y * 2.0;
-            let bg_ent = ecs.add_ui_sized(tx, ty, bg_w, bg_h, "tex/dev_tools/black.png", device, queue);
-            ecs.update_sprite_alpha(bg_ent, 0.5);
-            self.slot_tooltip_bg = Some(bg_ent);
-            let text_ent = text_renderer.add_text_fixed(ecs, device, queue, &display_name, FONT_SIZE_LOGO, tx, ty, text_w, text_h, 4.0, WHITE);
-            self.slot_tooltip_text = Some(text_ent);
-            let text_key = TextRenderer::sprite_cache_key(&display_name, FONT_SIZE_LOGO, 4.0, WHITE);
-            self.slot_tooltip_text_key = Some(text_key);
-            let bg_key = crate::util::sprite_cache_key("ui", &format!("tex/dev_tools/black.png@{bg_w:.2}x{bg_h:.2}"), [0, 0], [1, 1], 1.0);
-            self.slot_tooltip_bg_key = Some(bg_key);
-        } else {
-            if let Some(old) = self.slot_tooltip_text.take() {
-                ecs.delete_entity(old);
-            }
-            if let Some(old_key) = self.slot_tooltip_text_key.take() {
-                ecs.sprite_cache.remove(&old_key);
-            }
-            if let Some(old_bg) = self.slot_tooltip_bg.take() {
-                ecs.delete_entity(old_bg);
-            }
-            if let Some(old_key) = self.slot_tooltip_bg_key.take() {
-                ecs.sprite_cache.remove(&old_key);
-            }
-        }
-        {
-            let total = ecs.world.read_resource::<TotalFood>().0;
-            if total != self.current_total_food {
-                self.current_total_food = total;
-                if let Some(entity) = self.total_food_text.take() {
-                    ecs.delete_entity(entity);
-                }
-                if let Some(key) = self.total_food_sprite_key.take() {
-                    ecs.sprite_cache.remove(&key);
-                }
-                let text = format!("Food: {}", total);
-                let ent = text_renderer.add_text(ecs, device, queue, &text, 64.0, 5.75, 3.5, 1.0, 4.0, WHITE);
-                self.total_food_text = Some(ent);
-                self.total_food_sprite_key = Some(TextRenderer::sprite_cache_key(&text, 24.0, 1.0, GREEN));
-            }
-        }
-        {
-            let money = ecs.world.read_resource::<Money>().0;
-            if money != self.current_money {
-                self.current_money = money;
-                if let Some(entity) = self.money_text.take() {
-                    ecs.delete_entity(entity);
-                }
-                if let Some(key) = self.money_sprite_key.take() {
-                    ecs.sprite_cache.remove(&key);
-                }
-                let text = format!("Money: {}", money);
-                let ent = text_renderer.add_text(ecs, device, queue, &text, 64.0, 5.75, 3.0, 1.0, 4.0, WHITE);
-                self.money_text = Some(ent);
-                self.money_sprite_key = Some(TextRenderer::sprite_cache_key(&text, 24.0, 1.0, GREEN));
-            }
-        }
-        {
-            let cycle = self.config.day_cycle_secs;
-            let total_sec = self.day_night_elapsed % cycle;
-            let hours_f = total_sec / cycle * 24.0;
-            let hours = (hours_f as i32) % 24;
-            let minutes = ((hours_f - hours_f.floor()) * 60.0) as i32;
-            let time_str = format!("T:  {:02}:{:02}", hours, minutes);
-            self.time_update_timer += dt;
-            if time_str != self.current_time_string && self.time_update_timer >= 1.0 {
-                self.time_update_timer = 0.0;
-                self.current_time_string = time_str;
-                if let Some(entity) = self.time_text.take() {
-                    ecs.delete_entity(entity);
-                }
-                if let Some(key) = self.time_text_key.take() {
-                    ecs.sprite_cache.remove(&key);
-                }
-                let ent = text_renderer.add_text(ecs, device, queue, &self.current_time_string, 64.0, 5.75, 2.5, 1.0, 4.0, WHITE);
-                self.time_text = Some(ent);
-                self.time_text_key = Some(TextRenderer::sprite_cache_key(&self.current_time_string, 24.0, 1.0, GREEN));
-            }
-        }
+        self.hud.update_slot_tooltip(ecs, text_renderer, device, queue, slot_tooltip);
+
+        // --- Статистика (еда / деньги) ---
+        let total_food = ecs.world.read_resource::<TotalFood>().0;
+        let money = ecs.world.read_resource::<Money>().0;
+        self.hud.update_stats(ecs, text_renderer, device, queue, total_food, money);
+
+        // --- Время на часах ---
+        let time_str = self.day_night.time_string(&self.config);
+        self.hud.update_time(ecs, text_renderer, device, queue, &time_str, dt);
 
         if self.ilm_cooldown > 0.0 {
             self.ilm_cooldown -= dt;
@@ -1022,29 +790,7 @@ impl Scene for GameScene {
         }
 
         // --- Shopper NPCs ---
-        self.shopper_timer += dt;
-        if self.exit_cooldown > 0.0 {
-            self.exit_cooldown -= dt;
-            if self.exit_cooldown <= 0.0 && self.active && self.shoppers.len() < self.config.max_shoppers {
-                self.shopper_timer = 0.0;
-                self.spawn_shopper(ecs);
-            }
-        }
-        if self.active && self.shopper_timer >= self.config.shopper_spawn_interval && self.shoppers.len() < self.config.max_shoppers && self.exit_cooldown <= 0.0 {
-            self.shopper_timer = 0.0;
-            self.spawn_shopper(ecs);
-        }
-        let prev_len = self.shoppers.len();
-        self.shoppers.retain_mut(|shopper| {
-            let done = shopper.update(ecs, dt, &self.npc_walkable, self.npc_script.as_ref());
-            if done {
-                shopper.despawn(ecs);
-            }
-            !done
-        });
-        if self.shoppers.len() < prev_len {
-            self.exit_cooldown = self.config.shopper_spawn_cooldown;
-        }
+        self.shoppers.tick(ecs, dt, &self.npc_walkable, self.active, &self.config, self.npc_script.as_ref());
 
         self.update_animations(ecs, dt);
 
@@ -1064,16 +810,6 @@ impl Scene for GameScene {
     }
 
     fn night_factor(&self) -> f32 {
-        let cycle_sec = self.day_night_elapsed % self.config.day_cycle_secs;
-        let fade = self.config.fade_secs;
-        if cycle_sec < self.config.day_secs {
-            0.0
-        } else if cycle_sec < self.config.night_start_secs {
-            ((cycle_sec - self.config.day_secs) / fade) as f32
-        } else if cycle_sec < self.config.night_secs {
-            1.0
-        } else {
-            (1.0 - (cycle_sec - self.config.night_secs) / fade) as f32
-        }
+        self.day_night.factor(&self.config)
     }
 }

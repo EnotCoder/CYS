@@ -33,6 +33,7 @@ impl SceneManager {
     }
 
     pub fn switch_to(&mut self, name: &str, text_renderer: &mut crate::ui::text_renderer::TextRenderer) {
+        crate::audio::stop_music();
         self.clear_ecs_world();
         if let Some(scene) = self.scenes.get_mut(name) {
             scene.on_enter(&mut self.ecs, text_renderer);

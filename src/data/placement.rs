@@ -170,6 +170,8 @@ pub fn add(ecs: &mut EcsAdapter, slots: &mut Vec<Slot>, act_slot: i32, gx: i32, 
 
     ecs.clear_cursor_preview();
 
+    crate::audio::play("place");
+
     let group_id = ecs.add_group_object(
         gx, gy,
         active_slot.width, active_slot.height,
@@ -229,6 +231,7 @@ pub fn remove(ecs: &mut EcsAdapter, gx: i32, gy: i32) -> bool {
             }
         }
         ecs.delete_group(group_id);
+        crate::audio::play("remove");
         return true;
     }
     let file_col = gx + 21;

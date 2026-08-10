@@ -32,6 +32,7 @@ pub fn try_interact(ecs: &mut EcsAdapter, gx: i32, gy: i32) -> i32 {
                             });
                             ecs.world.write_resource::<TotalFood>().0 += count;
                             ecs.update_object_textures();
+                            crate::audio::play("sell");
                         }
                     }
                 } else if name == "rack" {
@@ -49,6 +50,7 @@ pub fn try_interact(ecs: &mut EcsAdapter, gx: i32, gy: i32) -> i32 {
                                     s.food_count += take;
                                 });
                                 ecs.update_object_textures();
+                                crate::audio::play("coin");
                             }
                         }
                     }

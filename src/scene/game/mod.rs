@@ -559,6 +559,7 @@ impl Scene for GameScene {
         self.day_night.reset();
         ecs.world.write_resource::<TotalFood>().0 = 0;
         ecs.world.write_resource::<BusyCassas>().0.clear();
+        crate::audio::play_music("music");
     }
 
     fn update(&mut self, ecs: &mut crate::EcsAdapter, input: &winit_input_helper::WinitInputHelper, window_size: (f32, f32), text_renderer: &mut crate::ui::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) -> SceneAction {

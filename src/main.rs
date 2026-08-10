@@ -4,6 +4,7 @@ use winit::event_loop::{ActiveEventLoop, EventLoop};
 use winit::window::{Window, WindowId};
 use winit::dpi::PhysicalSize;
 mod api_components;
+mod audio;
 mod inventory;
 mod input;
 mod ecs;
@@ -193,6 +194,7 @@ impl ApplicationHandler for App {
 }
 
 fn main() {
+    audio::init();
     let event_loop = EventLoop::new().unwrap();
 
     let mut app = App {

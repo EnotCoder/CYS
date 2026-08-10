@@ -3,12 +3,15 @@ use wgpu::util::DeviceExt;
 use crate::texture::Texture;
 use crate::Vertex;
 
+// Описание расположения спрайтовой текстуры и сэмплера в шейдере.
+// Layout один на всё приложение (OnceLock не создаёт повторные bind group layout).
 fn shared_texture_layout(device: &wgpu::Device) -> &wgpu::BindGroupLayout {
     static LAYOUT: OnceLock<wgpu::BindGroupLayout> = OnceLock::new();
     LAYOUT.get_or_init(|| {
         device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: Some("Texture Bind Group Layout"),
             entries: &[
+                // Текстура (как сэмплируемый float), видима только из фрагментного шейдера.
                 wgpu::BindGroupLayoutEntry {
                     binding: 0,
                     visibility: wgpu::ShaderStages::FRAGMENT,
@@ -19,6 +22,7 @@ fn shared_texture_layout(device: &wgpu::Device) -> &wgpu::BindGroupLayout {
                     },
                     count: None,
                 },
+                // Сэмплер с фильтрацией (для билинейной интерполяции).
                 wgpu::BindGroupLayoutEntry {
                     binding: 1,
                     visibility: wgpu::ShaderStages::FRAGMENT,
@@ -30,16 +34,23 @@ fn shared_texture_layout(device: &wgpu::Device) -> &wgpu::BindGroupLayout {
     })
 }
 
+// Готовый к отрисовке спрайт: текстура + quad-буферы. Кэшируется в EcsAdapter
+// по ключу sprite_cache_key, поэтому не создаётся на каждый кадр заново.
 pub struct Sprite {
     pub texture_bind_group: wgpu::BindGroup,
     pub vertex_buffer: wgpu::Buffer,
     pub index_buffer: wgpu::Buffer,
     pub index_count: u32,
     pub index_format: wgpu::IndexFormat,
+    // Сырые данные uniform-шейдера последнего кадра — для пропуска обновления,
+    // если состояние не изменилось (оптимизация в системах рендера).
     pub last_uniform_raw: Option<[u8; 32]>,
 }
 
 impl Sprite {
+    // Создаёт quad, вырезающий один кадр из текстурного атласа.
+    // Размер вершин = scale (половина стороны), UV-координаты считаются
+    // как tile_w/tile_h от левого верхнего угла выбранного кадра.
     pub fn new(
         device: &wgpu::Device,
         queue: &wgpu::Queue,
@@ -54,9 +65,12 @@ impl Sprite {
         let atlas_width = texture_count[0] as f32;
         let atlas_height = texture_count[1] as f32;
         
+        // Размер одного кадра в нормированных UV-координатах.
         let tile_w = 1.0 / atlas_width;
         let tile_h = 1.0 / atlas_height;
         
+        // Небольшой отступ (TEXEL_EPSILON) внутрь кадра, чтобы соседние
+        // кадры атласа не "протекали" через билинейную фильтрацию.
         let eps = crate::constants::TEXEL_EPSILON;
         let left   = sprite_x as f32 * tile_w + eps;
         let right  = (sprite_x as f32 + 1.0) * tile_w - eps;
@@ -74,6 +88,7 @@ impl Sprite {
         let index_count = indices.len() as u32;
 
         let texture = Texture::from_path(device, queue, texture_path, "sprite_texture");
+        // Привязываем загруженную текстуру и её сэмплер к общему layout.
         let texture_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("Texture Bind Group"),
             layout: shared_texture_layout(device),
@@ -111,6 +126,8 @@ impl Sprite {
         }
     }
 
+    // Создаёт спрайт из готовой текстуры (например, отрендеренного текста):
+    // quad растягивается под явный размер world_w × world_h, а не под кадр атласа.
     pub fn from_texture(
         device: &wgpu::Device,
         texture: &Texture,
@@ -120,6 +137,7 @@ impl Sprite {
     ) -> Self {
         let hw = world_w / 2.0;
         let hh = world_h / 2.0;
+        // UV растягиваются на всю текстуру с теми же отступами (режим full-frame).
         let eps = crate::constants::TEXEL_EPSILON;
         let inv_eps = 1.0 - eps;
         let vertices: Vec<Vertex> = vec![

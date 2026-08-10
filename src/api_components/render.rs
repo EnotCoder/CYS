@@ -32,6 +32,8 @@ pub fn render(
     dynamic_bind_group: &wgpu::BindGroup,
     dynamic_alignment: u64,
 ) {
+    // Получаем текущий кадр поверхности. Suboptimal тоже показываем —
+    // это лишь сигнал о том, что размер окна скоро изменится.
     let current = surface.get_current_texture();
     let frame = match current {
         wgpu::CurrentSurfaceTexture::Success(surface_texture) => surface_texture,
@@ -40,15 +42,23 @@ pub fn render(
     };
     let view = frame.texture.create_view(&wgpu::TextureViewDescriptor::default());
 
+    // CommandEncoder накапливает все команды кадра, которые потом
+    // одним куском отправляются в очередь (queue.submit).
     let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
         label: Some("Render Encoder"),
     });
 
+    // buf_offset — позиция в dynamic_uniform_buffer, куда пишем uniform'ы.
+    // Все вызовы render_group делят один буфер, поэтому счётчик сквозной.
     let mut buf_offset: u64 = 0;
+
+    // Слой карты: первый проход, чистит экран и depth buffer (clear=true).
     render_group(device, queue, render_pipeline, map_sprites, depth_view, sprite_cache,
         &mut encoder, &view, size_bind_group, "map", true,
         dynamic_uniform_buffer, dynamic_bind_group, dynamic_alignment, &mut buf_offset);
 
+    // Прозрачные слои (carpet/decor/npc/cursor) объединяем в один массив,
+    // чтобы рисовать их одним проходом и одним батчем записи uniform'ов.
     let transparent_count = carpet_sprites.len() + decor_sprites.len() + npc_sprites.len() + cursor_sprites.len();
     if transparent_count > 0 {
         let mut transparent = Vec::with_capacity(transparent_count);
@@ -61,10 +71,12 @@ pub fn render(
             dynamic_uniform_buffer, dynamic_bind_group, dynamic_alignment, &mut buf_offset);
     }
 
+    // UI рисуется последним поверх всего (z=3.0), со своим bind group.
     render_group(device, queue, transparent_pipeline, ui_sprites, depth_view, sprite_cache,
         &mut encoder, &view, ui_bind_group, "ui", false,
         dynamic_uniform_buffer, dynamic_bind_group, dynamic_alignment, &mut buf_offset);
 
+    // Отправляем все команды кадра в очередь и показываем результат на экране.
     queue.submit(std::iter::once(encoder.finish()));
     queue.present(frame);
 }
@@ -91,10 +103,13 @@ fn render_group(
     dynamic_alignment: u64,
     buf_offset: &mut u64,
 ) {
+    // Пустую группу пропускаем — не создаём лишний render pass.
     if sprites.is_empty() {
         return;
     }
 
+    // Первый проход (карта) очищает и цвет и глубину,
+    // остальные — дописывают поверх уже нарисованного (Load).
     let color_load = if clear_color {
         wgpu::LoadOp::Clear(wgpu::Color { r: 0.0, g: 0.0, b: 0.0, a: 1.0 })
     } else {
@@ -106,6 +121,7 @@ fn render_group(
         wgpu::LoadOp::Load
     };
 
+    // Начинаем render pass: цветовой attachment (экран) + depth attachment.
     let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
         label: Some("Render Pass"),
         color_attachments: &[Some(wgpu::RenderPassColorAttachment {
@@ -125,6 +141,9 @@ fn render_group(
     });
     render_pass.set_pipeline(pipeline);
 
+    // Первый проход по спрайтам: достаём/загружаем текстуры в кэш.
+    // key — хэш из пути к текстуре + кадра + масштаба; если такой спрайт
+    // уже создавался — берём из кэша и не грузим текстуру повторно.
     let mut keys: Vec<u64> = Vec::with_capacity(sprites.len());
     for data in sprites {
         let key = util::sprite_cache_key(
@@ -144,6 +163,9 @@ fn render_group(
     }
 
     // Build flat uniforms array: sprites.len() * alignment bytes
+    // Собираем __все__ uniform'ы группы в один плоский массив байтов.
+    // Каждый блок (Uniforms) дополняем нулями до кратности alignment,
+    // чтобы динамический offset указывал ровно на начало следующего блока.
     let uniform_size = std::mem::size_of::<Uniforms>();
     let write_offset = *buf_offset;
     let mut uniforms_raw: Vec<u8> = Vec::with_capacity(sprites.len() * dynamic_alignment as usize);
@@ -151,10 +173,14 @@ fn render_group(
         let sprite = sprite_cache.get_mut(key).expect("Sprite must exist in cache");
 
         let uniforms = Uniforms {
+            // translation.w несёт альфу (прозрачность) спрайта.
             translation: [data.position[0], data.position[1], data.position[2], data.alpha],
+            // rotation.w — резервный флаг, остаётся 1.0.
             rotation: [data.rotation[0], data.rotation[1], data.rotation[2], 1.0],
         };
         let raw: &[u8] = bytemuck::bytes_of(&uniforms);
+        // Обновляем кэш последних uniform'ов спрайта.
+        // (позволяет later этапам понять, изменились данные или нет).
         let needs_update = match sprite.last_uniform_raw {
             None => true,
             Some(last) => &last[..] != raw,
@@ -164,18 +190,24 @@ fn render_group(
         }
 
         uniforms_raw.extend_from_slice(raw);
+        // Дополняем до alignment нулями (padded slot).
         let pad = dynamic_alignment as usize - uniform_size;
         uniforms_raw.extend(std::iter::repeat(0u8).take(pad));
         let dynamic_offset = write_offset + i as u64 * dynamic_alignment;
 
+        // Привязываем ресурсы для текущего спрайта:
+        // group 0 — его uniform (по dynamic offset), 1 — текстура, 2 — Size/UI.
         render_pass.set_bind_group(0, dynamic_bind_group, &[dynamic_offset as u32]);
         render_pass.set_bind_group(1, &sprite.texture_bind_group, &[]);
         render_pass.set_bind_group(2, bind_group, &[]);
         render_pass.set_vertex_buffer(0, sprite.vertex_buffer.slice(..));
         render_pass.set_index_buffer(sprite.index_buffer.slice(..), sprite.index_format);
+        // Рисуем один квад спрайта (0..index_count вершин, 1 экземпляр).
         render_pass.draw_indexed(0..sprite.index_count, 0, 0..1);
     }
 
+    // Записываем собранный массив uniform'ов одним write_buffer
+    // (одна передача вместо N отдельных — и меньше CPU-нагрузки).
     if !uniforms_raw.is_empty() {
         queue.write_buffer(dynamic_uniform_buffer, write_offset, &uniforms_raw);
         *buf_offset = write_offset + uniforms_raw.len() as u64;

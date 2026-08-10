@@ -1,3 +1,8 @@
+// ========================================================================
+//  Система UI: создание/уничтожение визуальных элементов (Panel, Button,
+//  Checkbox, Slider) и обработка кликов по ним.
+// ========================================================================
+
 use crate::EcsAdapter;
 use crate::ui::text_renderer::TextRenderer;
 use crate::constants::*;
@@ -8,14 +13,17 @@ use super::components::{Panel, Button, Checkbox, Slider};
 //  Утилиты для проверки кликов (UI: map_size=1.0, cam_x=0, cam_y=0)
 // ========================================================================
 
+/// Переводит координаты курсора из NDC в мировые координаты UI.
 pub fn ndc_to_ui(mx: f32, my: f32, window_size: (f32, f32)) -> (f32, f32) {
     crate::util::ndc_to_world(mx, my, window_size, 1.0, 0.0, 0.0)
 }
 
+/// Проверка попадания точки внутрь прямоугольника с центром (cx, cy).
 pub fn is_inside(wx: f32, wy: f32, cx: f32, cy: f32, half_w: f32, half_h: f32) -> bool {
     (wx - cx).abs() < half_w && (wy - cy).abs() < half_h
 }
 
+/// true, если левая кнопка мыши нажата и клик пришёлся в заданный прямоугольник.
 pub fn is_clicked(input: &WinitInputHelper, window_size: (f32, f32), cx: f32, cy: f32, half_w: f32, half_h: f32) -> bool {
     if !input.mouse_pressed(winit::event::MouseButton::Left) {
         return false;
@@ -29,6 +37,8 @@ pub fn is_clicked(input: &WinitInputHelper, window_size: (f32, f32), cx: f32, cy
 //  Panel
 // ========================================================================
 
+/// Ставит полупрозрачную прямоугольную подложку с заданными размерами.
+/// Перед созданием старая подложка уничтожается.
 pub fn create_panel(ecs: &mut EcsAdapter, device: &wgpu::Device, queue: &wgpu::Queue, panel: &mut Panel) {
     destroy_panel(ecs, panel);
     let ent = ecs.add_ui_sized(panel.x, panel.y, panel.w, panel.h, "tex/dev_tools/black.png", device, queue);
@@ -36,6 +46,7 @@ pub fn create_panel(ecs: &mut EcsAdapter, device: &wgpu::Device, queue: &wgpu::Q
     panel.entity = Some(ent);
 }
 
+/// Удаляет спрайт подложки из ECS.
 pub fn destroy_panel(ecs: &mut EcsAdapter, panel: &mut Panel) {
     if let Some(ent) = panel.entity.take() {
         ecs.delete_entity(ent);
@@ -46,6 +57,7 @@ pub fn destroy_panel(ecs: &mut EcsAdapter, panel: &mut Panel) {
 //  Button
 // ========================================================================
 
+/// Создаёт фон кнопки и текст подписи; старые сущности удаляются.
 pub fn create_button(ecs: &mut EcsAdapter, text_renderer: &mut TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue, btn: &mut Button) {
     destroy_button(ecs, btn);
     let bg = ecs.add_ui_sized(btn.x, btn.y, btn.w, btn.h, "tex/dev_tools/black.png", device, queue);
@@ -54,6 +66,7 @@ pub fn create_button(ecs: &mut EcsAdapter, text_renderer: &mut TextRenderer, dev
     btn.text = Some(label);
 }
 
+/// Удаляет фон и текст кнопки из ECS.
 pub fn destroy_button(ecs: &mut EcsAdapter, btn: &mut Button) {
     if let Some(ent) = btn.bg.take() {
         ecs.delete_entity(ent);
@@ -63,6 +76,7 @@ pub fn destroy_button(ecs: &mut EcsAdapter, btn: &mut Button) {
     }
 }
 
+/// true, если клик попал в область кнопки.
 pub fn button_clicked(btn: &Button, input: &WinitInputHelper, window_size: (f32, f32)) -> bool {
     is_clicked(input, window_size, btn.x, btn.y, btn.w / 2.0, btn.h / 2.0)
 }
@@ -71,10 +85,13 @@ pub fn button_clicked(btn: &Button, input: &WinitInputHelper, window_size: (f32,
 //  Checkbox
 // ========================================================================
 
+// Геометрия чекбокса: размер галочки, ширина подписи и зазор между ними.
 const CHECKBOX_BOX_SIZE: f32 = 0.4;
 const CHECKBOX_TEXT_WIDTH: f32 = 2.5;
 const CHECKBOX_TEXT_GAP: f32 = 0.08;
 
+/// Создаёт галочку и подпись; текстура галочки зависит от состояния checked.
+/// Ключи спрайтов сохраняются, чтобы корректно очищать кэш.
 pub fn create_checkbox(ecs: &mut EcsAdapter, text_renderer: &mut TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue, checkbox: &mut Checkbox) {
     destroy_checkbox(ecs, checkbox);
     let tex = if checkbox.checked { "tex/ui/checkbox/true.png" } else { "tex/ui/checkbox/false.png" };
@@ -89,6 +106,7 @@ pub fn create_checkbox(ecs: &mut EcsAdapter, text_renderer: &mut TextRenderer, d
     checkbox.label_sprite_key = Some(label_key);
 }
 
+/// Удаляет сущности и ключи из кэша спрайтов.
 pub fn destroy_checkbox(ecs: &mut EcsAdapter, checkbox: &mut Checkbox) {
     if let Some(ent) = checkbox.box_entity.take() {
         ecs.delete_entity(ent);
@@ -109,6 +127,7 @@ pub fn refresh_checkbox(ecs: &mut EcsAdapter, text_renderer: &mut TextRenderer, 
     create_checkbox(ecs, text_renderer, device, queue, checkbox);
 }
 
+/// true, если клик пришёлся по галочке (небольшой запас вокруг неё).
 pub fn checkbox_clicked(checkbox: &Checkbox, input: &WinitInputHelper, window_size: (f32, f32)) -> bool {
     let half = CHECKBOX_BOX_SIZE / 2.0 + 0.1;
     is_clicked(input, window_size, checkbox.x, checkbox.y, half, half)
@@ -118,11 +137,13 @@ pub fn checkbox_clicked(checkbox: &Checkbox, input: &WinitInputHelper, window_si
 //  Slider (горизонтальный)
 // ========================================================================
 
+// Геометрия слайдера: толщина дорожки, размер ползунка, ширина подписи.
 const SLIDER_TRACK_THICKNESS: f32 = 0.12;
 const SLIDER_THUMB_SIZE: f32 = 0.35;
 const SLIDER_TEXT_WIDTH: f32 = 2.5;
 const SLIDER_LABEL_Y_OFFSET: f32 = 0.3;
 
+/// X-координата центра ползунка по текущему значению (линейная интерполяция).
 fn slider_thumb_x(slider: &Slider) -> f32 {
     let t = (slider.value - slider.min) / (slider.max - slider.min);
     let start = slider.x - slider.width / 2.0 + SLIDER_THUMB_SIZE / 2.0;
@@ -130,6 +151,7 @@ fn slider_thumb_x(slider: &Slider) -> f32 {
     start + (end - start) * t
 }
 
+/// Создаёт дорожку, ползунок и подпись слайдера.
 pub fn create_slider(ecs: &mut EcsAdapter, text_renderer: &mut TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue, slider: &mut Slider) {
     destroy_slider(ecs, slider);
 
@@ -147,6 +169,7 @@ pub fn create_slider(ecs: &mut EcsAdapter, text_renderer: &mut TextRenderer, dev
     slider.label_sprite_key = Some(label_key);
 }
 
+/// Удаляет дорожку, ползунок, подпись и кэш-ключ слайдера.
 pub fn destroy_slider(ecs: &mut EcsAdapter, slider: &mut Slider) {
     if let Some(ent) = slider.track.take() {
         ecs.delete_entity(ent);
@@ -163,6 +186,7 @@ pub fn destroy_slider(ecs: &mut EcsAdapter, slider: &mut Slider) {
 }
 
 /// Возвращает true, если значение должно обновиться (drag активен)
+/// Захват начинается по клику в области дорожки/ползунка.
 pub fn slider_drag(slider: &mut Slider, input: &WinitInputHelper, window_size: (f32, f32)) -> bool {
     let held = input.mouse_held(winit::event::MouseButton::Left);
     if !held {

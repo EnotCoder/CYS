@@ -1,6 +1,12 @@
+// ========================================================================
+//  Баланс игры (BalanceConfig): чтение scripts/config.lua через Lua.
+//  Если файл отсутствует или повреждён — используются значения по умолчанию.
+// ========================================================================
+
 use std::path::Path;
 use mlua::{Lua, Value};
 
+/// Путь к файлу баланса относительно корня проекта.
 const CONFIG_PATH: &str = "scripts/config.lua";
 
 /// Баланс игры, загружается один раз при старте из scripts/config.lua.
@@ -42,8 +48,10 @@ pub struct BalanceConfig {
 }
 
 impl BalanceConfig {
+    /// Загружает баланс из scripts/config.lua; при любой ошибке возвращает дефолты.
     pub fn load() -> Self {
         let mut cfg = BalanceConfig::default();
+        // Если файла баланса нет — игра работает на дефолтных значениях.
         if !Path::new(CONFIG_PATH).exists() {
             eprintln!("[config] файл {CONFIG_PATH} не найден — используются дефолты");
             return cfg;
@@ -55,11 +63,13 @@ impl BalanceConfig {
                 return cfg;
             }
         };
+        // Выполняем скрипт: он объявляет глобальные переменные с настройками.
         let lua = Lua::new();
         if let Err(e) = lua.load(&source).exec() {
             eprintln!("[config] ошибка выполнения {CONFIG_PATH}: {e} — дефолты");
             return cfg;
         }
+        // Вспомогательный захват: читает глобал по имени, при ошибке — Nil.
         let get = |key: &str| -> Value {
             match lua.globals().get::<Value>(key) {
                 Ok(v) => v,
@@ -128,6 +138,7 @@ impl BalanceConfig {
     }
 }
 
+/// Достаёт число из Lua-значения (целое или дробное); иначе — дефолт.
 fn get_f64(v: Value, default: f64) -> f64 {
     match v {
         Value::Integer(i) => i as f64,
@@ -136,6 +147,7 @@ fn get_f64(v: Value, default: f64) -> f64 {
     }
 }
 
+/// Достаёт целое из Lua-значения; иначе — дефолт.
 fn get_i64(v: Value, default: i64) -> i64 {
     match v {
         Value::Integer(i) => i,

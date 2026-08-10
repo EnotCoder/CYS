@@ -7,42 +7,42 @@
 
 CONFIG = {
     -- === Спавн покупателей ===
-    shopper_spawn_interval = 3.0,
-    shopper_spawn_cooldown = 2.0,
-    max_shoppers = 15,
+    shopper_spawn_interval = 3.0,  -- секунды между появлениями новых покупателей
+    shopper_spawn_cooldown = 2.0,  -- пауза после ухода одного, чтобы не копилась толпа
+    max_shoppers = 15,             -- лимит одновременных покупателей в магазине
 
     -- === Реген еды в box ===
-    food_regen_tick = 1.0,
-    food_regen_amount = 1,
+    food_regen_tick = 1.0,    -- как часто коробка пополняется едой (сек)
+    food_regen_amount = 1,    -- сколько еды добавляется за каждый тик
 
     -- === Цикл день/ночь ===
-    day_cycle_secs = 120.0,
-    day_secs = 55.0,
-    night_start_secs = 60.0,
-    night_secs = 115.0,
-    fade_secs = 5.0,
+    day_cycle_secs = 120.0,   -- полная длительность цикла день+ночь (сек)
+    day_secs = 55.0,          -- момент начала ночи (сек от начала цикла)
+    night_start_secs = 60.0,  -- с какой секунды начинается затемнение
+    night_secs = 115.0,       -- момент конца ночи (возврат к дню)
+    fade_secs = 5.0,          -- длительность плавного перехода день↔ночь
 
     -- === Движение/анимация NPC ===
-    npc_speed = 3.0,
-    walk_anim_interval = 0.3,
-    npc_fade_speed = 2.0,
-    spawn_x = 0,
-    spawn_y = -3,
+    npc_speed = 3.0,             -- скорость ходьбы покупателя (клеток/сек)
+    walk_anim_interval = 0.3,    -- интервал смены кадров спрайта при ходьбе
+    npc_fade_speed = 2.0,        -- скорость затухания появления/исчезновения
+    spawn_x = 0,                 -- координата X точки спавна и выхода
+    spawn_y = -3,                -- координата Y точки спавна и выхода
 
     -- === Покупатель (ранее локальные константы npc.lua) ===
-    cassa_wait_secs = 1.0,
-    candy_wait_secs = 3.0,
-    money_at_cassa = 5,
-    money_at_candy = 1,
-    candy_chance = 0.2,
+    cassa_wait_secs = 1.0,  -- сколько покупатель стоит у кассы (оплата)
+    candy_wait_secs = 3.0,  -- сколько стоит у конфет, оплачивая их
+    money_at_cassa = 5,     -- доход за купленную на кассе еду (монет)
+    money_at_candy = 1,     -- доход за конфеты (монет)
+    candy_chance = 0.2,     -- вероятность, что после кассы зайдёт за конфетами
 
     -- === Вместимости хранилищ ===
-    max_food_box = 20,
-    max_food_rack = 15,
-    max_food_candies = 10,
-    candies_start_food = 10,
+    max_food_box = 20,        -- сколько еды вмещает коробка
+    max_food_rack = 15,       -- сколько еды вмещает стеллаж
+    max_food_candies = 10,    -- запас конфет в витрине
+    candies_start_food = 10,  -- сколько конфет лежит изначально при установке
 
     -- === Пороги смены текстур еды ===
-    box_tex_threshold_1 = 8,
-    box_tex_threshold_2 = 12,
+    box_tex_threshold_1 = 8,  -- при каком остатке в коробке переключить текстуру (мало)
+    box_tex_threshold_2 = 12, -- при каком остатке в коробке переключить текстуру (средне)
 }

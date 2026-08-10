@@ -6,6 +6,10 @@ use crate::GroupComponent;
 use super::SpriteRenderData;
 
 impl super::EcsAdapter {
+    // Собирает все спрайты мира и раскладывает их по шести слоям рендера.
+    // Возвращает кортеж векторов (карта, ковры, декор, NPC, курсор, UI).
+    // `visible_bounds` (l, r, b, t) для карты/декора/NPC включает отсечение
+    // по экрану — экономия на запредельных объектах.
     pub fn get_sprites_by_layer(
         &self,
         visible_bounds: Option<(f32, f32, f32, f32)>,
@@ -22,6 +26,7 @@ impl super::EcsAdapter {
         let rotations = self.world.read_storage::<Rotation>();
 
         let margin = 2.0;
+        // Векторы заранее резервируются под типичное число объектов на слой.
         let mut map_sprites = Vec::with_capacity(100);
         let mut carpet_sprites = Vec::with_capacity(20);
         let mut decor_sprites = Vec::with_capacity(20);
@@ -29,6 +34,7 @@ impl super::EcsAdapter {
         let mut cursor_sprites = Vec::with_capacity(1);
         let mut ui_sprites = Vec::with_capacity(10);
 
+        // Обход всех сущностей; `rotations.maybe()` — rotation опционален.
         for (transform, sprite, rotation_opt) in (&transforms, &sprites, rotations.maybe()).join() {
             let data = SpriteRenderData {
                 position: transform.position,
@@ -40,6 +46,8 @@ impl super::EcsAdapter {
                 alpha: sprite.alpha,
             };
 
+            // Уровневые сущности (не UI/курсор) отсекаются по границам экрана:
+            // невидимые объекты не попадают в список отрисовки.
             let z = transform.position[2];
             let should_cull = z == crate::constants::Z_MAP
                 || z == crate::constants::Z_CARPET
@@ -54,6 +62,7 @@ impl super::EcsAdapter {
                     }
                 }
             }
+            // Распределение по слоям согласно Z-константам (см. AGENTS.md).
             if z == crate::constants::Z_MAP {
                 map_sprites.push(data);
             } else if z == crate::constants::Z_CARPET {
@@ -72,9 +81,12 @@ impl super::EcsAdapter {
         (map_sprites, carpet_sprites, decor_sprites, npc_sprites, cursor_sprites, ui_sprites)
     }
 
+    // Обновляет текстуры заполненных объектов (box/rack) по количеству еды.
+    // Пороги из BalanceConfig: box меняет кадр на tiers, rack — пусто/полно.
     pub fn update_object_textures(&mut self) {
         let cfg = self.world.read_resource::<crate::script::config::BalanceConfig>();
         let (t1, t2) = (cfg.box_tex_threshold_1, cfg.box_tex_threshold_2);
+        // Накопляем обновления по группам, чтобы не писать в storage во время чтения.
         let mut updates: Vec<(u32, Arc<str>)> = Vec::new();
         {
             let tags = self.world.read_storage::<ObjectTag>();
@@ -82,6 +94,7 @@ impl super::EcsAdapter {
             let groups = self.world.read_storage::<GroupComponent>();
             for (tag, food, group) in (&tags, &foods, &groups).join() {
                 let tex: Arc<str> = if tag.name == "box" {
+                    // Три стадии наполнения коробки: пусто / наполовину / полная.
                     if food.food_count < t1 {
                         Arc::from("tex/decor/regular/box/box_0.png")
                     } else if food.food_count < t2 {
@@ -90,6 +103,7 @@ impl super::EcsAdapter {
                         Arc::from("tex/decor/regular/box/box_2.png")
                     }
                 } else if tag.name == "rack" {
+                    // Стеллаж: либо пустой, либо заполненный.
                     if food.food_count == 0 {
                         Arc::from("tex/decor/regular/rack/rack_0.png")
                     } else {
@@ -101,6 +115,7 @@ impl super::EcsAdapter {
                 updates.push((group.group_id, tex));
             }
         }
+        // Применяем новый путь текстуры ко всем сущностям каждой группы.
         let group_info = self.world.read_resource::<crate::GroupInfoResource>();
         let mut sprites = self.world.write_storage::<SpriteComponent>();
         for (gid, tex) in &updates {
@@ -114,10 +129,13 @@ impl super::EcsAdapter {
         }
     }
 
+    // Выбирает текстуру забора по соседям: имя файла кодирует
+    // наличие заборов сверху/снизу/слева/справа (например fence_1_0_1_0.png).
     pub fn update_fence_textures(&mut self) {
         use std::path::Path;
         let transforms = self.world.read_storage::<Transform>();
         let fences = self.world.read_storage::<FenceComponent>();
+        // Множество всех клеток с заборами для быстрой проверки соседства.
         let positions: HashSet<(i32, i32)> = (&fences, &transforms)
             .join()
             .map(|(_, t)| (t.position[0] as i32, t.position[1] as i32))
@@ -130,6 +148,7 @@ impl super::EcsAdapter {
             let left = positions.contains(&(x - 1, y));
             let up = positions.contains(&(x, y + 1));
             let down = positions.contains(&(x, y - 1));
+            // Разные наборы текстур у уличного и обычного заборов.
             let (dir, fallback_arc) = if fence.name == "street_fence" {
                 ("tex/decor/outdoor/street_fence/street_fence", Arc::from("tex/decor/outdoor/street_fence/street_fence_0_0_0_0.png"))
             } else {

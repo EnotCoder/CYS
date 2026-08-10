@@ -6,11 +6,17 @@ use crate::constants::SLOT_COUNT;
 //  Slot & Object — предметы инвентаря
 // ========================================================================
 
+// Слот активной панели инструментов: ссылается на объект и хранит,
+// выбран ли он сейчас (активным может быть только один слот).
 pub struct Slot {
     pub obj: Object,
     pub active: bool,
 }
 
+// Описание объекта размещения: его размер в клетках и текстура.
+// width/height задают занимаемую площадь, texture_frame/texture_count —
+// какой кадр атласа текстуры показывать и сколько кадров в атласе.
+// frame_paths — отдельные файлы кадров для анимированных объектов.
 pub struct Object {
     pub width: i32,
     pub height: i32,
@@ -26,6 +32,8 @@ pub struct Object {
 //  Все доступные объекты — данные, а не код
 // ========================================================================
 
+// Статическая «база данных» всех объектов, которые можно ставить в магазине.
+// Это декларативный список данных (размеры, текстуры, категории), а не логика.
 const ALL_OBJECTS: &[Object] = &[
     //def object
     Object {
@@ -70,7 +78,8 @@ const ALL_OBJECTS: &[Object] = &[
         animated: true,
         frame_paths: &["tex/decor/regular/arcade_machine/a_m_1.png", "tex/decor/regular/arcade_machine/a_m_2.png"],
     },
-    //carpets
+    //carpets — ковры и панели пола: все используют один атлас carpet.png,
+    // но разные кадры (texture_frame) задают конкретный вид.
     Object {
         width: 1, height: 1, name: "blue_carpet", path: "tex/decor/carpets/carpet.png",
         texture_frame: [0, 0], texture_count: [4, 4],
@@ -181,7 +190,7 @@ const ALL_OBJECTS: &[Object] = &[
         texture_frame: [0, 0], texture_count: [2, 1],
         animated: false, frame_paths: &[],
     },
-    //basement
+    //basement — лестница в подвал (ставится только одна на магазин).
     Object {
         width: 1, height: 2, name: "basement", path: "tex/decor/regular/basement.png",
         texture_frame: [0, 1], texture_count: [1, 2],
@@ -189,12 +198,14 @@ const ALL_OBJECTS: &[Object] = &[
     },
 ];
 
+// Набор объектов, которые игрок видит в стартовой панели инструментов.
 const INITIAL_SLOTS: [&str; SLOT_COUNT] = ["box", "sign", "rack", "table", "cassa"];
 
 // ========================================================================
 //  Публичные функции
 // ========================================================================
 
+// Создать слот по имени объекта; если имени нет — берём первый объект списка.
 pub fn make_slot(name: &str) -> Slot {
     let obj = ALL_OBJECTS.iter()
         .find(|o| o.name == name)
@@ -205,6 +216,7 @@ pub fn make_slot(name: &str) -> Slot {
     }
 }
 
+// Стартовая панель инструментов: настоящее может быть только первое место.
 pub fn get_slot_vec() -> Vec<Slot> {
     INITIAL_SLOTS.iter().enumerate().map(|(i, name)| {
         let obj = ALL_OBJECTS.iter().find(|o| o.name == *name).unwrap();

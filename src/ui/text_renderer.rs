@@ -1,3 +1,10 @@
+// ========================================================================
+//  TextRenderer: растеризация текста через ab_glyph в RGBA-текстуру и
+//  создание из неё текстовых спрайтов. Растровые данные и спрайты кэшируются
+//  по ключу «текст+размер» — повторное создание одного текста не вызывает
+//  новую растеризацию.
+// ========================================================================
+
 use std::collections::HashMap;
 use std::sync::Arc;
 use ab_glyph::{FontRef, Font, PxScale, ScaleFont, Point};
@@ -7,11 +14,13 @@ use crate::{Sprite, Texture};
 
 pub struct TextRenderer {
     font: FontRef<'static>,
+    /// Кэш растров: ключ -> (RGBA-байты, ширина, высота изображения).
     tex_cache: HashMap<String, (Vec<u8>, u32, u32)>,
 }
 
 impl TextRenderer {
     pub fn new(font_path: &str) -> Self {
+        // Шрифт читается один раз и живёт всё время работы приложения.
         let font_data: &'static [u8] = Box::leak(std::fs::read(font_path)
             .expect("Failed to read font file").into_boxed_slice());
         let font = FontRef::try_from_slice(font_data)
@@ -19,21 +28,26 @@ impl TextRenderer {
         Self { font, tex_cache: HashMap::new() }
     }
 
+    /// Внутренний ключ кэша растров: объединяет текст, кегль, обводку и цвет.
     fn cache_key(text: &str, px_size: f32, outline: f32, color: [u8; 3]) -> String {
         format!("__text__{}@{}_ol{}_c{:02x}{:02x}{:02x}", text, px_size, outline, color[0], color[1], color[2])
     }
 
+    /// Публичный ключ для кэша спрайтов (используется destroy-функциями UI).
     pub fn sprite_cache_key(text: &str, px_size: f32, outline: f32, color: [u8; 3]) -> u64 {
         let tk = Self::cache_key(text, px_size, outline, color);
         crate::util::sprite_cache_key("ui", &tk, [0, 0], [1, 1], 1.0)
     }
 
+    /// Растеризует текст (обводка + основной цвет) в употребляемое изображение.
+    /// Результат кладётся в кэш и возвращается из него.
     fn rasterize(&mut self, text: &str, px_size: f32, outline: f32, color: [u8; 3]) -> &(Vec<u8>, u32, u32) {
         let key = Self::cache_key(text, px_size, outline, color);
         if !self.tex_cache.contains_key(&key) {
             let scale = PxScale::from(px_size);
             let scaled_font = self.font.as_scaled(scale);
 
+            // Проходим по глифам, чтобы вычислить ширину и высоту будущего изображения.
             let mut total_w = 0u32;
             let mut min_px_top = 0.0f32;
             let mut max_px_bot = 0.0f32;
@@ -51,6 +65,7 @@ impl TextRenderer {
                 }
             }
 
+            // width растёт на обводку с двух сторон; высота — от базовой линии до низа.
             let ol = outline.ceil() as u32;
             total_w += ol * 2;
             if total_w == 0 { total_w = 1; }
@@ -62,6 +77,7 @@ impl TextRenderer {
             let ol_f = outline;
 
             // обводка (чёрная, рисуется первой)
+            // Расширяем каждую непрозрачную точку глифа на радиус r по кругу.
             if outline > 0.0 {
                 let r = outline as i32;
                 let mut x_cursor = 0f32;
@@ -76,6 +92,8 @@ impl TextRenderer {
                             if cover <= 0.0 { return; }
                             let px = (b.min.x + gx as f32) as i32;
                             let py = (y_off + gy as i32) as i32;
+                            // Закрашиваем чёрным все пиксели в круге радиуса r вокруг точки глифа,
+                            // но не перезаписываем уже закрашенные (альфа > 200).
                             for dy in -r..=r {
                                 for dx in -r..=r {
                                     if dx * dx + dy * dy <= r * r {
@@ -97,6 +115,7 @@ impl TextRenderer {
             }
 
             // основной текст (заданный цвет)
+            // Достраиваем цвет поверх обводки с учётом уже залитой альфы.
             {
                 let mut x_cursor = 0f32;
                 for c in text.chars() {
@@ -110,6 +129,7 @@ impl TextRenderer {
                             let px = (b.min.x + gx as f32) as u32;
                             let py = (y_off + gy as i32) as u32;
                             if px < total_w && py < h && cover > 0.0 {
+                                // Альфа-блендинг: смешиваем цвет глифа с уже существующим пикселем.
                                 let fg_a = cover.min(1.0);
                                 let pix = image.get_pixel_mut(px, py);
                                 let bg_a = pix[3] as f32 / 255.0;
@@ -131,6 +151,7 @@ impl TextRenderer {
         &self.tex_cache[&key]
     }
 
+    /// Мировые размеры текста при заданной ширине (высота сохраняет пропорции растров).
     pub fn text_world_size(
         &mut self,
         text: &str,
@@ -145,6 +166,7 @@ impl TextRenderer {
         (world_width, world_width / aspect)
     }
 
+    /// Создаёт текстовый спрайт на слое Z_UI с шириной world_width.
     pub fn add_text(
         &mut self,
         ecs: &mut crate::EcsAdapter,
@@ -181,14 +203,17 @@ impl TextRenderer {
     ) -> (Option<specs::Entity>, Option<u64>) {
         let new_key = Self::sprite_cache_key(text, font_size, outline, color);
 
+        // Позиция применяется всегда, даже если текст не менялся.
         if let Some(e) = entity {
             ecs.update_transform_position(e, x, y);
         }
 
+        // Текст не изменился — существующий спрайт можно переиспользовать.
         if key == Some(new_key) {
             return (entity, key);
         }
 
+        // Старый растровый ключ освобождаем из кэша спрайтов.
         if let Some(old) = key {
             ecs.sprite_cache.remove(&old);
         }
@@ -200,16 +225,19 @@ impl TextRenderer {
         let aspect = tw as f32 / th as f32;
         let world_h = if aspect > 0.0 { world_width / aspect } else { world_width };
 
+        // Создаём текстуру и спрайт из растра, кладём спрайт в кэш по ключу.
         let tex = crate::Texture::from_rgba(device, queue, &rgba, tw, th, text);
         let sprite = crate::Sprite::from_texture(device, &tex, text, world_width, world_h);
         ecs.sprite_cache.insert(new_key, sprite);
 
         let text_key = Self::cache_key(text, font_size, outline, color);
         match entity {
+            // Сущность уже есть — только меняем её текстуру на новый текст.
             Some(e) => {
                 ecs.update_sprite_texture(e, &text_key);
                 (Some(e), Some(new_key))
             }
+            // Сущности нет — создаём новую с трансформом и спрайт-компонентом.
             None => {
                 let e = ecs.world
                     .create_entity()
@@ -232,6 +260,7 @@ impl TextRenderer {
         }
     }
 
+    /// Создаёт текст с точной высотой world_height (мир. размер фиксируется явно).
     pub fn add_text_fixed(
         &mut self,
         ecs: &mut crate::EcsAdapter,
@@ -273,6 +302,7 @@ impl TextRenderer {
             .build()
     }
 
+    /// Создаёт текстовый спрайт на заданном слое z (Z_UI или мир/декор).
     pub fn add_text_z(
         &mut self,
         ecs: &mut crate::EcsAdapter,
@@ -295,6 +325,7 @@ impl TextRenderer {
         let sprite = Sprite::from_texture(device, &tex, text, world_width, world_h);
 
         let text_key = Self::cache_key(text, font_size, outline, color);
+        // Ключ кэша различает слой UI и слой декора (иначе спрайты бы коллизировали).
         let layer_prefix = if (z - crate::constants::Z_UI).abs() < 0.001 { "ui" } else { "decor" };
         let skey = crate::util::sprite_cache_key(layer_prefix, &text_key, [0, 0], [1, 1], 1.0);
         ecs.sprite_cache.insert(skey, sprite);

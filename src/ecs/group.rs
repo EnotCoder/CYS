@@ -8,6 +8,7 @@ impl EcsAdapter {
     // ====================================================================
     //  add_group_object: Создаёт групповой объект (несколько сущностей).
     //  Ширина/высота определяют, сколько тайлов занимает объект.
+    //  Возвращает уникальный group_id, по которому объект можно найти/удалить.
     // ====================================================================
     pub fn add_group_object(
         &mut self,
@@ -24,12 +25,15 @@ impl EcsAdapter {
         self.next_group_id += 1;
 
         let mut entities = Vec::with_capacity((width * height) as usize);
+        // Слой зависит от типа: ковры лежат под декором (см. карту Z-констант).
         let z: f32 = if is_carpet {
             crate::constants::Z_CARPET
         } else {
             crate::constants::Z_DECOR
         };
 
+        // На каждую клетку объекта создаём отдельную сущность; кадр атласа
+        // сдвигается на номер ячейки, чтобы многоклеточная текстура складывалась.
         for i in 0..width {
             for j in 0..height {
                 let entity = self
@@ -57,6 +61,8 @@ impl EcsAdapter {
             }
         }
 
+        // Метаданные группы сохраняем в ресурс: размеры и позиция нужны
+        // для поиска по координатам и для проверок размещения.
         self.world
             .write_resource::<GroupInfoResource>()
             .groups
@@ -77,6 +83,7 @@ impl EcsAdapter {
 
     // ====================================================================
     //  delete_group: Удаляет все сущности группы и её метаданные
+    //  (компоненты вычищаются вручную, т.к. specs не делает это автоматически).
     // ====================================================================
     pub fn delete_group(&mut self, group_id: u32) {
         let group = self
@@ -108,16 +115,20 @@ impl EcsAdapter {
 
     // ====================================================================
     //  find_group_at_position: Ищет ID группы по координатам сетки
+    //  (декор приоритетнее ковра, если клетки перекрываются).
     // ====================================================================
     pub fn find_group_at_position(&self, x: i32, y: i32) -> Option<u32> {
         let groups = &self.world.read_resource::<GroupInfoResource>().groups;
         let mut carpet_gid: Option<u32> = None;
         for (&gid, group) in groups {
+            // Проверяем, попадает ли клетка в прямоугольник группы.
             if x >= group.pos_x
                 && x < group.pos_x + group.width
                 && y >= group.pos_y
                 && y < group.pos_y + group.height
             {
+                // Под ковром не может быть декора: декор возвращаем сразу,
+                // ковёр запоминаем как запасной вариант.
                 if !group.is_carpet {
                     return Some(gid);
                 }

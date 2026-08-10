@@ -5,10 +5,13 @@ use specs::Entity;
 use crate::{EcsAdapter, data::{Slot, is_carpet_name, is_wall_decor_name, is_outdoor_name, is_flower_name}};
 use crate::constants::*;
 
+// Запоминаем время последнего перемещения курсора на соседнюю клетку,
+// чтобы задержать движение (случай перетаскивания по соседним тайлам)
 thread_local! {
     static LAST_MOVE_TIME: Cell<Option<Instant>> = const { Cell::new(None) };
 }
 
+// Движение курсора за мышью: NDC -> мировые координаты -> клетка сетки
 pub fn handle_mouse_movement(
     input: &WinitInputHelper,
     ecs: &mut EcsAdapter,
@@ -23,16 +26,21 @@ pub fn handle_mouse_movement(
 ) {
     let Some((mouse_x, mouse_y)) = input.cursor() else { return };
 
+    // Перевод курсора из NDC в мировые координаты (с учётом зума и камеры)
     let (world_x, world_y) = crate::util::ndc_to_world(mouse_x, mouse_y, window_size, map_size, cam_x, cam_y);
 
+    // Приводим к клетке сетки и ограничиваем границами карты
     let grid_x = (world_x + TILE_HALF).floor().clamp(CAMERA_MAP_MIN_X, CAMERA_MAP_MAX_X);
     let grid_y = (world_y + TILE_HALF).floor().clamp(CAMERA_MAP_MIN_Y, CAMERA_MAP_MAX_Y);
 
+    // Если клетка под курсором не изменилась — действий нет
     let (cur_x, cur_y) = ecs.get_transform_position(cursor);
     if (cur_x - grid_x).abs() < EPSILON && (cur_y - grid_y).abs() < EPSILON {
         return;
     }
 
+    // При перемещении на соседнюю клетку применяем задержку,
+    // чтобы курсор не «прыгал» сквозь ряд клеток при быстром движении мыши
     let dx = (grid_x - cur_x).abs();
     let dy = (grid_y - cur_y).abs();
     if dx <= 1.0 && dy <= 1.0 {
@@ -45,13 +53,17 @@ pub fn handle_mouse_movement(
         LAST_MOVE_TIME.with(|last| last.set(Some(now)));
     }
 
+    // Ставим курсор в новую клетку
     ecs.update_transform_position(cursor, grid_x, grid_y);
 
+    // В режиме расстановки сразу пересчитываем допустимость размещения
     if mode == 1 {
         update_cursor_validity(ecs, cursor, slots, act_slot);
     }
 }
 
+// Обновление текстуры курсора: разрешено/запрещено ставить предмет в этой клетке
+// (учитываются ковры, настенный декор, уличные объекты и цветы)
 pub fn update_cursor_validity(ecs: &mut EcsAdapter, cursor: Entity, slots: &[Slot], act_slot: i32) {
     let (x, y) = ecs.get_transform_position(cursor);
     let slot = &slots[act_slot as usize];
@@ -67,6 +79,8 @@ pub fn update_cursor_validity(ecs: &mut EcsAdapter, cursor: Entity, slots: &[Slo
     }
 }
 
+// Превью объекта перед размещением (полупрозрачная копия с габаритами),
+// показывается только в режиме расстановки (mode == 1)
 pub fn update_cursor_preview(ecs: &mut EcsAdapter, mode: i32, slots: &[Slot], act_slot: i32, cursor: Entity) {
     if mode != 1 {
         ecs.clear_cursor_preview();
@@ -80,6 +94,7 @@ pub fn update_cursor_preview(ecs: &mut EcsAdapter, mode: i32, slots: &[Slot], ac
     let is_outdoor = is_outdoor_name(slot.obj.name);
     let is_flower = is_flower_name(slot.obj.name);
     let valid = ecs.can_place_at(cx as i32, cy as i32, slot.obj.width, slot.obj.height, is_carpet, is_wall_decor, is_outdoor, is_flower);
+    // Передаём ECS размер, допустимость и текстуру — превью рисуется на месте курсора
     ecs.update_cursor_preview(
         cx, cy,
         slot.obj.width, slot.obj.height,

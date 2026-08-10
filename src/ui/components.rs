@@ -1,5 +1,7 @@
 use specs::Entity;
 
+/// Панель-подложка. Позиция и размер задаются в мировых координатах UI
+/// (map_size=1.0), entity — спрайт-сущность подложки в ECS.
 pub struct Panel {
     pub x: f32,
     pub y: f32,
@@ -15,6 +17,7 @@ impl Panel {
     }
 }
 
+/// Кнопка: прямоугольная подложка (bg) + текстовый спрайт (text) по центру.
 pub struct Button {
     pub x: f32,
     pub y: f32,
@@ -32,6 +35,8 @@ impl Button {
     }
 }
 
+/// Чекбокс: галочка (box_entity) и подпись справа от неё (label_entity).
+/// sprite_key-и хранятся, чтобы удалять спрайты из кэша при пересоздании.
 pub struct Checkbox {
     pub x: f32,
     pub y: f32,
@@ -52,6 +57,8 @@ impl Checkbox {
     }
 }
 
+/// Горизонтальный слайдер: дорожка (track), ползунок (thumb) и подпись.
+/// dragging — флаг активного перетаскивания ползунка мышью.
 pub struct Slider {
     pub x: f32,
     pub y: f32,

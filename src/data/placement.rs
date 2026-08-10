@@ -3,6 +3,13 @@ use crate::EcsAdapter;
 use super::Slot;
 use crate::ecs::components::BasementPlaced;
 
+// ========================================================================
+//  Правила размещения объектов: категории, стены, трава
+// ========================================================================
+
+// Категории объектов определяют, куда их можно ставить
+// (пол, стены, улица, клумбы) — проверки живут в EcsAdapter.
+
 pub fn is_carpet_name(name: &str) -> bool {
     crate::constants::CARPET_NAMES.contains(&name)
 }
@@ -19,10 +26,15 @@ pub fn is_flower_name(name: &str) -> bool {
     crate::constants::FLOWER_NAMES.contains(&name)
 }
 
+// Токеры «травы» — свободный открытый грунт, на который можно сажать
+// уличные объекты и цветы (например "." — трава, "f" — цветок и т.д.)
 fn is_grass_token(token: &str) -> bool {
     matches!(token, "." | "@" | "*" | "m" | "f" | "~" | "l" | "1" | "2" | "3" | "4" | "5" | "6")
 }
 
+// Пересчитать вид стен вокруг клетки (gx, gy) после установки/удаления.
+// Стены рисуются так, чтобы стыковаться с соседними стенами и полом —
+// это зависит от того, какие соседние клетки являются полом (floor_positions).
 fn refresh_walls_around(ecs: &mut EcsAdapter, gx: i32, gy: i32) {
     let dirs: [(i32, i32); 8] = [
         (0, -1), (0, 1), (-1, 0), (1, 0),
@@ -31,15 +43,20 @@ fn refresh_walls_around(ecs: &mut EcsAdapter, gx: i32, gy: i32) {
     for &(dx, dy) in &dirs {
         let nx = gx + dx;
         let ny = gy + dy;
+        // Переводим игровые координаты в индексы сетки карты (карта читается из файла).
         let file_col = nx + 21;
         let file_row = 14 - ny;
         if file_row < 0 || file_row >= ecs.map_grid.len() as i32 { continue; }
         if file_col < 0 || file_col >= ecs.map_grid[file_row as usize].len() as i32 { continue; }
         let token = ecs.map_grid[file_row as usize][file_col as usize].clone();
+        // Пустота и трава стены не образуют.
         if token == "0" || is_grass_token(&token) { continue; }
+        // Пересчитываем вид стены; None — значит без пола рядом стена не нужна.
         if let Some(new_token) = recompute_wall_token(ecs, nx, ny) {
             if new_token != token {
                 ecs.map_grid[file_row as usize][file_col as usize] = new_token.to_string();
+                // На стену ("&") можно ставить напольные предметы, если она
+                // стоит на клетке пола — отслеживаем это в списке позиций.
                 if new_token == "&" {
                     let is_bottom = file_row > 0
                         && ecs.map_grid.get(file_row as usize - 1)
@@ -55,6 +72,7 @@ fn refresh_walls_around(ecs: &mut EcsAdapter, gx: i32, gy: i32) {
                 } else {
                     ecs.floor_placeable_positions.remove(&(nx, ny));
                 }
+                // Обновляем спрайт стены на новый визуальный кадр.
                 if let Some(&map_entity) = ecs.map_entities.get(&(nx, ny)) {
                     ecs.update_sprite_texture(map_entity, "tex/map/wall.png");
                     let mut sprites = ecs.world.write_storage::<crate::SpriteComponent>();
@@ -66,16 +84,20 @@ fn refresh_walls_around(ecs: &mut EcsAdapter, gx: i32, gy: i32) {
                 }
             }
         } else {
+            // Рядом нет пола — стену убираем, возвращаем исходную траву.
             revert_to_grass(ecs, nx, ny, file_row, file_col);
         }
     }
 }
 
+// Вернуть клетку к исходному состоянию (обычно трава), восстановив
+// позиции для уличных объектов/цветов и спрайт из original_tokens.
 fn revert_to_grass(ecs: &mut EcsAdapter, nx: i32, ny: i32, file_row: i32, file_col: i32) {
     ecs.floor_positions.remove(&(nx, ny));
     ecs.floor_placed_positions.remove(&(nx, ny));
     let original = ecs.original_tokens.get(&(nx, ny)).cloned().unwrap_or_else(|| ".".to_string());
     ecs.map_grid[file_row as usize][file_col as usize] = original.clone();
+    // Восстанавливаем, можно ли на эту клетку ставить напольные предметы.
     if original == "&" {
         let is_bottom = file_row > 0
             && ecs.map_grid.get(file_row as usize - 1)
@@ -89,6 +111,7 @@ fn revert_to_grass(ecs: &mut EcsAdapter, nx: i32, ny: i32, file_row: i32, file_c
     } else if !matches!(original.as_str(), "/" | "|" | ".") {
         ecs.floor_placeable_positions.remove(&(nx, ny));
     }
+    // Исходная трава снова принимает уличные объекты и цветы.
     if is_grass_token(&original) {
         ecs.outdoor_positions.insert((nx, ny));
         ecs.flower_positions.insert((nx, ny));
@@ -104,6 +127,8 @@ fn revert_to_grass(ecs: &mut EcsAdapter, nx: i32, ny: i32, file_row: i32, file_c
     }
 }
 
+// Определить токен стены по соседям: смотрим, где вокруг есть пол (f),
+// и возвращаем код вида стены ("&" — сплошная, "/" и "|" — углы и т.д.)
 fn recompute_wall_token(ecs: &EcsAdapter, wx: i32, wy: i32) -> Option<&'static str> {
     let f = |x: i32, y: i32| ecs.floor_positions.contains(&(x, y));
     let s = f(wx, wy+1); let n = f(wx, wy-1);
@@ -125,6 +150,7 @@ fn recompute_wall_token(ecs: &EcsAdapter, wx: i32, wy: i32) -> Option<&'static s
     None
 }
 
+// Кадр в атласе стены (5x5 кадров) для конкретного токена вида стены.
 fn wall_frame_count(token: &str) -> ([i32; 2], [i32; 2]) {
     match token {
         "=" => ([0, 0], [5, 5]), "-" => ([0, 1], [5, 5]),
@@ -141,8 +167,10 @@ fn wall_frame_count(token: &str) -> ([i32; 2], [i32; 2]) {
     }
 }
 
+// Поставить активный объект из слота в клетку (gx, gy).
 pub fn add(ecs: &mut EcsAdapter, slots: &mut Vec<Slot>, act_slot: i32, gx: i32, gy: i32) {
     let active_slot = &slots[act_slot as usize].obj;
+    // Заранее определяем категорию объекта — от неё зависят правила размещения.
     let is_carpet = is_carpet_name(active_slot.name);
     let is_wall_decor = is_wall_decor_name(active_slot.name);
     let is_outdoor = is_outdoor_name(active_slot.name);
@@ -170,6 +198,9 @@ pub fn add(ecs: &mut EcsAdapter, slots: &mut Vec<Slot>, act_slot: i32, gx: i32, 
 
     ecs.clear_cursor_preview();
 
+    crate::audio::play("place");
+
+    // Создаём группу спрайтов размера width*height и получаем её id.
     let group_id = ecs.add_group_object(
         gx, gy,
         active_slot.width, active_slot.height,
@@ -181,17 +212,21 @@ pub fn add(ecs: &mut EcsAdapter, slots: &mut Vec<Slot>, act_slot: i32, gx: i32, 
         active_slot.frame_paths,
     );
 
+    // Берём «главный» спрайт группы (первый) для привязки компонентов.
     let first = {
         let groups = ecs.world.read_resource::<crate::GroupInfoResource>();
         groups.groups.get(&group_id).and_then(|g| g.entities.first().copied())
     };
     if let Some(entity) = first {
+        // Запоминаем имя объекта и вешаем на него логику под конкретный тип.
         ecs.world.write_storage::<crate::ObjectTag>().insert(entity, crate::ObjectTag {
             name: active_slot.name.to_string(),
         }).ok();
         if active_slot.name == "basement" {
+            // Подвал можно поставить только один — фиксируем это.
             ecs.world.write_resource::<BasementPlaced>().0 = true;
         } else if active_slot.name == "box" {
+            // Ящик и стеллаж хранят еду для покупателей.
             let max_food = ecs.world.read_resource::<crate::script::config::BalanceConfig>().max_food_box;
             ecs.world.write_storage::<crate::FoodStorage>().insert(entity, crate::FoodStorage {
                 food_count: 0,
@@ -204,6 +239,7 @@ pub fn add(ecs: &mut EcsAdapter, slots: &mut Vec<Slot>, act_slot: i32, gx: i32, 
                 max_food,
             }).ok();
         } else if active_slot.name == "candies" {
+            // Конфеты начинаются с частично заполненного запаса.
             let cfg = ecs.world.read_resource::<crate::script::config::BalanceConfig>();
             let (max_food, start) = (cfg.max_food_candies, cfg.candies_start_food);
             ecs.world.write_storage::<crate::FoodStorage>().insert(entity, crate::FoodStorage {
@@ -216,21 +252,27 @@ pub fn add(ecs: &mut EcsAdapter, slots: &mut Vec<Slot>, act_slot: i32, gx: i32, 
     }
 }
 
+// Убрать объект или вернуть часть стены/траву в клетке (gx, gy).
+// Возвращает true, если что-то было удалено.
 pub fn remove(ecs: &mut EcsAdapter, gx: i32, gy: i32) -> bool {
+    // Сначала ищем объект (группу спрайтов) в клетке.
     if let Some(group_id) = ecs.find_group_at_position(gx, gy) {
         let entity = {
             let groups = ecs.world.read_resource::<crate::GroupInfoResource>();
             groups.groups.get(&group_id).and_then(|g| g.entities.first().copied())
         };
         if let Some(entity) = entity {
+            // Если удаляем подвал — разрешаем поставить его снова.
             let is_basement = ecs.world.read_storage::<crate::ObjectTag>().get(entity).map(|t| t.name == "basement").unwrap_or(false);
             if is_basement {
                 ecs.world.write_resource::<BasementPlaced>().0 = false;
             }
         }
         ecs.delete_group(group_id);
+        crate::audio::play("remove");
         return true;
     }
+    // Если объекта нет — возможно, клетка является стеной.
     let file_col = gx + 21;
     let file_row = 14 - gy;
     if file_row >= 0 && file_row < ecs.map_grid.len() as i32 &&
@@ -238,10 +280,12 @@ pub fn remove(ecs: &mut EcsAdapter, gx: i32, gy: i32) -> bool {
     {
         let token = &ecs.map_grid[file_row as usize][file_col as usize];
         if token == "0" {
+            // Пустая клетка — возвращаем траву и пересчитываем стены вокруг.
             revert_to_grass(ecs, gx, gy, file_row, file_col);
             refresh_walls_around(ecs, gx, gy);
             return true;
         }
+        // Стена, выросшая из травы, тоже снимается в исходную траву.
         if !is_grass_token(token) {
             let original = ecs.original_tokens.get(&(gx, gy));
             if original.map_or(false, |o| is_grass_token(o)) {

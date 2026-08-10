@@ -15,6 +15,8 @@ use crate::util;
 // ========================================================================
 //  SpriteRenderData — плоские данные для рендера (без привязки к ECS)
 // ========================================================================
+// Система рендера получает их из get_sprites_by_layer и не знает о внутреннем
+// устройстве ECS-мира.
 #[derive(Clone)]
 pub struct SpriteRenderData {
     pub position: [f32; 3],
@@ -31,17 +33,27 @@ pub struct SpriteRenderData {
 // ========================================================================
 pub struct EcsAdapter {
     pub world: World,
+    // Кэш готовых к отрисовке спрайтов (ключ = sprite_cache_key:
+    // слой + путь + кадр + атлас + масштаб) — избегает пересоздания GPU-ресурсов.
     pub sprite_cache: HashMap<u64, Sprite>,
+    // Инкрементальный счётчик ID многоклеточных объектов (групп).
     pub next_group_id: u32,
     pub current_level: i32,
+    // Счётчик полных очисток мира (используется для сброса кэшей/состояний).
     pub clear_count: u64,
+    // Временные сущности призрака размещения — пересоздаются каждый кадр.
     pub cursor_preview: Vec<specs::Entity>,
+    // Наборы клеток карты, разрешённых для размещения каждой категории
+    // объектов (вычисляются при загрузке карты).
     pub wall_positions: HashSet<(i32, i32)>,
     pub floor_positions: HashSet<(i32, i32)>,
     pub outdoor_positions: HashSet<(i32, i32)>,
     pub flower_positions: HashSet<(i32, i32)>,
+    // Клетки пола в текущей постройке и клетки, куда пол ещё можно положить.
     pub floor_placed_positions: HashSet<(i32, i32)>,
     pub floor_placeable_positions: HashSet<(i32, i32)>,
+    // Текущая сетка карты, соответствие клетка -> сущность тайла, а также
+    // исходные токены для восстановления карты после стирания объектов.
     pub map_grid: Vec<Vec<String>>,
     pub map_entities: HashMap<(i32, i32), specs::Entity>,
     pub original_tokens: HashMap<(i32, i32), String>,
@@ -50,6 +62,7 @@ pub struct EcsAdapter {
 impl EcsAdapter {
     pub fn new() -> Self {
         let mut world = World::new();
+        // Регистрация всех компонентов и игровых ресурсов.
         world.register::<Transform>();
         world.register::<SpriteComponent>();
         world.register::<GroupComponent>();
@@ -89,12 +102,14 @@ impl EcsAdapter {
     //  Базовые операции над спрайтами
     // ====================================================================
 
+    // Меняет текстуру существующего спрайта (смена состояния, анимация).
     pub fn update_sprite_texture(&mut self, entity: specs::Entity, texture_path: &str) {
         if let Some(sprite) = self.world.write_storage::<SpriteComponent>().get_mut(entity) {
             sprite.texture_path = Arc::from(texture_path);
         }
     }
 
+    // Передвигает сущность на новую позицию в мировых координатах.
     pub fn update_transform_position(&mut self, entity: specs::Entity, x: f32, y: f32) {
         if let Some(transform) = self.world.write_storage::<Transform>().get_mut(entity) {
             transform.position[0] = x;
@@ -102,12 +117,14 @@ impl EcsAdapter {
         }
     }
 
+    // Меняет прозрачность спрайта (моргание, эффекты выделения).
     pub fn update_sprite_alpha(&mut self, entity: specs::Entity, alpha: f32) {
         if let Some(sprite) = self.world.write_storage::<SpriteComponent>().get_mut(entity) {
             sprite.alpha = alpha;
         }
     }
 
+    // Возвращает (x, y) сущности или (0,0), если компонента нет.
     pub fn get_transform_position(&self, entity: specs::Entity) -> (f32, f32) {
         self.world
             .read_storage::<Transform>()
@@ -120,12 +137,14 @@ impl EcsAdapter {
     //  Удаление entity
     // ====================================================================
 
+    // Удаляет сущность из реестра и из хранилищ её компонентов.
     pub fn delete_entity(&self, entity: specs::Entity) {
         let _ = self.world.entities().delete(entity);
         self.world.write_storage::<Transform>().remove(entity);
         self.world.write_storage::<SpriteComponent>().remove(entity);
     }
 
+    // Удаляет пачку сущностей (используется для предпросмотра курсора).
     pub fn delete_entities(&self, entities: &[specs::Entity]) {
         for &ent in entities {
             self.delete_entity(ent);
@@ -136,6 +155,7 @@ impl EcsAdapter {
     //  Создание UI-элементов
     // ====================================================================
 
+    // Спрайт интерфейса без масштабирования (размер определяет текстура).
     pub fn add_ui(&mut self, x: f32, y: f32, texture_path: &str) -> specs::Entity {
         crate::ecs::factory::create_sprite(
             &mut self.world, x, y, Z_UI,
@@ -143,6 +163,9 @@ impl EcsAdapter {
         )
     }
 
+    // UI-спрайт с явным размером width×height. Ключ кэша строится из
+    // текстуры + размера ("path@WxH"), чтобы одинаковые элементы
+    // не пересоздавали quad каждый раз.
     pub fn add_ui_sized(
         &mut self,
         x: f32, y: f32,
@@ -151,6 +174,7 @@ impl EcsAdapter {
         device: &wgpu::Device,
         queue: &wgpu::Queue,
     ) -> specs::Entity {
+        // Уникальное имя: путь + размер — совпадает с ключом кэша спрайтов.
         let unique = format!("{}@{:.2}x{:.2}", texture_path, width, height);
 
         let entity = crate::ecs::factory::create_sprite(
@@ -158,6 +182,7 @@ impl EcsAdapter {
             &unique, [0, 0], [1, 1], 1.0, 1.0,
         );
 
+        // Готовим quad нужного размера и кладём в кэш по тому же имени.
         let tex = crate::Texture::from_path(device, queue, texture_path, "ui_sized");
         let sprite = crate::Sprite::from_texture(device, &tex, &unique, width, height);
 
@@ -167,6 +192,8 @@ impl EcsAdapter {
         entity
     }
 
+    // Полная очистка мира между уровнями: удаляет все сущности,
+    // сбрасывает кэши, счётчики, карту и ресурсы до начального состояния.
     pub fn clear_world(&mut self) {
         use specs::Join;
         let delete_entities: Vec<specs::Entity> = {
@@ -206,6 +233,7 @@ impl EcsAdapter {
         self.world.write_resource::<BasementPlaced>().0 = false;
     }
 
+    // Сохраняет текущую сетку карты в файл (для редактора).
     pub fn save_map_grid(&self) {
         use std::io::Write;
         if let Ok(mut file) = std::fs::File::create(crate::constants::MAP_FILE) {
@@ -216,6 +244,7 @@ impl EcsAdapter {
         }
     }
 
+    // Создаёт кнопку: подложку из add_ui_sized + подпись через TextRenderer.
     pub fn add_button(
         &mut self,
         device: &wgpu::Device,

@@ -1,3 +1,10 @@
+// ========================================================================
+//  NpcScript — вызов scripts/npc.lua из Rust.
+//  На каждый тик состояние NPC упаковывается в Lua-таблицу, скрипт решает,
+//  какое действие выполнить (walk / take_food / busy и т.д.), а результат
+//  записывается обратно в состояние NPC.
+// ========================================================================
+
 use std::cell::RefCell;
 use std::path::Path;
 use mlua::{Lua, Table, Value};
@@ -7,6 +14,7 @@ use crate::npc::ShopperNpc;
 use crate::ecs::components::{BusyCassas, Money};
 use crate::map::pathfinding::Node;
 
+/// Путь к скрипту NPC; при его отсутствии используется Rust-автомат.
 const SCRIPT_PATH: &str = "scripts/npc.lua";
 
 /// Состояние NPC в виде целых чисел для Lua (зеркало ShopperState).
@@ -26,16 +34,20 @@ pub const ST_GOING_TO_EXIT: i32 = 6;
 /// Движок Lua-скриптов NPC. Создаётся один раз и переиспользуется.
 pub struct NpcScript {
     lua: Lua,
+    /// true, если scripts/npc.lua найден и загружен.
     available: bool,
 }
 
 impl NpcScript {
+    /// Инициализирует Lua, публикует баланс (CONFIG) и загружает scripts/npc.lua.
     pub fn new() -> Self {
         let lua = Lua::new();
+        // Публикуем баланс, чтобы скрипт мог читать настройки из глобала CONFIG.
         let config = crate::script::config::BalanceConfig::load();
         if let Err(e) = config.publish_to_lua(&lua) {
             eprintln!("[config] ошибка публикации CONFIG в Lua: {e}");
         }
+        // Загружаем тело скрипта; при неудаче помечаем движок недоступным.
         let path_exists = Path::new(SCRIPT_PATH).exists();
         if path_exists {
             if let Err(e) = lua.load(std::fs::read_to_string(SCRIPT_PATH).unwrap()).exec() {
@@ -48,6 +60,7 @@ impl NpcScript {
     }
 
     /// Выполняет один тик скрипта для конкретного NPC.
+    /// Если скрипт недоступен, тик пропускается.
     pub fn update(
         &self,
         npc: &mut ShopperNpc,
@@ -60,6 +73,7 @@ impl NpcScript {
         }
 
         let lua = &self.lua;
+        // Обёртки над изменяемыми ссылками для передачи их в замыкания Lua.
         let ecs_cell = RefCell::new(&mut *ecs);
         let npc_cell = RefCell::new(&mut *npc);
         let npc_cell_ref = &npc_cell;
@@ -67,6 +81,7 @@ impl NpcScript {
         let walkable_ref = &walkable;
 
         lua.scope(|ctx| {
+            // Таблица npc: входные данные о состоянии NPC для скрипта.
             let tbl = lua.create_table()?;
             tbl.set("state", npc_cell_ref.borrow().state_int())?;
             tbl.set("timer", npc_cell_ref.borrow().state_timer())?;
@@ -74,6 +89,7 @@ impl NpcScript {
             tbl.set("exiting", npc_cell_ref.borrow().is_exiting())?;
             tbl.set("cassa_x", npc_cell_ref.borrow().cassa_pos().x)?;
             tbl.set("cassa_y", npc_cell_ref.borrow().cassa_pos().y)?;
+            // Касса для конфет может отсутствовать — тогда передаём nil.
             match npc_cell_ref.borrow().candy_pos() {
                 Some(n) => {
                     tbl.set("candy_x", n.x)?;
@@ -88,6 +104,7 @@ impl NpcScript {
             tbl.set("rack_y", npc_cell_ref.borrow().rack_pos().y)?;
             tbl.set("done", npc_cell_ref.borrow().path_done())?;
 
+            // Примитив: попросить систему удалить NPC.
             let despawn = ctx.create_function({
                 let npc = npc_cell_ref;
                 move |_, (): ()| -> mlua::Result<()> {
@@ -97,6 +114,7 @@ impl NpcScript {
             })?;
             tbl.set("despawn", despawn)?;
 
+            // Примитив walk: продвинуть NPC по маршруту на dt, вернуть позицию.
             let walk = ctx.create_function({
                 let npc = npc_cell_ref;
                 let ecs = ecs_cell_ref;
@@ -114,6 +132,7 @@ impl NpcScript {
             })?;
             tbl.set("walk", walk)?;
 
+            // Примитив walk_to_exit: идти к выходу, игнорируя магазин.
             let walk_to_exit = ctx.create_function({
                 let npc = npc_cell_ref;
                 let ecs = ecs_cell_ref;
@@ -127,6 +146,7 @@ impl NpcScript {
             })?;
             tbl.set("walk_to_exit", walk_to_exit)?;
 
+            // Примитив start_path: начать прокладку маршрута до клетки (x, y).
             let start_path = ctx.create_function({
                 let npc = npc_cell_ref;
                 let ecs = ecs_cell_ref;
@@ -141,6 +161,7 @@ impl NpcScript {
             })?;
             tbl.set("start_path", start_path)?;
 
+            // Примитив set_idle: перевести NPC в состояние ожидания.
             let set_idle = ctx.create_function({
                 let npc = npc_cell_ref;
                 let ecs = ecs_cell_ref;
@@ -153,6 +174,7 @@ impl NpcScript {
             })?;
             tbl.set("set_idle", set_idle)?;
 
+            // Примитив set_walk: перевести NPC в состояние ходьбы.
             let set_walk = ctx.create_function({
                 let npc = npc_cell_ref;
                 let ecs = ecs_cell_ref;
@@ -165,6 +187,7 @@ impl NpcScript {
             })?;
             tbl.set("set_walk", set_walk)?;
 
+            // Примитив take_food: взять еду из бокса; сообщает успех операции.
             let take_food = ctx.create_function({
                 let npc = npc_cell_ref;
                 let ecs = ecs_cell_ref;
@@ -176,6 +199,7 @@ impl NpcScript {
             })?;
             tbl.set("take_food", take_food)?;
 
+            // Примитив take_candy: взять конфету; сообщает успех операции.
             let take_candy = ctx.create_function({
                 let npc = npc_cell_ref;
                 let ecs = ecs_cell_ref;
@@ -187,6 +211,7 @@ impl NpcScript {
             })?;
             tbl.set("take_candy", take_candy)?;
 
+            // Предикаты: проверка наличия нужных объектов в магазине.
             let cassa_exists = ctx.create_function({
                 let npc = npc_cell_ref;
                 let ecs = ecs_cell_ref;
@@ -220,6 +245,7 @@ impl NpcScript {
             })?;
             tbl.set("candy_exists", candy_exists)?;
 
+            // Примитив find_any_cassa: найти любую свободную кассу (или nil).
             let find_any_cassa = ctx.create_function({
                 let ecs = ecs_cell_ref;
                 move |_, (): ()| -> mlua::Result<Value> {
@@ -232,6 +258,7 @@ impl NpcScript {
             })?;
             tbl.set("find_any_cassa", find_any_cassa)?;
 
+            // Примитив reroute_to_cassa: перестроить маршрут к кассе (x, y).
             let reroute_to_cassa = ctx.create_function({
                 let npc = npc_cell_ref;
                 let ecs = ecs_cell_ref;
@@ -245,6 +272,7 @@ impl NpcScript {
             })?;
             tbl.set("reroute_to_cassa", reroute_to_cassa)?;
 
+            // Примитив add_money: добавить деньги в кассу игры (ресурс Money).
             let add_money = ctx.create_function({
                 let ecs = ecs_cell_ref;
                 move |_, n: i32| -> mlua::Result<()> {
@@ -255,6 +283,7 @@ impl NpcScript {
             })?;
             tbl.set("add_money", add_money)?;
 
+            // Примитивы busy: пометить кассу занятой/свободной и проверить занятость.
             let set_busy = ctx.create_function({
                 let ecs = ecs_cell_ref;
                 move |_, (x, y): (i32, i32)| -> mlua::Result<()> {
@@ -286,15 +315,18 @@ impl NpcScript {
             })?;
             tbl.set("is_busy", is_busy)?;
 
+            // Примитив log: вывод отладочных сообщений из скрипта в консоль.
             let log = ctx.create_function(|_, msg: String| -> mlua::Result<()> {
                 println!("[npc.lua] {}", msg);
                 Ok(())
             })?;
             tbl.set("log", log)?;
 
+            // Вызываем основную функцию скрипта с таблицей состояния и дельтой времени.
             let update_fn: mlua::Function = lua.globals().get("npc_update")?;
             update_fn.call::<()>((&tbl, dt))?;
 
+            // Скрипт записывает новое состояние обратно в таблицу — переносим его в NPC.
             let state = tbl.get::<i32>("state")?;
             let timer = tbl.get::<f64>("timer")?;
             {

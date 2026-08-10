@@ -2,6 +2,9 @@ use specs::{World, Entity, Builder, WorldExt};
 use std::sync::Arc;
 use crate::ecs::components::{Transform, SpriteComponent};
 
+// Создаёт сущность с компонентами Transform + SpriteComponent.
+// Это единая точка создания спрайтов: текстура задаётся без привязки к кадру
+// атласа здесь — кадр/масштаб передаются как есть.
 pub fn create_sprite(
     world: &mut World, x: f32, y: f32, z: f32,
     texture_path: &str, frame: [i32; 2], count: [i32; 2],

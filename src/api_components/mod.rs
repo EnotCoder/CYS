@@ -10,6 +10,7 @@
 
 pub mod buffers;
 pub mod init;
+pub mod pipeline;
 pub mod render;
 pub mod texture;
 

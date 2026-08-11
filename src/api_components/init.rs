@@ -1,8 +1,8 @@
 use winit::window::Window;
 use wgpu::*;
 use wgpu::util::DeviceExt;
-use crate::Vertex;
 use crate::DepthBuffer;
+use crate::api_components::pipeline::{create_render_pipeline, create_transparent_pipeline};
 
 // ========================================================================
 //  init: создание WgpuApp — вершины всего wgpu-пайплайна.
@@ -145,11 +145,11 @@ impl WgpuApp {
             ],
             immediate_size: 0,
         });
-        let render_pipeline = Self::create_render_pipeline(
+        let render_pipeline = create_render_pipeline(
             &device, &pipeline_layout, &shader_module,
             surface_format, &buffers.depth_stencil,
         );
-        let transparent_pipeline = Self::create_transparent_pipeline(
+        let transparent_pipeline = create_transparent_pipeline(
             &device, &pipeline_layout, &shader_module,
             surface_format, &buffers.transparent_depth_stencil,
         );
@@ -274,138 +274,11 @@ impl WgpuApp {
             usage: BufferUsages::UNIFORM | BufferUsages::COPY_DST,
         })
     }
-
-    // Основной пайплайн: обычное смешивание и реальный тест глубины.
-    fn create_render_pipeline(
-        device: &wgpu::Device,
-        layout: &wgpu::PipelineLayout,
-        shader: &wgpu::ShaderModule,
-        format: wgpu::TextureFormat,
-        depth_stencil: &wgpu::DepthStencilState,
-    ) -> wgpu::RenderPipeline {
-        let comp_opts = wgpu::PipelineCompilationOptions::default();
-        device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-            label: Some("Render Pipeline"),
-            layout: Some(layout),
-            vertex: wgpu::VertexState {
-                buffers: &[Some(vertex_buffer_layout())],
-                module: shader,
-                entry_point: Some("vs_main"),
-                compilation_options: comp_opts.clone(),
-            },
-            fragment: Some(wgpu::FragmentState {
-                targets: &[Some(wgpu::ColorTargetState {
-                    format,
-                    // Стандартное alpha-смешивание: src * srcAlpha + dst * (1 - srcAlpha).
-                    blend: Some(wgpu::BlendState {
-                        color: wgpu::BlendComponent {
-                            src_factor: wgpu::BlendFactor::SrcAlpha,
-                            dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,
-                            operation: wgpu::BlendOperation::Add,
-                        },
-                        alpha: wgpu::BlendComponent {
-                            src_factor: wgpu::BlendFactor::One,
-                            dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,
-                            operation: wgpu::BlendOperation::Add,
-                        },
-                    }),
-                    write_mask: wgpu::ColorWrites::ALL,
-                })],
-                module: shader,
-                entry_point: Some("fs_main"),
-                compilation_options: comp_opts.clone(),
-            }),
-            primitive: wgpu::PrimitiveState {
-                topology: wgpu::PrimitiveTopology::TriangleList,
-                strip_index_format: None,
-                // Способ разворота вершин: CCW = против часовой стрелки.
-                front_face: wgpu::FrontFace::Ccw,
-                // Без отсечения задних граней — спрайты считаются двусторонними.
-                cull_mode: None,
-                unclipped_depth: false,
-                polygon_mode: wgpu::PolygonMode::Fill,
-                conservative: false,
-            },
-            depth_stencil: Some(depth_stencil.clone()),
-            multisample: wgpu::MultisampleState::default(),
-            multiview_mask: None,
-            cache: None,
-        })
-    }
-
-    // Прозрачный пайплайн: отличается только типом смешивания
-    // (ALPHA_BLENDING) и отключённым тестом глубины (CompareFunction::Always).
-    fn create_transparent_pipeline(
-        device: &wgpu::Device,
-        layout: &wgpu::PipelineLayout,
-        shader: &wgpu::ShaderModule,
-        format: wgpu::TextureFormat,
-        depth_stencil: &wgpu::DepthStencilState,
-    ) -> wgpu::RenderPipeline {
-        let comp_opts = wgpu::PipelineCompilationOptions::default();
-        device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-            label: Some("Transparent Pipeline"),
-            layout: Some(layout),
-            vertex: wgpu::VertexState {
-                buffers: &[Some(vertex_buffer_layout())],
-                module: shader,
-                entry_point: Some("vs_main"),
-                compilation_options: comp_opts.clone(),
-            },
-            fragment: Some(wgpu::FragmentState {
-                targets: &[Some(wgpu::ColorTargetState {
-                    format,
-                    // Встроенное альфа-смешивание из коробки wgpu.
-                    blend: Some(wgpu::BlendState::ALPHA_BLENDING),
-                    write_mask: wgpu::ColorWrites::ALL,
-                })],
-                module: shader,
-                entry_point: Some("fs_main"),
-                compilation_options: comp_opts.clone(),
-            }),
-            primitive: wgpu::PrimitiveState {
-                topology: wgpu::PrimitiveTopology::TriangleList,
-                strip_index_format: None,
-                front_face: wgpu::FrontFace::Ccw,
-                cull_mode: None,
-                unclipped_depth: false,
-                polygon_mode: wgpu::PolygonMode::Fill,
-                conservative: false,
-            },
-            depth_stencil: Some(depth_stencil.clone()),
-            multisample: wgpu::MultisampleState::default(),
-            multiview_mask: None,
-            cache: None,
-        })
-}
 }
 
 // ========================================================================
 //  Вспомогательные функции на уровне модуля
 // ========================================================================
-
-// Layout атрибутов вершин: position = location 0 (vec3),
-// tex_coord = location 1 (vec2). Должен совпадать с buffers::Vertex.
-fn vertex_buffer_layout() -> VertexBufferLayout<'static> {
-    VertexBufferLayout {
-        // Шаг между вершинами = размер всей структуры Vertex.
-        array_stride: std::mem::size_of::<Vertex>() as wgpu::BufferAddress,
-        step_mode: VertexStepMode::Vertex,
-        attributes: &[
-            VertexAttribute {
-                offset: 0,
-                shader_location: 0,
-                format: VertexFormat::Float32x3,
-            },
-            // Атрибут tex_coord начинается сразу после position.
-            VertexAttribute {
-                offset: std::mem::size_of::<[f32; 3]>() as wgpu::BufferAddress,
-                shader_location: 1,
-                format: VertexFormat::Float32x2,
-            },
-        ],
-    }
-}
 
 // Конфигурация поверхности (размер, формат, порядок кадров Fifo).
 // Используется и на старте, и при изменении размера окна.

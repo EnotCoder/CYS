@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 EnotCoder
+
 use std::hash::{Hash, Hasher};
 use crate::constants::SHADER_SCALE;
 

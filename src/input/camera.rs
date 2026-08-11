@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 EnotCoder
+
 use winit_input_helper::WinitInputHelper;
 use winit::keyboard::KeyCode;
 use crate::constants::*;

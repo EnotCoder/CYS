@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 EnotCoder
+
 use specs::{Entity, WorldExt};
 use crate::{EcsAdapter, data::Slot};
 use crate::data::{add, remove};

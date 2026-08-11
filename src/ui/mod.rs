@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 EnotCoder
+
 // ========================================================================
 //  UI: система интерфейса — компоненты (Panel/Button/Checkbox/Slider),
 //  хотбар, настройки, FPS-счётчик и TextRenderer.

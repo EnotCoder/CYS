@@ -58,3 +58,12 @@ src/
 ├── inventory.rs         — Inventory system
 └── util.rs              — Helper utilities
 </pre>
+
+## License
+
+This project is licensed under the **GNU General Public License v3.0**.
+See [LICENSE](LICENSE) for the full text.
+
+You may view, modify, and distribute the source code. Any derivative work
+must also be open-sourced under GPL-3.0, which prevents proprietary
+commercial forks.

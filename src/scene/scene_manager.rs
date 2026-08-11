@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 EnotCoder
+
 use std::collections::HashMap;
 use specs::WorldExt;
 use crate::scene::scene_trait::Scene;

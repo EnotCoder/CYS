@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 EnotCoder
+
 use specs::{WorldExt, Join};
 use crate::ecs::adapter::EcsAdapter;
 use crate::ecs::components::Transform;

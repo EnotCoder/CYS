@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 EnotCoder
+
 use specs::{Component, VecStorage};
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;

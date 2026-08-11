@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 EnotCoder
+
 // ========================================================================
 //  NpcScript — вызов scripts/npc.lua из Rust.
 //  На каждый тик состояние NPC упаковывается в Lua-таблицу, скрипт решает,

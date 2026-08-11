@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 EnotCoder
+
 use specs::Entity;
 
 /// Панель-подложка. Позиция и размер задаются в мировых координатах UI

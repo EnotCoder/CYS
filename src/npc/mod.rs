@@ -278,6 +278,7 @@ impl ShopperNpc {
                     ecs.world.write_resource::<BusyCassas>().0.remove(&(self.cassa_pos.x, self.cassa_pos.y));
                     let cfg = ecs.world.read_resource::<crate::script::config::BalanceConfig>();
                     ecs.world.write_resource::<Money>().0 += cfg.money_at_cassa;
+                    crate::audio::play("cash");
                     // Шанс зайти за конфетами (config.candy_chance)
                     let want_candy = self.candy_pos.is_some()
                         && (cfg.candy_chance as f64) > 0.0
@@ -323,6 +324,7 @@ impl ShopperNpc {
                 self.set_idle(ecs);
                 if self.state_timer <= 0.0 {
                     ecs.world.write_resource::<Money>().0 += ecs.world.read_resource::<crate::script::config::BalanceConfig>().money_at_candy;
+                    crate::audio::play("cash");
                     if self.start_path(ecs, walkable, spawn_path_node(ecs)) {
                         self.state = ShopperState::GoingToExit;
                     }

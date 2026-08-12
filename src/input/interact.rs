@@ -88,6 +88,7 @@ pub fn cycle_mode(mode: i32, ecs: &mut EcsAdapter, cursor: Entity, icon: Entity)
     // Меняем текстуру курсора и иконку режима в хотбаре
     ecs.update_sprite_texture(cursor, CURSOR_TEX[new_mode as usize]);
     ecs.update_sprite_texture(icon, MODE_ICON_TEX[new_mode as usize]);
+    crate::audio::play("click");
     new_mode
 }
 

@@ -182,12 +182,14 @@ pub fn add(ecs: &mut EcsAdapter, slots: &mut Vec<Slot>, act_slot: i32, gx: i32, 
     // В подвале нельзя ставить кассу, стеллаж и лестницу
     if ecs.current_level == -1 {
         if active_slot.name == "cassa" || active_slot.name == "rack" || active_slot.name == "basement" {
+            crate::audio::play("error");
             return;
         }
     }
 
     // Только один подвал на магазин
     if active_slot.name == "basement" && ecs.world.read_resource::<BasementPlaced>().0 {
+        crate::audio::play("error");
         return;
     }
 
@@ -196,6 +198,7 @@ pub fn add(ecs: &mut EcsAdapter, slots: &mut Vec<Slot>, act_slot: i32, gx: i32, 
         active_slot.width, active_slot.height,
         is_carpet, is_wall_decor, is_outdoor, is_flower,
     ) {
+        crate::audio::play("error");
         return;
     }
 

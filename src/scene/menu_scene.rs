@@ -159,8 +159,9 @@ impl MenuScene {
 
 impl Scene for MenuScene {
     fn on_enter(&mut self, _ecs: &mut crate::EcsAdapter, _text_renderer: &mut crate::ui::text_renderer::TextRenderer) {
-        // Откладываем построение контента до первого update()
+        // Откладываем построение контента до первого update(), а в меню играет музыка
         self.ready = false;
+        crate::audio::play_music("music");
     }
 
     fn update(&mut self, ecs: &mut crate::EcsAdapter, input: &winit_input_helper::WinitInputHelper, window_size: (f32, f32), text_renderer: &mut crate::ui::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) -> SceneAction {
@@ -173,6 +174,9 @@ impl Scene for MenuScene {
         let h = Self::is_inside(input, window_size, BTN_X, BTN_Y, BTN_W, BTN_H);
         if h != self.play_hover {
             self.play_hover = h;
+            if h {
+                crate::audio::play("hover");
+            }
             let color = if h { GREEN } else { BTN_TEXT_COLOR };
             self.play_label = Self::set_label_texture(ecs, self.play_label, text_renderer, device, queue, "Play", BTN_X, BTN_Y + 0.05, BTN_W * 0.75, 1.0, color);
         }
@@ -181,16 +185,21 @@ impl Scene for MenuScene {
         let h = Self::is_inside(input, window_size, QUIT_X, QUIT_Y, QUIT_W, QUIT_H);
         if h != self.quit_hover {
             self.quit_hover = h;
+            if h {
+                crate::audio::play("hover");
+            }
             let color = if h { GREEN } else { BTN_TEXT_COLOR };
             self.quit_label = Self::set_label_texture(ecs, self.quit_label, text_renderer, device, queue, "Quit", QUIT_X, QUIT_Y + 0.05, QUIT_W * 0.75, 1.0, color);
         }
 
         // Запуск игры по пробелу или клику на Play
         if input.key_pressed(winit::keyboard::KeyCode::Space) || Self::is_play_clicked(input, window_size) {
+            crate::audio::play("click");
             return SceneAction::Switch("game".to_string());
         }
         // Выход по Escape или клику на Quit
         if input.key_pressed(winit::keyboard::KeyCode::Escape) || Self::is_quit_clicked(input, window_size) {
+            crate::audio::play("click");
             return SceneAction::Quit;
         }
         SceneAction::None

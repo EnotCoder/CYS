@@ -281,6 +281,7 @@ impl NpcScript {
                 move |_, n: i32| -> mlua::Result<()> {
                     let ecs_borrow = ecs.borrow_mut();
                     ecs_borrow.world.write_resource::<Money>().0 += n;
+                    crate::audio::play("cash");
                     Ok(())
                 }
             })?;

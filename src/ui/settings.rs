@@ -76,6 +76,7 @@ impl Settings {
             self.vsync.checked = !self.vsync.checked;
             refresh_checkbox(ecs, text_renderer, device, queue, &mut self.vsync);
             self.vsync_toggled = true;
+            crate::audio::play("click");
             return true;
         }
 

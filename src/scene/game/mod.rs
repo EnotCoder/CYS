@@ -239,6 +239,7 @@ impl Scene for GameScene {
             } else {
                 self.settings.open(ecs, text_renderer, device, queue);
             }
+            crate::audio::play("click");
         }
 
         // --- Save / Load ---
@@ -305,6 +306,7 @@ impl Scene for GameScene {
                             ecs.update_sprite_texture(entity, tex);
                         }
                         self.shoppers.set_active(self.active);
+                        crate::audio::play("bell");
                     }
                     // --- Клик по mode ---
                     if (wx - ICON_MODE_X).abs() < TILE_HALF && (wy - SLOT_BAR_Y).abs() < TILE_HALF {
@@ -319,6 +321,7 @@ impl Scene for GameScene {
             // Клик по спуску/выходу подвала: переключение между магазином и подвалом
             if switch_level == 2 {
                 let new_level = if self.current_level == 0 { -1 } else { 0 };
+                crate::audio::play("stair");
                 self.load_level(ecs, text_renderer, device, queue, new_level, false);
                 return SceneAction::None;
             }

@@ -25,6 +25,7 @@ impl GameScene {
             } else {
                 self.inventory.enter(ecs);
             }
+            crate::audio::play("click");
         }
 
         let click = input.mouse_pressed(winit::event::MouseButton::Left);
@@ -41,6 +42,7 @@ impl GameScene {
             if (wy - INV_TAB_Y).abs() < TILE_HALF && tcol >= 0 && tcol < TAB_TEX.len() as i32 {
                 if tcol != self.inventory.tab {
                     self.inventory.switch_tab(tcol, ecs);
+                    crate::audio::play("click");
                 }
                 return;
             }
@@ -53,6 +55,7 @@ impl GameScene {
             if self.inventory.handle_grid_click(col, row) {
                 // Предмет из инвентаря переносится в выбранный слот хотбара
                 self.inventory.transfer_to_slot(ecs, self.act_slot as usize, &mut self.slots, &self.slot_entities);
+                crate::audio::play("click");
             }
             return;
         }
@@ -72,6 +75,7 @@ impl GameScene {
                     self.slots[target as usize].active = true;
                     ecs.update_transform_position(cursor, SLOT_BAR_X + col as f32, SLOT_BAR_Y);
                 }
+                crate::audio::play("hover");
             }
         }
     }

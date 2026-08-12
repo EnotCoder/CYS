@@ -282,7 +282,9 @@ impl GameScene {
             busy_cassas,
         };
         if let Ok(json) = serde_json::to_string_pretty(&data) {
-            let _ = std::fs::write("save.json", json);
+            if std::fs::write("save.json", json).is_ok() {
+                crate::audio::play("save");
+            }
         }
     }
 
@@ -323,6 +325,7 @@ impl GameScene {
             Ok(d) => d,
             Err(_) => return,
         };
+        crate::audio::play("save");
 
         // Восстанавливаем глобальные ресурсы мира и настройки игрока
         ecs.clear_world();

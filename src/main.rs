@@ -230,6 +230,9 @@ impl ApplicationHandler for App {
 
 fn main() {
     audio::init();
+    // Путь к шрифту берём из scripts/config.lua (поле font_path).
+    let config = script::config::BalanceConfig::load();
+    let font_path = config.font_path.clone();
     // Создаём цикл событий winit
     let event_loop = EventLoop::new().unwrap();
 
@@ -238,7 +241,7 @@ fn main() {
         window: None,
         wgpu_app: None,
         surface: None,
-        text_renderer: ui::text_renderer::TextRenderer::new("font.otf"),
+        text_renderer: ui::text_renderer::TextRenderer::new(&font_path),
         scene_manager: scene::SceneManager::new(),
         input: winit_input_helper::WinitInputHelper::new(),
         fps_counter: FpsCounter::new(),

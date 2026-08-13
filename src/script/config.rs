@@ -48,6 +48,8 @@ pub struct BalanceConfig {
     // === Пороги смены текстур еды ===
     pub box_tex_threshold_1: i32,
     pub box_tex_threshold_2: i32,
+    // === Интерфейс ===
+    pub font_path: String,
 }
 
 impl BalanceConfig {
@@ -105,6 +107,7 @@ impl BalanceConfig {
         cfg.candies_start_food = get_i64(get("candies_start_food"), cfg.candies_start_food as i64) as i32;
         cfg.box_tex_threshold_1 = get_i64(get("box_tex_threshold_1"), cfg.box_tex_threshold_1 as i64) as i32;
         cfg.box_tex_threshold_2 = get_i64(get("box_tex_threshold_2"), cfg.box_tex_threshold_2 as i64) as i32;
+        cfg.font_path = get_string(get("font_path"), &cfg.font_path);
         cfg
     }
 
@@ -137,6 +140,7 @@ impl BalanceConfig {
         t.set("candies_start_food", self.candies_start_food)?;
         t.set("box_tex_threshold_1", self.box_tex_threshold_1)?;
         t.set("box_tex_threshold_2", self.box_tex_threshold_2)?;
+        t.set("font_path", self.font_path.as_str())?;
         lua.globals().set("CONFIG", t)
     }
 }
@@ -156,6 +160,14 @@ fn get_i64(v: Value, default: i64) -> i64 {
         Value::Integer(i) => i,
         Value::Number(n) => n as i64,
         _ => default,
+    }
+}
+
+/// Достаёт строку из Lua-значения; иначе — дефолт.
+fn get_string(v: Value, default: &str) -> String {
+    match v {
+        Value::String(s) => s.to_str().map(|s| s.to_string()).unwrap_or_else(|_| default.to_string()),
+        _ => default.to_string(),
     }
 }
 
@@ -188,6 +200,7 @@ impl Default for BalanceConfig {
             candies_start_food: 10,
             box_tex_threshold_1: 8,
             box_tex_threshold_2: 12,
+            font_path: "font.otf".to_string(),
         }
     }
 }

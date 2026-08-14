@@ -93,7 +93,7 @@ impl GameScene {
         }
 
         ecs.clear_world();
-        self.clear_food_fx(ecs);
+        self.clear_food_fx();
         ecs.world.write_resource::<BusyCassas>().0.clear();
 
         self.current_level = level;

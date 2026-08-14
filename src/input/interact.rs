@@ -61,11 +61,7 @@ pub fn try_interact(ecs: &mut EcsAdapter, gx: i32, gy: i32) -> i32 {
                                 });
                                 ecs.update_object_textures();
                                 crate::audio::play("coin");
-                                // Событие для анимации «еда добавлена» над стеллажом.
-                                let t = ecs.world.read_storage::<crate::Transform>().get(entity)
-                                    .map(|t| t.position)
-                                    .unwrap_or([gx as f32, gy as f32, 0.0]);
-                                ecs.pending_food_adds.push((t[0] + 0.5, t[1] + 0.5, take, gid));
+                                ecs.pending_food_adds.push(gid);
                             }
                         }
                     }

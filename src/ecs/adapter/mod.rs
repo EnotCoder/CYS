@@ -81,9 +81,10 @@ impl EcsAdapter {
         });
         world.insert(TotalFood(0));
         world.insert(BusyCassas(HashSet::new()));
-        world.insert(Money(0));
+        let cfg = crate::script::config::BalanceConfig::load();
+        world.insert(Money(cfg.start_money));
         world.insert(BasementPlaced(false));
-        world.insert(crate::script::config::BalanceConfig::default());
+        world.insert(cfg);
 
         Self {
             world,

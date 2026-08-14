@@ -6,8 +6,9 @@
 //  Если файл отсутствует или повреждён — используются значения по умолчанию.
 // ========================================================================
 
+use std::collections::HashMap;
 use std::path::Path;
-use mlua::{Lua, Value};
+use mlua::{Lua, Table, Value};
 
 /// Путь к файлу баланса относительно корня проекта.
 const CONFIG_PATH: &str = "scripts/config.lua";
@@ -48,6 +49,10 @@ pub struct BalanceConfig {
     // === Пороги смены текстур еды ===
     pub box_tex_threshold_1: i32,
     pub box_tex_threshold_2: i32,
+    // === Экономика ===
+    pub start_money: i32,
+    // Переопределения цен объектов по имени (что не упомянуто — берёт цену из данных объекта).
+    pub object_prices: HashMap<String, i32>,
     // === Интерфейс ===
     pub font_path: String,
 }
@@ -68,19 +73,45 @@ impl BalanceConfig {
                 return cfg;
             }
         };
-        // Выполняем скрипт: он объявляет глобальные переменные с настройками.
+        // Выполняем скрипт: он объявляет глобальную таблицу CONFIG с настройками.
         let lua = Lua::new();
         if let Err(e) = lua.load(&source).exec() {
             eprintln!("[config] ошибка выполнения {CONFIG_PATH}: {e} — дефолты");
             return cfg;
         }
-        // Вспомогательный захват: читает глобал по имени, при ошибке — Nil.
+        // Читаем таблицу CONFIG (все настройки лежат в ней); если её нет —
+        // читаем top-level глобалы (обратная совместимость).
+        let cfg_table = lua.globals().get::<Table>("CONFIG").ok();
+        // Вспомогательный захват: читает ключ из CONFIG, при отсутствии — глобал.
         let get = |key: &str| -> Value {
-            match lua.globals().get::<Value>(key) {
-                Ok(v) => v,
-                Err(_) => Value::Nil,
+            match cfg_table {
+                Some(ref t) => {
+                    if let Ok(v) = t.get::<Value>(key) {
+                        if !matches!(v, Value::Nil) {
+                            return v;
+                        }
+                    }
+                    match lua.globals().get::<Value>(key) {
+                        Ok(v) => v,
+                        Err(_) => Value::Nil,
+                    }
+                }
+                None => match lua.globals().get::<Value>(key) {
+                    Ok(v) => v,
+                    Err(_) => Value::Nil,
+                },
             }
         };
+        // Переопределения цен объектов: таблица name -> цена.
+        if let Some(ref t) = cfg_table {
+            if let Ok(prices) = t.get::<Table>("object_prices") {
+                for pair in prices.pairs::<String, i64>() {
+                    if let Ok((name, price)) = pair {
+                        cfg.object_prices.insert(name, price as i32);
+                    }
+                }
+            }
+        }
         cfg.shopper_spawn_interval = get_f64(get("shopper_spawn_interval"), cfg.shopper_spawn_interval);
         cfg.shopper_spawn_cooldown = get_f64(get("shopper_spawn_cooldown"), cfg.shopper_spawn_cooldown);
         cfg.max_shoppers = get_i64(get("max_shoppers"), cfg.max_shoppers as i64).max(1) as usize;
@@ -107,6 +138,7 @@ impl BalanceConfig {
         cfg.candies_start_food = get_i64(get("candies_start_food"), cfg.candies_start_food as i64) as i32;
         cfg.box_tex_threshold_1 = get_i64(get("box_tex_threshold_1"), cfg.box_tex_threshold_1 as i64) as i32;
         cfg.box_tex_threshold_2 = get_i64(get("box_tex_threshold_2"), cfg.box_tex_threshold_2 as i64) as i32;
+        cfg.start_money = get_i64(get("start_money"), cfg.start_money as i64) as i32;
         cfg.font_path = get_string(get("font_path"), &cfg.font_path);
         cfg
     }
@@ -140,6 +172,14 @@ impl BalanceConfig {
         t.set("candies_start_food", self.candies_start_food)?;
         t.set("box_tex_threshold_1", self.box_tex_threshold_1)?;
         t.set("box_tex_threshold_2", self.box_tex_threshold_2)?;
+        t.set("start_money", self.start_money)?;
+        if !self.object_prices.is_empty() {
+            let prices = lua.create_table()?;
+            for (name, price) in &self.object_prices {
+                prices.set(name.as_str(), *price)?;
+            }
+            t.set("object_prices", prices)?;
+        }
         t.set("font_path", self.font_path.as_str())?;
         lua.globals().set("CONFIG", t)
     }
@@ -200,6 +240,8 @@ impl Default for BalanceConfig {
             candies_start_food: 10,
             box_tex_threshold_1: 8,
             box_tex_threshold_2: 12,
+            start_money: 100,
+            object_prices: HashMap::new(),
             font_path: "font.otf".to_string(),
         }
     }

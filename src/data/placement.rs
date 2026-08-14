@@ -4,7 +4,7 @@
 use specs::WorldExt;
 use crate::EcsAdapter;
 use super::Slot;
-use crate::ecs::components::BasementPlaced;
+use crate::ecs::components::{BasementPlaced, Money};
 
 // ========================================================================
 //  Правила размещения объектов: категории, стены, трава
@@ -193,6 +193,16 @@ pub fn add(ecs: &mut EcsAdapter, slots: &mut Vec<Slot>, act_slot: i32, gx: i32, 
         return;
     }
 
+    // Мини-экономика: установка объекта стоит денег.
+    let price = {
+        let cfg = ecs.world.read_resource::<crate::script::config::BalanceConfig>();
+        super::object_price(active_slot.name, &cfg)
+    };
+    if ecs.world.read_resource::<Money>().0 < price {
+        crate::audio::play("error");
+        return;
+    }
+
     if !ecs.can_place_at(
         gx, gy,
         active_slot.width, active_slot.height,
@@ -204,6 +214,7 @@ pub fn add(ecs: &mut EcsAdapter, slots: &mut Vec<Slot>, act_slot: i32, gx: i32, 
 
     ecs.clear_cursor_preview();
 
+    ecs.world.write_resource::<Money>().0 -= price;
     crate::audio::play("place");
 
     // Создаём группу спрайтов размера width*height и получаем её id.
@@ -269,9 +280,22 @@ pub fn remove(ecs: &mut EcsAdapter, gx: i32, gy: i32) -> bool {
         };
         if let Some(entity) = entity {
             // Если удаляем подвал — разрешаем поставить его снова.
-            let is_basement = ecs.world.read_storage::<crate::ObjectTag>().get(entity).map(|t| t.name == "basement").unwrap_or(false);
+            let is_basement = {
+                let tags = ecs.world.read_storage::<crate::ObjectTag>();
+                tags.get(entity).map(|t| t.name == "basement").unwrap_or(false)
+            };
             if is_basement {
                 ecs.world.write_resource::<BasementPlaced>().0 = false;
+            }
+            // Мини-экономика: возвращаем половину цены при удалении объекта.
+            let name = {
+                let tags = ecs.world.read_storage::<crate::ObjectTag>();
+                tags.get(entity).map(|t| t.name.clone())
+            };
+            if let Some(name) = name {
+                let cfg = ecs.world.read_resource::<crate::script::config::BalanceConfig>();
+                let refund = super::object_price(&name, &cfg) / 2;
+                ecs.world.write_resource::<Money>().0 += refund;
             }
         }
         ecs.delete_group(group_id);

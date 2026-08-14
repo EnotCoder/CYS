@@ -8,7 +8,7 @@ use crate::scene::scene_trait::{Scene, SceneAction};
 use crate::constants::*;
 use crate::inventory::Inventory;
 use crate::map::pathfinding::Node;
-use crate::ecs::components::{FoodStorage, ObjectTag, TotalFood, BusyCassas, Money};
+use crate::ecs::components::{FoodStorage, ObjectTag, TotalFood, BusyCassas, Money, Transform};
 use crate::scene::game::day_night::DayNightCycle;
 use crate::scene::game::hud::GameHud;
 use crate::scene::game::shoppers::ShopperManager;
@@ -21,6 +21,23 @@ mod level;
 mod shoppers;
 
 pub use level::LevelState;
+
+// Всплывающая надпись "+N" над ящиком/стеллажом после добавления еды.
+struct FoodPopup {
+    entity: specs::Entity,
+    base_x: f32,
+    base_y: f32,
+    timer: f64,
+    lifetime: f64,
+    rise: f32,
+}
+
+// Пульс объекта («поп») при добавлении еды: масштаб растёт и возвращается.
+struct FoodPulse {
+    group_id: u32,
+    timer: f64,
+    lifetime: f64,
+}
 
 // ========================================================================
 //  GameScene — основная игровая сцена
@@ -72,6 +89,9 @@ pub struct GameScene {
     hud: GameHud,
     shoppers: ShopperManager,
     day_night: DayNightCycle,
+    // Эффекты появления еды: всплывающие надписи и пульсы объектов
+    food_popups: Vec<FoodPopup>,
+    food_pulses: Vec<FoodPulse>,
 }
 
 impl GameScene {
@@ -110,6 +130,8 @@ impl GameScene {
             hud: GameHud::new(),
             shoppers: ShopperManager::new(),
             day_night: DayNightCycle::new(),
+            food_popups: Vec::new(),
+            food_pulses: Vec::new(),
         }
     }
 
@@ -180,6 +202,78 @@ impl GameScene {
             }
         }
     }
+
+    /// Создаёт эффекты появления еды: всплывающую надпись "+N" и пульс объекта.
+    fn spawn_food_fx(&mut self, ecs: &mut crate::EcsAdapter, text_renderer: &mut crate::ui::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue, cx: f32, cy: f32, amount: i32, group_id: u32) {
+        let text = format!("+{}", amount);
+        let y = cy + 0.4;
+        let entity = text_renderer.add_text(ecs, device, queue, &text, FONT_SIZE_BTN, cx, y, 1.2, 1.0, GREEN);
+        self.food_popups.push(FoodPopup {
+            entity,
+            base_x: cx,
+            base_y: y,
+            timer: 0.0,
+            lifetime: 0.9,
+            rise: 0.6,
+        });
+        self.food_pulses.push(FoodPulse {
+            group_id,
+            timer: 0.0,
+            lifetime: 0.35,
+        });
+    }
+
+    /// Перебирает накопленные сценой/вводом события «еда добавлена» и запускает эффекты.
+    fn drain_food_fx(&mut self, ecs: &mut crate::EcsAdapter, text_renderer: &mut crate::ui::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) {
+        let pending = std::mem::take(&mut ecs.pending_food_adds);
+        for (cx, cy, amount, group_id) in pending {
+            self.spawn_food_fx(ecs, text_renderer, device, queue, cx, cy, amount, group_id);
+        }
+    }
+
+    /// Каждокадровая анимация эффектов: подъём/затухание надписи и «поп» объекта.
+    fn update_food_fx(&mut self, ecs: &mut crate::EcsAdapter, dt: f64) {
+        let mut i = 0;
+        while i < self.food_popups.len() {
+            self.food_popups[i].timer += dt;
+            let p = (self.food_popups[i].timer / self.food_popups[i].lifetime).min(1.0) as f32;
+            let (entity, base_x, base_y, rise) = {
+                let pop = &self.food_popups[i];
+                (pop.entity, pop.base_x, pop.base_y, pop.rise)
+            };
+            ecs.update_transform_position(entity, base_x, base_y + rise * p);
+            ecs.update_sprite_alpha(entity, 1.0 - p);
+            if p >= 1.0 {
+                ecs.delete_entity(entity);
+                self.food_popups.swap_remove(i);
+            } else {
+                i += 1;
+            }
+        }
+
+        let mut j = 0;
+        while j < self.food_pulses.len() {
+            self.food_pulses[j].timer += dt;
+            let p = (self.food_pulses[j].timer / self.food_pulses[j].lifetime).min(1.0) as f32;
+            let group_id = self.food_pulses[j].group_id;
+            // Масштаб: 1.0 -> 1.25 -> 1.0 по синусоиде.
+            let scale = 1.0 + 0.25 * (std::f32::consts::PI * p).sin();
+            ecs.update_group_scale(group_id, scale);
+            if p >= 1.0 {
+                self.food_pulses.swap_remove(j);
+            } else {
+                j += 1;
+            }
+        }
+    }
+
+    /// Сбрасывает активные эффекты (мир очищается при смене уровня).
+    pub fn clear_food_fx(&mut self, ecs: &mut crate::EcsAdapter) {
+        for pop in self.food_popups.drain(..) {
+            ecs.delete_entity(pop.entity);
+        }
+        self.food_pulses.clear();
+    }
 }
 
 impl Scene for GameScene {
@@ -214,6 +308,8 @@ impl Scene for GameScene {
         self.hud.reset();
         self.shoppers.clear();
         self.day_night.reset();
+        self.food_popups.clear();
+        self.food_pulses.clear();
         ecs.world.write_resource::<TotalFood>().0 = 0;
         ecs.world.write_resource::<BusyCassas>().0.clear();
         crate::audio::play_music("music");
@@ -351,17 +447,26 @@ impl Scene for GameScene {
         self.food_timer += dt;
         if self.food_timer >= self.config.food_regen_tick {
             self.food_timer -= self.config.food_regen_tick;
+            let amount = self.config.food_regen_amount;
+            let mut adds = Vec::new();
             {
                 let tags = ecs.world.read_storage::<ObjectTag>();
                 let mut foods = ecs.world.write_storage::<FoodStorage>();
-                for (tag, storage) in (&tags, &mut foods).join() {
+                let transforms = ecs.world.read_storage::<Transform>();
+                let groups = ecs.world.read_storage::<crate::GroupComponent>();
+                for (tag, storage, transform, group) in (&tags, &mut foods, &transforms, &groups).join() {
                     if tag.name == "box" && storage.food_count < storage.max_food {
-                        storage.food_count += self.config.food_regen_amount;
+                        storage.food_count += amount;
+                        adds.push((transform.position[0] + 0.5, transform.position[1] + 0.5, amount, group.group_id));
                     }
                 }
             }
             ecs.update_object_textures();
+            ecs.pending_food_adds.extend(adds);
         }
+        // Обрабатываем накопленные эффекты появления еды (ящики и стеллажи)
+        self.drain_food_fx(ecs, text_renderer, device, queue);
+        self.update_food_fx(ecs, dt);
         ecs.update_fence_textures();
         // Определяем объект под курсором для подсказки о запасах еды
         let cursor_pos = self.cursor_entity.map(|e| ecs.get_transform_position(e));

@@ -46,6 +46,9 @@ pub struct EcsAdapter {
     pub clear_count: u64,
     // Временные сущности призрака размещения — пересоздаются каждый кадр.
     pub cursor_preview: Vec<specs::Entity>,
+    // Очередь событий «в объект добавлена еда»: (центр_x, центр_y, сколько, группа).
+    // Наполняется ящиком-регеном и пополнением стеллажа, дренится сценой для анимаций.
+    pub pending_food_adds: Vec<(f32, f32, i32, u32)>,
     // Наборы клеток карты, разрешённых для размещения каждой категории
     // объектов (вычисляются при загрузке карты).
     pub wall_positions: HashSet<(i32, i32)>,
@@ -89,6 +92,7 @@ impl EcsAdapter {
             current_level: 0,
             clear_count: 0,
             cursor_preview: Vec::new(),
+            pending_food_adds: Vec::new(),
             wall_positions: HashSet::new(),
             floor_positions: HashSet::new(),
             outdoor_positions: HashSet::new(),
@@ -124,6 +128,19 @@ impl EcsAdapter {
     pub fn update_sprite_alpha(&mut self, entity: specs::Entity, alpha: f32) {
         if let Some(sprite) = self.world.write_storage::<SpriteComponent>().get_mut(entity) {
             sprite.alpha = alpha;
+        }
+    }
+
+    // Меняет масштаб всех спрайтов группы (эффект «поп» при пополнении).
+    // Если группы уже нет — безопасно делает ничего.
+    pub fn update_group_scale(&mut self, group_id: u32, scale: f32) {
+        let group_info = self.world.read_resource::<GroupInfoResource>();
+        let Some(info) = group_info.groups.get(&group_id) else { return };
+        let mut sprites = self.world.write_storage::<SpriteComponent>();
+        for &entity in &info.entities {
+            if let Some(sprite) = sprites.get_mut(entity) {
+                sprite.scale = scale;
+            }
         }
     }
 
@@ -221,6 +238,7 @@ impl EcsAdapter {
         }
         self.sprite_cache.clear();
         self.cursor_preview.clear();
+        self.pending_food_adds.clear();
         self.next_group_id = 1;
         self.clear_count += 1;
         self.map_grid.clear();

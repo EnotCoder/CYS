@@ -3,8 +3,8 @@
 
 use std::fs::File;
 use std::io::{BufRead, BufReader};
-use crate::scene::scene_trait::{Scene, SceneAction};
-use crate::constants::*;
+use crate::scenes::scene_trait::{Scene, SceneAction};
+use crate::core::constants::*;
 use crate::ui::{Panel, create_panel, destroy_panel};
 
 // ========================================================================
@@ -43,7 +43,7 @@ impl MenuScene {
     /// Сначала разрушает старое, чтобы пересоздание было идемпотентным.
     fn setup_content(&mut self, ecs: &mut crate::EcsAdapter, text_renderer: &mut crate::ui::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) {
         self.destroy_content(ecs);
-        crate::load_map_to_ecs(ecs);
+        crate::data::map::load_map_to_ecs(ecs);
         ecs.add_ui_sized(LOGO_X, LOGO_Y, LOGO_W, LOGO_H, "tex/ui/game_name.png", device, queue);
         // Панели-подложки кнопок Play и Quit
         let mut play_panel = Panel::new(BTN_X, BTN_Y, BTN_W, BTN_H, 0.5);
@@ -130,7 +130,7 @@ impl MenuScene {
     /// Проверка, находится ли курсор мыши над прямоугольником кнопки
     fn is_inside(input: &winit_input_helper::WinitInputHelper, window_size: (f32, f32), bx: f32, by: f32, bw: f32, bh: f32) -> bool {
         let Some((mx, my)) = input.cursor() else { return false };
-        let (wx, wy) = crate::util::ndc_to_world(mx, my, window_size, MENU_MAP_SIZE, 0.0, 0.0);
+        let (wx, wy) = crate::core::util::ndc_to_world(mx, my, window_size, MENU_MAP_SIZE, 0.0, 0.0);
         wx >= bx - bw / 2.0 && wx <= bx + bw / 2.0
             && wy >= by - bh / 2.0 && wy <= by + bh / 2.0
     }

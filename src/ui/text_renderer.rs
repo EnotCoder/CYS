@@ -39,7 +39,7 @@ impl TextRenderer {
     /// Публичный ключ для кэша спрайтов (используется destroy-функциями UI).
     pub fn sprite_cache_key(text: &str, px_size: f32, outline: f32, color: [u8; 3]) -> u64 {
         let tk = Self::cache_key(text, px_size, outline, color);
-        crate::util::sprite_cache_key("ui", &tk, [0, 0], [1, 1], 1.0)
+        crate::core::util::sprite_cache_key("ui", &tk, [0, 0], [1, 1], 1.0)
     }
 
     /// Растеризует текст (обводка + основной цвет) в употребляемое изображение.
@@ -183,7 +183,7 @@ impl TextRenderer {
         outline: f32,
         color: [u8; 3],
     ) -> specs::Entity {
-        self.add_text_z(ecs, device, queue, text, font_size, x, y, world_width, outline, color, crate::constants::Z_UI)
+        self.add_text_z(ecs, device, queue, text, font_size, x, y, world_width, outline, color, crate::core::constants::Z_UI)
     }
 
     /// Инкрементальная установка текста: если текст не изменился — спрайт не трогается,
@@ -245,7 +245,7 @@ impl TextRenderer {
                 let e = ecs.world
                     .create_entity()
                     .with(crate::Transform {
-                        position: [x, y, crate::constants::Z_UI],
+                        position: [x, y, crate::core::constants::Z_UI],
                     })
                     .with(crate::SpriteComponent {
                         texture_path: std::sync::Arc::from(text_key.as_str()),
@@ -284,13 +284,13 @@ impl TextRenderer {
         let sprite = Sprite::from_texture(device, &tex, text, world_width, world_height);
 
         let text_key = Self::cache_key(text, font_size, outline, color);
-        let skey = crate::util::sprite_cache_key("ui", &text_key, [0, 0], [1, 1], 1.0);
+        let skey = crate::core::util::sprite_cache_key("ui", &text_key, [0, 0], [1, 1], 1.0);
         ecs.sprite_cache.insert(skey, sprite);
 
         ecs.world
             .create_entity()
             .with(crate::Transform {
-                position: [x, y, crate::constants::Z_UI],
+                position: [x, y, crate::core::constants::Z_UI],
             })
             .with(crate::SpriteComponent {
                 texture_path: Arc::from(text_key.as_str()),
@@ -329,8 +329,8 @@ impl TextRenderer {
 
         let text_key = Self::cache_key(text, font_size, outline, color);
         // Ключ кэша различает слой UI и слой декора (иначе спрайты бы коллизировали).
-        let layer_prefix = if (z - crate::constants::Z_UI).abs() < 0.001 { "ui" } else { "decor" };
-        let skey = crate::util::sprite_cache_key(layer_prefix, &text_key, [0, 0], [1, 1], 1.0);
+        let layer_prefix = if (z - crate::core::constants::Z_UI).abs() < 0.001 { "ui" } else { "decor" };
+        let skey = crate::core::util::sprite_cache_key(layer_prefix, &text_key, [0, 0], [1, 1], 1.0);
         ecs.sprite_cache.insert(skey, sprite);
 
         ecs.world

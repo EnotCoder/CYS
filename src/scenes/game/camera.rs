@@ -11,7 +11,7 @@
 
 use winit::keyboard::KeyCode;
 use winit_input_helper::WinitInputHelper;
-use crate::constants::*;
+use crate::core::constants::*;
 use super::GameScene;
 
 impl GameScene {

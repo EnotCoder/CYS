@@ -6,7 +6,7 @@ use std::time::{Instant, Duration};
 use winit_input_helper::WinitInputHelper;
 use specs::Entity;
 use crate::{EcsAdapter, data::{Slot, is_carpet_name, is_wall_decor_name, is_outdoor_name, is_flower_name}};
-use crate::constants::*;
+use crate::core::constants::*;
 
 // Запоминаем время последнего перемещения курсора на соседнюю клетку,
 // чтобы задержать движение (случай перетаскивания по соседним тайлам)
@@ -30,7 +30,7 @@ pub fn handle_mouse_movement(
     let Some((mouse_x, mouse_y)) = input.cursor() else { return };
 
     // Перевод курсора из NDC в мировые координаты (с учётом зума и камеры)
-    let (world_x, world_y) = crate::util::ndc_to_world(mouse_x, mouse_y, window_size, map_size, cam_x, cam_y);
+    let (world_x, world_y) = crate::core::util::ndc_to_world(mouse_x, mouse_y, window_size, map_size, cam_x, cam_y);
 
     // Приводим к клетке сетки и ограничиваем границами карты
     let grid_x = (world_x + TILE_HALF).floor().clamp(CAMERA_MAP_MIN_X, CAMERA_MAP_MAX_X);

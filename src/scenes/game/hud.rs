@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Copyright (C) 2026 EnotCoder
 
-use crate::constants::*;
+use crate::core::constants::*;
 use crate::EcsAdapter;
 use crate::ui::text_renderer::TextRenderer;
 
@@ -190,7 +190,7 @@ impl GameHud {
 
                 // Ключ кэша уникален для каждого размера подложки
                 let bg_unique = format!("tex/dev_tools/black.png@{bg_w:.2}x{bg_h:.2}");
-                let bg_key = crate::util::sprite_cache_key("ui", &bg_unique, [0, 0], [1, 1], 1.0);
+                let bg_key = crate::core::util::sprite_cache_key("ui", &bg_unique, [0, 0], [1, 1], 1.0);
                 if self.slot_tooltip_bg_key != Some(bg_key) {
                     // Размер изменился — пересоздаём подложку
                     if let Some(old) = self.slot_tooltip_bg.take() {

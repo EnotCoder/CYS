@@ -10,10 +10,10 @@
 // ========================================================================
 
 use specs::WorldExt;
-use crate::map::pathfinding::{Node, find_path};
-use crate::constants::*;
+use crate::data::map::pathfinding::{Node, find_path};
+use crate::core::constants::*;
 use crate::EcsAdapter;
-use crate::script::config::BalanceConfig;
+use crate::scripts::config::BalanceConfig;
 use super::ShopperNpc;
 
 pub(crate) fn spawn_path_node(ecs: &EcsAdapter) -> Node {

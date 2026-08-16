@@ -10,7 +10,7 @@
 use specs::Entity;
 use crate::ui::{Panel, Checkbox, Slider, create_panel, destroy_panel, create_checkbox, destroy_checkbox, refresh_checkbox, checkbox_clicked, create_slider, destroy_slider, slider_drag, update_slider_thumb};
 use crate::ui::text_renderer::TextRenderer;
-use crate::constants::*;
+use crate::core::constants::*;
 use crate::EcsAdapter;
 use winit_input_helper::WinitInputHelper;
 
@@ -83,7 +83,7 @@ impl Settings {
         // Перетаскивание слайдера — вычисляем значение по позиции курсора.
         if slider_drag(&mut self.zoom_speed, input, window_size) {
             let Some((mx, _)) = input.cursor() else { return false };
-            let (wx, _) = crate::util::ndc_to_world(mx, 0.0, window_size, 1.0, 0.0, 0.0);
+            let (wx, _) = crate::core::util::ndc_to_world(mx, 0.0, window_size, 1.0, 0.0, 0.0);
             let t = ((wx - (self.zoom_speed.x - self.zoom_speed.width / 2.0)) / self.zoom_speed.width).clamp(0.0, 1.0);
             self.zoom_speed.value = self.zoom_speed.min + t * (self.zoom_speed.max - self.zoom_speed.min);
             update_slider_thumb(ecs, device, queue, &mut self.zoom_speed);

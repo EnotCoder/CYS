@@ -13,7 +13,7 @@ use winit::keyboard::KeyCode;
 use winit_input_helper::WinitInputHelper;
 use specs::Entity;
 use crate::{EcsAdapter, data::Slot};
-use crate::constants::*;
+use crate::core::constants::*;
 
 // ========================================================================
 //  Основная точка входа: вызывается каждый кадр
@@ -48,7 +48,7 @@ pub fn do_input(
         // Клик по UI-зонам (слоты хотбара, иконки, кнопка инвентаря) не должен
         // вызывать действие в мире — в этом случае ввод пропускается
         let skip = inventory_mode || input.cursor().map_or(false, |(mx, my)| {
-            let (wx, wy) = crate::util::ndc_to_world(mx, my, window_size, 1.0, 0.0, 0.0);
+            let (wx, wy) = crate::core::util::ndc_to_world(mx, my, window_size, 1.0, 0.0, 0.0);
             let col = (wx - SLOT_BAR_X + TILE_HALF) as i32;
             let on_slot = (wy - SLOT_BAR_Y).abs() < TILE_HALF && col >= 0 && col < slots.len() as i32;
             let on_icons = (wy - SLOT_BAR_Y).abs() < TILE_HALF
@@ -59,7 +59,7 @@ pub fn do_input(
         if !skip {
             // Переводим позицию курсора в клетку сетки мира (с учётом зума и камеры)
             let (gx, gy) = input.cursor().map_or((-99, -99), |(mx, my)| {
-                let (wx, wy) = crate::util::ndc_to_world(mx, my, window_size, new_size, cam_x, cam_y);
+                let (wx, wy) = crate::core::util::ndc_to_world(mx, my, window_size, new_size, cam_x, cam_y);
                 ((wx + TILE_HALF).floor() as i32, (wy + TILE_HALF).floor() as i32)
             });
             // Выполняем действие в зависимости от режима (камера/курсор/ластик)

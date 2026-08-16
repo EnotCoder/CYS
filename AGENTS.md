@@ -1,15 +1,19 @@
 # Project conventions
 
 ## Structure
-- `src/main.rs` — App, render loop, winit event handling
-- `src/constants.rs` — all game constants
-- `src/data/` — Slot, Object, ALL_OBJECTS (`mod.rs`), placement logic (`placement.rs`)
-- `src/map/` — map loading (`mod.rs`), pathfinding (`pathfinding.rs`)
+12 main folders in `src/` (Godot-style):
+- `src/main/` — entry point (`main.rs`) — is crate root via `[[bin]]` in Cargo.toml; App, render loop, winit event handling
+- `src/core/` — kernel: wgpu pipeline (`buffers`,`init`,`pipeline`,`render`,`texture`), constants, util
+- `src/data/` — Slot, Object, ALL_OBJECTS (`mod.rs`), placement logic (`placement.rs`), map loading + pathfinding (`map/`)
 - `src/npc/` — ShopperNpc only
 - `src/ecs/` — ECS adapter (`adapter/`), components, cursor, factory, group, placement, sprite
 - `src/input/` — camera, cursor, interact
-- `src/scene/` — menu_scene, game/ (GameScene), scene_manager, scene_trait
-- `src/ui/` — components, fps, settings, system, text_renderer
+- `src/scenes/` — menu_scene, game/ (GameScene), scene_manager, scene_trait
+- `src/ui/` — components, fps, inventory, settings, system, text_renderer
+- `src/audio/` — sound (rodio)
+- `src/scripts/` — Lua bridge (config, npc)
+- `src/doc/` — documentation
+- `src/tests/` — unit tests (tied in via `#[cfg(test)] mod tests;` in `src/main.rs`)
 
 ## Texture paths
 - Game map tiles: `tex/map/{grass,floor,wall}.png`

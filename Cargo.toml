@@ -3,6 +3,10 @@ name = "wgpu"
 version = "0.1.0"
 edition = "2021"
 
+[[bin]]
+name = "wgpu"
+path = "src/main/main.rs"
+
 [dependencies]
 winit = "0.30"
 winit_input_helper = "0.17"

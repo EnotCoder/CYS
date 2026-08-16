@@ -52,10 +52,10 @@ impl super::EcsAdapter {
             // Уровневые сущности (не UI/курсор) отсекаются по границам экрана:
             // невидимые объекты не попадают в список отрисовки.
             let z = transform.position[2];
-            let should_cull = z == crate::constants::Z_MAP
-                || z == crate::constants::Z_CARPET
-                || z == crate::constants::Z_DECOR
-                || z == crate::constants::Z_NPC;
+            let should_cull = z == crate::core::constants::Z_MAP
+                || z == crate::core::constants::Z_CARPET
+                || z == crate::core::constants::Z_DECOR
+                || z == crate::core::constants::Z_NPC;
             if should_cull {
                 if let Some((l, r, b, t)) = visible_bounds {
                     let x = transform.position[0];
@@ -66,15 +66,15 @@ impl super::EcsAdapter {
                 }
             }
             // Распределение по слоям согласно Z-константам (см. AGENTS.md).
-            if z == crate::constants::Z_MAP {
+            if z == crate::core::constants::Z_MAP {
                 map_sprites.push(data);
-            } else if z == crate::constants::Z_CARPET {
+            } else if z == crate::core::constants::Z_CARPET {
                 carpet_sprites.push(data);
-            } else if z == crate::constants::Z_DECOR {
+            } else if z == crate::core::constants::Z_DECOR {
                 decor_sprites.push(data);
-            } else if z == crate::constants::Z_NPC {
+            } else if z == crate::core::constants::Z_NPC {
                 npc_sprites.push(data);
-            } else if z == crate::constants::Z_CURSOR {
+            } else if z == crate::core::constants::Z_CURSOR {
                 cursor_sprites.push(data);
             } else {
                 ui_sprites.push(data);
@@ -87,7 +87,7 @@ impl super::EcsAdapter {
     // Обновляет текстуры заполненных объектов (box/rack) по количеству еды.
     // Пороги из BalanceConfig: box меняет кадр на tiers, rack — пусто/полно.
     pub fn update_object_textures(&mut self) {
-        let cfg = self.world.read_resource::<crate::script::config::BalanceConfig>();
+        let cfg = self.world.read_resource::<crate::scripts::config::BalanceConfig>();
         let (t1, t2) = (cfg.box_tex_threshold_1, cfg.box_tex_threshold_2);
         // Накопляем обновления по группам, чтобы не писать в storage во время чтения.
         let mut updates: Vec<(u32, Arc<str>)> = Vec::new();

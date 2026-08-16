@@ -2,8 +2,9 @@
 // Copyright (C) 2026 EnotCoder
 
 pub mod placement;
+pub mod map;
 
-use crate::constants::SLOT_COUNT;
+use crate::core::constants::SLOT_COUNT;
 
 // ========================================================================
 //  Slot & Object — предметы инвентаря
@@ -265,7 +266,7 @@ pub fn get_slot_vec() -> Vec<Slot> {
 
 // Цена установки объекта: переопределение из config.lua (cfg.object_prices)
 // или дефолт из данных объекта.
-pub fn object_price(name: &str, cfg: &crate::script::config::BalanceConfig) -> i32 {
+pub fn object_price(name: &str, cfg: &crate::scripts::config::BalanceConfig) -> i32 {
     cfg.object_prices.get(name).copied().unwrap_or_else(|| make_slot(name).obj.price)
 }
 

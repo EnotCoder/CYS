@@ -4,13 +4,13 @@
 use std::collections::HashSet;
 use specs::Join;
 use crate::EcsAdapter;
-use crate::map::pathfinding::Node;
+use crate::data::map::pathfinding::Node;
 use crate::npc::ShopperNpc;
-use crate::constants::*;
+use crate::core::constants::*;
 use crate::ecs::components::{FoodStorage, ObjectTag, Transform};
 use specs::WorldExt;
-use crate::script::config::BalanceConfig;
-use crate::script::npc::NpcScript;
+use crate::scripts::config::BalanceConfig;
+use crate::scripts::npc::NpcScript;
 
 // ========================================================================
 //  ShopperManager — менеджер покупателей
@@ -97,7 +97,7 @@ impl ShopperManager {
             } else {
                 None
             };
-            let spawn_node = crate::map::shopper_spawn_point();
+            let spawn_node = crate::data::map::shopper_spawn_point();
             // Внешний вид покупателя меняется по кругу (3 набора текстур)
             let tex_set = self.index % 3;
             self.index += 1;

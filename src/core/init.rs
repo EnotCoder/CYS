@@ -5,7 +5,7 @@ use winit::window::Window;
 use wgpu::*;
 use wgpu::util::DeviceExt;
 use crate::DepthBuffer;
-use crate::api_components::pipeline::{create_render_pipeline, create_transparent_pipeline};
+use crate::core::pipeline::{create_render_pipeline, create_transparent_pipeline};
 
 // ========================================================================
 //  init: создание WgpuApp — вершины всего wgpu-пайплайна.
@@ -111,7 +111,7 @@ impl WgpuApp {
         let alignment = device.limits().min_storage_buffer_offset_alignment as u64;
         let max_binding = device.limits().max_storage_buffer_binding_size as u64;
         let max_sprites_by_limit = (max_binding / alignment) as usize;
-        let max_dynamic = crate::constants::MAX_DYNAMIC_SPRITES.min(max_sprites_by_limit);
+        let max_dynamic = crate::core::constants::MAX_DYNAMIC_SPRITES.min(max_sprites_by_limit);
         let dynamic_buffer_size = max_dynamic as u64 * alignment;
         let dynamic_uniform_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("Dynamic Storage Buffer"),
@@ -296,6 +296,6 @@ pub fn surface_config(format: wgpu::TextureFormat, width: u32, height: u32) -> w
         alpha_mode: wgpu::CompositeAlphaMode::Auto,
         view_formats: vec![],
             color_space: wgpu::SurfaceColorSpace::Srgb,
-        desired_maximum_frame_latency: crate::constants::DESIRED_FRAME_LATENCY,
+        desired_maximum_frame_latency: crate::core::constants::DESIRED_FRAME_LATENCY,
     }
 }

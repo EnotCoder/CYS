@@ -16,18 +16,18 @@ use std::collections::HashSet;
 use std::fs::File;
 use std::io::{BufRead};
 use crate::ecs::EcsAdapter;
-use crate::constants::{WORLD_OFFSET_X, WORLD_OFFSET_Y, Z_MAP};
-use crate::map::pathfinding::Node;
+use crate::core::constants::{WORLD_OFFSET_X, WORLD_OFFSET_Y, Z_MAP};
+use crate::data::map::pathfinding::Node;
 
 /// Загружает карту из файла и создаёт для каждой клетки ECS-сущность
 pub fn load_map_to_ecs(ecs: &mut EcsAdapter) {
-    let file = File::open(crate::constants::MAP_FILE).expect("map.txt not found!");
+    let file = File::open(crate::core::constants::MAP_FILE).expect("map.txt not found!");
     load_map_from_reader(ecs, file, false);
 }
 
 /// Загружает карту подвала из отдельного файла
 pub fn load_basement_to_ecs(ecs: &mut EcsAdapter) {
-    let file = File::open(crate::constants::BASEMENT_FILE).expect("basement.txt not found!");
+    let file = File::open(crate::core::constants::BASEMENT_FILE).expect("basement.txt not found!");
     load_map_from_reader(ecs, file, true);
 }
 
@@ -95,7 +95,7 @@ fn load_map_from_reader(ecs: &mut EcsAdapter, reader: impl std::io::Read, _is_ba
 /// Возвращает множество клеток, по которым могут ходить покупатели.
 /// Магазинные полы ("0"), трава и некоторые стены (двери) считаются проходимыми.
 pub fn load_walkable_cells() -> HashSet<Node> {
-    let src = include_str!("../../map.txt");
+    let src = include_str!("../../../map.txt");
     let mut cells = HashSet::new();
     for (j, line) in src.lines().enumerate() {
         for (i, token) in line.split_whitespace().enumerate() {
@@ -115,7 +115,7 @@ pub fn load_walkable_cells() -> HashSet<Node> {
 /// Находит точку спавна покупателей — самую нижнюю клетку `0` (пол магазина),
 /// ближайшую к центру по X.
 pub fn shopper_spawn_point() -> Node {
-    let src = include_str!("../../map.txt");
+    let src = include_str!("../../../map.txt");
     // Перебираем все клетки пола и ищем самую нижнюю (минимальный Y),
     // при равенстве Y — ближайшую к нулю по X
     let mut best: Option<Node> = None;

@@ -3,7 +3,7 @@
 
 use specs::Entity;
 use crate::EcsAdapter;
-use crate::constants::*;
+use crate::core::constants::*;
 
 // ========================================================================
 //  Inventory — управление инвентарём (сетка, табы, курсор)
@@ -88,7 +88,7 @@ impl Inventory {
     pub fn selected_item_name(&self) -> Option<&'static str> {
         let row = self.selected / INVENTORY_COLS;
         let col = self.selected % INVENTORY_COLS;
-        let item_idx = crate::util::inventory_index(row, col) as usize;
+        let item_idx = crate::core::util::inventory_index(row, col) as usize;
         self.items().get(item_idx).copied()
     }
 
@@ -127,7 +127,7 @@ impl Inventory {
             hotbar_slots[act_slot] = new_slot;
             // Обновляем иконку слота на UI согласно выбранному предмету
             if act_slot < hotbar_entities.len() {
-                let path = crate::util::slot_icon_path(name);
+                let path = crate::core::util::slot_icon_path(name);
                 ecs.update_sprite_texture(hotbar_entities[act_slot], &path);
             }
         }
@@ -158,9 +158,9 @@ impl Inventory {
         let items = self.items();
         for row in (0..INVENTORY_ROWS).rev() {
             for col in 0..INVENTORY_COLS {
-                let item_idx = crate::util::inventory_index(row, col) as usize;
+                let item_idx = crate::core::util::inventory_index(row, col) as usize;
                 let tex = if item_idx < items.len() {
-                    crate::util::slot_icon_path(items[item_idx])
+                    crate::core::util::slot_icon_path(items[item_idx])
                 } else {
                     format!("{}{}", TEX_UI_ICON_SLOTS_MAP_DIR, "null.png")
                 };

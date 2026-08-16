@@ -46,17 +46,18 @@
 
 <pre>
 src/
-├── main.rs              — App, render loop, event handling
-├── constants.rs         — All game constants
-├── data/                — Slot/Object definitions, placement logic
-├── map/                 — Map loading & pathfinding
-├── npc/                 — Shopper NPC logic
-├── ecs/                 — ECS adapter, components, factory, group
-├── input/               — Camera, cursor, interaction
-├── scene/               — Menu, Game scene, scene manager
-├── ui/                  — HUD, settings, text renderer
-├── inventory.rs         — Inventory system
-└── util.rs              — Helper utilities
+├── main/        — entry point (main.rs, App, winit event loop)
+├── core/        — kernel: wgpu pipeline, textures, render, constants, util
+├── scenes/      — Menu, Game scene, scene manager
+├── ecs/         — ECS adapter, components, factory, group
+├── data/        — Slot/Object, placement logic, map loading & pathfinding
+├── ui/          — HUD, inventory, settings, text renderer
+├── input/       — Camera, cursor, interaction
+├── npc/         — Shopper NPC logic
+├── audio/       — Sound (rodio)
+├── scripts/     — Lua bridge (config.lua, npc.lua)
+├── doc/         — Documentation
+└── tests/       — Unit tests
 </pre>
 
 ## License

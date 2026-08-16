@@ -3,7 +3,7 @@
 
 use specs::Entity;
 use crate::ecs::adapter::EcsAdapter;
-use crate::constants::Z_CURSOR;
+use crate::core::constants::Z_CURSOR;
 
 impl EcsAdapter {
     // Создаёт спрайт курсора мыши на слое Z_CURSOR (поверх игровых слоёв).
@@ -28,7 +28,7 @@ impl EcsAdapter {
     ) {
         self.clear_cursor_preview();
         // Цвет и прозрачность призрака зависят от допустимости позиции.
-        let cur_tex = if valid { crate::constants::CURSOR_TEX[1] } else { crate::constants::CURSOR_ERR_TEX };
+        let cur_tex = if valid { crate::core::constants::CURSOR_TEX[1] } else { crate::core::constants::CURSOR_ERR_TEX };
         let ghost_alpha = if valid { 0.5 } else { 0.3 };
 
         for i in 0..width {

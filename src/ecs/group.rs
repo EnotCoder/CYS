@@ -30,9 +30,9 @@ impl EcsAdapter {
         let mut entities = Vec::with_capacity((width * height) as usize);
         // Слой зависит от типа: ковры лежат под декором (см. карту Z-констант).
         let z: f32 = if is_carpet {
-            crate::constants::Z_CARPET
+            crate::core::constants::Z_CARPET
         } else {
-            crate::constants::Z_DECOR
+            crate::core::constants::Z_DECOR
         };
 
         // На каждую клетку объекта создаём отдельную сущность; кадр атласа

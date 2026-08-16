@@ -3,7 +3,7 @@
 
 use winit_input_helper::WinitInputHelper;
 use winit::keyboard::KeyCode;
-use crate::constants::*;
+use crate::core::constants::*;
 
 // Приближение/отдаление камеры: колесо мыши или клавиши K/L
 // Зум ограничен диапазоном [ZOOM_MIN, ZOOM_MAX], шаг задаётся извне

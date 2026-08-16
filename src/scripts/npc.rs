@@ -15,7 +15,7 @@ use specs::WorldExt;
 use crate::EcsAdapter;
 use crate::npc::ShopperNpc;
 use crate::ecs::components::{BusyCassas, Money};
-use crate::map::pathfinding::Node;
+use crate::data::map::pathfinding::Node;
 
 /// Путь к скрипту NPC; при его отсутствии используется Rust-автомат.
 const SCRIPT_PATH: &str = "scripts/npc.lua";
@@ -46,7 +46,7 @@ impl NpcScript {
     pub fn new() -> Self {
         let lua = Lua::new();
         // Публикуем баланс, чтобы скрипт мог читать настройки из глобала CONFIG.
-        let config = crate::script::config::BalanceConfig::load();
+        let config = crate::scripts::config::BalanceConfig::load();
         if let Err(e) = config.publish_to_lua(&lua) {
             eprintln!("[config] ошибка публикации CONFIG в Lua: {e}");
         }

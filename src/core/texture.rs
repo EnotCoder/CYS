@@ -173,17 +173,17 @@ impl Texture {
         queue: &wgpu::Queue,
         original_label: &str,
     ) -> Self {
-        match std::fs::read(crate::constants::TEX_FALLBACK) {
+        match std::fs::read(crate::core::constants::TEX_FALLBACK) {
             Ok(bytes) => {
                 match Self::from_bytes(device, queue, &bytes, &format!("{}_fallback", original_label)) {
                     Ok(texture) => texture,
                     Err(e) => {
-                        panic!("Critical error: {} exists but failed to decode: {}", crate::constants::TEX_FALLBACK, e);
+                        panic!("Critical error: {} exists but failed to decode: {}", crate::core::constants::TEX_FALLBACK, e);
                     }
                 }
             }
             Err(e) => {
-                panic!("Critical error: {} not found: {}", crate::constants::TEX_FALLBACK, e);
+                panic!("Critical error: {} not found: {}", crate::core::constants::TEX_FALLBACK, e);
             }
         }
     }

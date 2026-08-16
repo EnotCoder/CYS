@@ -2,7 +2,7 @@
 // Copyright (C) 2026 EnotCoder
 
 use std::hash::{Hash, Hasher};
-use crate::constants::SHADER_SCALE;
+use crate::core::constants::SHADER_SCALE;
 
 // Ключ для кэша спрайтов: комбинация слоя, текстуры, кадра/атласа и масштаба
 pub fn sprite_cache_key(layer: &str, path: &str, frame: [i32; 2], atlas: [i32; 2], scale: f32) -> u64 {
@@ -31,12 +31,12 @@ pub fn ndc_to_world(mx: f32, my: f32, window_size: (f32, f32), map_size: f32, ca
 // Индекс предмета в списке текущей вкладки по координатам сетки (row/col).
 // Сетка нумеруется сверху вниз, поэтому строки переворачиваются
 pub fn inventory_index(row: i32, col: i32) -> i32 {
-    (crate::constants::INVENTORY_ROWS - 1 - row) * crate::constants::INVENTORY_COLS + col
+    (crate::core::constants::INVENTORY_ROWS - 1 - row) * crate::core::constants::INVENTORY_COLS + col
 }
 
 // Путь к иконке предмета в хотбаре: ищем имя в категориях, чтобы выбрать подкаталог
 pub fn slot_icon_path(name: &str) -> String {
-    use crate::constants::*;
+    use crate::core::constants::*;
     let subdir = if INV_REGULAR.contains(&name) { "regular" }
         else if INV_CARPETS.contains(&name) { "carpets" }
         else if INV_WALLDECOR.contains(&name) { "walldecor" }

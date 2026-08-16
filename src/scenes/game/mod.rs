@@ -4,14 +4,14 @@
 use std::collections::{HashMap, HashSet};
 use specs::{WorldExt, Join};
 use winit::keyboard::KeyCode;
-use crate::scene::scene_trait::{Scene, SceneAction};
-use crate::constants::*;
-use crate::inventory::Inventory;
-use crate::map::pathfinding::Node;
+use crate::scenes::scene_trait::{Scene, SceneAction};
+use crate::core::constants::*;
+use crate::ui::inventory::Inventory;
+use crate::data::map::pathfinding::Node;
 use crate::ecs::components::{FoodStorage, ObjectTag, TotalFood, BusyCassas, Money};
-use crate::scene::game::day_night::DayNightCycle;
-use crate::scene::game::hud::GameHud;
-use crate::scene::game::shoppers::ShopperManager;
+use crate::scenes::game::day_night::DayNightCycle;
+use crate::scenes::game::hud::GameHud;
+use crate::scenes::game::shoppers::ShopperManager;
 
 mod camera;
 mod day_night;
@@ -74,8 +74,8 @@ pub struct GameScene {
     // Уровни: 0 — магазин, -1 — подвал; кэш состояний при хождении между ними
     current_level: i32,
     level_states: HashMap<i32, LevelState>,
-    config: crate::script::config::BalanceConfig,
-    npc_script: Option<crate::script::npc::NpcScript>,
+    config: crate::scripts::config::BalanceConfig,
+    npc_script: Option<crate::scripts::npc::NpcScript>,
     hud: GameHud,
     shoppers: ShopperManager,
     day_night: DayNightCycle,
@@ -85,7 +85,7 @@ pub struct GameScene {
 
 impl GameScene {
     pub fn new() -> Self {
-        let config = crate::script::config::BalanceConfig::load();
+        let config = crate::scripts::config::BalanceConfig::load();
         GameScene {
             loaded: false,
             loading: false,
@@ -115,7 +115,7 @@ impl GameScene {
             current_level: 0,
             level_states: HashMap::new(),
             config,
-            npc_script: Some(crate::script::npc::NpcScript::new()),
+            npc_script: Some(crate::scripts::npc::NpcScript::new()),
             hud: GameHud::new(),
             shoppers: ShopperManager::new(),
             day_night: DayNightCycle::new(),
@@ -135,8 +135,8 @@ impl GameScene {
     fn setup_content(&mut self, ecs: &mut crate::EcsAdapter, text_renderer: &mut crate::ui::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) {
         self.setup_ui(ecs, text_renderer, device, queue);
         if self.current_level == 0 {
-            crate::map::load_map_to_ecs(ecs);
-            self.npc_walkable = crate::map::load_walkable_cells();
+            crate::data::map::load_map_to_ecs(ecs);
+            self.npc_walkable = crate::data::map::load_walkable_cells();
         }
     }
 
@@ -155,7 +155,7 @@ impl GameScene {
 
         // Иконки всех слотов хотбара
         for (i, slot) in self.slots.iter().enumerate() {
-            let icon_path = crate::util::slot_icon_path(slot.obj.name);
+            let icon_path = crate::core::util::slot_icon_path(slot.obj.name);
             let ent = ecs.add_ui(
                 SLOT_BAR_X + i as f32, SLOT_BAR_Y,
                 &icon_path,
@@ -170,7 +170,7 @@ impl GameScene {
         self.cursor_entity = Some(ecs.add_cursor(0.0, 0.0, CURSOR_TEX[0]));
 
         self.hud.create_info_panel(ecs, device, queue);
-        self.npc_walkable = crate::map::load_walkable_cells();
+        self.npc_walkable = crate::data::map::load_walkable_cells();
     }
 
     /// Двигает кадры анимации для всех анимированных спрайтов раз в секунду
@@ -244,7 +244,7 @@ impl Scene for GameScene {
         self.inventory.reset();
         self.npc_walkable.clear();
         // Переносим балансовые настройки в мир ECS для использования другими системами
-        *ecs.world.write_resource::<crate::script::config::BalanceConfig>() = self.config.clone();
+        *ecs.world.write_resource::<crate::scripts::config::BalanceConfig>() = self.config.clone();
         self.last_frame = std::time::Instant::now();
         self.anim_timer = 0.0;
         self.camera_offset_x = 0.0;
@@ -329,7 +329,7 @@ impl Scene for GameScene {
             // --- Inv button (toggle inventory) ---
             if input.mouse_pressed(winit::event::MouseButton::Left) {
                 if let Some((mx, my)) = input.cursor() {
-                    let (wx, wy) = crate::util::ndc_to_world(mx, my, window_size, 1.0, 0.0, 0.0);
+                    let (wx, wy) = crate::core::util::ndc_to_world(mx, my, window_size, 1.0, 0.0, 0.0);
                     if (wx - INV_BTN_X).abs() < TILE_HALF && (wy - SLOT_BAR_Y).abs() < TILE_HALF {
                         if self.inventory.open {
                             self.inventory.exit(ecs);
@@ -343,7 +343,7 @@ impl Scene for GameScene {
             // --- Toggle active/not active ---
             if input.mouse_pressed(winit::event::MouseButton::Left) && !self.inventory.mode {
                 if let Some((mx, my)) = input.cursor() {
-                    let (wx, wy) = crate::util::ndc_to_world(mx, my, window_size, 1.0, 0.0, 0.0);
+                    let (wx, wy) = crate::core::util::ndc_to_world(mx, my, window_size, 1.0, 0.0, 0.0);
                     // Кнопка "открыт/закрыт": переключает доступность магазина для покупателей
                     if (wx - ACTIVE_X).abs() < TILE_HALF && (wy - SLOT_BAR_Y).abs() < TILE_HALF {
                         self.active = !self.active;
@@ -443,11 +443,11 @@ impl Scene for GameScene {
         let slot_tooltip = if self.inventory.mode {
             // Ищем предмет под курсором в сетке инвентаря
             input.cursor().and_then(|(mx, my)| {
-                let (wx, wy) = crate::util::ndc_to_world(mx, my, window_size, 1.0, 0.0, 0.0);
+                let (wx, wy) = crate::core::util::ndc_to_world(mx, my, window_size, 1.0, 0.0, 0.0);
                 let col = (wx - SLOT_BAR_X + TILE_HALF) as i32;
                 let row = (wy - INVENTORY_BASE_Y + TILE_HALF) as i32;
                 if col >= 0 && col < INVENTORY_COLS && row >= 0 && row < INVENTORY_ROWS {
-                    let item_idx = crate::util::inventory_index(row, col) as usize;
+                    let item_idx = crate::core::util::inventory_index(row, col) as usize;
                     let items = self.inventory.items();
                     if item_idx < items.len() {
                         let name = items[item_idx];

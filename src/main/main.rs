@@ -1,36 +1,46 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Copyright (C) 2026 EnotCoder
 
+// ========================================================================
+//  CYS — Create your Shop: точка входа приложения
+//  Корень крейта (src/main/main.rs, см. [[bin]] в Cargo.toml):
+//  объявляет 12 папок src/, создаёт окно, GPU-контекст и запускает
+//  главный цикл событий.
+// ========================================================================
+
+#[path = "../audio/mod.rs"]
+mod audio;
+#[path = "../core/mod.rs"]
+mod core;
+#[path = "../data/mod.rs"]
+mod data;
+#[path = "../ecs/mod.rs"]
+mod ecs;
+#[path = "../input/mod.rs"]
+mod input;
+#[path = "../npc/mod.rs"]
+mod npc;
+#[path = "../scenes/mod.rs"]
+mod scenes;
+#[path = "../scripts/mod.rs"]
+mod scripts;
+#[path = "../ui/mod.rs"]
+mod ui;
+#[path = "../tests/mod.rs"]
+#[cfg(test)]
+mod tests;
+
+// Реэкспорты, к которым остальной код обращается как crate::* (EcsAdapter, Vertex, ...)
+use crate::core::constants::*;
+use crate::core::*;
+use crate::ecs::*;
+use crate::ui::fps::FpsCounter;
+
 use winit::application::ApplicationHandler;
 use winit::event::{DeviceEvent, DeviceId, StartCause, WindowEvent};
 use winit::event_loop::{ActiveEventLoop, EventLoop};
 use winit::window::{Window, WindowId};
 use winit::dpi::PhysicalSize;
-// ========================================================================
-//  CYS — Create your Shop: точка входа приложения
-//  Здесь создаётся окно, GPU-контекст и запускается главный цикл событий
-// ========================================================================
-
-mod api_components;
-mod audio;
-mod inventory;
-mod input;
-mod ecs;
-mod scene;
-mod map;
-mod data;
-mod npc;
-mod constants;
-mod util;
-mod ui;
-mod script;
-
-pub use map::load_map_to_ecs;
-use crate::constants::*;
-
-use api_components::*;
-use ecs::*;
-use ui::fps::FpsCounter;
 
 struct App {
     // Окно используется в течение всей жизни приложения (leak в 'static)
@@ -40,9 +50,9 @@ struct App {
     // Поверхность вывода (привязана к окну)
     surface: Option<wgpu::Surface<'static>>,
     // Рендер текста (меню, подсказки, FPS)
-    text_renderer: ui::text_renderer::TextRenderer,
+    text_renderer: crate::ui::text_renderer::TextRenderer,
     // Менеджер сцен: хранит ECS, переключение между меню и игрой
-    scene_manager: scene::SceneManager,
+    scene_manager: crate::scenes::SceneManager,
     // Накопитель ввода от winit (мышь, клавиши, скролл)
     input: winit_input_helper::WinitInputHelper,
     fps_counter: FpsCounter,
@@ -78,14 +88,14 @@ impl App {
 
         // Шаг 2: обрабатываем action — borrow wgpu_app освобождён
         match action {
-            scene::SceneAction::Switch(name) => {
+            crate::scenes::SceneAction::Switch(name) => {
                 // Запрос на смену сцены (например, из меню в игру)
                 self.scene_manager.switch_to(&name, &mut self.text_renderer);
             }
-            scene::SceneAction::Quit => {
+            crate::scenes::SceneAction::Quit => {
                 self.quit_requested = true;
             }
-            scene::SceneAction::VsyncToggle(enabled) => {
+            crate::scenes::SceneAction::VsyncToggle(enabled) => {
                 // Переключение вертикальной синхронизации на лету
                 if let Some(ref mut wgpu_app) = self.wgpu_app {
                     if let Some(ref surface) = self.surface {
@@ -100,7 +110,7 @@ impl App {
                     }
                 }
             }
-            scene::SceneAction::None => {}
+            crate::scenes::SceneAction::None => {}
         }
 
         // Шаг 3: рендер — снова берём wgpu_app immutably
@@ -229,9 +239,9 @@ impl ApplicationHandler for App {
 }
 
 fn main() {
-    audio::init();
+    crate::audio::init();
     // Путь к шрифту берём из scripts/config.lua (поле font_path).
-    let config = script::config::BalanceConfig::load();
+    let config = crate::scripts::config::BalanceConfig::load();
     let font_path = config.font_path.clone();
     // Создаём цикл событий winit
     let event_loop = EventLoop::new().unwrap();
@@ -241,8 +251,8 @@ fn main() {
         window: None,
         wgpu_app: None,
         surface: None,
-        text_renderer: ui::text_renderer::TextRenderer::new(&font_path),
-        scene_manager: scene::SceneManager::new(),
+        text_renderer: crate::ui::text_renderer::TextRenderer::new(&font_path),
+        scene_manager: crate::scenes::SceneManager::new(),
         input: winit_input_helper::WinitInputHelper::new(),
         fps_counter: FpsCounter::new(),
         quit_requested: false,

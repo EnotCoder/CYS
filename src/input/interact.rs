@@ -4,7 +4,7 @@
 use specs::{Entity, WorldExt};
 use crate::{EcsAdapter, data::Slot};
 use crate::data::{add, remove};
-use crate::constants::*;
+use crate::core::constants::*;
 use crate::ecs::components::{FoodStorage, ObjectTag, TotalFood};
 
 // Взаимодействие с объектом в клетке (gx, gy): коробка, стеллаж, подвал и аркады

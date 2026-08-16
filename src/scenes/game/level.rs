@@ -14,10 +14,10 @@ use serde::{Serialize, Deserialize};
 use specs::WorldExt;
 use wgpu::{Device, Queue};
 use crate::EcsAdapter;
-use crate::constants::*;
+use crate::core::constants::*;
 use crate::ecs::components::{BasementPlaced, BusyCassas, FenceComponent, FoodStorage, Money, ObjectTag, TotalFood};
 use crate::data::{is_carpet_name, is_flower_name, is_outdoor_name, is_wall_decor_name, make_slot};
-use crate::map::{load_basement_to_ecs, load_map_to_ecs, load_walkable_cells, token_to_texture};
+use crate::data::map::{load_basement_to_ecs, load_map_to_ecs, load_walkable_cells, token_to_texture};
 use crate::ui::text_renderer::TextRenderer;
 use crate::GroupInfoResource;
 use super::GameScene;
@@ -202,7 +202,7 @@ impl GameScene {
     pub fn rebuild_ui(&mut self, ecs: &mut EcsAdapter, text_renderer: &mut TextRenderer, device: &Device, queue: &Queue) {
         self.slot_entities.clear();
         for (i, slot) in self.slots.iter().enumerate() {
-            let icon_path = crate::util::slot_icon_path(slot.obj.name);
+            let icon_path = crate::core::util::slot_icon_path(slot.obj.name);
             let ent = ecs.add_ui(SLOT_BAR_X + i as f32, SLOT_BAR_Y, &icon_path);
             self.slot_entities.push(ent);
         }

@@ -74,7 +74,7 @@ impl Sprite {
         
         // Небольшой отступ (TEXEL_EPSILON) внутрь кадра, чтобы соседние
         // кадры атласа не "протекали" через билинейную фильтрацию.
-        let eps = crate::constants::TEXEL_EPSILON;
+        let eps = crate::core::constants::TEXEL_EPSILON;
         let left   = sprite_x as f32 * tile_w + eps;
         let right  = (sprite_x as f32 + 1.0) * tile_w - eps;
         let top    = sprite_y as f32 * tile_h + eps;
@@ -87,7 +87,7 @@ impl Sprite {
             Vertex { position: [hs, -hs, 0.0], tex_coord: [right, bottom] },
             Vertex { position: [hs, hs, 0.0], tex_coord: [right, top] }
         ];
-        let indices: Vec<u16> = crate::constants::QUAD_INDICES.to_vec();
+        let indices: Vec<u16> = crate::core::constants::QUAD_INDICES.to_vec();
         let index_count = indices.len() as u32;
 
         let texture = Texture::from_path(device, queue, texture_path, "sprite_texture");
@@ -141,7 +141,7 @@ impl Sprite {
         let hw = world_w / 2.0;
         let hh = world_h / 2.0;
         // UV растягиваются на всю текстуру с теми же отступами (режим full-frame).
-        let eps = crate::constants::TEXEL_EPSILON;
+        let eps = crate::core::constants::TEXEL_EPSILON;
         let inv_eps = 1.0 - eps;
         let vertices: Vec<Vertex> = vec![
             Vertex { position: [-hw, hh, 0.0], tex_coord: [eps, eps] },
@@ -149,7 +149,7 @@ impl Sprite {
             Vertex { position: [hw, -hh, 0.0], tex_coord: [inv_eps, inv_eps] },
             Vertex { position: [hw, hh, 0.0], tex_coord: [inv_eps, eps] },
         ];
-        let indices: Vec<u16> = crate::constants::QUAD_INDICES.to_vec();
+        let indices: Vec<u16> = crate::core::constants::QUAD_INDICES.to_vec();
         let index_count = indices.len() as u32;
 
         let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {

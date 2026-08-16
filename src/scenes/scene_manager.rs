@@ -3,8 +3,8 @@
 
 use std::collections::HashMap;
 use specs::WorldExt;
-use crate::scene::scene_trait::Scene;
-use crate::constants::*;
+use crate::scenes::scene_trait::Scene;
+use crate::core::constants::*;
 
 // ========================================================================
 //  SceneManager — реестр сцен и переключение между ними
@@ -31,8 +31,8 @@ impl SceneManager {
         let mut scenes: HashMap<String, Box<dyn Scene>> = HashMap::new();
 
         // Регистрируем доступные сцены; стартуем с главного меню
-        scenes.insert("menu".to_string(), Box::new(crate::scene::MenuScene::new()));
-        scenes.insert("game".to_string(), Box::new(crate::scene::GameScene::new()));
+        scenes.insert("menu".to_string(), Box::new(crate::scenes::MenuScene::new()));
+        scenes.insert("game".to_string(), Box::new(crate::scenes::GameScene::new()));
 
         SceneManager {
             ecs,

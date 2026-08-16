@@ -10,9 +10,9 @@
 
 use winit::keyboard::KeyCode;
 use winit_input_helper::WinitInputHelper;
-use crate::constants::*;
+use crate::core::constants::*;
 use crate::EcsAdapter;
-use crate::util::ndc_to_world;
+use crate::core::util::ndc_to_world;
 use super::GameScene;
 
 impl GameScene {

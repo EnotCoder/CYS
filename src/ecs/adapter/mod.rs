@@ -12,8 +12,8 @@ use crate::ecs::components::{
     SpriteComponent, TotalFood, Transform, BusyCassas,
 };
 use crate::{GroupComponent, GroupInfoResource};
-use crate::constants::*;
-use crate::util;
+use crate::core::constants::*;
+use crate::core::util;
 
 // ========================================================================
 //  SpriteRenderData — плоские данные для рендера (без привязки к ECS)
@@ -81,7 +81,7 @@ impl EcsAdapter {
         });
         world.insert(TotalFood(0));
         world.insert(BusyCassas(HashSet::new()));
-        let cfg = crate::script::config::BalanceConfig::load();
+        let cfg = crate::scripts::config::BalanceConfig::load();
         world.insert(Money(cfg.start_money));
         world.insert(BasementPlaced(false));
         world.insert(cfg);
@@ -253,38 +253,6 @@ impl EcsAdapter {
         self.floor_placeable_positions.clear();
         self.world.write_resource::<crate::GroupInfoResource>().groups.clear();
         self.world.write_resource::<BasementPlaced>().0 = false;
-    }
-
-    // Сохраняет текущую сетку карты в файл (для редактора).
-    pub fn save_map_grid(&self) {
-        use std::io::Write;
-        if let Ok(mut file) = std::fs::File::create(crate::constants::MAP_FILE) {
-            for row in &self.map_grid {
-                let line = row.join(" ");
-                let _ = writeln!(file, "{}", line);
-            }
-        }
-    }
-
-    // Создаёт кнопку: подложку из add_ui_sized + подпись через TextRenderer.
-    pub fn add_button(
-        &mut self,
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
-        x: f32,
-        y: f32,
-        width: f32,
-        height: f32,
-        text: &str,
-        font_size: f32,
-        text_renderer: &mut crate::ui::text_renderer::TextRenderer,
-    ) -> (specs::Entity, specs::Entity) {
-        let bg = self.add_ui_sized(x, y, width, height, "tex/dev_tools/black.png", device, queue);
-        let label = text_renderer.add_text(
-            self, device, queue,
-            text, font_size, x, y + 0.05, width * 0.75, 1.0, BTN_TEXT_COLOR,
-        );
-        (bg, label)
     }
 
 }

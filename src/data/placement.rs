@@ -14,19 +14,19 @@ use crate::ecs::components::{BasementPlaced, Money};
 // (пол, стены, улица, клумбы) — проверки живут в EcsAdapter.
 
 pub fn is_carpet_name(name: &str) -> bool {
-    crate::constants::CARPET_NAMES.contains(&name)
+    crate::core::constants::CARPET_NAMES.contains(&name)
 }
 
 pub fn is_wall_decor_name(name: &str) -> bool {
-    crate::constants::INV_WALLDECOR.contains(&name)
+    crate::core::constants::INV_WALLDECOR.contains(&name)
 }
 
 pub fn is_outdoor_name(name: &str) -> bool {
-    crate::constants::OUTDOOR_NAMES.contains(&name)
+    crate::core::constants::OUTDOOR_NAMES.contains(&name)
 }
 
 pub fn is_flower_name(name: &str) -> bool {
-    crate::constants::FLOWER_NAMES.contains(&name)
+    crate::core::constants::FLOWER_NAMES.contains(&name)
 }
 
 // Токеры «травы» — свободный открытый грунт, на который можно сажать
@@ -119,7 +119,7 @@ fn revert_to_grass(ecs: &mut EcsAdapter, nx: i32, ny: i32, file_row: i32, file_c
         ecs.outdoor_positions.insert((nx, ny));
         ecs.flower_positions.insert((nx, ny));
     }
-    let (tex, frame, count) = crate::map::token_to_texture(&original);
+    let (tex, frame, count) = crate::data::map::token_to_texture(&original);
     if let Some(&map_entity) = ecs.map_entities.get(&(nx, ny)) {
         ecs.update_sprite_texture(map_entity, tex);
         let mut sprites = ecs.world.write_storage::<crate::SpriteComponent>();
@@ -195,7 +195,7 @@ pub fn add(ecs: &mut EcsAdapter, slots: &mut Vec<Slot>, act_slot: i32, gx: i32, 
 
     // Мини-экономика: установка объекта стоит денег.
     let price = {
-        let cfg = ecs.world.read_resource::<crate::script::config::BalanceConfig>();
+        let cfg = ecs.world.read_resource::<crate::scripts::config::BalanceConfig>();
         super::object_price(active_slot.name, &cfg)
     };
     if ecs.world.read_resource::<Money>().0 < price {
@@ -244,20 +244,20 @@ pub fn add(ecs: &mut EcsAdapter, slots: &mut Vec<Slot>, act_slot: i32, gx: i32, 
             ecs.world.write_resource::<BasementPlaced>().0 = true;
         } else if active_slot.name == "box" {
             // Ящик и стеллаж хранят еду для покупателей.
-            let max_food = ecs.world.read_resource::<crate::script::config::BalanceConfig>().max_food_box;
+            let max_food = ecs.world.read_resource::<crate::scripts::config::BalanceConfig>().max_food_box;
             ecs.world.write_storage::<crate::FoodStorage>().insert(entity, crate::FoodStorage {
                 food_count: 0,
                 max_food,
             }).ok();
         } else if active_slot.name == "rack" {
-            let max_food = ecs.world.read_resource::<crate::script::config::BalanceConfig>().max_food_rack;
+            let max_food = ecs.world.read_resource::<crate::scripts::config::BalanceConfig>().max_food_rack;
             ecs.world.write_storage::<crate::FoodStorage>().insert(entity, crate::FoodStorage {
                 food_count: 0,
                 max_food,
             }).ok();
         } else if active_slot.name == "candies" {
             // Конфеты начинаются с частично заполненного запаса.
-            let cfg = ecs.world.read_resource::<crate::script::config::BalanceConfig>();
+            let cfg = ecs.world.read_resource::<crate::scripts::config::BalanceConfig>();
             let (max_food, start) = (cfg.max_food_candies, cfg.candies_start_food);
             ecs.world.write_storage::<crate::FoodStorage>().insert(entity, crate::FoodStorage {
                 food_count: start,
@@ -293,7 +293,7 @@ pub fn remove(ecs: &mut EcsAdapter, gx: i32, gy: i32) -> bool {
                 tags.get(entity).map(|t| t.name.clone())
             };
             if let Some(name) = name {
-                let cfg = ecs.world.read_resource::<crate::script::config::BalanceConfig>();
+                let cfg = ecs.world.read_resource::<crate::scripts::config::BalanceConfig>();
                 let refund = super::object_price(&name, &cfg) / 2;
                 ecs.world.write_resource::<Money>().0 += refund;
             }

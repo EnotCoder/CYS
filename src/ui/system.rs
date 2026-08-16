@@ -8,7 +8,7 @@
 
 use crate::EcsAdapter;
 use crate::ui::text_renderer::TextRenderer;
-use crate::constants::*;
+use crate::core::constants::*;
 use winit_input_helper::WinitInputHelper;
 use super::components::{Panel, Button, Checkbox, Slider};
 
@@ -18,7 +18,7 @@ use super::components::{Panel, Button, Checkbox, Slider};
 
 /// Переводит координаты курсора из NDC в мировые координаты UI.
 pub fn ndc_to_ui(mx: f32, my: f32, window_size: (f32, f32)) -> (f32, f32) {
-    crate::util::ndc_to_world(mx, my, window_size, 1.0, 0.0, 0.0)
+    crate::core::util::ndc_to_world(mx, my, window_size, 1.0, 0.0, 0.0)
 }
 
 /// Проверка попадания точки внутрь прямоугольника с центром (cx, cy).
@@ -99,7 +99,7 @@ pub fn create_checkbox(ecs: &mut EcsAdapter, text_renderer: &mut TextRenderer, d
     destroy_checkbox(ecs, checkbox);
     let tex = if checkbox.checked { "tex/ui/checkbox/true.png" } else { "tex/ui/checkbox/false.png" };
     let box_ent = ecs.add_ui_sized(checkbox.x, checkbox.y, CHECKBOX_BOX_SIZE, CHECKBOX_BOX_SIZE, tex, device, queue);
-    let box_key = crate::util::sprite_cache_key("ui", tex, [0, 0], [1, 1], 1.0);
+    let box_key = crate::core::util::sprite_cache_key("ui", tex, [0, 0], [1, 1], 1.0);
     checkbox.box_entity = Some(box_ent);
     checkbox.box_sprite_key = Some(box_key);
     let lx = checkbox.x + CHECKBOX_BOX_SIZE / 2.0 + CHECKBOX_TEXT_GAP + CHECKBOX_TEXT_WIDTH / 2.0;

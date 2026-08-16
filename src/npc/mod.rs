@@ -3,8 +3,8 @@
 
 use std::collections::HashSet;
 use specs::WorldExt;
-use crate::map::pathfinding::{Node, find_path};
-use crate::constants::*;
+use crate::data::map::pathfinding::{Node, find_path};
+use crate::core::constants::*;
 use crate::EcsAdapter;
 use crate::ecs::components::{BusyCassas, Money};
 
@@ -90,7 +90,7 @@ impl ShopperNpc {
     }
 
     // ================================================================
-    //  API для Lua-скриптов (src/script/npc.rs)
+    //  API для Lua-скриптов (src/scripts/npc.rs)
     // ================================================================
 
     pub fn state_int(&self) -> i32 {
@@ -156,8 +156,8 @@ impl ShopperNpc {
         self.despawning = true;
     }
 
-    pub fn update(&mut self, ecs: &mut EcsAdapter, dt: f64, walkable: &HashSet<Node>, script: Option<&crate::script::npc::NpcScript>) -> bool {
-        let fade = ecs.world.read_resource::<crate::script::config::BalanceConfig>().npc_fade_speed;
+    pub fn update(&mut self, ecs: &mut EcsAdapter, dt: f64, walkable: &HashSet<Node>, script: Option<&crate::scripts::npc::NpcScript>) -> bool {
+        let fade = ecs.world.read_resource::<crate::scripts::config::BalanceConfig>().npc_fade_speed;
         if self.despawning {
             self.alpha = (self.alpha - dt as f32 * fade).max(0.0);
             ecs.update_sprite_alpha(self.entity, self.alpha);
@@ -265,7 +265,7 @@ impl ShopperNpc {
                 if self.path_index >= self.path.len() {
                     self.set_idle(ecs);
                     self.state = ShopperState::AtCassa;
-                    self.state_timer = ecs.world.read_resource::<crate::script::config::BalanceConfig>().cassa_wait_secs;
+                    self.state_timer = ecs.world.read_resource::<crate::scripts::config::BalanceConfig>().cassa_wait_secs;
                     return false;
                 }
                 self.walk_toward(ecs, dt);
@@ -276,7 +276,7 @@ impl ShopperNpc {
                 self.set_idle(ecs);
                 if self.state_timer <= 0.0 {
                     ecs.world.write_resource::<BusyCassas>().0.remove(&(self.cassa_pos.x, self.cassa_pos.y));
-                    let cfg = ecs.world.read_resource::<crate::script::config::BalanceConfig>();
+                    let cfg = ecs.world.read_resource::<crate::scripts::config::BalanceConfig>();
                     ecs.world.write_resource::<Money>().0 += cfg.money_at_cassa;
                     crate::audio::play("cash");
                     // Шанс зайти за конфетами (config.candy_chance)
@@ -313,7 +313,7 @@ impl ShopperNpc {
                     self.set_idle(ecs);
                     self.take_candy(ecs);
                     self.state = ShopperState::AtCandies;
-                    self.state_timer = ecs.world.read_resource::<crate::script::config::BalanceConfig>().candy_wait_secs;
+                    self.state_timer = ecs.world.read_resource::<crate::scripts::config::BalanceConfig>().candy_wait_secs;
                     return false;
                 }
                 self.walk_toward(ecs, dt);
@@ -323,7 +323,7 @@ impl ShopperNpc {
                 self.state_timer -= dt;
                 self.set_idle(ecs);
                 if self.state_timer <= 0.0 {
-                    ecs.world.write_resource::<Money>().0 += ecs.world.read_resource::<crate::script::config::BalanceConfig>().money_at_candy;
+                    ecs.world.write_resource::<Money>().0 += ecs.world.read_resource::<crate::scripts::config::BalanceConfig>().money_at_candy;
                     crate::audio::play("cash");
                     if self.start_path(ecs, walkable, spawn_path_node(ecs)) {
                         self.state = ShopperState::GoingToExit;
@@ -335,7 +335,7 @@ impl ShopperNpc {
                 if self.path_index >= self.path.len() {
                     if let Some((ex, ey)) = self.exit_target {
                         let (cx, cy) = self.pos;
-                        let step = ecs.world.read_resource::<crate::script::config::BalanceConfig>().npc_speed * dt as f32;
+                        let step = ecs.world.read_resource::<crate::scripts::config::BalanceConfig>().npc_speed * dt as f32;
                         let dx = ex - cx;
                         let dy = ey - cy;
                         let dist = (dx * dx + dy * dy).sqrt();

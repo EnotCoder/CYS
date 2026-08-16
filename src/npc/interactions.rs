@@ -11,7 +11,7 @@
 
 use specs::WorldExt;
 use specs::Join;
-use crate::map::pathfinding::Node;
+use crate::data::map::pathfinding::Node;
 use crate::EcsAdapter;
 use crate::ecs::components::{FoodStorage, ObjectTag, Transform, BusyCassas};
 use super::{ShopperNpc, ShopperState};

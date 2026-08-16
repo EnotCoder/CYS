@@ -4,7 +4,7 @@
 use crate::Sprite;
 use crate::ecs::SpriteRenderData;
 use crate::Uniforms;
-use crate::util;
+use crate::core::util;
 use std::collections::HashMap;
 
 // ========================================================================
@@ -119,7 +119,7 @@ fn render_group(
         wgpu::LoadOp::Load
     };
     let depth_load = if clear_color {
-        wgpu::LoadOp::Clear(crate::constants::DEPTH_CLEAR)
+        wgpu::LoadOp::Clear(crate::core::constants::DEPTH_CLEAR)
     } else {
         wgpu::LoadOp::Load
     };

@@ -51,6 +51,9 @@ pub struct BalanceConfig {
     pub box_tex_threshold_2: i32,
     // === Экономика ===
     pub start_money: i32,
+    // Аренда магазина: периодический расход, который нельзя отложить.
+    pub rent_amount: i32,
+    pub rent_interval_secs: f64,
     // Переопределения цен объектов по имени (что не упомянуто — берёт цену из данных объекта).
     pub object_prices: HashMap<String, i32>,
     // === Интерфейс ===
@@ -139,6 +142,8 @@ impl BalanceConfig {
         cfg.box_tex_threshold_1 = get_i64(get("box_tex_threshold_1"), cfg.box_tex_threshold_1 as i64) as i32;
         cfg.box_tex_threshold_2 = get_i64(get("box_tex_threshold_2"), cfg.box_tex_threshold_2 as i64) as i32;
         cfg.start_money = get_i64(get("start_money"), cfg.start_money as i64) as i32;
+        cfg.rent_amount = get_i64(get("rent_amount"), cfg.rent_amount as i64) as i32;
+        cfg.rent_interval_secs = get_f64(get("rent_interval_secs"), cfg.rent_interval_secs);
         cfg.font_path = get_string(get("font_path"), &cfg.font_path);
         cfg
     }
@@ -173,6 +178,8 @@ impl BalanceConfig {
         t.set("box_tex_threshold_1", self.box_tex_threshold_1)?;
         t.set("box_tex_threshold_2", self.box_tex_threshold_2)?;
         t.set("start_money", self.start_money)?;
+        t.set("rent_amount", self.rent_amount)?;
+        t.set("rent_interval_secs", self.rent_interval_secs)?;
         if !self.object_prices.is_empty() {
             let prices = lua.create_table()?;
             for (name, price) in &self.object_prices {
@@ -240,7 +247,9 @@ impl Default for BalanceConfig {
             candies_start_food: 10,
             box_tex_threshold_1: 8,
             box_tex_threshold_2: 12,
-            start_money: 100,
+            start_money: 150,
+            rent_amount: 15,
+            rent_interval_secs: 60.0,
             object_prices: HashMap::new(),
             font_path: "font.otf".to_string(),
         }

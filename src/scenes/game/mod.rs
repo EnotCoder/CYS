@@ -81,6 +81,13 @@ pub struct GameScene {
     day_night: DayNightCycle,
     // Пульсы объектов при появлении еды («поп»)
     food_pulses: Vec<FoodPulse>,
+    // Аренда магазина: таймер с момента последнего списания
+    rent_timer: f64,
+    // Банкротство: денег нет и магазин не может зарабатывать
+    bankrupt: bool,
+    bankrupt_bg: Option<specs::Entity>,
+    bankrupt_title: Option<specs::Entity>,
+    bankrupt_hint: Option<specs::Entity>,
 }
 
 impl GameScene {
@@ -120,6 +127,11 @@ impl GameScene {
             shoppers: ShopperManager::new(),
             day_night: DayNightCycle::new(),
             food_pulses: Vec::new(),
+            rent_timer: 0.0,
+            bankrupt: false,
+            bankrupt_bg: None,
+            bankrupt_title: None,
+            bankrupt_hint: None,
         }
     }
 
@@ -221,6 +233,35 @@ impl GameScene {
         }
     }
 
+    /// Может ли магазин зарабатывать: есть касса и источник еды (ящик/стеллаж/
+    /// витрина с остатком). Если нет объектов с едой или кассы — банкротство
+    /// неизбежно, так как покупатели не могут ничего купить.
+    fn shop_can_earn(&self, ecs: &crate::EcsAdapter) -> bool {
+        let tags = ecs.world.read_storage::<ObjectTag>();
+        let mut has_cassa = false;
+        for tag in (&tags).join() {
+            if tag.name == "cassa" {
+                has_cassa = true;
+                break;
+            }
+        }
+        if !has_cassa {
+            return false;
+        }
+        let foods = ecs.world.read_storage::<FoodStorage>();
+        let mut has_food = false;
+        for (tag, food) in (&tags, &foods).join() {
+            if tag.name == "box"
+                || (tag.name == "rack" && food.food_count > 0)
+                || (tag.name == "candies" && food.food_count > 0)
+            {
+                has_food = true;
+                break;
+            }
+        }
+        has_food
+    }
+
     /// Сбрасывает активные эффекты (мир очищается при смене уровня).
     pub fn clear_food_fx(&mut self) {
         self.food_pulses.clear();
@@ -262,6 +303,12 @@ impl Scene for GameScene {
         self.food_pulses.clear();
         ecs.world.write_resource::<TotalFood>().0 = 0;
         ecs.world.write_resource::<BusyCassas>().0.clear();
+        ecs.world.write_resource::<Money>().0 = self.config.start_money;
+        self.rent_timer = 0.0;
+        self.bankrupt = false;
+        self.bankrupt_bg = None;
+        self.bankrupt_title = None;
+        self.bankrupt_hint = None;
         crate::audio::play_music("music");
     }
 
@@ -276,6 +323,44 @@ impl Scene for GameScene {
             self.hide_loading(ecs);
             self.loaded = true;
             self.setup_content(ecs, text_renderer, device, queue);
+        }
+
+        let now = std::time::Instant::now();
+        let dt = (now - self.last_frame).as_secs_f64();
+        self.last_frame = now;
+
+        // --- Аренда магазина (экономическая нагрузка) ---
+        if !self.bankrupt {
+            self.rent_timer += dt;
+            if self.rent_timer >= self.config.rent_interval_secs {
+                self.rent_timer = 0.0;
+                let money = ecs.world.read_resource::<Money>().0;
+                let paid = money.min(self.config.rent_amount);
+                ecs.world.write_resource::<Money>().0 -= paid;
+            }
+        }
+
+        // --- Банкротство: денег нет и магазин не может зарабатывать ---
+        if !self.bankrupt && self.current_level == 0 && !self.settings.open {
+            let money = ecs.world.read_resource::<Money>().0;
+            if money <= 0 && !self.shop_can_earn(ecs) {
+                self.bankrupt = true;
+                self.shoppers.set_active(false);
+                crate::audio::play("error");
+                let bg = ecs.add_ui_sized(0.0, 0.0, 24.0, 16.0, "tex/dev_tools/black.png", device, queue);
+                ecs.update_sprite_alpha(bg, 0.75);
+                self.bankrupt_bg = Some(bg);
+                let title = text_renderer.add_text(ecs, device, queue, "BANKRUPT", FONT_SIZE_LOGO, 0.0, 2.0, 7.0, 1.0, RED);
+                self.bankrupt_title = Some(title);
+                let hint = text_renderer.add_text(ecs, device, queue, "Press R to go to menu", FONT_SIZE_BTN, 0.0, 0.5, 5.0, 1.0, WHITE);
+                self.bankrupt_hint = Some(hint);
+            }
+        }
+        if self.bankrupt {
+            if input.key_pressed(KeyCode::KeyR) {
+                return SceneAction::Switch("menu".to_string());
+            }
+            return SceneAction::None;
         }
 
         // --- Toggle settings ---
@@ -382,10 +467,6 @@ impl Scene for GameScene {
 
             self.handle_inventory_input(ecs, input, window_size);
         }
-
-        let now = std::time::Instant::now();
-        let dt = (now - self.last_frame).as_secs_f64();
-        self.last_frame = now;
 
         // Прогресс дня/ночи в независимости от режима настроек
         self.day_night.tick(dt);

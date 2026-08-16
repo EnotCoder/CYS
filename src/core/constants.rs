@@ -77,6 +77,7 @@ pub const TEX_INV_BUTTON: &str = "tex/ui/icon_slots/inv.png";
 
 // === Текст (цвета, размеры) ===
 pub const WHITE: [u8; 3] = [255, 255, 255];
+pub const RED: [u8; 3] = [255, 60, 60];
 pub const GRAY: [u8; 3] = [200, 200, 200];
 pub const GREEN: [u8; 3] = [0, 255, 0];
 pub const BTN_TEXT_COLOR: [u8; 3] = [220, 220, 220];

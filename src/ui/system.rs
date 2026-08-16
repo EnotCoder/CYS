@@ -136,6 +136,13 @@ pub fn checkbox_clicked(checkbox: &Checkbox, input: &WinitInputHelper, window_si
     is_clicked(input, window_size, checkbox.x, checkbox.y, half, half)
 }
 
+/// true, если курсор наведён на галочку чекбокса.
+pub fn checkbox_hovered(checkbox: &Checkbox, input: &WinitInputHelper, window_size: (f32, f32)) -> bool {
+    let Some((mx, my)) = input.cursor() else { return false };
+    let (wx, wy) = ndc_to_ui(mx, my, window_size);
+    is_inside(wx, wy, checkbox.x, checkbox.y, CHECKBOX_BOX_SIZE / 2.0 + 0.1, CHECKBOX_BOX_SIZE / 2.0 + 0.1)
+}
+
 // ========================================================================
 //  Slider (горизонтальный)
 // ========================================================================
@@ -217,4 +224,13 @@ pub fn update_slider_thumb(ecs: &mut EcsAdapter, device: &wgpu::Device, queue: &
     let thumb_x = slider_thumb_x(slider);
     let thumb = ecs.add_ui_sized(thumb_x, slider.y, SLIDER_THUMB_SIZE, SLIDER_THUMB_SIZE, "tex/ui/slide/point.png", device, queue);
     slider.thumb = Some(thumb);
+}
+
+/// true, если курсор наведён на область дорожки/ползунка слайдера.
+pub fn slider_hovered(slider: &Slider, input: &WinitInputHelper, window_size: (f32, f32)) -> bool {
+    let Some((mx, my)) = input.cursor() else { return false };
+    let (wx, wy) = ndc_to_ui(mx, my, window_size);
+    let half_w = slider.width / 2.0 + 0.2;
+    let half_h = SLIDER_THUMB_SIZE / 2.0 + 0.2;
+    (wx - slider.x).abs() <= half_w && (wy - slider.y).abs() <= half_h
 }

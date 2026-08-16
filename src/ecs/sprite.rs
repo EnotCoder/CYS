@@ -51,12 +51,35 @@ pub struct Sprite {
 }
 
 impl Sprite {
+    // Разделяет виртуальный путь "текстура@WxH" на (базовый путь, мировой размер).
+    // Обычные пути (без '@') дают None — это атласный спрайт, размер из scale.
+    pub fn split_sized_path(path: &str) -> (&str, Option<(f32, f32)>) {
+        match path.rfind('@') {
+            Some(idx) => {
+                let base = &path[..idx];
+                let size = &path[idx + 1..];
+                let mut it = size.split('x');
+                match (it.next(), it.next()) {
+                    (Some(w), Some(h)) => match (w.trim().parse::<f32>(), h.trim().parse::<f32>()) {
+                        (Ok(w), Ok(h)) if w > 0.0 && h > 0.0 => (base, Some((w, h))),
+                        _ => (base, None),
+                    },
+                    _ => (base, None),
+                }
+            }
+            None => (path, None),
+        }
+    }
+
     // Создаёт quad, вырезающий один кадр из текстурного атласа.
-    // Размер вершин = scale (половина стороны), UV-координаты считаются
-    // как tile_w/tile_h от левого верхнего угла выбранного кадра.
+    // Для обычных путей размер вершин = scale (половина стороны); для
+    // «path@WxH» — прямоугольник W×H, домноженный на scale. UV-координаты
+    // считаются как tile_w/tile_h от левого верхнего угла выбранного кадра.
+    // Текстура передаётся извне (кэшируется в EcsAdapter), чтобы анимации
+    // масштаба не перечитывали файл и не пересоздавали GPU-текстуру.
     pub fn new(
         device: &wgpu::Device,
-        queue: &wgpu::Queue,
+        texture: &Texture,
         texture_path: &str,
         texture_frame: [i32; 2],
         texture_count: [i32; 2],
@@ -79,18 +102,22 @@ impl Sprite {
         let right  = (sprite_x as f32 + 1.0) * tile_w - eps;
         let top    = sprite_y as f32 * tile_h + eps;
         let bottom = (sprite_y as f32 + 1.0) * tile_h - eps;
-        
-        let hs = scale * 0.5;
+
+        // Полу-ширина/высота: прямоугольные «@WxH» спрайты масштабируются
+        // вокруг заданного размера, атласные — строятся от scale.
+        let (hx, hy) = match Self::split_sized_path(texture_path).1 {
+            Some((w, h)) => (w * scale * 0.5, h * scale * 0.5),
+            None => (scale * 0.5, scale * 0.5),
+        };
         let vertices: Vec<Vertex> = vec![
-            Vertex { position: [-hs, hs, 0.0], tex_coord: [left, top] },
-            Vertex { position: [-hs, -hs, 0.0], tex_coord: [left, bottom] },
-            Vertex { position: [hs, -hs, 0.0], tex_coord: [right, bottom] },
-            Vertex { position: [hs, hs, 0.0], tex_coord: [right, top] }
+            Vertex { position: [-hx, hy, 0.0], tex_coord: [left, top] },
+            Vertex { position: [-hx, -hy, 0.0], tex_coord: [left, bottom] },
+            Vertex { position: [hx, -hy, 0.0], tex_coord: [right, bottom] },
+            Vertex { position: [hx, hy, 0.0], tex_coord: [right, top] }
         ];
         let indices: Vec<u16> = crate::core::constants::QUAD_INDICES.to_vec();
         let index_count = indices.len() as u32;
 
-        let texture = Texture::from_path(device, queue, texture_path, "sprite_texture");
         // Привязываем загруженную текстуру и её сэмплер к общему layout.
         let texture_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("Texture Bind Group"),

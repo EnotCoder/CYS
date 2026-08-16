@@ -7,6 +7,7 @@ use specs::{World, WorldExt};
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use crate::Sprite;
+use crate::Texture;
 use crate::ecs::components::{
     BasementPlaced, FenceComponent, FoodStorage, Money, ObjectTag, Rotation,
     SpriteComponent, TotalFood, Transform, BusyCassas,
@@ -39,6 +40,9 @@ pub struct EcsAdapter {
     // Кэш готовых к отрисовке спрайтов (ключ = sprite_cache_key:
     // слой + путь + кадр + атлас + масштаб) — избегает пересоздания GPU-ресурсов.
     pub sprite_cache: HashMap<u64, Sprite>,
+    // Кэш загруженных текстур по базовому пути (без суффикса «@WxH»),
+    // чтобы анимации масштаба не перечитывали файлы и не дублировали текстуры.
+    pub texture_cache: HashMap<String, Texture>,
     // Инкрементальный счётчик ID многоклеточных объектов (групп).
     pub next_group_id: u32,
     pub current_level: i32,
@@ -89,6 +93,7 @@ impl EcsAdapter {
         Self {
             world,
             sprite_cache: HashMap::new(),
+            texture_cache: HashMap::new(),
             next_group_id: 1,
             current_level: 0,
             clear_count: 0,
@@ -129,6 +134,13 @@ impl EcsAdapter {
     pub fn update_sprite_alpha(&mut self, entity: specs::Entity, alpha: f32) {
         if let Some(sprite) = self.world.write_storage::<SpriteComponent>().get_mut(entity) {
             sprite.alpha = alpha;
+        }
+    }
+
+    // Меняет масштаб отдельного спрайта (UI-анимации: пульс, поп-эффекты).
+    pub fn update_sprite_scale(&mut self, entity: specs::Entity, scale: f32) {
+        if let Some(sprite) = self.world.write_storage::<SpriteComponent>().get_mut(entity) {
+            sprite.scale = scale;
         }
     }
 
@@ -238,6 +250,7 @@ impl EcsAdapter {
             }
         }
         self.sprite_cache.clear();
+        self.texture_cache.clear();
         self.cursor_preview.clear();
         self.pending_food_adds.clear();
         self.next_group_id = 1;

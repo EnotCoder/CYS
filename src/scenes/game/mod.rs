@@ -88,6 +88,11 @@ pub struct GameScene {
     bankrupt_bg: Option<specs::Entity>,
     bankrupt_title: Option<specs::Entity>,
     bankrupt_hint: Option<specs::Entity>,
+    // Пульс рамки выбранного слота хотбара и иконки режима при смене
+    slot_pulse: f64,
+    mode_pulse: f64,
+    prev_act_slot: i32,
+    prev_mode: i32,
 }
 
 impl GameScene {
@@ -132,6 +137,10 @@ impl GameScene {
             bankrupt_bg: None,
             bankrupt_title: None,
             bankrupt_hint: None,
+            slot_pulse: 0.0,
+            mode_pulse: 0.0,
+            prev_act_slot: 0,
+            prev_mode: 0,
         }
     }
 
@@ -262,6 +271,39 @@ impl GameScene {
         has_food
     }
 
+    /// Пульс при смене активного слота/режима: рамка и иконка «подпрыгивают».
+    /// Устанавливает пульс, если слот/режим изменились с прошлого кадра.
+    fn update_slot_mode_pulse(&mut self, ecs: &mut crate::EcsAdapter, dt: f64) {
+        if self.act_slot != self.prev_act_slot {
+            self.prev_act_slot = self.act_slot;
+            self.slot_pulse = UI_PULSE_SECS;
+        }
+        if self.mode != self.prev_mode {
+            self.prev_mode = self.mode;
+            self.mode_pulse = UI_PULSE_SECS;
+        }
+        if self.slot_pulse > 0.0 {
+            self.slot_pulse -= dt;
+            let p = 1.0 - (self.slot_pulse / UI_PULSE_SECS).clamp(0.0, 1.0);
+            let scale = 1.0 + 0.3 * (std::f32::consts::PI * p as f32).sin();
+            if let Some(e) = self.icons_slot_cursor {
+                ecs.update_sprite_scale(e, scale);
+            }
+        } else if let Some(e) = self.icons_slot_cursor {
+            ecs.update_sprite_scale(e, 1.0);
+        }
+        if self.mode_pulse > 0.0 {
+            self.mode_pulse -= dt;
+            let p = 1.0 - (self.mode_pulse / UI_PULSE_SECS).clamp(0.0, 1.0);
+            let scale = 1.0 + 0.3 * (std::f32::consts::PI * p as f32).sin();
+            if let Some(e) = self.icon_mode {
+                ecs.update_sprite_scale(e, scale);
+            }
+        } else if let Some(e) = self.icon_mode {
+            ecs.update_sprite_scale(e, 1.0);
+        }
+    }
+
     /// Сбрасывает активные эффекты (мир очищается при смене уровня).
     pub fn clear_food_fx(&mut self) {
         self.food_pulses.clear();
@@ -309,6 +351,10 @@ impl Scene for GameScene {
         self.bankrupt_bg = None;
         self.bankrupt_title = None;
         self.bankrupt_hint = None;
+        self.slot_pulse = 0.0;
+        self.mode_pulse = 0.0;
+        self.prev_act_slot = 0;
+        self.prev_mode = 0;
         crate::audio::play_music("music");
     }
 
@@ -383,6 +429,8 @@ impl Scene for GameScene {
         }
 
         if self.settings.open {
+            // Hover-анимация настроек (масштаб галочки/ползунка)
+            self.settings.tick_hover(ecs, input, window_size, dt);
             // Пока открыты настройки — обрабатываем только их ввод
             self.settings.handle_input(ecs, text_renderer, device, queue, input, window_size);
             if self.settings.vsync_toggled {
@@ -570,6 +618,13 @@ impl Scene for GameScene {
         self.shoppers.tick(ecs, dt, &self.npc_walkable, self.active, &self.config, self.npc_script.as_ref());
 
         self.update_animations(ecs, dt);
+
+        // --- UI-анимации: пульсы счётчиков, фейды подсказок, поп инвентаря ---
+        self.hud.tick(ecs, dt);
+        self.inventory.tick(ecs, dt);
+
+        // --- Пульс активного слота и иконки режима при их смене ---
+        self.update_slot_mode_pulse(ecs, dt);
 
         SceneAction::None
     }

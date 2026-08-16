@@ -2,6 +2,7 @@
 // Copyright (C) 2026 EnotCoder
 
 use crate::Sprite;
+use crate::Texture;
 use crate::ecs::SpriteRenderData;
 use crate::Uniforms;
 use crate::core::util;
@@ -31,6 +32,7 @@ pub fn render(
     size_bind_group: &wgpu::BindGroup,
     ui_bind_group: &wgpu::BindGroup,
     sprite_cache: &mut HashMap<u64, Sprite>,
+    texture_cache: &mut HashMap<String, Texture>,
     dynamic_uniform_buffer: &wgpu::Buffer,
     dynamic_bind_group: &wgpu::BindGroup,
     dynamic_alignment: u64,
@@ -57,7 +59,7 @@ pub fn render(
 
     // Слой карты: первый проход, чистит экран и depth buffer (clear=true).
     render_group(device, queue, render_pipeline, map_sprites, depth_view, sprite_cache,
-        &mut encoder, &view, size_bind_group, "map", true,
+        texture_cache, &mut encoder, &view, size_bind_group, "map", true,
         dynamic_uniform_buffer, dynamic_bind_group, dynamic_alignment, &mut buf_offset);
 
     // Прозрачные слои (carpet/decor/npc/cursor) объединяем в один массив,
@@ -70,13 +72,13 @@ pub fn render(
         transparent.extend_from_slice(npc_sprites);
         transparent.extend_from_slice(cursor_sprites);
         render_group(device, queue, transparent_pipeline, &transparent, depth_view, sprite_cache,
-            &mut encoder, &view, size_bind_group, "transparent", false,
+            texture_cache, &mut encoder, &view, size_bind_group, "transparent", false,
             dynamic_uniform_buffer, dynamic_bind_group, dynamic_alignment, &mut buf_offset);
     }
 
     // UI рисуется последним поверх всего (z=3.0), со своим bind group.
     render_group(device, queue, transparent_pipeline, ui_sprites, depth_view, sprite_cache,
-        &mut encoder, &view, ui_bind_group, "ui", false,
+        texture_cache, &mut encoder, &view, ui_bind_group, "ui", false,
         dynamic_uniform_buffer, dynamic_bind_group, dynamic_alignment, &mut buf_offset);
 
     // Отправляем все команды кадра в очередь и показываем результат на экране.
@@ -96,6 +98,7 @@ fn render_group(
     sprites: &[SpriteRenderData],
     depth_view: &wgpu::TextureView,
     sprite_cache: &mut HashMap<u64, Sprite>,
+    texture_cache: &mut HashMap<String, Texture>,
     encoder: &mut wgpu::CommandEncoder,
     view: &wgpu::TextureView,
     bind_group: &wgpu::BindGroup,
@@ -158,7 +161,16 @@ fn render_group(
         );
 
         if !sprite_cache.contains_key(&key) {
-            let new_sprite = Sprite::new(device, queue, &data.texture_path,
+            // Текстура кэшируется по базовому пути (без «@WxH»), чтобы
+            // новые масштабы не перечитывали файл и не дублировали GPU-ресурсы.
+            let (base, _) = Sprite::split_sized_path(&data.texture_path);
+            let base_owned = base.to_string();
+            if !texture_cache.contains_key(&base_owned) {
+                let tex = Texture::from_path(device, queue, &base_owned, "texture_cache");
+                texture_cache.insert(base_owned.clone(), tex);
+            }
+            let texture = &texture_cache[&base_owned];
+            let new_sprite = Sprite::new(device, texture, &data.texture_path,
                 data.texture_frame, data.texture_count, data.scale);
             sprite_cache.insert(key, new_sprite);
         }

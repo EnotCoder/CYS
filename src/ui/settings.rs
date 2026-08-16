@@ -8,7 +8,7 @@
 // ========================================================================
 
 use specs::Entity;
-use crate::ui::{Panel, Checkbox, Slider, create_panel, destroy_panel, create_checkbox, destroy_checkbox, refresh_checkbox, checkbox_clicked, create_slider, destroy_slider, slider_drag, update_slider_thumb};
+use crate::ui::{Panel, Checkbox, Slider, create_panel, destroy_panel, create_checkbox, destroy_checkbox, refresh_checkbox, checkbox_clicked, checkbox_hovered, create_slider, destroy_slider, slider_drag, slider_hovered, update_slider_thumb};
 use crate::ui::text_renderer::TextRenderer;
 use crate::core::constants::*;
 use crate::EcsAdapter;
@@ -28,6 +28,9 @@ pub struct Settings {
     pub zoom_speed: Slider,
     /// Флаг, что значение слайдера изменилось в этом кадре.
     pub zoom_speed_changed: bool,
+    /// Текущий масштаб галочки и ползунка (hover-анимация, ease к 1.0)
+    checkbox_scale: f32,
+    slider_scale: f32,
 }
 
 impl Settings {
@@ -40,6 +43,8 @@ impl Settings {
             vsync_toggled: false,
             zoom_speed: Slider::new(-0.1, -0.4, "Zoom Speed", 0.02, 0.3, 0.1),
             zoom_speed_changed: false,
+            checkbox_scale: 1.0,
+            slider_scale: 1.0,
         }
     }
 
@@ -63,6 +68,32 @@ impl Settings {
         destroy_slider(ecs, &mut self.zoom_speed);
         if let Some(ent) = self.title.take() {
             ecs.delete_entity(ent);
+        }
+        self.checkbox_scale = 1.0;
+        self.slider_scale = 1.0;
+    }
+
+    /// Ежекадровый hover-эффект: галочка и ползунок плавно увеличиваются
+    /// при наведении и возвращаются к обычному размеру вне его.
+    pub fn tick_hover(&mut self, ecs: &mut EcsAdapter, input: &WinitInputHelper, window_size: (f32, f32), dt: f64) {
+        if !self.open {
+            return;
+        }
+        // Цели: 1.15 при наведении, 1.0 иначе.
+        let cb_hover = checkbox_hovered(&self.vsync, input, window_size);
+        let sl_hover = slider_hovered(&self.zoom_speed, input, window_size);
+        let cb_target = if cb_hover { 1.15 } else { 1.0 };
+        let sl_target = if sl_hover { 1.15 } else { 1.0 };
+        let k = (12.0 * dt as f32).min(1.0);
+        self.checkbox_scale += (cb_target - self.checkbox_scale) * k;
+        self.slider_scale += (sl_target - self.slider_scale) * k;
+        if (cb_target - self.checkbox_scale).abs() < 0.0001 { self.checkbox_scale = cb_target; }
+        if (sl_target - self.slider_scale).abs() < 0.0001 { self.slider_scale = sl_target; }
+        if let Some(e) = self.vsync.box_entity {
+            ecs.update_sprite_scale(e, self.checkbox_scale);
+        }
+        if let Some(e) = self.zoom_speed.thumb {
+            ecs.update_sprite_scale(e, self.slider_scale);
         }
     }
 

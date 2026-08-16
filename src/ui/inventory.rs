@@ -20,6 +20,9 @@ pub struct Inventory {
     // UI-сущности сетки предметов и закладок табов (нужны для скрытия/показа)
     grid_entities: Vec<Entity>,
     tab_entities: Vec<Entity>,
+    // Анимация открытия: отсчёт времени и активность «попа» появления
+    pop_timer: f64,
+    popping: bool,
 }
 
 impl Inventory {
@@ -31,6 +34,8 @@ impl Inventory {
             tab: 0,
             grid_entities: Vec::new(),
             tab_entities: Vec::new(),
+            pop_timer: 0.0,
+            popping: false,
         }
     }
 
@@ -42,6 +47,8 @@ impl Inventory {
         self.tab = 0;
         self.grid_entities.clear();
         self.tab_entities.clear();
+        self.pop_timer = 0.0;
+        self.popping = false;
     }
 
     // ================================================================
@@ -56,6 +63,7 @@ impl Inventory {
         self.show_tabs(ecs);
         self.open = true;
         self.mode = true;
+        self.start_pop();
     }
 
     // Закрыть: убрать UI-элементы сетки и табов из ECS
@@ -64,6 +72,44 @@ impl Inventory {
         self.hide_tabs(ecs);
         self.open = false;
         self.mode = false;
+        self.popping = false;
+    }
+
+    // Стартуем анимацию появления только для отрисуемых сейчас элементов.
+    fn start_pop(&mut self) {
+        self.pop_timer = 0.0;
+        self.popping = true;
+    }
+
+    /// Ежекадровая анимация открытия: иконки «подпрыгивают» с каскадной задержкой
+    /// (easeOutBack). Вызывается из update() игровой сцены.
+    pub fn tick(&mut self, ecs: &mut EcsAdapter, dt: f64) {
+        if !self.popping {
+            return;
+        }
+        self.pop_timer += dt;
+        // Каскад: каждая иконка стартует чуть позже предыдущей.
+        let dur = 0.35;
+        let mut all_done = true;
+        for (i, ent) in self.grid_entities.iter().enumerate() {
+            let t = ((self.pop_timer - i as f64 * 0.02) / dur).clamp(0.0, 1.0) as f32;
+            if t < 1.0 {
+                all_done = false;
+            }
+            let s = 0.6 + 0.4 * crate::core::util::ease_out_back(t);
+            ecs.update_sprite_scale(*ent, s);
+        }
+        for (i, ent) in self.tab_entities.iter().enumerate() {
+            let t = ((self.pop_timer - i as f64 * 0.03) / dur).clamp(0.0, 1.0) as f32;
+            if t < 1.0 {
+                all_done = false;
+            }
+            let s = 0.6 + 0.4 * crate::core::util::ease_out_back(t);
+            ecs.update_sprite_scale(*ent, s);
+        }
+        if all_done {
+            self.popping = false;
+        }
     }
 
     // ================================================================

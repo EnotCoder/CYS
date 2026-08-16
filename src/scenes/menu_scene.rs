@@ -24,6 +24,11 @@ pub struct MenuScene {
     // Текущее состояние наведения курсора для подсветки кнопок
     play_hover: bool,
     quit_hover: bool,
+    // Плавный масштаб панелей при наведении (hover-анимация кнопок)
+    play_scale: f32,
+    quit_scale: f32,
+    // Замер времени кадра для интерполяции по dt
+    last_frame: Option<std::time::Instant>,
 }
 
 impl MenuScene {
@@ -36,6 +41,9 @@ impl MenuScene {
             quit_label: None,
             play_hover: false,
             quit_hover: false,
+            play_scale: 1.0,
+            quit_scale: 1.0,
+            last_frame: None,
         }
     }
 
@@ -165,6 +173,13 @@ impl Scene for MenuScene {
     }
 
     fn update(&mut self, ecs: &mut crate::EcsAdapter, input: &winit_input_helper::WinitInputHelper, window_size: (f32, f32), text_renderer: &mut crate::ui::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) -> SceneAction {
+        // Замер dt кадра для интерполяции hover-анимации
+        let dt = match self.last_frame {
+            Some(t0) => t0.elapsed().as_secs_f64(),
+            None => 1.0 / 60.0,
+        };
+        self.last_frame = Some(std::time::Instant::now());
+
         if !self.ready {
             self.ready = true;
             self.setup_content(ecs, text_renderer, device, queue);
@@ -190,6 +205,25 @@ impl Scene for MenuScene {
             }
             let color = if h { GREEN } else { BTN_TEXT_COLOR };
             self.quit_label = Self::set_label_texture(ecs, self.quit_label, text_renderer, device, queue, "Quit", QUIT_X, QUIT_Y + 0.05, QUIT_W * 0.75, 1.0, color);
+        }
+
+        // Hover-масштаб кнопок: плавно нарастает к 1.12 при наведении и возвращается к 1.0
+        let k = (12.0 * dt as f32).min(1.0);
+        let play_target = if self.play_hover { 1.12 } else { 1.0 };
+        let quit_target = if self.quit_hover { 1.12 } else { 1.0 };
+        self.play_scale += (play_target - self.play_scale) * k;
+        self.quit_scale += (quit_target - self.quit_scale) * k;
+        if (play_target - self.play_scale).abs() < 0.0001 { self.play_scale = play_target; }
+        if (quit_target - self.quit_scale).abs() < 0.0001 { self.quit_scale = quit_target; }
+        if let Some(bg) = &self.play_bg {
+            if let Some(e) = bg.entity {
+                ecs.update_sprite_scale(e, self.play_scale);
+            }
+        }
+        if let Some(bg) = &self.quit_bg {
+            if let Some(e) = bg.entity {
+                ecs.update_sprite_scale(e, self.quit_scale);
+            }
         }
 
         // Запуск игры по пробелу или клику на Play

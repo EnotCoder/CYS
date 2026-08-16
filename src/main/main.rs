@@ -160,6 +160,7 @@ impl App {
             &wgpu_app.size_bind_group,
             &wgpu_app.ui_bind_group,
             &mut self.scene_manager.ecs.sprite_cache,
+            &mut self.scene_manager.ecs.texture_cache,
             &wgpu_app.dynamic_uniform_buffer,
             &wgpu_app.dynamic_bind_group,
             wgpu_app.dynamic_alignment,

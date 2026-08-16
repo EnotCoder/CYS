@@ -82,6 +82,11 @@ pub const GRAY: [u8; 3] = [200, 200, 200];
 pub const GREEN: [u8; 3] = [0, 255, 0];
 pub const BTN_TEXT_COLOR: [u8; 3] = [220, 220, 220];
 
+// === UI-анимации ===
+// Длительность пульса счётчиков/рамок (сек) и скорость фейда подсказок.
+pub const UI_PULSE_SECS: f64 = 0.3;
+pub const UI_FADE_SPEED: f32 = 6.0;
+
 // === Общие пути ===
 pub const TEX_UI_ICON_SLOTS_OBJECT_DIR: &str = "tex/ui/icon_slots/icon_slots_object/";
 pub const TEX_UI_ICON_SLOTS_MAP_DIR: &str = "tex/ui/icon_slots/";

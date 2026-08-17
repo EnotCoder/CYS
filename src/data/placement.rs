@@ -265,6 +265,27 @@ pub fn add(ecs: &mut EcsAdapter, slots: &mut Vec<Slot>, act_slot: i32, gx: i32, 
             }).ok();
         } else if active_slot.name == "fence" || active_slot.name == "street_fence" {
             ecs.world.write_storage::<crate::FenceComponent>().insert(entity, crate::FenceComponent { name: active_slot.name.to_string() }).ok();
+        } else if active_slot.name == "street_ice_cream" {
+            use crate::ecs::components::PointLight;
+            ecs.world.write_storage::<PointLight>().insert(entity, PointLight {
+                color: [1.0, 0.8, 0.6],
+                intensity: 0.8,
+                radius: 4.0,
+            }).ok();
+        } else if active_slot.name == "arcade_machine" {
+            use crate::ecs::components::PointLight;
+            ecs.world.write_storage::<PointLight>().insert(entity, PointLight {
+                color: [0.6, 0.8, 1.0],
+                intensity: 0.8,
+                radius: 3.0,
+            }).ok();
+        } else if active_slot.name == "candies" {
+            use crate::ecs::components::PointLight;
+            ecs.world.write_storage::<PointLight>().insert(entity, PointLight {
+                color: [1.0, 0.6, 1.0],
+                intensity: 0.6,
+                radius: 2.0,
+            }).ok();
         }
     }
 }

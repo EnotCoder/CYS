@@ -16,7 +16,7 @@ use std::sync::Arc;
 use crate::Sprite;
 use crate::Texture;
 use crate::ecs::components::{
-    BasementPlaced, FenceComponent, FoodStorage, Money, ObjectTag, Rotation,
+    BasementPlaced, FenceComponent, FoodStorage, Money, ObjectTag, PointLight, Rotation,
     SpriteComponent, TotalFood, Transform, BusyCassas,
 };
 use crate::{GroupComponent, GroupInfoResource};
@@ -87,6 +87,7 @@ impl EcsAdapter {
         world.register::<ObjectTag>();
         world.register::<FoodStorage>();
         world.register::<FenceComponent>();
+        world.register::<PointLight>();
         world.insert(GroupInfoResource {
             groups: HashMap::new(),
         });
@@ -248,11 +249,13 @@ impl EcsAdapter {
             let mut transforms = self.world.write_storage::<Transform>();
             let mut sprites = self.world.write_storage::<SpriteComponent>();
             let mut group_comps = self.world.write_storage::<GroupComponent>();
+            let mut lights = self.world.write_storage::<PointLight>();
             let entities = self.world.entities();
             for e in delete_entities {
                 transforms.remove(e);
                 sprites.remove(e);
                 group_comps.remove(e);
+                lights.remove(e);
                 let _ = entities.delete(e);
             }
         }

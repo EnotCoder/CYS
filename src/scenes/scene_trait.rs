@@ -28,4 +28,6 @@ pub trait Scene {
     fn camera_offset(&self) -> (f32, f32);
     /// Коэффициент затемнения ночью 0..1 (по умолчанию 0 — день)
     fn night_factor(&self) -> f32 { 0.0 }
+    /// Список источников света в сцене
+    fn lights(&self, _ecs: &crate::EcsAdapter) -> Vec<crate::core::buffers::LightData> { Vec::new() }
 }

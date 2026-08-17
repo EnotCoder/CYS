@@ -133,3 +133,16 @@ pub struct FenceComponent {
 impl Component for FenceComponent {
     type Storage = VecStorage<Self>;
 }
+
+/// Источник света для динамического освещения.
+/// color: RGB, intensity: яркость, radius: радиус затухания.
+#[derive(Debug, Clone, Copy)]
+pub struct PointLight {
+    pub color: [f32; 3],
+    pub intensity: f32,
+    pub radius: f32,
+}
+
+impl Component for PointLight {
+    type Storage = VecStorage<Self>;
+}

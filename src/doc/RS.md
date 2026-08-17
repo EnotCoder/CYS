@@ -171,6 +171,8 @@
 - **settings.rs** — окно настроек: панель, заголовок, чекбокс VSync (флаг
   `vsync_toggled`), слайдер скорости зума (`zoom_speed_changed`); `open`/`close`,
   `handle_input`.
+piccadilly
+piccadilly
 - **fps.rs** — `FpsCounter`: пересчёт FPS раз в секунду по числу кадров.
 - **text_renderer.rs** — `TextRenderer`: растеризация ab_glyph в RGBA-текстуру
   (обводка + заливка), текстовые спрайты, кэш по текст+кегль+цвет; `add_text`,

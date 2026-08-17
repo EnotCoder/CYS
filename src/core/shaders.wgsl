@@ -10,6 +10,15 @@ struct Size {
     offset_x: f32,
     offset_y: f32,
     night_factor: f32,
+    light_count: u32,
+    _padding: vec2<f32>,
+};
+
+struct Light {
+    position: vec4<f32>,
+    color: vec4<f32>,
+    radius: f32,
+    _padding: vec3<f32>,
 };
 
 @group(0) @binding(0)
@@ -25,9 +34,13 @@ var my_sampler: sampler;
 @group(2) @binding(0)
 var<uniform> size_uniform: Size;
 
+@group(2) @binding(1)
+var<storage, read> lights: array<Light>;
+
 struct VertexOutput {
     @builtin(position) position: vec4<f32>,
     @location(0) tex_coord: vec2<f32>,
+    @location(1) world_pos: vec3<f32>,
 };
 
 // Вращение вокруг X
@@ -86,14 +99,35 @@ fn vs_main(
     // Без матрицы! Просто передаём координаты
     output.position = vec4<f32>(cam_x, cam_y, 0.0, 1.0);
     output.tex_coord = tex_coord;
+    output.world_pos = world_pos;
     return output;
 }
 
 @fragment
 fn fs_main(
     @location(0) tex_coord: vec2<f32>,
+    @location(1) world_pos: vec3<f32>,
 ) -> @location(0) vec4<f32> {
     let color = textureSample(my_texture, my_sampler, tex_coord);
-    let darken = 1.0 - size_uniform.night_factor * 0.7;
-    return vec4<f32>(color.rgb * darken, color.a * uniforms.translation.w);
+    if (color.a < 0.01) { discard; }
+
+    let ambient_factor = 1.0 - size_uniform.night_factor * 0.8;
+    var final_light = vec3<f32>(ambient_factor);
+
+    // Итерируемся по источникам света
+    for (var i: u32 = 0u; i < size_uniform.light_count; i = i + 1u) {
+        let light = lights[i];
+        let dist = distance(world_pos.xy, light.position.xy);
+        
+        if (dist < light.radius) {
+            // Мягкое затухание (инвертированный квадрат расстояния)
+            let atten = pow(1.0 - dist / light.radius, 2.0);
+            final_light += light.color.rgb * light.color.a * atten;
+        }
+    }
+
+    // Ограничиваем свет, так как у нас теперь SDR (без Bloom)
+    final_light = min(final_light, vec3<f32>(1.5));
+
+    return vec4<f32>(color.rgb * final_light, color.a * uniforms.translation.w);
 }

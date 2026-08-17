@@ -24,16 +24,19 @@ pub struct Size {
     pub offset_x: f32,
     pub offset_y: f32,
     pub night_factor: f32,
+    pub light_count: u32,
+    pub _padding: [f32; 2],
 }
 
-// Uniform'ы для UI-слоя (упрощённый набор: без позиции, один на кадр).
 #[repr(C)]
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct UiUniforms {
     pub size: f32,
     pub aspect: f32,
-    pub _padding: [f32; 2],
+    pub _padding1: [f32; 2],
     pub night_factor: f32,
+    pub light_count: u32,
+    pub _padding2: [f32; 2],
 }
 
 #[allow(dead_code)]
@@ -69,6 +72,9 @@ pub struct WgpuApp {
     // Uniform'ы UI (UiUniforms) с bind group.
     pub ui_uniform_buffer: wgpu::Buffer,
     pub ui_bind_group: wgpu::BindGroup,
+
+    // Буфер света (MAX_LIGHTS источников).
+    pub light_buffer: wgpu::Buffer,
 }
 
 impl WgpuApp {
@@ -99,12 +105,22 @@ impl WgpuApp {
         // Uniform (Size) для карты — постоянный буфер, обновляется извне.
         let size_buffer = Self::create_size_buffer(&device);
         let size_bind_group_layout = Self::create_single_bind_group_layout(&device, "Size Bind Group Layout");
-        let size_bind_group = Self::create_bind_group(&device, &size_bind_group_layout, &size_buffer, "Size Bind Group");
 
         // Uniform (UiUniforms) для UI-слоя.
         let ui_uniform_buffer = Self::create_ui_buffer(&device);
-        let ui_bind_group_layout = Self::create_single_bind_group_layout(&device, "UI Bind Group Layout");
-        let ui_bind_group = Self::create_bind_group(&device, &ui_bind_group_layout, &ui_uniform_buffer, "UI Bind Group");
+
+        // Буфер для хранения данных об освещении.
+        let light_buffer = device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("Light Storage Buffer"),
+            size: (std::mem::size_of::<crate::core::buffers::LightData>() * crate::core::constants::MAX_LIGHTS) as u64,
+            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        });
+
+        let size_bind_group = Self::create_bind_group_with_lights(&device, &size_bind_group_layout, &size_buffer, &light_buffer, "Size Bind Group");
+        let ui_bind_group = Self::create_bind_group_with_lights(&device, &size_bind_group_layout, &ui_uniform_buffer, &light_buffer, "UI Bind Group");
+
+        // Dynamic storage buffer — 1 write_buffer вместо N per-sprite
 
         // Dynamic storage buffer — 1 write_buffer вместо N per-sprite
         // Подсчитываем, сколько спрайтов войдёт в лимит storage-буфера.
@@ -181,6 +197,7 @@ impl WgpuApp {
             size_bind_group,
             ui_uniform_buffer,
             ui_bind_group,
+            light_buffer,
         }
     }
 
@@ -233,34 +250,58 @@ impl WgpuApp {
     fn create_single_bind_group_layout(device: &wgpu::Device, label: &str) -> wgpu::BindGroupLayout {
         device.create_bind_group_layout(&BindGroupLayoutDescriptor {
             label: Some(label),
-            entries: &[BindGroupLayoutEntry {
-                binding: 0,
-                visibility: ShaderStages::VERTEX_FRAGMENT,
-                ty: BindingType::Buffer {
-                    ty: BufferBindingType::Uniform,
-                    has_dynamic_offset: false,
-                    min_binding_size: None,
+            entries: &[
+                BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: ShaderStages::VERTEX_FRAGMENT,
+                    ty: BindingType::Buffer {
+                        ty: BufferBindingType::Uniform,
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
                 },
-                count: None,
-            }],
+                BindGroupLayoutEntry {
+                    binding: 1,
+                    visibility: ShaderStages::FRAGMENT,
+                    ty: BindingType::Buffer {
+                        ty: BufferBindingType::Storage { read_only: true },
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                },
+            ],
         })
     }
 
     // Связывает постоянный буфер с layout'ом в bind group (группа 2 для Size / UI).
-    fn create_bind_group(device: &wgpu::Device, layout: &wgpu::BindGroupLayout, buffer: &wgpu::Buffer, label: &str) -> wgpu::BindGroup {
+    fn create_bind_group_with_lights(
+        device: &wgpu::Device,
+        layout: &wgpu::BindGroupLayout,
+        size_buffer: &wgpu::Buffer,
+        light_buffer: &wgpu::Buffer,
+        label: &str,
+    ) -> wgpu::BindGroup {
         device.create_bind_group(&BindGroupDescriptor {
             label: Some(label),
             layout,
-            entries: &[BindGroupEntry {
-                binding: 0,
-                resource: buffer.as_entire_binding(),
-            }],
+            entries: &[
+                BindGroupEntry {
+                    binding: 0,
+                    resource: size_buffer.as_entire_binding(),
+                },
+                BindGroupEntry {
+                    binding: 1,
+                    resource: light_buffer.as_entire_binding(),
+                },
+            ],
         })
     }
 
     // Создаёт буфер с дефолтными uniform'ами карты (заполняется позже из кода).
     fn create_size_buffer(device: &wgpu::Device) -> wgpu::Buffer {
-        let size = Size { map_size: 1.0, aspect: 1.0, offset_x: 0.0, offset_y: 0.0, night_factor: 0.0 };
+        let size = Size { map_size: 1.0, aspect: 1.0, offset_x: 0.0, offset_y: 0.0, night_factor: 0.0, light_count: 0, _padding: [0.0; 2] };
         device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Size Buffer"),
             contents: bytemuck::bytes_of(&size),
@@ -270,7 +311,7 @@ impl WgpuApp {
 
     // Создаёт буфер дефолтных uniform'ов UI.
     fn create_ui_buffer(device: &wgpu::Device) -> wgpu::Buffer {
-        let ui_uniforms = UiUniforms { size: 1.0, aspect: 1.0, _padding: [0.0; 2], night_factor: 0.0 };
+        let ui_uniforms = UiUniforms { size: 1.0, aspect: 1.0, _padding1: [0.0; 2], night_factor: 0.0, light_count: 0, _padding2: [0.0; 2] };
         device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("UI_Buffer"),
             contents: bytemuck::cast_slice(&[ui_uniforms]),

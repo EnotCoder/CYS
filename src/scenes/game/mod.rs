@@ -652,4 +652,21 @@ impl Scene for GameScene {
     fn night_factor(&self) -> f32 {
         self.day_night.factor(&self.config)
     }
+
+    fn lights(&self, ecs: &crate::EcsAdapter) -> Vec<crate::core::buffers::LightData> {
+        let transforms = ecs.world.read_storage::<crate::ecs::components::Transform>();
+        let lights = ecs.world.read_storage::<crate::ecs::components::PointLight>();
+        
+        (&transforms, &lights).join()
+            .take(crate::core::constants::MAX_LIGHTS)
+            .map(|(t, l)| {
+                crate::core::buffers::LightData {
+                    position: [t.position[0], t.position[1], t.position[2], 0.0],
+                    color: [l.color[0], l.color[1], l.color[2], l.intensity],
+                    radius: l.radius,
+                    _padding: [0.0; 3],
+                }
+            })
+            .collect()
+    }
 }

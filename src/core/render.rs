@@ -36,7 +36,14 @@ pub fn render(
     dynamic_uniform_buffer: &wgpu::Buffer,
     dynamic_bind_group: &wgpu::BindGroup,
     dynamic_alignment: u64,
+    light_data: &[crate::core::buffers::LightData],
+    light_buffer: &wgpu::Buffer,
 ) {
+    // Пишем данные о свете в буфер перед отрисовкой
+    if !light_data.is_empty() {
+        queue.write_buffer(light_buffer, 0, bytemuck::cast_slice(light_data));
+    }
+
     // Получаем текущий кадр поверхности. Suboptimal тоже показываем —
     // это лишь сигнал о том, что размер окна скоро изменится.
     let current = surface.get_current_texture();

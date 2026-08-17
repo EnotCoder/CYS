@@ -119,30 +119,50 @@ impl App {
         let fps = self.fps_counter.tick();
         self.scene_manager.update_fps(fps, &mut self.text_renderer, &wgpu_app.device, &wgpu_app.queue);
 
-        // Параметры текущей сцены: размер карты, центр камеры, фактор ночи
         let ms = self.scene_manager.scenes.get(&self.scene_manager.current).unwrap().map_size();
         let (cam_x, cam_y) = self.scene_manager.scenes.get(&self.scene_manager.current).unwrap().camera_offset();
         let nf = self.scene_manager.scenes.get(&self.scene_manager.current).unwrap().night_factor();
         let aspect = window_size.0 / window_size.1;
-        // Мировые uniform'ы: карта, камера и освещение для мировых шейдеров
-        let size_data = Size { map_size: ms, aspect, offset_x: cam_x, offset_y: cam_y, night_factor: nf };
-        wgpu_app
-            .queue
-            .write_buffer(&wgpu_app.size_buffer, 0, bytemuck::cast_slice(&[size_data]));
-
-        // Uniform'ы для UI-слоя (UI рендерится без камеры/ночи)
-        let ui_uniforms = UiUniforms { size: 1.0, aspect, _padding: [0.0; 2], night_factor: 0.0 };
-        wgpu_app
-            .queue
-            .write_buffer(&wgpu_app.ui_uniform_buffer, 0, bytemuck::cast_slice(&[ui_uniforms]));
 
         // Видимая область мира (для culling спрайтов за кадром)
         let vis_w = 2.0 * aspect / (SHADER_SCALE * ms);
         let vis_h = 2.0 / (SHADER_SCALE * ms);
         let bounds = Some((cam_x - vis_w/2.0, cam_x + vis_w/2.0, cam_y - vis_h/2.0, cam_y + vis_h/2.0));
         // Сбор спрайтов по слоям (z-order: карта, ковры, декорации, персонажи, курсор, UI)
+        let scene = self.scene_manager.scenes.get(&self.scene_manager.current).unwrap();
         let (map_sprites, carpet_sprites, decor_sprites, npc_sprites, cursor_sprites, ui_sprites) =
-            self.scene_manager.scenes.get(&self.scene_manager.current).unwrap().sprites(&self.scene_manager.ecs, bounds);
+            scene.sprites(&self.scene_manager.ecs, bounds);
+        let lights = scene.lights(&self.scene_manager.ecs);
+
+        // Обновляем количество источников света в Size uniform
+        let light_count = lights.len() as u32;
+
+        // Мировые uniform'ы: карта, камера и освещение для мировых шейдеров
+        let size_data = Size { 
+            map_size: ms, 
+            aspect, 
+            offset_x: cam_x, 
+            offset_y: cam_y, 
+            night_factor: nf,
+            light_count,
+            _padding: [0.0; 2],
+        };
+        wgpu_app
+            .queue
+            .write_buffer(&wgpu_app.size_buffer, 0, bytemuck::cast_slice(&[size_data]));
+
+        // Uniform'ы для UI-слоя (UI рендерится без камеры/ночи)
+        let ui_uniforms = UiUniforms { 
+            size: 1.0,
+            aspect, 
+            _padding1: [0.0; 2],
+            night_factor: 0.0,
+            light_count: 0,
+            _padding2: [0.0; 2],
+        };
+        wgpu_app
+            .queue
+            .write_buffer(&wgpu_app.ui_uniform_buffer, 0, bytemuck::cast_slice(&[ui_uniforms]));
 
         render(
             surface,
@@ -164,6 +184,8 @@ impl App {
             &wgpu_app.dynamic_uniform_buffer,
             &wgpu_app.dynamic_bind_group,
             wgpu_app.dynamic_alignment,
+            &lights,
+            &wgpu_app.light_buffer,
         );
     }
 }

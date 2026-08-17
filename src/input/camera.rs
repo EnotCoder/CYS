@@ -1,6 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Copyright (C) 2026 EnotCoder
 
+// ========================================================================
+//  handle_zoom — зум камеры колёсиком мыши или клавишами K/L
+//  в диапазоне [ZOOM_MIN, ZOOM_MAX] с шагом из настроек.
+// ========================================================================
+
 use winit_input_helper::WinitInputHelper;
 use winit::keyboard::KeyCode;
 use crate::core::constants::*;

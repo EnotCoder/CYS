@@ -1,6 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Copyright (C) 2026 EnotCoder
 
+// ========================================================================
+//  ShopperNpc — покупатель: состояние-автомат (GoingToRack/Cassa/Candies/
+//  Exit...), спавн с фейдом, API для Lua (state_int, take_food, ...),
+//  update (Lua npc.lua либо fallback-автомат на Rust).
+// ========================================================================
+
 use std::collections::HashSet;
 use specs::WorldExt;
 use crate::data::map::pathfinding::{Node, find_path};

@@ -1,6 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Copyright (C) 2026 EnotCoder
 
+// ========================================================================
+//  Рендер-методы EcsAdapter: get_sprites_by_layer (разбиение всех сущностей
+//  по 6 z-слоям с отсечением видимой области), update_object_textures
+//  (кадры box/rack по количеству еды), update_fence_textures (заборы по соседям).
+// ========================================================================
+
 use specs::{WorldExt, Join};
 use std::collections::HashSet;
 use std::sync::Arc;

@@ -1,6 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Copyright (C) 2026 EnotCoder
 
+// ========================================================================
+//  Курсор мыши: handle_mouse_movement (NDC → мир → клетка, с задержкой),
+//  update_cursor_validity (текстура ок/ошибка), update_cursor_preview
+//  (превью расстановки). LAST_MOVE_TIME — таймер задержки при движении.
+// ========================================================================
+
 use std::cell::Cell;
 use std::time::{Instant, Duration};
 use winit_input_helper::WinitInputHelper;

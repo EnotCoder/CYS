@@ -1,6 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Copyright (C) 2026 EnotCoder
 
+// ========================================================================
+//  Утилиты: sprite_cache_key (ключ кэша спрайтов), ease_out_back
+//  (UI-анимации «попа»), ndc_to_world (NDC → мировые координаты),
+//  inventory_index (сетка инвентаря), slot_icon_path (иконки хотбара).
+// ========================================================================
+
 use std::hash::{Hash, Hasher};
 use crate::core::constants::SHADER_SCALE;
 

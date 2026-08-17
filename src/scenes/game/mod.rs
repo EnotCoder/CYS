@@ -1,6 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Copyright (C) 2026 EnotCoder
 
+// ========================================================================
+//  GameScene — главная игровая сцена: цикл (ввод, камера, объекты, HUD,
+//  покупатели, день/ночь), режимы build/del/interact, экономика (аренда,
+//  банкротство), FoodPulse для «попа еды», настройки и уровни.
+// ========================================================================
+
 use std::collections::{HashMap, HashSet};
 use specs::{WorldExt, Join};
 use winit::keyboard::KeyCode;

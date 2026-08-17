@@ -1,6 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Copyright (C) 2026 EnotCoder
 
+// ========================================================================
+//  Групповые объекты (multicell): add_group_object, delete_group,
+//  find_group_at_position. Здесь создаются многоклеточные сущности —
+//  один объект (стол, ковёр, касса) = несколько сущностей с общим group_id.
+// ========================================================================
+
 use specs::{WorldExt, Builder};
 use std::sync::Arc;
 use crate::ecs::adapter::EcsAdapter;

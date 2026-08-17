@@ -1,6 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Copyright (C) 2026 EnotCoder
 
+// ========================================================================
+//  create_sprite — фабрика сущностей спрайтов (Transform + SpriteComponent).
+//  Единственная точка создания любых спрайтов в игре (карта, декор, UI,
+//  курсор, NPC): позиция, текстура, кадр атласа, масштаб и альфа.
+// ========================================================================
+
 use specs::{World, Entity, Builder, WorldExt};
 use std::sync::Arc;
 use crate::ecs::components::{Transform, SpriteComponent};

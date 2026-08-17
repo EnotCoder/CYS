@@ -1,6 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Copyright (C) 2026 EnotCoder
 
+// ========================================================================
+//  Взаимодействие с миром: try_interact (box — продажа еды, rack — пополнение,
+//  basement — смена уровня, аркада — подсветка), cycle_mode (смена режима
+//  0/1/2), do_interact (клик в зависимости от режима).
+// ========================================================================
+
 use specs::{Entity, WorldExt};
 use crate::{EcsAdapter, data::Slot};
 use crate::data::{add, remove};

@@ -1,6 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Copyright (C) 2026 EnotCoder
 
+// ========================================================================
+//  Компоненты и ресурсы ECS: Transform, SpriteComponent, GroupComponent,
+//  Rotation, ObjectTag, FoodStorage, FenceComponent; ресурсы мира
+//  GroupInfoResource, TotalFood, Money, BusyCassas, BasementPlaced.
+// ========================================================================
+
 use specs::{Component, VecStorage};
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;

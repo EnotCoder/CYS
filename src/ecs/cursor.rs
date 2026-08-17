@@ -1,6 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Copyright (C) 2026 EnotCoder
 
+// ========================================================================
+//  Курсор: add_cursor (спрайт курсора на слое Z_CURSOR),
+//  update_cursor_preview (полупрозрачный «призрак» размещаемого объекта
+//  с кадрами атласа и маркерами ошибки), clear_cursor_preview.
+// ========================================================================
+
 use specs::Entity;
 use crate::ecs::adapter::EcsAdapter;
 use crate::core::constants::Z_CURSOR;

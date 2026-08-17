@@ -1,6 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Copyright (C) 2026 EnotCoder
 
+// ========================================================================
+//  Sprite: готовый к отрисовке wgpu-спрайт (текстура, vertex/index-буферы,
+//  bind group). Sprite::new вырезает кадр из атласа, Sprite::from_texture
+//  растягивает под заданный размер (текст/UI). shared_texture_layout —
+//  единый layout текстуры+сэмплера через OnceLock.
+// ========================================================================
+
 use std::sync::OnceLock;
 use wgpu::util::DeviceExt;
 use crate::texture::Texture;

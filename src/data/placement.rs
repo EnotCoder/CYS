@@ -286,6 +286,13 @@ pub fn add(ecs: &mut EcsAdapter, slots: &mut Vec<Slot>, act_slot: i32, gx: i32, 
                 intensity: 0.6,
                 radius: 2.0,
             }).ok();
+        } else if active_slot.name == "lamp" {
+            use crate::ecs::components::PointLight;
+            ecs.world.write_storage::<PointLight>().insert(entity, PointLight {
+                color: [1.0, 0.95, 0.8],
+                intensity: 1.0,
+                radius: 5.0,
+            }).ok();
         }
     }
 }

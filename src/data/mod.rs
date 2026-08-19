@@ -98,6 +98,13 @@ const ALL_OBJECTS: &[Object] = &[
         animated: true,
         frame_paths: &["tex/decor/regular/arcade_machine/a_m_1.png", "tex/decor/regular/arcade_machine/a_m_2.png"],
     },
+    //light — лампы (источники света)
+    Object {
+        width: 1, height: 1, name: "lamp",         path: "tex/decor/light/lamp.png",
+        price: 20,
+        texture_frame: [0, 0], texture_count: [1, 1],
+        animated: false, frame_paths: &[],
+    },
     //carpets — ковры и панели пола: все используют один атлас carpet.png,
     // но разные кадры (texture_frame) задают конкретный вид.
     Object {

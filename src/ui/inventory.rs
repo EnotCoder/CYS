@@ -122,7 +122,8 @@ impl Inventory {
             0 => INV_REGULAR,
             1 => INV_CARPETS,
             2 => INV_WALLDECOR,
-            _ => INV_OUTDOOR,
+            3 => INV_OUTDOOR,
+            _ => INV_LIGHT,
         }
     }
 

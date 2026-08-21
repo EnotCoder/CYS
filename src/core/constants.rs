@@ -14,6 +14,7 @@ pub const TILE_HALF: f32 = 0.5;
 // === Слои (z) ===
 pub const Z_MAP: f32 = 0.0;
 pub const Z_CARPET: f32 = 1.0;
+pub const Z_LIGHT: f32 = 1.2;
 pub const Z_DECOR: f32 = 1.5;
 pub const Z_NPC: f32 = 1.8;
 pub const Z_CURSOR: f32 = 2.0;

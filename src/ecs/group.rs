@@ -27,6 +27,7 @@ impl EcsAdapter {
         base_frame: [i32; 2],
         tex_count: [i32; 2],
         is_carpet: bool,
+        is_light: bool,
         animated: bool,
         frame_paths: &[&str],
     ) -> u32 {
@@ -34,9 +35,12 @@ impl EcsAdapter {
         self.next_group_id += 1;
 
         let mut entities = Vec::with_capacity((width * height) as usize);
-        // Слой зависит от типа: ковры лежат под декором (см. карту Z-констант).
+        // Слой зависит от типа: ковры лежат под светом, свет — под декором
+        // (см. карту Z-констант).
         let z: f32 = if is_carpet {
             crate::core::constants::Z_CARPET
+        } else if is_light {
+            crate::core::constants::Z_LIGHT
         } else {
             crate::core::constants::Z_DECOR
         };
@@ -84,6 +88,7 @@ impl EcsAdapter {
                     pos_x: x,
                     pos_y: y,
                     is_carpet,
+                    is_light,
                 },
             );
 
@@ -124,10 +129,11 @@ impl EcsAdapter {
 
     // ====================================================================
     //  find_group_at_position: Ищет ID группы по координатам сетки
-    //  (декор приоритетнее ковра, если клетки перекрываются).
+    //  (декор и свет приоритетнее ковра, если клетки перекрываются).
     // ====================================================================
     pub fn find_group_at_position(&self, x: i32, y: i32) -> Option<u32> {
         let groups = &self.world.read_resource::<GroupInfoResource>().groups;
+        let mut light_gid: Option<u32> = None;
         let mut carpet_gid: Option<u32> = None;
         for (&gid, group) in groups {
             // Проверяем, попадает ли клетка в прямоугольник группы.
@@ -136,16 +142,20 @@ impl EcsAdapter {
                 && y >= group.pos_y
                 && y < group.pos_y + group.height
             {
-                // Под ковром не может быть декора: декор возвращаем сразу,
-                // ковёр запоминаем как запасной вариант.
-                if !group.is_carpet {
+                // Приоритет удаления повторяет z-порядок: декор > свет > ковёр,
+                // поэтому декор возвращаем сразу, остальное запоминаем.
+                if !group.is_carpet && !group.is_light {
                     return Some(gid);
                 }
-                if carpet_gid.is_none() {
+                if group.is_light {
+                    if light_gid.is_none() {
+                        light_gid = Some(gid);
+                    }
+                } else if carpet_gid.is_none() {
                     carpet_gid = Some(gid);
                 }
             }
         }
-        carpet_gid
+        light_gid.or(carpet_gid)
     }
 }

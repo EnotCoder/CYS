@@ -3,7 +3,7 @@
 
 // ========================================================================
 //  Рендер-методы EcsAdapter: get_sprites_by_layer (разбиение всех сущностей
-//  по 6 z-слоям с отсечением видимой области), update_object_textures
+//  по 7 z-слоям с отсечением видимой области), update_object_textures
 //  (кадры box/rack по количеству еды), update_fence_textures (заборы по соседям).
 // ========================================================================
 
@@ -15,14 +15,15 @@ use crate::GroupComponent;
 use super::SpriteRenderData;
 
 impl super::EcsAdapter {
-    // Собирает все спрайты мира и раскладывает их по шести слоям рендера.
-    // Возвращает кортеж векторов (карта, ковры, декор, NPC, курсор, UI).
+    // Собирает все спрайты мира и раскладывает их по семи слоям рендера.
+    // Возвращает кортеж векторов (карта, ковры, свет, декор, NPC, курсор, UI).
     // `visible_bounds` (l, r, b, t) для карты/декора/NPC включает отсечение
     // по экрану — экономия на запредельных объектах.
     pub fn get_sprites_by_layer(
         &self,
         visible_bounds: Option<(f32, f32, f32, f32)>,
     ) -> (
+        Vec<SpriteRenderData>,
         Vec<SpriteRenderData>,
         Vec<SpriteRenderData>,
         Vec<SpriteRenderData>,
@@ -38,6 +39,7 @@ impl super::EcsAdapter {
         // Векторы заранее резервируются под типичное число объектов на слой.
         let mut map_sprites = Vec::with_capacity(100);
         let mut carpet_sprites = Vec::with_capacity(20);
+        let mut light_sprites = Vec::with_capacity(5);
         let mut decor_sprites = Vec::with_capacity(20);
         let mut npc_sprites = Vec::with_capacity(5);
         let mut cursor_sprites = Vec::with_capacity(1);
@@ -60,6 +62,7 @@ impl super::EcsAdapter {
             let z = transform.position[2];
             let should_cull = z == crate::core::constants::Z_MAP
                 || z == crate::core::constants::Z_CARPET
+                || z == crate::core::constants::Z_LIGHT
                 || z == crate::core::constants::Z_DECOR
                 || z == crate::core::constants::Z_NPC;
             if should_cull {
@@ -76,6 +79,8 @@ impl super::EcsAdapter {
                 map_sprites.push(data);
             } else if z == crate::core::constants::Z_CARPET {
                 carpet_sprites.push(data);
+            } else if z == crate::core::constants::Z_LIGHT {
+                light_sprites.push(data);
             } else if z == crate::core::constants::Z_DECOR {
                 decor_sprites.push(data);
             } else if z == crate::core::constants::Z_NPC {
@@ -87,7 +92,7 @@ impl super::EcsAdapter {
             }
         }
 
-        (map_sprites, carpet_sprites, decor_sprites, npc_sprites, cursor_sprites, ui_sprites)
+        (map_sprites, carpet_sprites, light_sprites, decor_sprites, npc_sprites, cursor_sprites, ui_sprites)
     }
 
     // Обновляет текстуры заполненных объектов (box/rack) по количеству еды.

@@ -127,6 +127,7 @@ impl MenuScene {
                     slot.obj.texture_frame,
                     slot.obj.texture_count,
                     crate::data::is_carpet_name(name),
+                    false,
                     slot.obj.animated,
                     slot.obj.frame_paths,
                 );
@@ -239,10 +240,9 @@ impl Scene for MenuScene {
         SceneAction::None
     }
 
-    fn sprites(&self, ecs: &crate::EcsAdapter, _visible_bounds: Option<(f32, f32, f32, f32)>) -> (Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>) {
+    fn sprites(&self, ecs: &crate::EcsAdapter, _visible_bounds: Option<(f32, f32, f32, f32)>) -> (Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>) {
         // В меню отдаём все слои, отсечение не нужно
-        let r = ecs.get_sprites_by_layer(None);
-        (r.0, r.1, r.2, r.3, r.4, r.5)
+        ecs.get_sprites_by_layer(None)
     }
 
     fn map_size(&self) -> f32 { MENU_MAP_SIZE }

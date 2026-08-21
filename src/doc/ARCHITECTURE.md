@@ -23,7 +23,7 @@ src/
 проекта и в папку `src/` не входят.
 
 ## Слои рендера (z-order)
-`Z_MAP=0.0` → `Z_CARPET=1.0` → `Z_DECOR=1.5` → `Z_NPC=2.0` → `Z_CURSOR=2.5` → `Z_UI=3.0`
+`Z_MAP=0.0` → `Z_CARPET=1.0` → `Z_LIGHT=1.2` → `Z_DECOR=1.5` → `Z_NPC=1.8` → `Z_CURSOR=2.0` → `Z_UI=3.0`
 
 ## Карта
 `src/data/map/` — загрузка карты из `map.txt`/`basement.txt` в ECS

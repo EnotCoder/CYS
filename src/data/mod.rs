@@ -283,4 +283,4 @@ pub fn object_price(name: &str, cfg: &crate::scripts::config::BalanceConfig) -> 
     cfg.object_prices.get(name).copied().unwrap_or_else(|| make_slot(name).obj.price)
 }
 
-pub use placement::{add, is_carpet_name, is_flower_name, is_outdoor_name, is_wall_decor_name, remove};
+pub use placement::{add, attach_point_light, is_carpet_name, is_flower_name, is_light_name, is_outdoor_name, is_wall_decor_name, remove};

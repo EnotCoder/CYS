@@ -19,9 +19,9 @@ pub trait Scene {
     fn on_enter(&mut self, ecs: &mut crate::EcsAdapter, text_renderer: &mut crate::ui::text_renderer::TextRenderer);
     /// Ежекадровое обновление сцены: ввод, игровая логика; возвращает SceneAction
     fn update(&mut self, ecs: &mut crate::EcsAdapter, input: &winit_input_helper::WinitInputHelper, window_size: (f32, f32), text_renderer: &mut crate::ui::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) -> SceneAction;
-    /// Собирает спрайты всех слоёв рендера (земля/декор/NPC/курсор/UI и т.д.);
+    /// Собирает спрайты всех слоёв рендера (земля/ковры/свет/декор/NPC/курсор/UI и т.д.);
     /// visible_bounds — прямоугольник видимой области для отсечения
-    fn sprites(&self, ecs: &crate::EcsAdapter, visible_bounds: Option<(f32, f32, f32, f32)>) -> (Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>);
+    fn sprites(&self, ecs: &crate::EcsAdapter, visible_bounds: Option<(f32, f32, f32, f32)>) -> (Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>);
     /// Размер карты сцены (масштаб камеры)
     fn map_size(&self) -> f32;
     /// Смещение камеры сцены

@@ -17,6 +17,9 @@ use crate::App;
 
 #[no_mangle]
 fn android_main(app: AndroidApp) {
+    // Полный backtrace в logcat (сообщения паники идут в stderr → RustStdoutStderr).
+    std::env::set_var("RUST_BACKTRACE", "1");
+
     // Сохраняем ссылку на AndroidApp для чтения ассетов из APK.
     crate::core::asset::set_android_app(app.clone());
 

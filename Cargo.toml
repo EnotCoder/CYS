@@ -3,6 +3,11 @@ name = "wgpu"
 version = "0.1.0"
 edition = "2021"
 
+[lib]
+name = "cys"
+path = "src/main/lib.rs"
+crate-type = ["cdylib", "rlib"]
+
 [[bin]]
 name = "wgpu"
 path = "src/main/main.rs"
@@ -34,6 +39,12 @@ strip = true
 # Настройки сборки APK (используются cargo-apk / cargo-ndk).
 # Все игровые файлы лежат в assets/ и упаковываются в APK-assets.
 [package.metadata.android]
-apk_assets = "assets"
-apk_debuggable = true
+assets = "assets"
+package = "com.cys.game"
+build_targets = ["aarch64-linux-android", "x86_64-linux-android"]
+
+[package.metadata.android.sdk]
+min_sdk_version = 26
+target_sdk_version = 34
+
 

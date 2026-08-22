@@ -21,12 +21,11 @@ fn android_main(app: AndroidApp) {
     crate::core::asset::set_android_app(app.clone());
 
     // Цикл событий winit, привязанный к AndroidApp.
-    let event_loop = EventLoop::builder()
-        .with_android_app(app)
-        .build()
-        .expect("failed to build Android event loop");
+    let mut event_loop = EventLoop::builder();
+    event_loop.with_android_app(app);
+    let event_loop = event_loop.build().expect("failed to build Android event loop");
 
-    // Мобильный ввод — тач-эмуляция мыши.
+    // Мобильный ввод — тач-эмуляция мыши (тап/перетаскивание/щипок).
     let mut app_state = App::new(Box::new(TouchInput::new()));
 
     // Запуск главного цикла (блокирует до выхода/уничтожения активити).

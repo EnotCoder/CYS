@@ -4,15 +4,17 @@
 // ========================================================================
 //  platform.rs — абстракция источника ввода.
 //  DesktopInput оборачивает WinitInputHelper (мышь + клавиатура).
-//  TouchInput — заглушка под Android: тач-события эмулируют курсор и
-//  левую кнопку мыши. Сцены и системы ввода работают с трейтом InputSource,
-//  не зная, откуда пришёл ввод.
+//  TouchInput — ввод для Android: один палец = тап/клик, перетаскивание
+//  одним пальцем = движение камеры, щипок двумя пальцами = зум. Сцены и
+//  системы ввода работают с трейтом InputSource, не зная, откуда пришёл ввод.
 // ========================================================================
 
 use winit::event::{DeviceEvent, MouseButton, WindowEvent};
 use winit::keyboard::KeyCode;
 use winit_input_helper::WinitInputHelper;
 
+#[cfg(target_os = "android")]
+use std::collections::HashMap;
 #[cfg(target_os = "android")]
 use winit::event::{Touch, TouchPhase};
 
@@ -66,15 +68,20 @@ impl InputSource for DesktopInput {
     fn process_device_event(&mut self, event: &DeviceEvent) { let _ = self.inner.process_device_event(event); }
 }
 
-/// Мобильный (тач) ввод — заглушка.
-/// Последнее касание эмулирует курсор и левую кнопку мыши; зум/клавиши
-/// пока не реализованы (TODO: жесты пинча и экранные кнопки).
+/// Мобильный (тач) ввод.
+/// - Один палец без движения = тап (эмулирует ЛКМ).
+/// - Перетаскивание одним пальцем = движение камеры (эмулирует среднюю кнопку).
+/// - Щипок двумя пальцами = зум (эмулирует колесо мыши).
 #[cfg(target_os = "android")]
 pub struct TouchInput {
     pos: Option<(f32, f32)>,
     last_pos: Option<(f32, f32)>,
     pressed_this_frame: bool,
-    held: bool,
+    dragging: bool,
+    // Активные касания по id -> позиция (для распознавания щипка и пана).
+    touches: HashMap<u64, (f32, f32)>,
+    // Дистанция между двумя пальцами на предыдущем кадре для расчёта зума.
+    pinch_last_dist: f32,
 }
 
 #[cfg(target_os = "android")]
@@ -91,8 +98,15 @@ impl TouchInput {
             pos: None,
             last_pos: None,
             pressed_this_frame: false,
-            held: false,
+            dragging: false,
+            touches: HashMap::new(),
+            pinch_last_dist: 0.0,
         }
+    }
+
+    fn distance(a: (f32, f32), b: (f32, f32)) -> f32 {
+        let (dx, dy) = (a.0 - b.0, a.1 - b.1);
+        (dx * dx + dy * dy).sqrt()
     }
 }
 
@@ -114,7 +128,13 @@ impl InputSource for TouchInput {
     }
 
     fn mouse_held(&self, btn: MouseButton) -> bool {
-        matches!(btn, MouseButton::Left) && self.held
+        match btn {
+            // ЛКМ «зажата» пока идёт тап или перетаскивание (для совместимости).
+            MouseButton::Left => self.pressed_this_frame || self.dragging,
+            // Средняя кнопка — именно она крутит камеру в update_camera.
+            MouseButton::Middle => self.dragging,
+            _ => false,
+        }
     }
 
     fn key_pressed(&self, _key: KeyCode) -> bool {
@@ -130,6 +150,13 @@ impl InputSource for TouchInput {
     }
 
     fn scroll_diff(&self) -> (f32, f32) {
+        // Зум: изменение расстояния между пальцами. Пальцы разводятся —
+        // расстояние растёт (scroll.1 > 0 → приближение в handle_zoom).
+        if self.touches.len() >= 2 {
+            let pts: Vec<(f32, f32)> = self.touches.values().copied().collect();
+            let dist = Self::distance(pts[0], pts[1]);
+            return (0.0, dist - self.pinch_last_dist);
+        }
         (0.0, 0.0)
     }
 
@@ -141,7 +168,14 @@ impl InputSource for TouchInput {
         self.pressed_this_frame = false;
     }
 
-    fn end_step(&mut self) {}
+    fn end_step(&mut self) {
+        // Фиксируем опорные точки для расчёта дельты следующего кадра.
+        self.last_pos = self.pos;
+        if self.touches.len() >= 2 {
+            let pts: Vec<(f32, f32)> = self.touches.values().copied().collect();
+            self.pinch_last_dist = Self::distance(pts[0], pts[1]);
+        }
+    }
 
     fn process_window_event(&mut self, event: &WindowEvent) {
         if let WindowEvent::Touch(touch) = event {
@@ -156,18 +190,50 @@ impl InputSource for TouchInput {
 impl TouchInput {
     fn apply_touch(&mut self, touch: &Touch) {
         let (x, y) = (touch.location.x as f32, touch.location.y as f32);
+        let id = touch.id;
         match touch.phase {
             TouchPhase::Started => {
-                self.pos = Some((x, y));
-                self.last_pos = Some((x, y));
-                self.pressed_this_frame = true;
-                self.held = true;
+                self.touches.insert(id, (x, y));
+                if self.touches.len() == 1 {
+                    // Первый палец: начало возможного тапа или перетаскивания.
+                    self.pos = Some((x, y));
+                    self.last_pos = Some((x, y));
+                    self.dragging = false;
+                    self.pressed_this_frame = false;
+                } else if self.touches.len() == 2 {
+                    // Второй палец: начинаем щипок, отменяем панорамирование.
+                    self.dragging = false;
+                    let pts: Vec<(f32, f32)> = self.touches.values().copied().collect();
+                    self.pinch_last_dist = Self::distance(pts[0], pts[1]);
+                }
             }
             TouchPhase::Moved => {
-                self.pos = Some((x, y));
+                if let Some(p) = self.touches.get_mut(&id) {
+                    *p = (x, y);
+                }
+                if self.touches.len() == 1 {
+                    // Одиночное перетаскивание: заметное смещение = панорама.
+                    if let Some((cx, cy)) = self.pos {
+                        if Self::distance((cx, cy), (x, y)) > 8.0 {
+                            self.dragging = true;
+                        }
+                    }
+                    self.pos = Some((x, y));
+                }
             }
             TouchPhase::Ended | TouchPhase::Cancelled => {
-                self.held = false;
+                self.touches.remove(&id);
+                if self.touches.is_empty() {
+                    // Палец отпущен: это был тап (клик), если не тащили.
+                    self.dragging = false;
+                    self.pressed_this_frame = true;
+                } else if self.touches.len() == 1 {
+                    // Остался один палец после щипка — продолжаем как тач/пан.
+                    let (_, p) = self.touches.iter().next().unwrap();
+                    self.pos = Some(*p);
+                    self.last_pos = Some(*p);
+                    self.dragging = false;
+                }
             }
         }
     }

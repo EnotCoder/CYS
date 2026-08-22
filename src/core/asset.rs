@@ -9,6 +9,8 @@
 // ========================================================================
 
 #[cfg(target_os = "android")]
+use std::ffi::CString;
+#[cfg(target_os = "android")]
 use std::io::Read;
 use std::path::PathBuf;
 
@@ -31,8 +33,9 @@ pub fn load_bytes(path: &str) -> std::io::Result<Vec<u8>> {
     #[cfg(target_os = "android")]
     {
         if let Some(app) = ANDROID_APP.get() {
-            let manager = app.asset_manager();
-            if let Some(mut asset) = manager.open(path) {
+            let cpath = CString::new(path)
+                .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidInput, e))?;
+            if let Some(mut asset) = app.asset_manager().open(&cpath) {
                 let mut buf = Vec::new();
                 asset.read_to_end(&mut buf)?;
                 return Ok(buf);
@@ -56,7 +59,7 @@ fn save_dir() -> PathBuf {
     #[cfg(target_os = "android")]
     {
         if let Some(app) = ANDROID_APP.get() {
-            return app.internal_data_path();
+            return app.internal_data_path().unwrap_or_else(|| PathBuf::from("."));
         }
     }
     PathBuf::from(".")
@@ -79,12 +82,19 @@ pub fn load_data(name: &str) -> std::io::Result<Vec<u8>> {
 }
 
 /// Перечисляет имена файлов внутри каталога (для директорий ассетов,
-/// например sounds/). На десктопе — read_dir, на Android — AssetManager.list.
+/// например sounds/). На десктопе — read_dir, на Android — AssetManager.open_dir.
 pub fn list_dir(dir: &str) -> Vec<String> {
     #[cfg(target_os = "android")]
     {
         if let Some(app) = ANDROID_APP.get() {
-            return app.asset_manager().list(dir).unwrap_or_default();
+            let cdir = match CString::new(dir) {
+                Ok(c) => c,
+                Err(_) => return Vec::new(),
+            };
+            if let Some(mut asset_dir) = app.asset_manager().open_dir(&cdir) {
+                return asset_dir.map(|cstr| cstr.to_string_lossy().into_owned()).collect();
+            }
+            return Vec::new();
         }
     }
     std::fs::read_dir(dir)

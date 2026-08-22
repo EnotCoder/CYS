@@ -8,18 +8,19 @@
 pub mod camera;
 pub mod interact;
 pub mod cursor;
+pub mod platform;
 
 use winit::keyboard::KeyCode;
-use winit_input_helper::WinitInputHelper;
 use specs::Entity;
 use crate::{EcsAdapter, data::Slot};
 use crate::core::constants::*;
+use crate::input::platform::InputSource;
 
 // ========================================================================
 //  Основная точка входа: вызывается каждый кадр
 // ========================================================================
 pub fn do_input(
-    input: &WinitInputHelper,
+    input: &dyn InputSource,
     ecs: &mut EcsAdapter,
     slots: &mut Vec<Slot>,
     act_slot: i32,

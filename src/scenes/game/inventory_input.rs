@@ -9,15 +9,15 @@
 // ========================================================================
 
 use winit::keyboard::KeyCode;
-use winit_input_helper::WinitInputHelper;
 use crate::core::constants::*;
 use crate::EcsAdapter;
 use crate::core::util::ndc_to_world;
+use crate::input::platform::InputSource;
 use super::GameScene;
 
 impl GameScene {
     /// Обработка кликов по инвентарю: таб, сетка предметов, слоты хотбара
-    pub fn handle_inventory_input(&mut self, ecs: &mut EcsAdapter, input: &WinitInputHelper, window_size: (f32, f32)) {
+    pub fn handle_inventory_input(&mut self, ecs: &mut EcsAdapter, input: &dyn InputSource, window_size: (f32, f32)) {
         // Клавиша E — открыть/закрыть инвентарь
         if input.key_pressed(KeyCode::KeyE) {
             if self.inventory.open {

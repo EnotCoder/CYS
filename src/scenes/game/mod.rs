@@ -12,6 +12,7 @@ use specs::{WorldExt, Join};
 use winit::keyboard::KeyCode;
 use crate::scenes::scene_trait::{Scene, SceneAction};
 use crate::core::constants::*;
+use crate::input::platform::InputSource;
 use crate::ui::inventory::Inventory;
 use crate::data::map::pathfinding::Node;
 use crate::ecs::components::{FoodStorage, ObjectTag, TotalFood, BusyCassas, Money};
@@ -364,7 +365,7 @@ impl Scene for GameScene {
         crate::audio::play_music("music");
     }
 
-    fn update(&mut self, ecs: &mut crate::EcsAdapter, input: &winit_input_helper::WinitInputHelper, window_size: (f32, f32), text_renderer: &mut crate::ui::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) -> SceneAction {
+    fn update(&mut self, ecs: &mut crate::EcsAdapter, input: &dyn InputSource, window_size: (f32, f32), text_renderer: &mut crate::ui::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) -> SceneAction {
         // Отложенная загрузка: показываем "Loading..." на один кадр, затем строим контент
         if !self.loaded {
             if self.loading {

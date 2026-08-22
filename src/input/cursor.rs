@@ -9,10 +9,10 @@
 
 use std::cell::Cell;
 use std::time::{Instant, Duration};
-use winit_input_helper::WinitInputHelper;
 use specs::Entity;
 use crate::{EcsAdapter, data::{Slot, is_carpet_name, is_wall_decor_name, is_outdoor_name, is_flower_name}};
 use crate::core::constants::*;
+use crate::input::platform::InputSource;
 
 // Запоминаем время последнего перемещения курсора на соседнюю клетку,
 // чтобы задержать движение (случай перетаскивания по соседним тайлам)
@@ -22,7 +22,7 @@ thread_local! {
 
 // Движение курсора за мышью: NDC -> мировые координаты -> клетка сетки
 pub fn handle_mouse_movement(
-    input: &WinitInputHelper,
+    input: &dyn InputSource,
     ecs: &mut EcsAdapter,
     cursor: Entity,
     mode: i32,

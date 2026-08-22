@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Copyright (C) 2026 EnotCoder
 
-use std::fs::File;
 use std::io::{BufRead, BufReader};
 use crate::scenes::scene_trait::{Scene, SceneAction};
 use crate::core::constants::*;
 use crate::ui::{Panel, create_panel, destroy_panel};
+use crate::input::platform::InputSource;
 
 // ========================================================================
 //  MenuScene — главное меню игры
@@ -87,8 +87,8 @@ impl MenuScene {
     /// Расставляет декоративные объекты магазина по файлу menu_shop.txt.
     /// Каждый токен-буква соответствует предмету (b — box, r — rack, c — cassa и т.д.).
     fn place_decor(ecs: &mut crate::EcsAdapter) {
-        let file = File::open("menu_shop.txt").expect("menu_shop.txt not found!");
-        let reader = BufReader::new(file);
+        let bytes = crate::core::asset::load_bytes("menu_shop.txt").expect("menu_shop.txt not found!");
+        let reader = BufReader::new(&bytes[..]);
         for (j, line) in reader.lines().flatten().enumerate() {
             let parts: Vec<&str> = line.split_whitespace().collect();
             if parts.is_empty() { continue; }
@@ -136,7 +136,7 @@ impl MenuScene {
     }
 
     /// Проверка, находится ли курсор мыши над прямоугольником кнопки
-    fn is_inside(input: &winit_input_helper::WinitInputHelper, window_size: (f32, f32), bx: f32, by: f32, bw: f32, bh: f32) -> bool {
+    fn is_inside(input: &dyn InputSource, window_size: (f32, f32), bx: f32, by: f32, bw: f32, bh: f32) -> bool {
         let Some((mx, my)) = input.cursor() else { return false };
         let (wx, wy) = crate::core::util::ndc_to_world(mx, my, window_size, MENU_MAP_SIZE, 0.0, 0.0);
         wx >= bx - bw / 2.0 && wx <= bx + bw / 2.0
@@ -144,15 +144,15 @@ impl MenuScene {
     }
 
     /// ЛКМ зажата и курсор внутри заданной области
-    fn is_btn_clicked(input: &winit_input_helper::WinitInputHelper, window_size: (f32, f32), bx: f32, by: f32, bw: f32, bh: f32) -> bool {
+    fn is_btn_clicked(input: &dyn InputSource, window_size: (f32, f32), bx: f32, by: f32, bw: f32, bh: f32) -> bool {
         input.mouse_pressed(winit::event::MouseButton::Left) && Self::is_inside(input, window_size, bx, by, bw, bh)
     }
 
-    fn is_play_clicked(input: &winit_input_helper::WinitInputHelper, window_size: (f32, f32)) -> bool {
+    fn is_play_clicked(input: &dyn InputSource, window_size: (f32, f32)) -> bool {
         Self::is_btn_clicked(input, window_size, BTN_X, BTN_Y, BTN_W, BTN_H)
     }
 
-    fn is_quit_clicked(input: &winit_input_helper::WinitInputHelper, window_size: (f32, f32)) -> bool {
+    fn is_quit_clicked(input: &dyn InputSource, window_size: (f32, f32)) -> bool {
         Self::is_btn_clicked(input, window_size, QUIT_X, QUIT_Y, QUIT_W, QUIT_H)
     }
 
@@ -172,7 +172,7 @@ impl Scene for MenuScene {
         crate::audio::play_music("music");
     }
 
-    fn update(&mut self, ecs: &mut crate::EcsAdapter, input: &winit_input_helper::WinitInputHelper, window_size: (f32, f32), text_renderer: &mut crate::ui::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) -> SceneAction {
+    fn update(&mut self, ecs: &mut crate::EcsAdapter, input: &dyn InputSource, window_size: (f32, f32), text_renderer: &mut crate::ui::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) -> SceneAction {
         // Замер dt кадра для интерполяции hover-анимации
         let dt = match self.last_frame {
             Some(t0) => t0.elapsed().as_secs_f64(),

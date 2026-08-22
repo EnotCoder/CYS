@@ -283,7 +283,7 @@ impl GameScene {
             busy_cassas,
         };
         if let Ok(json) = serde_json::to_string_pretty(&data) {
-            if std::fs::write("save.json", json).is_ok() {
+            if crate::core::asset::save_data("save.json", json.as_bytes()).is_ok() {
                 crate::audio::play("save");
             }
         }
@@ -297,8 +297,11 @@ impl GameScene {
         device: &Device,
         queue: &Queue,
     ) {
-        let content = match std::fs::read_to_string("save.json") {
-            Ok(c) => c,
+        let content = match crate::core::asset::load_data("save.json") {
+            Ok(bytes) => match String::from_utf8(bytes) {
+                Ok(c) => c,
+                Err(_) => return,
+            },
             Err(_) => return,
         };
         #[derive(Deserialize)]

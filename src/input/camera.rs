@@ -6,13 +6,13 @@
 //  в диапазоне [ZOOM_MIN, ZOOM_MAX] с шагом из настроек.
 // ========================================================================
 
-use winit_input_helper::WinitInputHelper;
 use winit::keyboard::KeyCode;
 use crate::core::constants::*;
+use crate::input::platform::InputSource;
 
 // Приближение/отдаление камеры: колесо мыши или клавиши K/L
 // Зум ограничен диапазоном [ZOOM_MIN, ZOOM_MAX], шаг задаётся извне
-pub fn handle_zoom(input: &WinitInputHelper, current: f32, zoom_step: f32) -> f32 {
+pub fn handle_zoom(input: &dyn InputSource, current: f32, zoom_step: f32) -> f32 {
     let scroll = input.scroll_diff();
     // Колесо вверх — приближение (не выше максимума)
     if scroll.1 > 0.0 && current < ZOOM_MAX {

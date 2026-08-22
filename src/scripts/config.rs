@@ -7,7 +7,6 @@
 // ========================================================================
 
 use std::collections::HashMap;
-use std::path::Path;
 use mlua::{Lua, Table, Value};
 
 /// Путь к файлу баланса относительно корня проекта.
@@ -65,14 +64,10 @@ impl BalanceConfig {
     pub fn load() -> Self {
         let mut cfg = BalanceConfig::default();
         // Если файла баланса нет — игра работает на дефолтных значениях.
-        if !Path::new(CONFIG_PATH).exists() {
-            eprintln!("[config] файл {CONFIG_PATH} не найден — используются дефолты");
-            return cfg;
-        }
-        let source = match std::fs::read_to_string(CONFIG_PATH) {
+        let source = match crate::core::asset::load_string(CONFIG_PATH) {
             Ok(s) => s,
-            Err(e) => {
-                eprintln!("[config] ошибка чтения {CONFIG_PATH}: {e} — дефолты");
+            Err(_) => {
+                eprintln!("[config] файл {CONFIG_PATH} не найден — используются дефолты");
                 return cfg;
             }
         };

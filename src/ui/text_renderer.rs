@@ -24,7 +24,7 @@ pub struct TextRenderer {
 impl TextRenderer {
     pub fn new(font_path: &str) -> Self {
         // Шрифт читается один раз и живёт всё время работы приложения.
-        let font_data: &'static [u8] = Box::leak(std::fs::read(font_path)
+        let font_data: &'static [u8] = Box::leak(crate::core::asset::load_bytes(font_path)
             .expect("Failed to read font file").into_boxed_slice());
         let font = FontRef::try_from_slice(font_data)
             .expect("Failed to parse font");

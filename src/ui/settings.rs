@@ -12,7 +12,7 @@ use crate::ui::{Panel, Checkbox, Slider, create_panel, destroy_panel, create_che
 use crate::ui::text_renderer::TextRenderer;
 use crate::core::constants::*;
 use crate::EcsAdapter;
-use winit_input_helper::WinitInputHelper;
+use crate::input::platform::InputSource;
 
 /// Состояние окна настроек и его UI-элементы.
 pub struct Settings {
@@ -75,7 +75,7 @@ impl Settings {
 
     /// Ежекадровый hover-эффект: галочка и ползунок плавно увеличиваются
     /// при наведении и возвращаются к обычному размеру вне его.
-    pub fn tick_hover(&mut self, ecs: &mut EcsAdapter, input: &WinitInputHelper, window_size: (f32, f32), dt: f64) {
+    pub fn tick_hover(&mut self, ecs: &mut EcsAdapter, input: &dyn InputSource, window_size: (f32, f32), dt: f64) {
         if !self.open {
             return;
         }
@@ -99,7 +99,7 @@ impl Settings {
 
     /// Обработка кликов по настройкам.
     /// Возвращает true, если клик был обработан (настройки перехватили ввод).
-    pub fn handle_input(&mut self, ecs: &mut EcsAdapter, text_renderer: &mut TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue, input: &WinitInputHelper, window_size: (f32, f32)) -> bool {
+    pub fn handle_input(&mut self, ecs: &mut EcsAdapter, text_renderer: &mut TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue, input: &dyn InputSource, window_size: (f32, f32)) -> bool {
         if !self.open { return false; }
 
         // Клик по галочке — переключаем vsync и перерисовываем чекбокс.

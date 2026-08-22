@@ -9,7 +9,7 @@
 use crate::EcsAdapter;
 use crate::ui::text_renderer::TextRenderer;
 use crate::core::constants::*;
-use winit_input_helper::WinitInputHelper;
+use crate::input::platform::InputSource;
 use super::components::{Panel, Button, Checkbox, Slider};
 
 // ========================================================================
@@ -27,7 +27,7 @@ pub fn is_inside(wx: f32, wy: f32, cx: f32, cy: f32, half_w: f32, half_h: f32) -
 }
 
 /// true, если левая кнопка мыши нажата и клик пришёлся в заданный прямоугольник.
-pub fn is_clicked(input: &WinitInputHelper, window_size: (f32, f32), cx: f32, cy: f32, half_w: f32, half_h: f32) -> bool {
+pub fn is_clicked(input: &dyn InputSource, window_size: (f32, f32), cx: f32, cy: f32, half_w: f32, half_h: f32) -> bool {
     if !input.mouse_pressed(winit::event::MouseButton::Left) {
         return false;
     }
@@ -80,7 +80,7 @@ pub fn destroy_button(ecs: &mut EcsAdapter, btn: &mut Button) {
 }
 
 /// true, если клик попал в область кнопки.
-pub fn button_clicked(btn: &Button, input: &WinitInputHelper, window_size: (f32, f32)) -> bool {
+pub fn button_clicked(btn: &Button, input: &dyn InputSource, window_size: (f32, f32)) -> bool {
     is_clicked(input, window_size, btn.x, btn.y, btn.w / 2.0, btn.h / 2.0)
 }
 
@@ -131,13 +131,13 @@ pub fn refresh_checkbox(ecs: &mut EcsAdapter, text_renderer: &mut TextRenderer, 
 }
 
 /// true, если клик пришёлся по галочке (небольшой запас вокруг неё).
-pub fn checkbox_clicked(checkbox: &Checkbox, input: &WinitInputHelper, window_size: (f32, f32)) -> bool {
+pub fn checkbox_clicked(checkbox: &Checkbox, input: &dyn InputSource, window_size: (f32, f32)) -> bool {
     let half = CHECKBOX_BOX_SIZE / 2.0 + 0.1;
     is_clicked(input, window_size, checkbox.x, checkbox.y, half, half)
 }
 
 /// true, если курсор наведён на галочку чекбокса.
-pub fn checkbox_hovered(checkbox: &Checkbox, input: &WinitInputHelper, window_size: (f32, f32)) -> bool {
+pub fn checkbox_hovered(checkbox: &Checkbox, input: &dyn InputSource, window_size: (f32, f32)) -> bool {
     let Some((mx, my)) = input.cursor() else { return false };
     let (wx, wy) = ndc_to_ui(mx, my, window_size);
     is_inside(wx, wy, checkbox.x, checkbox.y, CHECKBOX_BOX_SIZE / 2.0 + 0.1, CHECKBOX_BOX_SIZE / 2.0 + 0.1)
@@ -197,7 +197,7 @@ pub fn destroy_slider(ecs: &mut EcsAdapter, slider: &mut Slider) {
 
 /// Возвращает true, если значение должно обновиться (drag активен)
 /// Захват начинается по клику в области дорожки/ползунка.
-pub fn slider_drag(slider: &mut Slider, input: &WinitInputHelper, window_size: (f32, f32)) -> bool {
+pub fn slider_drag(slider: &mut Slider, input: &dyn InputSource, window_size: (f32, f32)) -> bool {
     let held = input.mouse_held(winit::event::MouseButton::Left);
     if !held {
         slider.dragging = false;
@@ -227,7 +227,7 @@ pub fn update_slider_thumb(ecs: &mut EcsAdapter, device: &wgpu::Device, queue: &
 }
 
 /// true, если курсор наведён на область дорожки/ползунка слайдера.
-pub fn slider_hovered(slider: &Slider, input: &WinitInputHelper, window_size: (f32, f32)) -> bool {
+pub fn slider_hovered(slider: &Slider, input: &dyn InputSource, window_size: (f32, f32)) -> bool {
     let Some((mx, my)) = input.cursor() else { return false };
     let (wx, wy) = ndc_to_ui(mx, my, window_size);
     let half_w = slider.width / 2.0 + 0.2;

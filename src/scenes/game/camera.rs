@@ -10,14 +10,14 @@
 // ========================================================================
 
 use winit::keyboard::KeyCode;
-use winit_input_helper::WinitInputHelper;
 use crate::core::constants::*;
+use crate::input::platform::InputSource;
 use super::GameScene;
 
 impl GameScene {
     /// Обновляет смещение камеры: drag средней кнопкой мыши + стрелки клавиатуры.
     /// Ограничивает позицию видимой областью карты.
-    pub fn update_camera(&mut self, input: &WinitInputHelper, window_size: (f32, f32), dt: f64) {
+    pub fn update_camera(&mut self, input: &dyn InputSource, window_size: (f32, f32), dt: f64) {
         // Расчёт видимой области карты для ограничения движения камеры
         let aspect = window_size.0 / window_size.1;
         let vis_w = 2.0 * aspect / (SHADER_SCALE * self.map_size);

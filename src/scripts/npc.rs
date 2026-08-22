@@ -9,7 +9,6 @@
 // ========================================================================
 
 use std::cell::RefCell;
-use std::path::Path;
 use mlua::{Lua, Table, Value};
 use specs::WorldExt;
 use crate::EcsAdapter;
@@ -51,10 +50,12 @@ impl NpcScript {
             eprintln!("[config] ошибка публикации CONFIG в Lua: {e}");
         }
         // Загружаем тело скрипта; при неудаче помечаем движок недоступным.
-        let path_exists = Path::new(SCRIPT_PATH).exists();
+        let path_exists = crate::core::asset::load_string(SCRIPT_PATH).is_ok();
         if path_exists {
-            if let Err(e) = lua.load(std::fs::read_to_string(SCRIPT_PATH).unwrap()).exec() {
-                eprintln!("[npc.lua] ошибка загрузки: {e}");
+            if let Ok(source) = crate::core::asset::load_string(SCRIPT_PATH) {
+                if let Err(e) = lua.load(source).exec() {
+                    eprintln!("[npc.lua] ошибка загрузки: {e}");
+                }
             }
         } else {
             eprintln!("[npc] скрипт {SCRIPT_PATH} не найден — fallback на Rust-автомат");

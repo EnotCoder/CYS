@@ -91,7 +91,7 @@ impl Texture {
         path: &str,
         label: &str,
     ) -> Self {
-        match std::fs::read(path) {
+        match crate::core::asset::load_bytes(path) {
             Ok(bytes) => {
                 match Self::from_bytes(device, queue, &bytes, label) {
                     Ok(texture) => texture,
@@ -173,7 +173,7 @@ impl Texture {
         queue: &wgpu::Queue,
         original_label: &str,
     ) -> Self {
-        match std::fs::read(crate::core::constants::TEX_FALLBACK) {
+        match crate::core::asset::load_bytes(crate::core::constants::TEX_FALLBACK) {
             Ok(bytes) => {
                 match Self::from_bytes(device, queue, &bytes, &format!("{}_fallback", original_label)) {
                     Ok(texture) => texture,

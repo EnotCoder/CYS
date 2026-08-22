@@ -34,6 +34,7 @@ mod tests;
 use crate::core::constants::*;
 use crate::core::*;
 use crate::ecs::*;
+use crate::input::platform::{DesktopInput, InputSource};
 use crate::ui::fps::FpsCounter;
 
 use winit::application::ApplicationHandler;
@@ -53,14 +54,32 @@ struct App {
     text_renderer: crate::ui::text_renderer::TextRenderer,
     // Менеджер сцен: хранит ECS, переключение между меню и игрой
     scene_manager: crate::scenes::SceneManager,
-    // Накопитель ввода от winit (мышь, клавиши, скролл)
-    input: winit_input_helper::WinitInputHelper,
+    // Накопитель ввода: десктоп (мышь/клавиши) или тач (Android) через единый трейт
+    input: Box<dyn InputSource>,
     fps_counter: FpsCounter,
     // Флаг выхода из приложения
     quit_requested: bool,
 }
 
 impl App {
+    // Единый конструктор для десктопа и Android: источник ввода передаётся
+    // снаружи (DesktopInput для ПК, TouchInput для мобильных).
+    pub fn new(input: Box<dyn InputSource>) -> Self {
+        crate::audio::init();
+        let config = crate::scripts::config::BalanceConfig::load();
+        let font_path = config.font_path.clone();
+        Self {
+            window: None,
+            wgpu_app: None,
+            surface: None,
+            text_renderer: crate::ui::text_renderer::TextRenderer::new(&font_path),
+            scene_manager: crate::scenes::SceneManager::new(),
+            input,
+            fps_counter: FpsCounter::new(),
+            quit_requested: false,
+        }
+    }
+
     // Один кадр: обновить сцену -> применить действие сцены -> отрисовать
     fn render(&mut self) {
         let Some(surface) = &self.surface else { return };
@@ -73,12 +92,12 @@ impl App {
 
         // Шаг 1: update сцены — временно берём wgpu_app immutably
         // (внутри обрабатываются ввод, логика игры и возвращается действие сцены)
-        let action = {
+            let action = {
             let Some(ref wgpu_app) = self.wgpu_app else { return };
             let scene = self.scene_manager.scenes.get_mut(&self.scene_manager.current).unwrap();
             scene.update(
                 &mut self.scene_manager.ecs,
-                &self.input,
+                &*self.input,
                 window_size,
                 &mut self.text_renderer,
                 &wgpu_app.device,
@@ -262,25 +281,17 @@ impl ApplicationHandler for App {
 }
 
 fn main() {
-    crate::audio::init();
     // Путь к шрифту берём из scripts/config.lua (поле font_path).
-    let config = crate::scripts::config::BalanceConfig::load();
-    let font_path = config.font_path.clone();
     // Создаём цикл событий winit
     let event_loop = EventLoop::new().unwrap();
 
     // Собираем приложение (окно и GPU появятся в resumed)
-    let mut app = App {
-        window: None,
-        wgpu_app: None,
-        surface: None,
-        text_renderer: crate::ui::text_renderer::TextRenderer::new(&font_path),
-        scene_manager: crate::scenes::SceneManager::new(),
-        input: winit_input_helper::WinitInputHelper::new(),
-        fps_counter: FpsCounter::new(),
-        quit_requested: false,
-    };
+    let mut app = App::new(Box::new(DesktopInput::new()));
 
     // Запуск главного цикла приложения (блокирует до выхода)
     let _ = event_loop.run_app(&mut app);
 }
+
+// Android-точка входа (компилируется только под android-таргет)
+#[cfg(target_os = "android")]
+mod android;

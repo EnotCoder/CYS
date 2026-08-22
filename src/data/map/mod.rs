@@ -13,22 +13,21 @@ pub mod pathfinding;
 //  Здесь же происходит разбор файла и создание ECS-сущностей земли.
 
 use std::collections::HashSet;
-use std::fs::File;
-use std::io::{BufRead};
+use std::io::BufRead;
 use crate::ecs::EcsAdapter;
 use crate::core::constants::{WORLD_OFFSET_X, WORLD_OFFSET_Y, Z_MAP};
 use crate::data::map::pathfinding::Node;
 
 /// Загружает карту из файла и создаёт для каждой клетки ECS-сущность
 pub fn load_map_to_ecs(ecs: &mut EcsAdapter) {
-    let file = File::open(crate::core::constants::MAP_FILE).expect("map.txt not found!");
-    load_map_from_reader(ecs, file, false);
+    let bytes = crate::core::asset::load_bytes(crate::core::constants::MAP_FILE).expect("map.txt not found!");
+    load_map_from_reader(ecs, &bytes[..], false);
 }
 
 /// Загружает карту подвала из отдельного файла
 pub fn load_basement_to_ecs(ecs: &mut EcsAdapter) {
-    let file = File::open(crate::core::constants::BASEMENT_FILE).expect("basement.txt not found!");
-    load_map_from_reader(ecs, file, true);
+    let bytes = crate::core::asset::load_bytes(crate::core::constants::BASEMENT_FILE).expect("basement.txt not found!");
+    load_map_from_reader(ecs, &bytes[..], true);
 }
 
 /// Читает текстовую карту построчно и превращает каждый токен в спрайт-сущность

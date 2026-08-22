@@ -6,7 +6,6 @@
 // ========================================================================
 
 use std::collections::HashMap;
-use std::fs;
 use std::io::Cursor;
 use std::path::Path;
 use std::sync::{Mutex, OnceLock};
@@ -45,21 +44,21 @@ impl AudioEngine {
 
     fn load_all(&mut self, dir: &str) {
         // Грузим все файлы из каталога звуков.
-        let Ok(entries) = fs::read_dir(dir) else { return };
-        for entry in entries.flatten() {
-            self.load(&entry.path());
+        for name in crate::core::asset::list_dir(dir) {
+            let path = format!("{}/{}", dir, name);
+            self.load(&path);
         }
     }
 
-    fn load(&mut self, path: &Path) {
+    fn load(&mut self, path: &str) {
         // Имя клипа берём из имени файла без расширения.
-        let Some(name) = path.file_stem().and_then(|s| s.to_str()) else {
+        let Some(name) = Path::new(path).file_stem().and_then(|s| s.to_str()) else {
             return;
         };
         if name.is_empty() {
             return;
         }
-        if let Ok(bytes) = fs::read(path) {
+        if let Ok(bytes) = crate::core::asset::load_bytes(path) {
             self.clips.insert(name.to_string(), bytes);
         }
     }

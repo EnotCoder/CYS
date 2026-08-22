@@ -18,7 +18,7 @@ pub trait Scene {
     /// Вызывается один раз при входе в сцену (после очистки мира)
     fn on_enter(&mut self, ecs: &mut crate::EcsAdapter, text_renderer: &mut crate::ui::text_renderer::TextRenderer);
     /// Ежекадровое обновление сцены: ввод, игровая логика; возвращает SceneAction
-    fn update(&mut self, ecs: &mut crate::EcsAdapter, input: &winit_input_helper::WinitInputHelper, window_size: (f32, f32), text_renderer: &mut crate::ui::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) -> SceneAction;
+    fn update(&mut self, ecs: &mut crate::EcsAdapter, input: &dyn crate::input::platform::InputSource, window_size: (f32, f32), text_renderer: &mut crate::ui::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) -> SceneAction;
     /// Собирает спрайты всех слоёв рендера (земля/декор/NPC/курсор/UI и т.д.);
     /// visible_bounds — прямоугольник видимой области для отсечения
     fn sprites(&self, ecs: &crate::EcsAdapter, visible_bounds: Option<(f32, f32, f32, f32)>) -> (Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>);

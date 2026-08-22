@@ -224,15 +224,33 @@ impl ApplicationHandler for App {
         // Окно живёт всё время работы приложения, поэтому его можно утечь в 'static
         let window: &'static Window = Box::leak(Box::new(window));
 
-        // Создание GPU-контекста, поверхности и настройка формата кадров
-        let wgpu_app = WgpuApp::new(window);
+        // GPU-контекст (Instance+Adapter+Device+Queue+пайплайны) создаём ОДИН раз и
+        // переиспользуем при каждом последующем resume. На Android `resumed` вызывается
+        // повторно при смене поверхности/жизненном цикле; пересоздание всего wgpu-контекста
+        // каждый раз уничтожает и заново создаёт VkInstance/VkDevice — из-за этого эмулятор
+        // сыплет "Failed to find ColorBuffer", а на устройствах это лишняя задержка и риск
+        // потери контекста.
+        if self.wgpu_app.is_none() {
+            self.wgpu_app = Some(WgpuApp::new(window));
+        }
+        let wgpu_app = self.wgpu_app.as_mut().unwrap();
+
+        // Поверхность привязана к нативному окну и пересоздаётся при каждом resume.
         let surface = wgpu_app.instance.create_surface(window).expect("Failed to create surface");
-        let config = surface_config(wgpu_app.surface_format, window.inner_size().width, window.inner_size().height);
-        surface.configure(&wgpu_app.device, &config);
+        let size = window.inner_size();
+        wgpu_app.config.width = size.width;
+        wgpu_app.config.height = size.height;
+        surface.configure(&wgpu_app.device, &wgpu_app.config);
+        wgpu_app.depth_buffer.resize(&wgpu_app.device, size);
 
         self.window = Some(window);
-        self.wgpu_app = Some(wgpu_app);
         self.surface = Some(surface);
+    }
+
+    // Переход в фон / уничтожение нативного окна: сбрасываем только поверхность.
+    // Instance/Device/пайплайны оставляем живыми, чтобы не пересоздавать GPU-контекст.
+    fn suspended(&mut self, _event_loop: &ActiveEventLoop) {
+        self.surface = None;
     }
 
     // Оконные события: передаём их в накопитель ввода
@@ -273,8 +291,9 @@ impl ApplicationHandler for App {
             event_loop.exit();
             return;
         }
-        if let Some(ref window) = self.window {
-            // Запрашиваем следующий кадр (непрерывный рендер)
+        if let (Some(ref window), Some(_)) = (self.window.as_ref(), self.surface.as_ref()) {
+            // Запрашиваем следующий кадр (непрерывный рендер), только когда
+            // поверхность готова (в фоне surface=None — рендерить нечего).
             window.request_redraw();
         }
     }

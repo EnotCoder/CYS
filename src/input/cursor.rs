@@ -10,7 +10,7 @@
 use std::cell::Cell;
 use std::time::{Instant, Duration};
 use specs::Entity;
-use crate::{EcsAdapter, data::{Slot, is_carpet_name, is_wall_decor_name, is_outdoor_name, is_flower_name}};
+use crate::{EcsAdapter, data::{Slot, is_carpet_name, is_light_name, is_wall_decor_name, is_outdoor_name, is_flower_name}};
 use crate::core::constants::*;
 use crate::input::platform::InputSource;
 
@@ -77,11 +77,12 @@ pub fn update_cursor_validity(ecs: &mut EcsAdapter, cursor: Entity, slots: &[Slo
     let (x, y) = ecs.get_transform_position(cursor);
     let slot = &slots[act_slot as usize];
     let is_carpet = is_carpet_name(slot.obj.name);
+    let is_light = is_light_name(slot.obj.name);
     let is_wall_decor = is_wall_decor_name(slot.obj.name);
     let is_outdoor = is_outdoor_name(slot.obj.name);
     let is_flower = is_flower_name(slot.obj.name);
 
-    if ecs.can_place_at(x as i32, y as i32, slot.obj.width, slot.obj.height, is_carpet, is_wall_decor, is_outdoor, is_flower) {
+    if ecs.can_place_at(x as i32, y as i32, slot.obj.width, slot.obj.height, is_carpet, is_light, is_wall_decor, is_outdoor, is_flower) {
         ecs.update_sprite_texture(cursor, CURSOR_TEX[1]);
     } else {
         ecs.update_sprite_texture(cursor, CURSOR_ERR_TEX);
@@ -99,10 +100,11 @@ pub fn update_cursor_preview(ecs: &mut EcsAdapter, mode: i32, slots: &[Slot], ac
     let slot = &slots[act_slot as usize];
     let (cx, cy) = ecs.get_transform_position(cursor);
     let is_carpet = is_carpet_name(slot.obj.name);
+    let is_light = is_light_name(slot.obj.name);
     let is_wall_decor = is_wall_decor_name(slot.obj.name);
     let is_outdoor = is_outdoor_name(slot.obj.name);
     let is_flower = is_flower_name(slot.obj.name);
-    let valid = ecs.can_place_at(cx as i32, cy as i32, slot.obj.width, slot.obj.height, is_carpet, is_wall_decor, is_outdoor, is_flower);
+    let valid = ecs.can_place_at(cx as i32, cy as i32, slot.obj.width, slot.obj.height, is_carpet, is_light, is_wall_decor, is_outdoor, is_flower);
     // Передаём ECS размер, допустимость и текстуру — превью рисуется на месте курсора
     ecs.update_cursor_preview(
         cx, cy,

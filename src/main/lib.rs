@@ -149,7 +149,7 @@ impl App {
         let bounds = Some((cam_x - vis_w/2.0, cam_x + vis_w/2.0, cam_y - vis_h/2.0, cam_y + vis_h/2.0));
         // Сбор спрайтов по слоям (z-order: карта, ковры, декорации, персонажи, курсор, UI)
         let scene = self.scene_manager.scenes.get(&self.scene_manager.current).unwrap();
-        let (map_sprites, carpet_sprites, decor_sprites, npc_sprites, cursor_sprites, ui_sprites) =
+        let (map_sprites, carpet_sprites, light_sprites, decor_sprites, npc_sprites, cursor_sprites, ui_sprites) =
             scene.sprites(&self.scene_manager.ecs, bounds);
         let lights = scene.lights(&self.scene_manager.ecs);
 
@@ -192,6 +192,7 @@ impl App {
             &wgpu_app.depth_buffer.view,
             &map_sprites,
             &carpet_sprites,
+            &light_sprites,
             &decor_sprites,
             &npc_sprites,
             &cursor_sprites,

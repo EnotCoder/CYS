@@ -16,7 +16,7 @@ use wgpu::{Device, Queue};
 use crate::EcsAdapter;
 use crate::core::constants::*;
 use crate::ecs::components::{BasementPlaced, BusyCassas, FenceComponent, FoodStorage, Money, ObjectTag, TotalFood};
-use crate::data::{is_carpet_name, is_flower_name, is_outdoor_name, is_wall_decor_name, make_slot};
+use crate::data::{attach_point_light, is_carpet_name, is_flower_name, is_light_name, is_outdoor_name, is_wall_decor_name, make_slot};
 use crate::data::map::{load_basement_to_ecs, load_map_to_ecs, load_walkable_cells, token_to_texture};
 use crate::ui::text_renderer::TextRenderer;
 use crate::GroupInfoResource;
@@ -145,6 +145,7 @@ impl GameScene {
             for obj in &state.objects {
                 let slot = make_slot(&obj.slot_name);
                 let is_carpet = is_carpet_name(&obj.slot_name);
+                let is_light = is_light_name(&obj.slot_name);
                 let _is_outdoor = is_outdoor_name(&obj.slot_name);
                 let _is_flower = is_flower_name(&obj.slot_name);
                 let _is_wall_decor = is_wall_decor_name(&obj.slot_name);
@@ -155,6 +156,7 @@ impl GameScene {
                     slot.obj.texture_frame,
                     slot.obj.texture_count,
                     is_carpet,
+                    is_light,
                     slot.obj.animated,
                     slot.obj.frame_paths,
                 );
@@ -175,6 +177,9 @@ impl GameScene {
                         if obj.slot_name == "fence" || obj.slot_name == "street_fence" {
                             ecs.world.write_storage::<FenceComponent>().insert(entity, FenceComponent { name: obj.slot_name.clone() }).ok();
                         }
+                        // Источники света (лампы, автоматы, мороженое, конфеты)
+                        // восстанавливаются по имени — иначе после загрузки свет пропадает.
+                        attach_point_light(ecs, entity, &obj.slot_name);
                     }
                 }
             }
@@ -377,7 +382,7 @@ impl GameScene {
             -6, 3, 1, 2,
             "tex/decor/regular/basement.png",
             [0, 1], [1, 2],
-            false, false, &[],
+            false, false, false, &[],
         );
         let groups = ecs.world.read_resource::<GroupInfoResource>();
         if let Some(info) = groups.groups.get(&gid) {

@@ -31,7 +31,7 @@
 - When refactoring: first move files, then update all use paths, then build
 
 ## Rendering layers (z-order)
-- Z_MAP = 0.0, Z_CARPET = 1.0, Z_DECOR = 1.5, Z_NPC = 2.0, Z_CURSOR = 2.5, Z_UI = 3.0
+- Z_MAP = 0.0, Z_CARPET = 1.0, Z_LIGHT = 1.2, Z_DECOR = 1.5, Z_NPC = 1.8, Z_CURSOR = 2.0, Z_UI = 3.0
 
 ## wgpu 30.0.0 notes
 - ApplicationHandler, Instance by value, Surface<'static>

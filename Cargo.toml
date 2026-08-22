@@ -23,7 +23,7 @@ rodio = "0.22.2"
 
 # Только под Android: точка входа android-activity + упаковка ассетов в APK.
 [target.'cfg(target_os = "android")'.dependencies]
-android-activity = "0.6"
+android-activity = { version = "0.6", features = ["native-activity"] }
 
 [profile.release]
 lto = true

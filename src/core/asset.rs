@@ -91,7 +91,7 @@ pub fn list_dir(dir: &str) -> Vec<String> {
                 Ok(c) => c,
                 Err(_) => return Vec::new(),
             };
-            if let Some(mut asset_dir) = app.asset_manager().open_dir(&cdir) {
+            if let Some(asset_dir) = app.asset_manager().open_dir(&cdir) {
                 return asset_dir.map(|cstr| cstr.to_string_lossy().into_owned()).collect();
             }
             return Vec::new();

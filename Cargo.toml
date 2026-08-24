@@ -30,6 +30,11 @@ rodio = "0.22.2"
 [target.'cfg(target_os = "android")'.dependencies]
 android-activity = { version = "0.6", features = ["native-activity"] }
 
+# Только под Windows (кросс-компиляция с mingw): в mingw нет импорт-либы
+# vulkan-1, поэтому отключаем Vulkan-бэкенд и используем Dx12 + WGSL.
+[target.'cfg(target_os = "windows")'.dependencies]
+wgpu = { version = "30", default-features = false, features = ["dx12", "wgsl"] }
+
 [profile.release]
 lto = true
 codegen-units = 1
@@ -46,5 +51,6 @@ build_targets = ["aarch64-linux-android", "x86_64-linux-android"]
 [package.metadata.android.sdk]
 min_sdk_version = 26
 target_sdk_version = 34
+
 
 

@@ -42,6 +42,7 @@ pub fn attach_point_light(ecs: &EcsAdapter, entity: specs::Entity, name: &str) {
         "arcade_machine" => PointLight { color: [0.6, 0.8, 1.0], intensity: 0.8, radius: 3.0 },
         "candies" => PointLight { color: [1.0, 0.6, 1.0], intensity: 0.6, radius: 2.0 },
         "lamp" => PointLight { color: [1.0, 0.95, 0.8], intensity: 1.0, radius: 5.0 },
+        "big_lamp" => PointLight { color: [1.0, 0.95, 0.8], intensity: 1.4, radius: 7.0 },
         _ => return,
     };
     ecs.world.write_storage::<PointLight>().insert(entity, light).ok();

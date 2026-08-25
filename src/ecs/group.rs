@@ -45,32 +45,61 @@ impl EcsAdapter {
             crate::core::constants::Z_DECOR
         };
 
-        // На каждую клетку объекта создаём отдельную сущность; кадр атласа
-        // сдвигается на номер ячейки, чтобы многоклеточная текстура складывалась.
-        for i in 0..width {
-            for j in 0..height {
-                let entity = self
-                    .world
-                    .create_entity()
-                    .with(Transform {
-                        position: [(x + i) as f32, (y + j) as f32, z],
-                    })
-                    .with(SpriteComponent {
-                        texture_path: Arc::from(texture_path),
-                        texture_frame: [
-                            (base_frame[0] + i) % tex_count[0],
-                            (base_frame[1] + j) % tex_count[1],
-                        ],
-                        texture_count: tex_count,
-                        scale: 1.0,
-                        alpha: 1.0,
-                        animated,
-                        frame_paths: frame_paths.iter().map(|s| s.to_string()).collect(),
-                        current_frame: 0,
-                    })
-                    .with(GroupComponent { group_id })
-                    .build();
-                entities.push(entity);
+        // Объект из ОДНОЙ текстуры (texture_count == [1,1]), но занимающий
+        // несколько клеток (например, big_lamp 1×2): рисуем ЕДИНСТВЕННЫЙ
+        // спрайт, растянутый на весь прямоугольник footprint через путь
+        // «path@WxH» (поддерживается в Sprite::new). Так текстура не дублируется
+        // по клеткам, а охватывает весь объект целиком.
+        let spanning = width * height > 1 && tex_count == [1, 1];
+        if spanning {
+            let cx = x as f32 + (width as f32 - 1.0) / 2.0;
+            let cy = y as f32 + (height as f32 - 1.0) / 2.0;
+            let render_path = format!("{}@{}x{}", texture_path, width, height);
+            let entity = self
+                .world
+                .create_entity()
+                .with(Transform { position: [cx, cy, z] })
+                .with(SpriteComponent {
+                    texture_path: Arc::from(render_path.as_str()),
+                    texture_frame: [0, 0],
+                    texture_count: [1, 1],
+                    scale: 1.0,
+                    alpha: 1.0,
+                    animated,
+                    frame_paths: frame_paths.iter().map(|s| s.to_string()).collect(),
+                    current_frame: 0,
+                })
+                .with(GroupComponent { group_id })
+                .build();
+            entities.push(entity);
+        } else {
+            // На каждую клетку объекта создаём отдельную сущность; кадр атласа
+            // сдвигается на номер ячейки, чтобы многоклеточная текстура складывалась.
+            for i in 0..width {
+                for j in 0..height {
+                    let entity = self
+                        .world
+                        .create_entity()
+                        .with(Transform {
+                            position: [(x + i) as f32, (y + j) as f32, z],
+                        })
+                        .with(SpriteComponent {
+                            texture_path: Arc::from(texture_path),
+                            texture_frame: [
+                                (base_frame[0] + i) % tex_count[0],
+                                (base_frame[1] + j) % tex_count[1],
+                            ],
+                            texture_count: tex_count,
+                            scale: 1.0,
+                            alpha: 1.0,
+                            animated,
+                            frame_paths: frame_paths.iter().map(|s| s.to_string()).collect(),
+                            current_frame: 0,
+                        })
+                        .with(GroupComponent { group_id })
+                        .build();
+                    entities.push(entity);
+                }
             }
         }
 

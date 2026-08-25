@@ -37,10 +37,14 @@ impl EcsAdapter {
         let cur_tex = if valid { crate::core::constants::CURSOR_TEX[1] } else { crate::core::constants::CURSOR_ERR_TEX };
         let ghost_alpha = if valid { 0.5 } else { 0.3 };
 
+        // Если объект многоклеточный и с одной текстурой (как big_lamp),
+        // используем spanning-спрайт, иначе — стандартную сетку атласов.
+        let spanning = width * height > 1 && tex_count == [1, 1];
+
+        // 1. Маркеры занятости клеток (кроме 0,0, которую занимает сам курсор).
         for i in 0..width {
             for j in 0..height {
                 if i != 0 || j != 0 {
-                    // Маркер-подложка на клетках кроме (0,0) — показывает занятость.
                     let entity = crate::ecs::factory::create_sprite(
                         &mut self.world,
                         cursor_x + i as f32, cursor_y + j as f32, Z_CURSOR,
@@ -48,19 +52,35 @@ impl EcsAdapter {
                     );
                     self.cursor_preview.push(entity);
                 }
-                // Основной спрайт с кадром атласа, сдвинутым по ячейке (i,j).
-                let entity = crate::ecs::factory::create_sprite(
-                    &mut self.world,
-                    cursor_x + i as f32, cursor_y + j as f32, Z_CURSOR,
-                    tex_path,
-                    [
-                        (base_frame[0] + i) % tex_count[0],
-                        (base_frame[1] + j) % tex_count[1],
-                    ],
-                    tex_count,
-                    1.0, ghost_alpha,
-                );
-                self.cursor_preview.push(entity);
+            }
+        }
+
+        // 2. Визуальный «призрак» объекта.
+        if spanning {
+            let cx = cursor_x + (width as f32 - 1.0) / 2.0;
+            let cy = cursor_y + (height as f32 - 1.0) / 2.0;
+            let render_path = format!("{}@{}x{}", tex_path, width, height);
+            let entity = crate::ecs::factory::create_sprite(
+                &mut self.world, cx, cy, Z_CURSOR,
+                &render_path, [0, 0], [1, 1], 1.0, ghost_alpha,
+            );
+            self.cursor_preview.push(entity);
+        } else {
+            for i in 0..width {
+                for j in 0..height {
+                    let entity = crate::ecs::factory::create_sprite(
+                        &mut self.world,
+                        cursor_x + i as f32, cursor_y + j as f32, Z_CURSOR,
+                        tex_path,
+                        [
+                            (base_frame[0] + i) % tex_count[0],
+                            (base_frame[1] + j) % tex_count[1],
+                        ],
+                        tex_count,
+                        1.0, ghost_alpha,
+                    );
+                    self.cursor_preview.push(entity);
+                }
             }
         }
     }

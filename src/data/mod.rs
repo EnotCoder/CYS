@@ -105,6 +105,15 @@ const ALL_OBJECTS: &[Object] = &[
         texture_frame: [0, 0], texture_count: [1, 1],
         animated: false, frame_paths: &[],
     },
+    //light — большая напольная лампа (1×2 клетки). Одна текстура
+    //(texture_count [1,1]) растягивается на 2 клетки через ветку в
+    //add_group_object (path@WxH).
+    Object {
+        width: 1, height: 2, name: "big_lamp",     path: "tex/decor/light/big_lamp.png",
+        price: 35,
+        texture_frame: [0, 0], texture_count: [1, 1],
+        animated: false, frame_paths: &[],
+    },
     //carpets — ковры и панели пола: все используют один атлас carpet.png,
     // но разные кадры (texture_frame) задают конкретный вид.
     Object {

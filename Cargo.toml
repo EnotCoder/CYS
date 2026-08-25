@@ -54,13 +54,13 @@ package = "com.cys.game"
 build_targets = ["aarch64-linux-android", "x86_64-linux-android"]
 
 # Всегда горизонтальная ориентация на телефоне (android:screenOrientation)
-[package.metadata.android.android_manifest.application.activity]
+[package.metadata.android.application.activity]
 orientation = "landscape"
 
 # Полноэкранный режим: прячем системную статус-панель (время/батарея) ещё до
 # запуска android_main, как в обычных мобильных играх (android:theme).
 # Иконка приложения берётся из res/mipmap-* (android:icon).
-[package.metadata.android.android_manifest.application]
+[package.metadata.android.application]
 theme = "@android:style/Theme.NoTitleBar.Fullscreen"
 icon = "@mipmap/ic_launcher"
 

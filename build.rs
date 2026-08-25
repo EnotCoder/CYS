@@ -9,7 +9,7 @@ fn main() {
     #[cfg(target_os = "windows")]
     {
         let mut res = winres::WindowsResource::new();
-        res.set_icon("res/app.ico");
+        res.set_icon("winres/app.ico");
         res.compile().expect("не удалось встроить иконку в .exe");
     }
 }

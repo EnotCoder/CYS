@@ -276,6 +276,9 @@ impl GameHud {
                         ecs.sprite_cache.remove(&old_key);
                     }
                     let bg_ent = ecs.add_ui_sized(tx, ty, bg_w, bg_h, "tex/dev_tools/black.png", device, queue);
+                    // Подложка выше обычных UI-элементов (инвентарь/панели), но
+                    // ниже самого текста тултипа — см. Z_UI_TOOLTIP_*.
+                    ecs.update_transform_z(bg_ent, crate::core::constants::Z_UI_TOOLTIP_BG);
                     ecs.update_sprite_alpha(bg_ent, self.tooltip_alpha * 0.5);
                     self.slot_tooltip_bg = Some(bg_ent);
                     self.slot_tooltip_bg_key = Some(bg_key);
@@ -286,6 +289,8 @@ impl GameHud {
 
                 let (entity, key) = text_renderer.set_text(ecs, device, queue, self.slot_tooltip_text, self.slot_tooltip_text_key, &display_name, FONT_SIZE_LOGO, tx, ty, text_w, 4.0, WHITE);
                 if let Some(e) = entity {
+                    // Текст тултипа — поверх подложки и всех прочих UI-элементов.
+                    ecs.update_transform_z(e, crate::core::constants::Z_UI_TOOLTIP_TEXT);
                     ecs.update_sprite_alpha(e, self.tooltip_alpha);
                 }
                 self.slot_tooltip_text = entity;

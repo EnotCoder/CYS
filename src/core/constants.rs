@@ -19,6 +19,10 @@ pub const Z_DECOR: f32 = 1.5;
 pub const Z_NPC: f32 = 1.8;
 pub const Z_CURSOR: f32 = 2.0;
 pub const Z_UI: f32 = 3.0;
+// Подслои UI: фон тултипа над обычными элементами (панели/инвентарь),
+// а текст тултипа — поверх своего фона.
+pub const Z_UI_TOOLTIP_BG: f32 = 3.01;
+pub const Z_UI_TOOLTIP_TEXT: f32 = 3.02;
 
 // === Шейдер ===
 pub const SHADER_SCALE: f32 = 0.223;

@@ -87,7 +87,15 @@ pub fn render(
     }
 
     // UI рисуется последним поверх всего (z=3.0), со своим bind group.
-    render_group(device, queue, transparent_pipeline, ui_sprites, depth_view, sprite_cache,
+    // Прозрачный пайплайн игнорирует тест глубины (depth = Always), поэтому
+    // порядок отрисовки = порядку в массиве. Сортируем по z по возрастанию,
+    // чтобы «подложки» (z чуть ниже) рисовались раньше текста (z выше) и
+    // не перекрывали его полупрозрачным чёрным.
+    let mut ui_sorted = ui_sprites.to_vec();
+    ui_sorted.sort_by(|a, b| {
+        a.position[2].partial_cmp(&b.position[2]).unwrap_or(std::cmp::Ordering::Equal)
+    });
+    render_group(device, queue, transparent_pipeline, &ui_sorted, depth_view, sprite_cache,
         texture_cache, &mut encoder, &view, ui_bind_group, "ui", false,
         dynamic_uniform_buffer, dynamic_bind_group, dynamic_alignment, &mut buf_offset);
 

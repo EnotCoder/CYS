@@ -138,6 +138,13 @@ impl EcsAdapter {
         }
     }
 
+    // Меняет z-координату (слой) сущности.
+    pub fn update_transform_z(&mut self, entity: specs::Entity, z: f32) {
+        if let Some(transform) = self.world.write_storage::<Transform>().get_mut(entity) {
+            transform.position[2] = z;
+        }
+    }
+
     // Меняет прозрачность спрайта (моргание, эффекты выделения).
     pub fn update_sprite_alpha(&mut self, entity: specs::Entity, alpha: f32) {
         if let Some(sprite) = self.world.write_storage::<SpriteComponent>().get_mut(entity) {

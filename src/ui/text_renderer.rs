@@ -212,7 +212,8 @@ impl TextRenderer {
         }
 
         // Текст не изменился — существующий спрайт можно переиспользовать.
-        if key == Some(new_key) {
+        // Если сущность (entity) потеряна (None), создаём её заново ниже.
+        if key == Some(new_key) && entity.is_some() {
             return (entity, key);
         }
 

@@ -587,7 +587,8 @@ impl Scene for GameScene {
                     let items = self.inventory.items();
                     if item_idx < items.len() {
                         let name = items[item_idx];
-                        Some((name.to_string(), SLOT_BAR_X + col as f32, INVENTORY_BASE_Y + row as f32 - 0.55))
+                        let price = crate::data::object_price(name, &self.config);
+                        Some((name.to_string(), price, SLOT_BAR_X + col as f32, INVENTORY_BASE_Y + row as f32 - 0.55))
                     } else {
                         None
                     }

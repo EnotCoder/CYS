@@ -251,13 +251,15 @@ impl GameHud {
     /// Показывает/скрывает тултип с названием предмета над ячейкой инвентаря.
     /// Подложка создаётся один раз под размер текста, далее только двигается.
     /// Появление/скрытие плавное через альфу в tick_tooltip().
-    pub fn update_slot_tooltip(&mut self, ecs: &mut EcsAdapter, text_renderer: &mut TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue, tooltip: Option<(String, f32, f32)>) {
+    pub fn update_slot_tooltip(&mut self, ecs: &mut EcsAdapter, text_renderer: &mut TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue, tooltip: Option<(String, i32, f32, f32)>) {
         match tooltip {
-            Some((name, tx, ty)) => {
+            Some((name, price, tx, ty)) => {
                 let display_name = name.replace('_', " ");
+                // Имя объекта + его цена в одной строке (многострочность не поддерживается).
+                let label = format!("{} — {}", display_name, price);
                 let char_w = 0.14;
-                let text_w = (display_name.len() as f32).max(1.0) * char_w;
-                let (_, text_h) = text_renderer.text_world_size(&display_name, FONT_SIZE_LOGO, text_w, 4.0, WHITE);
+                let text_w = (label.len() as f32).max(1.0) * char_w;
+                let (_, text_h) = text_renderer.text_world_size(&label, FONT_SIZE_LOGO, text_w, 4.0, WHITE);
                 // Подложка чуть больше текста по обеим осям
                 let pad_x = 0.10;
                 let pad_y = 0.04;
@@ -287,7 +289,7 @@ impl GameHud {
                     ecs.update_transform_position(entity, tx, ty);
                 }
 
-                let (entity, key) = text_renderer.set_text(ecs, device, queue, self.slot_tooltip_text, self.slot_tooltip_text_key, &display_name, FONT_SIZE_LOGO, tx, ty, text_w, 4.0, WHITE);
+                let (entity, key) = text_renderer.set_text(ecs, device, queue, self.slot_tooltip_text, self.slot_tooltip_text_key, &label, FONT_SIZE_LOGO, tx, ty, text_w, 4.0, WHITE);
                 if let Some(e) = entity {
                     // Текст тултипа — поверх подложки и всех прочих UI-элементов.
                     ecs.update_transform_z(e, crate::core::constants::Z_UI_TOOLTIP_TEXT);

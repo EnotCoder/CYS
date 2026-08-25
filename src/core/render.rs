@@ -132,6 +132,15 @@ fn render_group(
         return;
     }
 
+    // Защита от переполнения dynamic storage buffer: не рисуем больше слотов,
+    // чем вмещает буфер (иначе wgpu паникует / роняет GPU-устройство при
+    // resize + сильном отдалении, когда видимых спрайтов становится слишком много).
+    let remaining_slots = (dynamic_uniform_buffer.size().saturating_sub(*buf_offset) / dynamic_alignment) as usize;
+    let sprites = &sprites[..sprites.len().min(remaining_slots)];
+    if sprites.is_empty() {
+        return;
+    }
+
     // Первый проход (карта) очищает и цвет и глубину,
     // остальные — дописывают поверх уже нарисованного (Load).
     let color_load = if clear_color {

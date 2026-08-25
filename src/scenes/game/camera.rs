@@ -26,6 +26,13 @@ impl GameScene {
         let cam_max_x = CAMERA_MAP_MAX_X - vis_w / 2.0;
         let cam_min_y = CAMERA_MAP_MIN_Y + vis_h / 2.0;
         let cam_max_y = CAMERA_MAP_MAX_Y - vis_h / 2.0;
+        // При широком окне или сильном отдалении видимая область шире
+        // допустимого диапазона камеры — границы инвертируются (min > max) и
+        // .clamp() паникует. В таком случае фиксируем камеру по центру карты.
+        let cam_center_x = (CAMERA_MAP_MIN_X + CAMERA_MAP_MAX_X) / 2.0;
+        let cam_center_y = (CAMERA_MAP_MIN_Y + CAMERA_MAP_MAX_Y) / 2.0;
+        let (cam_min_x, cam_max_x) = if cam_max_x >= cam_min_x { (cam_min_x, cam_max_x) } else { (cam_center_x, cam_center_x) };
+        let (cam_min_y, cam_max_y) = if cam_max_y >= cam_min_y { (cam_min_y, cam_max_y) } else { (cam_center_y, cam_center_y) };
 
         let step = CAMERA_SPEED * (dt as f32);
 

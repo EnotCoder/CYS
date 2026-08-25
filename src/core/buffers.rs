@@ -29,13 +29,20 @@ pub struct Uniforms {
 }
 
 // Данные источника света для шейдера.
+//
+// ВНИМАНИЕ: размер должен быть ровно 64 байта. WGSL-структура `Light`
+// (shaders.wgsl) содержит vec4 + vec3, поэтому в раскладке std430 для
+// storage-буфера её stride = 64 байта (выравнивание 16). Если Rust-структура
+// меньше, lights[1], lights[2], ... читаются по смещению и дают мусор
+// (отсюда баг: вторая лампа не светит). position/color по 16 байт, radius 4,
+// остаток — выравнивающий padding до 64.
 #[repr(C)]
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct LightData {
     pub position: [f32; 4], // [x, y, z, unused]
     pub color: [f32; 4],    // [r, g, b, intensity]
     pub radius: f32,
-    pub _padding: [f32; 3],
+    pub _padding: [f32; 7],
 }
 
 #[repr(C)]

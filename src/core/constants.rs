@@ -24,6 +24,12 @@ pub const Z_UI: f32 = 3.0;
 pub const Z_UI_TOOLTIP_BG: f32 = 3.01;
 pub const Z_UI_TOOLTIP_TEXT: f32 = 3.02;
 
+// Кнопка «В меню» на экране банкротства (координаты UI, мировые единицы).
+pub const BANKRUPT_BTN_X: f32 = 0.0;
+pub const BANKRUPT_BTN_Y: f32 = -1.0;
+pub const BANKRUPT_BTN_HALF_W: f32 = 2.0;
+pub const BANKRUPT_BTN_HALF_H: f32 = 0.5;
+
 // === Шейдер ===
 pub const SHADER_SCALE: f32 = 0.223;
 
@@ -173,7 +179,9 @@ pub const DESIRED_FRAME_LATENCY: u32 = 2;
 
 // === Динамический storage buffer ===
 /// Максимум спрайтов, которые могут быть записаны в dynamic storage buffer за кадр.
-pub const MAX_DYNAMIC_SPRITES: usize = 8192;
+/// Увеличено: при сильном отдалении + большом окне видимых тайлов/объектов
+/// может быть намного больше, и переполнение буфера роняло игру.
+pub const MAX_DYNAMIC_SPRITES: usize = 65536;
 
 /// Максимальное количество источников света в кадре.
 pub const MAX_LIGHTS: usize = 128;

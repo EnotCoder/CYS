@@ -48,6 +48,10 @@ assets = "assets"
 package = "com.cys.game"
 build_targets = ["aarch64-linux-android", "x86_64-linux-android"]
 
+# Всегда горизонтальная ориентация на телефоне (android:screenOrientation)
+[package.metadata.android.android_manifest.application.activity]
+orientation = "landscape"
+
 [package.metadata.android.sdk]
 min_sdk_version = 26
 target_sdk_version = 34

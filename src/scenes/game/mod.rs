@@ -95,6 +95,8 @@ pub struct GameScene {
     bankrupt_bg: Option<specs::Entity>,
     bankrupt_title: Option<specs::Entity>,
     bankrupt_hint: Option<specs::Entity>,
+    bankrupt_button: Option<specs::Entity>,
+    bankrupt_button_label: Option<specs::Entity>,
     // Пульс рамки выбранного слота хотбара и иконки режима при смене
     slot_pulse: f64,
     mode_pulse: f64,
@@ -144,6 +146,8 @@ impl GameScene {
             bankrupt_bg: None,
             bankrupt_title: None,
             bankrupt_hint: None,
+            bankrupt_button: None,
+            bankrupt_button_label: None,
             slot_pulse: 0.0,
             mode_pulse: 0.0,
             prev_act_slot: 0,
@@ -358,6 +362,8 @@ impl Scene for GameScene {
         self.bankrupt_bg = None;
         self.bankrupt_title = None;
         self.bankrupt_hint = None;
+        self.bankrupt_button = None;
+        self.bankrupt_button_label = None;
         self.slot_pulse = 0.0;
         self.mode_pulse = 0.0;
         self.prev_act_slot = 0;
@@ -405,13 +411,28 @@ impl Scene for GameScene {
                 self.bankrupt_bg = Some(bg);
                 let title = text_renderer.add_text(ecs, device, queue, "BANKRUPT", FONT_SIZE_LOGO, 0.0, 2.0, 7.0, 1.0, RED);
                 self.bankrupt_title = Some(title);
-                let hint = text_renderer.add_text(ecs, device, queue, "Press R to go to menu", FONT_SIZE_BTN, 0.0, 0.5, 5.0, 1.0, WHITE);
+                let hint = text_renderer.add_text(ecs, device, queue, "Tap the button to return to menu", FONT_SIZE_BTN, 0.0, 0.5, 9.0, 1.0, WHITE);
                 self.bankrupt_hint = Some(hint);
+                // Кликабельная кнопка «В меню» (на телефоне нет клавиши R).
+                let btn = ecs.add_ui_sized(crate::core::constants::BANKRUPT_BTN_X, crate::core::constants::BANKRUPT_BTN_Y, crate::core::constants::BANKRUPT_BTN_HALF_W * 2.0, crate::core::constants::BANKRUPT_BTN_HALF_H * 2.0, "tex/dev_tools/black.png", device, queue);
+                ecs.update_sprite_alpha(btn, 0.85);
+                self.bankrupt_button = Some(btn);
+                let btn_label = text_renderer.add_text(ecs, device, queue, "Menu", FONT_SIZE_BTN, crate::core::constants::BANKRUPT_BTN_X, crate::core::constants::BANKRUPT_BTN_Y, 3.0, 1.0, WHITE);
+                self.bankrupt_button_label = Some(btn_label);
             }
         }
         if self.bankrupt {
             if input.key_pressed(KeyCode::KeyR) {
                 return SceneAction::Switch("menu".to_string());
+            }
+            // Кнопка «В меню» для телефонов (нет клавиши R): клик/тап по ней.
+            if let Some((mx, my)) = input.cursor() {
+                let (wx, wy) = crate::core::util::ndc_to_world(mx, my, window_size, 1.0, 0.0, 0.0);
+                if input.mouse_pressed(winit::event::MouseButton::Left)
+                    && (wx - crate::core::constants::BANKRUPT_BTN_X).abs() <= crate::core::constants::BANKRUPT_BTN_HALF_W
+                    && (wy - crate::core::constants::BANKRUPT_BTN_Y).abs() <= crate::core::constants::BANKRUPT_BTN_HALF_H {
+                    return SceneAction::Switch("menu".to_string());
+                }
             }
             return SceneAction::None;
         }
@@ -666,7 +687,7 @@ impl Scene for GameScene {
                     position: [t.position[0], t.position[1], t.position[2], 0.0],
                     color: [l.color[0], l.color[1], l.color[2], l.intensity],
                     radius: l.radius,
-                    _padding: [0.0; 3],
+                    _padding: [0.0; 7],
                 }
             })
             .collect()

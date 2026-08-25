@@ -23,6 +23,13 @@ fn android_main(app: AndroidApp) {
     // Сохраняем ссылку на AndroidApp для чтения ассетов из APK.
     crate::core::asset::set_android_app(app.clone());
 
+    // Прячем системную статус-панель (время/батарея/уведомления) — как в
+    // обычных мобильных играх. FLAG_FULLSCREEN скрывает верхнюю панель.
+    app.set_window_flags(
+        android_activity::WindowManagerFlags::FULLSCREEN,
+        android_activity::WindowManagerFlags::empty(),
+    );
+
     // Цикл событий winit, привязанный к AndroidApp.
     let mut event_loop = EventLoop::builder();
     event_loop.with_android_app(app);

@@ -35,6 +35,10 @@ android-activity = { version = "0.6", features = ["native-activity"] }
 [target.'cfg(target_os = "windows")'.dependencies]
 wgpu = { version = "30", default-features = false, features = ["dx12", "wgsl"] }
 
+# Иконка в .exe (только под Windows): winres компилирует res/app.ico в ресурс.
+[target.'cfg(target_os = "windows")'.build-dependencies]
+winres = "0.1"
+
 [profile.release]
 lto = true
 codegen-units = 1
@@ -45,12 +49,20 @@ strip = true
 # Все игровые файлы лежат в assets/ и упаковываются в APK-assets.
 [package.metadata.android]
 assets = "assets"
+resources = "res"
 package = "com.cys.game"
 build_targets = ["aarch64-linux-android", "x86_64-linux-android"]
 
 # Всегда горизонтальная ориентация на телефоне (android:screenOrientation)
 [package.metadata.android.android_manifest.application.activity]
 orientation = "landscape"
+
+# Полноэкранный режим: прячем системную статус-панель (время/батарея) ещё до
+# запуска android_main, как в обычных мобильных играх (android:theme).
+# Иконка приложения берётся из res/mipmap-* (android:icon).
+[package.metadata.android.android_manifest.application]
+theme = "@android:style/Theme.NoTitleBar.Fullscreen"
+icon = "@mipmap/ic_launcher"
 
 [package.metadata.android.sdk]
 min_sdk_version = 26

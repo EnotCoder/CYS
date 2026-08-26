@@ -1,5 +1,7 @@
 # Create your Shop (CYS)
 
+> **Beta** — the game is in active beta. Features may change and bugs are expected.
+
 2D sandbox game written in Rust on wgpu. Build and manage your own shop: place
 flooring, decor and walls, stock racks, serve shopper NPCs and keep the
 business from going bankrupt.

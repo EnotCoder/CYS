@@ -10,7 +10,7 @@ use std::collections::HashMap;
 use mlua::{Lua, Table, Value};
 
 /// Путь к файлу баланса относительно корня проекта.
-const CONFIG_PATH: &str = "scripts/config.lua";
+const CONFIG_PATH: &str = "assets/scripts/config.lua";
 
 /// Баланс игры, загружается один раз при старте из scripts/config.lua.
 #[derive(Debug, Clone)]

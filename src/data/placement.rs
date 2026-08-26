@@ -96,7 +96,7 @@ fn refresh_walls_around(ecs: &mut EcsAdapter, gx: i32, gy: i32) {
                 }
                 // Обновляем спрайт стены на новый визуальный кадр.
                 if let Some(&map_entity) = ecs.map_entities.get(&(nx, ny)) {
-                    ecs.update_sprite_texture(map_entity, "tex/map/wall.png");
+                    ecs.update_sprite_texture(map_entity, "assets/tex/map/wall.png");
                     let mut sprites = ecs.world.write_storage::<crate::SpriteComponent>();
                     if let Some(sprite) = sprites.get_mut(map_entity) {
                         let (tf, tc) = wall_frame_count(&new_token);

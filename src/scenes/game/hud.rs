@@ -136,7 +136,7 @@ impl GameHud {
 
     /// Создаёт полупрозрачную тёмную панель-подложку (угол экрана)
     pub fn create_info_panel(&mut self, ecs: &mut EcsAdapter, device: &wgpu::Device, queue: &wgpu::Queue) {
-        let panel = ecs.add_ui_sized(HUD_PANEL_X, HUD_PANEL_Y, HUD_PANEL_W, HUD_PANEL_H, "tex/dev_tools/black.png", device, queue);
+        let panel = ecs.add_ui_sized(HUD_PANEL_X, HUD_PANEL_Y, HUD_PANEL_W, HUD_PANEL_H, "assets/tex/dev_tools/black.png", device, queue);
         ecs.update_sprite_alpha(panel, 0.5);
         self.info_panel = Some(panel);
     }
@@ -267,7 +267,7 @@ impl GameHud {
                 let bg_h = text_h + pad_y * 2.0;
 
                 // Ключ кэша уникален для каждого размера подложки
-                let bg_unique = format!("tex/dev_tools/black.png@{bg_w:.2}x{bg_h:.2}");
+                let bg_unique = format!("assets/tex/dev_tools/black.png@{bg_w:.2}x{bg_h:.2}");
                 let bg_key = crate::core::util::sprite_cache_key("ui", &bg_unique, [0, 0], [1, 1], 1.0);
                 if self.slot_tooltip_bg_key != Some(bg_key) {
                     // Размер изменился — пересоздаём подложку
@@ -277,7 +277,7 @@ impl GameHud {
                     if let Some(old_key) = self.slot_tooltip_bg_key.take() {
                         ecs.sprite_cache.remove(&old_key);
                     }
-                    let bg_ent = ecs.add_ui_sized(tx, ty, bg_w, bg_h, "tex/dev_tools/black.png", device, queue);
+                    let bg_ent = ecs.add_ui_sized(tx, ty, bg_w, bg_h, "assets/tex/dev_tools/black.png", device, queue);
                     // Подложка выше обычных UI-элементов (инвентарь/панели), но
                     // ниже самого текста тултипа — см. Z_UI_TOOLTIP_*.
                     ecs.update_transform_z(bg_ent, crate::core::constants::Z_UI_TOOLTIP_BG);

@@ -89,7 +89,7 @@ impl MenuScene {
         match self.state {
             MenuState::Main => {
                 crate::data::map::load_map_to_ecs(ecs);
-                ecs.add_ui_sized(LOGO_X, LOGO_Y, LOGO_W, LOGO_H, "tex/ui/game_name.png", device, queue);
+                ecs.add_ui_sized(LOGO_X, LOGO_Y, LOGO_W, LOGO_H, "assets/tex/ui/game_name.png", device, queue);
                 self.build_main(ecs, text_renderer, device, queue);
             }
             MenuState::Worlds => self.build_worlds(ecs, text_renderer, device, queue),

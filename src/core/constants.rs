@@ -49,17 +49,17 @@ pub const CAMERA_MAP_MAX_Y: f32 = 13.0;
 pub const NPC_SCALE: f32 = 1.5;
 
 // === Текстовые текстуры игрока ===
-pub const TEX_PLAYER_IDLE: &str = "tex/characters/player/player.png";
-pub const TEX_PLAYER_WALK_1: &str = "tex/characters/player/player_walk_1.png";
-pub const TEX_PLAYER_WALK_2: &str = "tex/characters/player/player_walk_2.png";
+pub const TEX_PLAYER_IDLE: &str = "assets/tex/characters/player/player.png";
+pub const TEX_PLAYER_WALK_1: &str = "assets/tex/characters/player/player_walk_1.png";
+pub const TEX_PLAYER_WALK_2: &str = "assets/tex/characters/player/player_walk_2.png";
 
-pub const TEX_BOB_IDLE: &str = "tex/characters/bob/bob.png";
-pub const TEX_BOB_WALK_1: &str = "tex/characters/bob/bob_walk_1.png";
-pub const TEX_BOB_WALK_2: &str = "tex/characters/bob/bob_walk_2.png";
+pub const TEX_BOB_IDLE: &str = "assets/tex/characters/bob/bob.png";
+pub const TEX_BOB_WALK_1: &str = "assets/tex/characters/bob/bob_walk_1.png";
+pub const TEX_BOB_WALK_2: &str = "assets/tex/characters/bob/bob_walk_2.png";
 
-pub const TEX_SASHA_IDLE: &str = "tex/characters/sasha/sasha.png";
-pub const TEX_SASHA_WALK_1: &str = "tex/characters/sasha/sasha_walk_1.png";
-pub const TEX_SASHA_WALK_2: &str = "tex/characters/sasha/sasha_walk_2.png";
+pub const TEX_SASHA_IDLE: &str = "assets/tex/characters/sasha/sasha.png";
+pub const TEX_SASHA_WALK_1: &str = "assets/tex/characters/sasha/sasha_walk_1.png";
+pub const TEX_SASHA_WALK_2: &str = "assets/tex/characters/sasha/sasha_walk_2.png";
 
 // === Shopping NPC ===
 // (тайминги и экономика покупателя — в scripts/config.lua)
@@ -86,7 +86,7 @@ pub const SLOT_BAR_X: f32 = -7.0;
 pub const HOTBAR_X: f32 = SLOT_BAR_X + 1.0;
 pub const ICON_MODE_X: f32 = 6.2;
 pub const INV_BTN_X: f32 = HOTBAR_X + SLOT_COUNT as f32;
-pub const TEX_INV_BUTTON: &str = "tex/ui/icon_slots/inv.png";
+pub const TEX_INV_BUTTON: &str = "assets/tex/ui/icon_slots/inv.png";
 
 // === Текст (цвета, размеры) ===
 pub const WHITE: [u8; 3] = [255, 255, 255];
@@ -101,9 +101,9 @@ pub const UI_PULSE_SECS: f64 = 0.3;
 pub const UI_FADE_SPEED: f32 = 6.0;
 
 // === Общие пути ===
-pub const TEX_UI_ICON_SLOTS_OBJECT_DIR: &str = "tex/ui/icon_slots/icon_slots_object/";
-pub const TEX_UI_ICON_SLOTS_MAP_DIR: &str = "tex/ui/icon_slots/";
-pub const TEX_FALLBACK: &str = "tex/dev_tools/null.png";
+pub const TEX_UI_ICON_SLOTS_OBJECT_DIR: &str = "assets/tex/ui/icon_slots/icon_slots_object/";
+pub const TEX_UI_ICON_SLOTS_MAP_DIR: &str = "assets/tex/ui/icon_slots/";
+pub const TEX_FALLBACK: &str = "assets/tex/dev_tools/null.png";
 
 pub const MAP_FILE: &str = "assets/map.txt";
 pub const BASEMENT_FILE: &str = "assets/basement.txt";
@@ -113,8 +113,8 @@ pub const INVENTORY_BASE_Y: f32 = SLOT_BAR_Y + 1.0;
 pub const INVENTORY_ROWS: i32 = 5;
 pub const INVENTORY_COLS: i32 = 5;
 pub const INV_NONE: i32 = INVENTORY_ROWS * (INVENTORY_COLS - 1);
-pub const TAB_TEX: [&str; 5] = ["tex/ui/icon_slots/icon_slots_object/regular/box.png", "tex/ui/icon_slots/icon_slots_object/carpets/blue_carpet.png", "tex/ui/icon_slots/icon_slots_object/walldecor/welcome.png", "tex/ui/icon_slots/icon_slots_object/outdoor/tree.png", "tex/ui/icon_slots/icon_slots_object/light/lamp.png"];
-pub const SLOT_CURSOR_TEX: &str = "tex/ui/icon_slots/cursor.png";
+pub const TAB_TEX: [&str; 5] = ["assets/tex/ui/icon_slots/icon_slots_object/regular/box.png", "assets/tex/ui/icon_slots/icon_slots_object/carpets/blue_carpet.png", "assets/tex/ui/icon_slots/icon_slots_object/walldecor/welcome.png", "assets/tex/ui/icon_slots/icon_slots_object/outdoor/tree.png", "assets/tex/ui/icon_slots/icon_slots_object/light/lamp.png"];
+pub const SLOT_CURSOR_TEX: &str = "assets/tex/ui/icon_slots/cursor.png";
 pub const INV_REGULAR: &[&str] = &["box", "sign", "rack", "table", "cassa", "ice_cream", "arcade_machine", "candies", "fence", "basement"];
 pub const INV_LIGHT: &[&str] = &["lamp", "big_lamp"];
 pub const INV_CARPETS: &[&str] = 
@@ -130,28 +130,28 @@ pub const INV_TAB_Y: f32 = 2.0;
 
 // === Текстуры курсора по режимам ===
 pub const CURSOR_TEX: [&str; 3] = [
-    "tex/ui/cursor/def_cursor.png",  // mode 0
-    "tex/ui/cursor/cursor.png",      // mode 1 (build)
-    "tex/ui/cursor/del_cursor.png",  // mode 2 (delete)
+    "assets/tex/ui/cursor/def_cursor.png",  // mode 0
+    "assets/tex/ui/cursor/cursor.png",      // mode 1 (build)
+    "assets/tex/ui/cursor/del_cursor.png",  // mode 2 (delete)
 ];
-pub const CURSOR_ERR_TEX: &str = "tex/ui/cursor/err cursor.png";
+pub const CURSOR_ERR_TEX: &str = "assets/tex/ui/cursor/err cursor.png";
 
 // === Active toggle ===
 /// Позиция спрайта вкл/выкл NPC (левее mode)
 pub const ACTIVE_X: f32 = ICON_MODE_X + 1.0;
-pub const TEX_ACTIVE: &str = "tex/ui/active/active.png";
-pub const TEX_NO_ACTIVE: &str = "tex/ui/active/no_active.png";
+pub const TEX_ACTIVE: &str = "assets/tex/ui/active/active.png";
+pub const TEX_NO_ACTIVE: &str = "assets/tex/ui/active/no_active.png";
 
 // === Кнопка настроек в игре (иконка gear) — перед 1-м слотом хотбара ===
 pub const SETTINGS_BTN_X: f32 = SLOT_BAR_X;
 pub const SETTINGS_BTN_Y: f32 = SLOT_BAR_Y;
-pub const TEX_SETTINGS: &str = "tex/ui/settings.png";
+pub const TEX_SETTINGS: &str = "assets/tex/ui/settings.png";
 
 // === Текстуры иконки режима ===
 pub const MODE_ICON_TEX: [&str; 3] = [
-    "tex/ui/mode/standart_mode.png",
-    "tex/ui/mode/build_mode.png",
-    "tex/ui/mode/del_mode.png",
+    "assets/tex/ui/mode/standart_mode.png",
+    "assets/tex/ui/mode/build_mode.png",
+    "assets/tex/ui/mode/del_mode.png",
 ];
 
 // === Пути к текстурам ковров ===

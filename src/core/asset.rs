@@ -33,7 +33,15 @@ pub fn load_bytes(path: &str) -> std::io::Result<Vec<u8>> {
     #[cfg(target_os = "android")]
     {
         if let Some(app) = ANDROID_APP.get() {
-            let cpath = CString::new(path)
+            // Android APK assets are already inside the "assets/" structure logically,
+            // but the AAssetManager expects paths relative to the root of the assets folder.
+            // If the path starts with "assets/", we strip it.
+            let effective_path = if path.starts_with("assets/") {
+                &path[7..]
+            } else {
+                path
+            };
+            let cpath = CString::new(effective_path)
                 .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidInput, e))?;
             if let Some(mut asset) = app.asset_manager().open(&cpath) {
                 let mut buf = Vec::new();
@@ -42,7 +50,7 @@ pub fn load_bytes(path: &str) -> std::io::Result<Vec<u8>> {
             }
             return Err(std::io::Error::new(
                 std::io::ErrorKind::NotFound,
-                format!("asset not found: {path}"),
+                format!("asset not found: {effective_path} (original: {path})"),
             ));
         }
     }
@@ -97,7 +105,12 @@ pub fn list_dir(dir: &str) -> Vec<String> {
     #[cfg(target_os = "android")]
     {
         if let Some(app) = ANDROID_APP.get() {
-            let cdir = match CString::new(dir) {
+            let effective_dir = if dir.starts_with("assets/") {
+                &dir[7..]
+            } else {
+                dir
+            };
+            let cdir = match CString::new(effective_dir) {
                 Ok(c) => c,
                 Err(_) => return Vec::new(),
             };

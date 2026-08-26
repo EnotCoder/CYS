@@ -384,7 +384,7 @@ impl GameScene {
     pub fn place_basement_exit(&mut self, ecs: &mut EcsAdapter) {
         let gid = ecs.add_group_object(
             -6, 3, 1, 2,
-            "tex/decor/regular/basement.png",
+            "assets/tex/decor/regular/basement.png",
             [0, 1], [1, 2],
             false, false, false, &[],
         );

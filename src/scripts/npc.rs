@@ -17,7 +17,7 @@ use crate::ecs::components::{BusyCassas, Money};
 use crate::data::map::pathfinding::Node;
 
 /// Путь к скрипту NPC; при его отсутствии используется Rust-автомат.
-const SCRIPT_PATH: &str = "scripts/npc.lua";
+const SCRIPT_PATH: &str = "assets/scripts/npc.lua";
 
 /// Состояние NPC в виде целых чисел для Lua (зеркало ShopperState).
 #[allow(dead_code)]

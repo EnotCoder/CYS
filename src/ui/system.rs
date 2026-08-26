@@ -47,7 +47,7 @@ pub fn is_clicked(input: &dyn InputSource, window_size: (f32, f32), cx: f32, cy:
 /// Перед созданием старая подложка уничтожается.
 pub fn create_panel(ecs: &mut EcsAdapter, device: &wgpu::Device, queue: &wgpu::Queue, panel: &mut Panel) {
     destroy_panel(ecs, panel);
-    let ent = ecs.add_ui_sized(panel.x, panel.y, panel.w, panel.h, "tex/dev_tools/black.png", device, queue);
+    let ent = ecs.add_ui_sized(panel.x, panel.y, panel.w, panel.h, "assets/tex/dev_tools/black.png", device, queue);
     ecs.update_sprite_alpha(ent, panel.alpha);
     panel.entity = Some(ent);
 }
@@ -66,7 +66,7 @@ pub fn destroy_panel(ecs: &mut EcsAdapter, panel: &mut Panel) {
 /// Создаёт фон кнопки и текст подписи; старые сущности удаляются.
 pub fn create_button(ecs: &mut EcsAdapter, text_renderer: &mut TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue, btn: &mut Button) {
     destroy_button(ecs, btn);
-    let bg = ecs.add_ui_sized(btn.x, btn.y, btn.w, btn.h, "tex/dev_tools/black.png", device, queue);
+    let bg = ecs.add_ui_sized(btn.x, btn.y, btn.w, btn.h, "assets/tex/dev_tools/black.png", device, queue);
     let label = text_renderer.add_text(ecs, device, queue, &btn.label, btn.font_size, btn.x, btn.y, btn.w * 0.7, 1.0, WHITE);
     btn.bg = Some(bg);
     btn.text = Some(label);
@@ -100,7 +100,7 @@ const CHECKBOX_TEXT_GAP: f32 = 0.08;
 /// Ключи спрайтов сохраняются, чтобы корректно очищать кэш.
 pub fn create_checkbox(ecs: &mut EcsAdapter, text_renderer: &mut TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue, checkbox: &mut Checkbox) {
     destroy_checkbox(ecs, checkbox);
-    let tex = if checkbox.checked { "tex/ui/checkbox/true.png" } else { "tex/ui/checkbox/false.png" };
+    let tex = if checkbox.checked { "assets/tex/ui/checkbox/true.png" } else { "assets/tex/ui/checkbox/false.png" };
     let box_ent = ecs.add_ui_sized(checkbox.x, checkbox.y, CHECKBOX_BOX_SIZE, CHECKBOX_BOX_SIZE, tex, device, queue);
     let box_key = crate::core::util::sprite_cache_key("ui", tex, [0, 0], [1, 1], 1.0);
     checkbox.box_entity = Some(box_ent);
@@ -168,11 +168,11 @@ fn slider_thumb_x(slider: &Slider) -> f32 {
 pub fn create_slider(ecs: &mut EcsAdapter, text_renderer: &mut TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue, slider: &mut Slider) {
     destroy_slider(ecs, slider);
 
-    let track = ecs.add_ui_sized(slider.x, slider.y, slider.width, SLIDER_TRACK_THICKNESS, "tex/ui/slide/main.png", device, queue);
+    let track = ecs.add_ui_sized(slider.x, slider.y, slider.width, SLIDER_TRACK_THICKNESS, "assets/tex/ui/slide/main.png", device, queue);
     slider.track = Some(track);
 
     let thumb_x = slider_thumb_x(slider);
-    let thumb = ecs.add_ui_sized(thumb_x, slider.y, SLIDER_THUMB_SIZE, SLIDER_THUMB_SIZE, "tex/ui/slide/point.png", device, queue);
+    let thumb = ecs.add_ui_sized(thumb_x, slider.y, SLIDER_THUMB_SIZE, SLIDER_THUMB_SIZE, "assets/tex/ui/slide/point.png", device, queue);
     slider.thumb = Some(thumb);
 
     let ly = slider.y + SLIDER_LABEL_Y_OFFSET;
@@ -225,7 +225,7 @@ pub fn update_slider_thumb(ecs: &mut EcsAdapter, device: &wgpu::Device, queue: &
         ecs.delete_entity(ent);
     }
     let thumb_x = slider_thumb_x(slider);
-    let thumb = ecs.add_ui_sized(thumb_x, slider.y, SLIDER_THUMB_SIZE, SLIDER_THUMB_SIZE, "tex/ui/slide/point.png", device, queue);
+    let thumb = ecs.add_ui_sized(thumb_x, slider.y, SLIDER_THUMB_SIZE, SLIDER_THUMB_SIZE, "assets/tex/ui/slide/point.png", device, queue);
     slider.thumb = Some(thumb);
 }
 

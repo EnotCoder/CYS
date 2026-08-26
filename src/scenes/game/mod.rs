@@ -480,7 +480,7 @@ impl Scene for GameScene {
                     self.bankrupt = true;
                     self.shoppers.set_active(false);
                     crate::audio::play("error");
-                    let bg = ecs.add_ui_sized(0.0, 0.0, 24.0, 16.0, "tex/dev_tools/black.png", device, queue);
+                    let bg = ecs.add_ui_sized(0.0, 0.0, 24.0, 16.0, "assets/tex/dev_tools/black.png", device, queue);
                     ecs.update_sprite_alpha(bg, 0.75);
                     self.bankrupt_bg = Some(bg);
                     let title = text_renderer.add_text(ecs, device, queue, "BANKRUPT", FONT_SIZE_LOGO, 0.0, 2.0, 7.0, 1.0, RED);
@@ -488,7 +488,7 @@ impl Scene for GameScene {
                     let hint = text_renderer.add_text(ecs, device, queue, "Tap the button to return to menu", FONT_SIZE_BTN, 0.0, 0.5, 9.0, 1.0, WHITE);
                     self.bankrupt_hint = Some(hint);
                     // Кликабельная кнопка «В меню» (на телефоне нет клавиши R).
-                    let btn = ecs.add_ui_sized(crate::core::constants::BANKRUPT_BTN_X, crate::core::constants::BANKRUPT_BTN_Y, crate::core::constants::BANKRUPT_BTN_HALF_W * 2.0, crate::core::constants::BANKRUPT_BTN_HALF_H * 2.0, "tex/dev_tools/black.png", device, queue);
+                    let btn = ecs.add_ui_sized(crate::core::constants::BANKRUPT_BTN_X, crate::core::constants::BANKRUPT_BTN_Y, crate::core::constants::BANKRUPT_BTN_HALF_W * 2.0, crate::core::constants::BANKRUPT_BTN_HALF_H * 2.0, "assets/tex/dev_tools/black.png", device, queue);
                     ecs.update_sprite_alpha(btn, 0.85);
                     self.bankrupt_button = Some(btn);
                     let btn_label = text_renderer.add_text(ecs, device, queue, "Menu", FONT_SIZE_BTN, crate::core::constants::BANKRUPT_BTN_X, crate::core::constants::BANKRUPT_BTN_Y, 3.0, 1.0, WHITE);

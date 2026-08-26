@@ -110,18 +110,18 @@ impl super::EcsAdapter {
                 let tex: Arc<str> = if tag.name == "box" {
                     // Три стадии наполнения коробки: пусто / наполовину / полная.
                     if food.food_count < t1 {
-                        Arc::from("tex/decor/regular/box/box_0.png")
+                        Arc::from("assets/tex/decor/regular/box/box_0.png")
                     } else if food.food_count < t2 {
-                        Arc::from("tex/decor/regular/box/box_1.png")
+                        Arc::from("assets/tex/decor/regular/box/box_1.png")
                     } else {
-                        Arc::from("tex/decor/regular/box/box_2.png")
+                        Arc::from("assets/tex/decor/regular/box/box_2.png")
                     }
                 } else if tag.name == "rack" {
                     // Стеллаж: либо пустой, либо заполненный.
                     if food.food_count == 0 {
-                        Arc::from("tex/decor/regular/rack/rack_0.png")
+                        Arc::from("assets/tex/decor/regular/rack/rack_0.png")
                     } else {
-                        Arc::from("tex/decor/regular/rack/rack_1.png")
+                        Arc::from("assets/tex/decor/regular/rack/rack_1.png")
                     }
                 } else {
                     continue;
@@ -163,9 +163,9 @@ impl super::EcsAdapter {
             let down = positions.contains(&(x, y - 1));
             // Разные наборы текстур у уличного и обычного заборов.
             let (dir, fallback_arc) = if fence.name == "street_fence" {
-                ("tex/decor/outdoor/street_fence/street_fence", Arc::from("tex/decor/outdoor/street_fence/street_fence_0_0_0_0.png"))
+                ("assets/tex/decor/outdoor/street_fence/street_fence", Arc::from("assets/tex/decor/outdoor/street_fence/street_fence_0_0_0_0.png"))
             } else {
-                ("tex/decor/regular/fence/fence", Arc::from("tex/decor/regular/fence/fence_0_0_0_0.png"))
+                ("assets/tex/decor/regular/fence/fence", Arc::from("assets/tex/decor/regular/fence/fence_0_0_0_0.png"))
             };
             let path = format!("{}_{}_{}_{}_{}.png", dir, up as u8, down as u8, left as u8, right as u8);
             // Проверяем наличие варианта через загрузчик ассетов (работает и на

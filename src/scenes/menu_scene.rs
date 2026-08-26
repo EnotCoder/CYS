@@ -29,6 +29,8 @@ pub struct MenuScene {
     quit_scale: f32,
     // Замер времени кадра для интерполяции по dt
     last_frame: Option<std::time::Instant>,
+    // Адаптивный масштаб UI (и фона) под соотношение сторон экрана
+    ui_scale: f32,
 }
 
 impl MenuScene {
@@ -44,6 +46,7 @@ impl MenuScene {
             play_scale: 1.0,
             quit_scale: 1.0,
             last_frame: None,
+            ui_scale: MENU_MAP_SIZE,
         }
     }
 
@@ -139,7 +142,7 @@ impl MenuScene {
     /// Проверка, находится ли курсор мыши над прямоугольником кнопки
     fn is_inside(input: &dyn InputSource, window_size: (f32, f32), bx: f32, by: f32, bw: f32, bh: f32) -> bool {
         let Some((mx, my)) = input.cursor() else { return false };
-        let (wx, wy) = crate::core::util::ndc_to_world(mx, my, window_size, MENU_MAP_SIZE, 0.0, 0.0);
+        let (wx, wy) = crate::ui::system::ndc_to_ui(mx, my, window_size);
         wx >= bx - bw / 2.0 && wx <= bx + bw / 2.0
             && wy >= by - bh / 2.0 && wy <= by + bh / 2.0
     }
@@ -180,6 +183,11 @@ impl Scene for MenuScene {
             None => 1.0 / 60.0,
         };
         self.last_frame = Some(std::time::Instant::now());
+
+        // Адаптивный масштаб UI: кнопки Play/Quit (по ~±3 от центра) умещаются
+        // даже на портретных экранах; им же масштабируется и фон-магазин
+        let aspect = if window_size.1 > 0.0 { window_size.0 / window_size.1 } else { 1.0 };
+        self.ui_scale = crate::core::util::ui_fit_scale(aspect, 3.6);
 
         if !self.ready {
             self.ready = true;
@@ -245,6 +253,7 @@ impl Scene for MenuScene {
         ecs.get_sprites_by_layer(None)
     }
 
-    fn map_size(&self) -> f32 { MENU_MAP_SIZE }
+    fn map_size(&self) -> f32 { self.ui_scale }
+    fn ui_size(&self) -> f32 { self.ui_scale }
     fn camera_offset(&self) -> (f32, f32) { (0.0, 0.0) }
 }

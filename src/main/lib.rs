@@ -171,17 +171,19 @@ impl App {
             .write_buffer(&wgpu_app.size_buffer, 0, bytemuck::cast_slice(&[size_data]));
 
         // Uniform'ы для UI-слоя (UI рендерится без камеры/ночи)
-        let ui_uniforms = UiUniforms { 
-            size: 1.0,
+        let ui_data = UiUniforms { 
+            size: scene.ui_size(),
             aspect, 
             _padding1: [0.0; 2],
             night_factor: 0.0,
             light_count: 0,
             _padding2: [0.0; 2],
         };
+        // Зеркалим в глобальную переменную для хит-тестов UI (ndc_to_ui)
+        unsafe { crate::core::init::UI_UNIFORMS = ui_data; }
         wgpu_app
             .queue
-            .write_buffer(&wgpu_app.ui_uniform_buffer, 0, bytemuck::cast_slice(&[ui_uniforms]));
+            .write_buffer(&wgpu_app.ui_uniform_buffer, 0, bytemuck::cast_slice(&[ui_data]));
 
         render(
             surface,

@@ -17,8 +17,11 @@ use super::components::{Panel, Button, Checkbox, Slider};
 // ========================================================================
 
 /// Переводит координаты курсора из NDC в мировые координаты UI.
+/// Использует актуальный масштаб UI из `ui_uniforms`, чтобы хит-тесты
+/// совпадали с отрисовкой при любом соотношении сторон и зуме интерфейса.
 pub fn ndc_to_ui(mx: f32, my: f32, window_size: (f32, f32)) -> (f32, f32) {
-    crate::core::util::ndc_to_world(mx, my, window_size, 1.0, 0.0, 0.0)
+    let size = unsafe { crate::core::init::UI_UNIFORMS.size as f32 };
+    crate::core::util::ndc_to_world(mx, my, window_size, size, 0.0, 0.0)
 }
 
 /// Проверка попадания точки внутрь прямоугольника с центром (cx, cy).

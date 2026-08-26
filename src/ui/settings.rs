@@ -114,7 +114,7 @@ impl Settings {
         // Перетаскивание слайдера — вычисляем значение по позиции курсора.
         if slider_drag(&mut self.zoom_speed, input, window_size) {
             let Some((mx, _)) = input.cursor() else { return false };
-            let (wx, _) = crate::core::util::ndc_to_world(mx, 0.0, window_size, 1.0, 0.0, 0.0);
+            let (wx, _) = crate::ui::system::ndc_to_ui(mx, 0.0, window_size);
             let t = ((wx - (self.zoom_speed.x - self.zoom_speed.width / 2.0)) / self.zoom_speed.width).clamp(0.0, 1.0);
             self.zoom_speed.value = self.zoom_speed.min + t * (self.zoom_speed.max - self.zoom_speed.min);
             update_slider_thumb(ecs, device, queue, &mut self.zoom_speed);

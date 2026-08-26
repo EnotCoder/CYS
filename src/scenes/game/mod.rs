@@ -102,6 +102,8 @@ pub struct GameScene {
     mode_pulse: f64,
     prev_act_slot: i32,
     prev_mode: i32,
+    // Масштаб UI для текущего соотношения сторон (адаптация под экран)
+    ui_scale: f32,
 }
 
 impl GameScene {
@@ -152,6 +154,7 @@ impl GameScene {
             mode_pulse: 0.0,
             prev_act_slot: 0,
             prev_mode: 0,
+            ui_scale: 1.0,
         }
     }
 
@@ -372,6 +375,11 @@ impl Scene for GameScene {
     }
 
     fn update(&mut self, ecs: &mut crate::EcsAdapter, input: &dyn InputSource, window_size: (f32, f32), text_renderer: &mut crate::ui::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) -> SceneAction {
+        // Адаптивный масштаб UI под соотношение сторон (хотбар + иконки/логотип
+        // справа умещаются в экран даже на портретных/узких дисплеях)
+        let aspect = if window_size.1 > 0.0 { window_size.0 / window_size.1 } else { 1.0 };
+        self.ui_scale = crate::core::util::ui_fit_scale(aspect, 6.5);
+
         // Отложенная загрузка: показываем "Loading..." на один кадр, затем строим контент
         if !self.loaded {
             if self.loading {
@@ -427,7 +435,7 @@ impl Scene for GameScene {
             }
             // Кнопка «В меню» для телефонов (нет клавиши R): клик/тап по ней.
             if let Some((mx, my)) = input.cursor() {
-                let (wx, wy) = crate::core::util::ndc_to_world(mx, my, window_size, 1.0, 0.0, 0.0);
+                let (wx, wy) = crate::ui::system::ndc_to_ui(mx, my, window_size);
                 if input.mouse_pressed(winit::event::MouseButton::Left)
                     && (wx - crate::core::constants::BANKRUPT_BTN_X).abs() <= crate::core::constants::BANKRUPT_BTN_HALF_W
                     && (wy - crate::core::constants::BANKRUPT_BTN_Y).abs() <= crate::core::constants::BANKRUPT_BTN_HALF_H {
@@ -490,7 +498,7 @@ impl Scene for GameScene {
             // --- Inv button (toggle inventory) ---
             if input.mouse_pressed(winit::event::MouseButton::Left) {
                 if let Some((mx, my)) = input.cursor() {
-                    let (wx, wy) = crate::core::util::ndc_to_world(mx, my, window_size, 1.0, 0.0, 0.0);
+                    let (wx, wy) = crate::ui::system::ndc_to_ui(mx, my, window_size);
                     if (wx - INV_BTN_X).abs() < TILE_HALF && (wy - SLOT_BAR_Y).abs() < TILE_HALF {
                         if self.inventory.open {
                             self.inventory.exit(ecs);
@@ -504,7 +512,7 @@ impl Scene for GameScene {
             // --- Toggle active/not active ---
             if input.mouse_pressed(winit::event::MouseButton::Left) && !self.inventory.mode {
                 if let Some((mx, my)) = input.cursor() {
-                    let (wx, wy) = crate::core::util::ndc_to_world(mx, my, window_size, 1.0, 0.0, 0.0);
+                    let (wx, wy) = crate::ui::system::ndc_to_ui(mx, my, window_size);
                     // Кнопка "открыт/закрыт": переключает доступность магазина для покупателей
                     if (wx - ACTIVE_X).abs() < TILE_HALF && (wy - SLOT_BAR_Y).abs() < TILE_HALF {
                         self.active = !self.active;
@@ -600,7 +608,7 @@ impl Scene for GameScene {
         let slot_tooltip = if self.inventory.mode {
             // Ищем предмет под курсором в сетке инвентаря
             input.cursor().and_then(|(mx, my)| {
-                let (wx, wy) = crate::core::util::ndc_to_world(mx, my, window_size, 1.0, 0.0, 0.0);
+                let (wx, wy) = crate::ui::system::ndc_to_ui(mx, my, window_size);
                 let col = (wx - SLOT_BAR_X + TILE_HALF) as i32;
                 let row = (wy - INVENTORY_BASE_Y + TILE_HALF) as i32;
                 if col >= 0 && col < INVENTORY_COLS && row >= 0 && row < INVENTORY_ROWS {
@@ -665,6 +673,10 @@ impl Scene for GameScene {
 
     fn map_size(&self) -> f32 {
         self.map_size
+    }
+
+    fn ui_size(&self) -> f32 {
+        self.ui_scale
     }
 
     fn camera_offset(&self) -> (f32, f32) {

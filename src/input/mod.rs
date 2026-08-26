@@ -49,7 +49,7 @@ pub fn do_input(
         // Клик по UI-зонам (слоты хотбара, иконки, кнопка инвентаря) не должен
         // вызывать действие в мире — в этом случае ввод пропускается
         let skip = inventory_mode || input.cursor().map_or(false, |(mx, my)| {
-            let (wx, wy) = crate::core::util::ndc_to_world(mx, my, window_size, 1.0, 0.0, 0.0);
+            let (wx, wy) = crate::ui::system::ndc_to_ui(mx, my, window_size);
             let col = (wx - SLOT_BAR_X + TILE_HALF) as i32;
             let on_slot = (wy - SLOT_BAR_Y).abs() < TILE_HALF && col >= 0 && col < slots.len() as i32;
             let on_icons = (wy - SLOT_BAR_Y).abs() < TILE_HALF

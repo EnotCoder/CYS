@@ -11,7 +11,7 @@
 use winit::keyboard::KeyCode;
 use crate::core::constants::*;
 use crate::EcsAdapter;
-use crate::core::util::ndc_to_world;
+use crate::ui::system::ndc_to_ui;
 use crate::input::platform::InputSource;
 use super::GameScene;
 
@@ -34,7 +34,7 @@ impl GameScene {
         }
 
         let Some((mx, my)) = input.cursor() else { return };
-        let (wx, wy) = ndc_to_world(mx, my, window_size, 1.0, 0.0, 0.0);
+        let (wx, wy) = ndc_to_ui(mx, my, window_size);
 
         // --- Клик по табам ---
         if self.inventory.mode {

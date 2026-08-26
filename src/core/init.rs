@@ -39,6 +39,18 @@ pub struct UiUniforms {
     pub _padding2: [f32; 2],
 }
 
+/// Глобальное зеркало UI-uniform'а: обновляется каждый кадр в render() и
+/// читается хит-тестами (ndc_to_ui), чтобы попадания по UI совпадали с
+/// текущим масштабом интерфейса при любом соотношении сторон.
+pub static mut UI_UNIFORMS: UiUniforms = UiUniforms {
+    size: 1.0,
+    aspect: 1.0,
+    _padding1: [0.0; 2],
+    night_factor: 0.0,
+    light_count: 0,
+    _padding2: [0.0; 2],
+};
+
 #[allow(dead_code)]
 // Главная структура приложения: держит всё "железо" wgpu на протяжении жизни.
 pub struct WgpuApp {
@@ -311,10 +323,10 @@ impl WgpuApp {
 
     // Создаёт буфер дефолтных uniform'ов UI.
     fn create_ui_buffer(device: &wgpu::Device) -> wgpu::Buffer {
-        let ui_uniforms = UiUniforms { size: 1.0, aspect: 1.0, _padding1: [0.0; 2], night_factor: 0.0, light_count: 0, _padding2: [0.0; 2] };
+        let data = unsafe { crate::core::init::UI_UNIFORMS };
         device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("UI_Buffer"),
-            contents: bytemuck::cast_slice(&[ui_uniforms]),
+            contents: bytemuck::cast_slice(&[data]),
             usage: BufferUsages::UNIFORM | BufferUsages::COPY_DST,
         })
     }

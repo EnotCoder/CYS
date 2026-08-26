@@ -24,6 +24,9 @@ pub trait Scene {
     fn sprites(&self, ecs: &crate::EcsAdapter, visible_bounds: Option<(f32, f32, f32, f32)>) -> (Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>);
     /// Размер карты сцены (масштаб камеры)
     fn map_size(&self) -> f32;
+    /// Масштаб UI-слоя (1.0 — номинал, меньше на узких экранах), чтобы
+    /// интерфейс помещался при любом соотношении сторон. По умолчанию 1.0.
+    fn ui_size(&self) -> f32 { 1.0 }
     /// Смещение камеры сцены
     fn camera_offset(&self) -> (f32, f32);
     /// Коэффициент затемнения ночью 0..1 (по умолчанию 0 — день)

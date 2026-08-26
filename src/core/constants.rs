@@ -70,8 +70,8 @@ pub const EPSILON: f32 = 0.01;
 // MouseButton теперь из winit::mouse
 
 // === Окно ===
-pub const WINDOW_WIDTH: u32 = 1200;
-pub const WINDOW_HEIGHT: u32 = 800;
+pub const WINDOW_WIDTH: u32 = 1280;
+pub const WINDOW_HEIGHT: u32 = 720;
 
 // === Спрайты/анимация ===
 pub const TEXEL_EPSILON: f32 = 0.001;
@@ -81,8 +81,8 @@ pub const SLOT_COUNT: usize = 5;
 
 // === Слот-бар ===
 pub const SLOT_BAR_Y: f32 = -4.0;
-pub const SLOT_BAR_X: f32 = -5.0;
-pub const ICON_MODE_X: f32 = 5.0;
+pub const SLOT_BAR_X: f32 = -7.0;
+pub const ICON_MODE_X: f32 = 6.2;
 pub const INV_BTN_X: f32 = SLOT_BAR_X + SLOT_COUNT as f32;
 pub const TEX_INV_BUTTON: &str = "tex/ui/icon_slots/inv.png";
 
@@ -141,7 +141,7 @@ pub const TEX_ACTIVE: &str = "tex/ui/active/active.png";
 pub const TEX_NO_ACTIVE: &str = "tex/ui/active/no_active.png";
 
 // === Лого в правом нижнем углу ===
-pub const LOGO_UI_X: f32 = ACTIVE_X + 0.2;
+pub const LOGO_UI_X: f32 = ACTIVE_X + 1.3;
 pub const LOGO_UI_Y: f32 = SLOT_BAR_Y + 0.1;
 pub const TEX_MY_LOGO: &str = "tex/ui/my_logo.png";
 
@@ -171,7 +171,18 @@ pub const LOGO_W: f32 = 2.5;
 pub const LOGO_H: f32 = 2.5;
 pub const FONT_SIZE_BTN: f32 = 48.0;
 pub const FONT_SIZE_LOGO: f32 = 128.0;
-pub const FONT_SIZE_ALPHA: f32 = 64.0;
+
+// === HUD счётчики в основной игре (мировые координаты UI, центр=(0,0)) ===
+pub const HUD_PANEL_X: f32 = 7.2;
+pub const HUD_PANEL_Y: f32 = 3.25;
+pub const HUD_PANEL_W: f32 = 1.2;
+pub const HUD_PANEL_H: f32 = 2.2;
+pub const HUD_FOOD_X: f32 = 7.2;
+pub const HUD_FOOD_Y: f32 = 3.5;
+pub const HUD_MONEY_X: f32 = 7.2;
+pub const HUD_MONEY_Y: f32 = 3.0;
+pub const HUD_TIME_X: f32 = 7.2;
+pub const HUD_TIME_Y: f32 = 2.5;
 
 // === Рендер ===
 pub const DEPTH_CLEAR: f32 = 1.0;

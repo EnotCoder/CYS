@@ -136,7 +136,7 @@ impl GameHud {
 
     /// Создаёт полупрозрачную тёмную панель-подложку (угол экрана)
     pub fn create_info_panel(&mut self, ecs: &mut EcsAdapter, device: &wgpu::Device, queue: &wgpu::Queue) {
-        let panel = ecs.add_ui_sized(5.75, 3.25, 1.2, 2.2, "tex/dev_tools/black.png", device, queue);
+        let panel = ecs.add_ui_sized(HUD_PANEL_X, HUD_PANEL_Y, HUD_PANEL_W, HUD_PANEL_H, "tex/dev_tools/black.png", device, queue);
         ecs.update_sprite_alpha(panel, 0.5);
         self.info_panel = Some(panel);
     }
@@ -195,7 +195,7 @@ impl GameHud {
             self.current_total_food = total_food;
             self.food_pulse = UI_PULSE_SECS;
             let text = format!("Food: {}", total_food);
-            let (entity, key) = text_renderer.set_text(ecs, device, queue, self.total_food_text, self.total_food_key, &text, 64.0, 5.75, 3.5, 1.0, 4.0, WHITE);
+            let (entity, key) = text_renderer.set_text(ecs, device, queue, self.total_food_text, self.total_food_key, &text, 64.0, HUD_FOOD_X, HUD_FOOD_Y, 1.0, 4.0, WHITE);
             self.total_food_text = entity;
             self.total_food_key = key;
         }
@@ -203,7 +203,7 @@ impl GameHud {
             self.current_money = money;
             self.money_pulse = UI_PULSE_SECS;
             let text = format!("Money: {}", money);
-            let (entity, key) = text_renderer.set_text(ecs, device, queue, self.money_text, self.money_key, &text, 64.0, 5.75, 3.0, 1.0, 4.0, WHITE);
+            let (entity, key) = text_renderer.set_text(ecs, device, queue, self.money_text, self.money_key, &text, 64.0, HUD_MONEY_X, HUD_MONEY_Y, 1.0, 4.0, WHITE);
             self.money_text = entity;
             self.money_key = key;
         }
@@ -242,7 +242,7 @@ impl GameHud {
         if time_str != self.current_time_string && self.time_update_timer >= 1.0 {
             self.time_update_timer = 0.0;
             self.current_time_string = time_str.to_string();
-            let (entity, key) = text_renderer.set_text(ecs, device, queue, self.time_text, self.time_key, time_str, 64.0, 5.75, 2.5, 1.0, 4.0, WHITE);
+            let (entity, key) = text_renderer.set_text(ecs, device, queue, self.time_text, self.time_key, time_str, 64.0, HUD_TIME_X, HUD_TIME_Y, 1.0, 4.0, WHITE);
             self.time_text = entity;
             self.time_key = key;
         }

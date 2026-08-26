@@ -204,7 +204,7 @@ impl GameScene {
     }
 
     /// Пересоздаёт UI-сущности сцены после смены уровня (т.к. мир очищен)
-    pub fn rebuild_ui(&mut self, ecs: &mut EcsAdapter, text_renderer: &mut TextRenderer, device: &Device, queue: &Queue) {
+    pub fn rebuild_ui(&mut self, ecs: &mut EcsAdapter, _text_renderer: &mut TextRenderer, device: &Device, queue: &Queue) {
         self.slot_entities.clear();
         for (i, slot) in self.slots.iter().enumerate() {
             let icon_path = crate::core::util::slot_icon_path(slot.obj.name);
@@ -224,7 +224,6 @@ impl GameScene {
 
         self.hud.create_info_panel(ecs, device, queue);
 
-        text_renderer.add_text(ecs, device, queue, "Alpha", FONT_SIZE_ALPHA, -5.5, 4.0, 1.0, 4.0, WHITE);
         self.npc_walkable = load_walkable_cells();
     }
 

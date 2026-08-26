@@ -176,10 +176,8 @@ impl GameScene {
     }
 
     /// Строит постоянный UI: слоты хотбара, иконки режимов, курсор, инфо-панель
-    fn setup_ui(&mut self, ecs: &mut crate::EcsAdapter, text_renderer: &mut crate::ui::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) {
+    fn setup_ui(&mut self, ecs: &mut crate::EcsAdapter, _text_renderer: &mut crate::ui::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) {
         self.slots = crate::data::get_slot_vec();
-
-        text_renderer.add_text(ecs, device, queue, "Alpha", FONT_SIZE_ALPHA, -5.5, 4.0, 1.0, 4.0, WHITE);
 
         // Иконки режима игры, активного состояния и кнопки инвентаря
         let icon_mode = ecs.add_ui(ICON_MODE_X, SLOT_BAR_Y, MODE_ICON_TEX[0]);

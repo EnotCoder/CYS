@@ -84,10 +84,14 @@ impl MenuScene {
     /// Сначала разрушает старое, чтобы пересоздание было идемпотентным.
     fn setup_content(&mut self, ecs: &mut crate::EcsAdapter, text_renderer: &mut crate::ui::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) {
         self.destroy_content(ecs);
-        crate::data::map::load_map_to_ecs(ecs);
-        ecs.add_ui_sized(LOGO_X, LOGO_Y, LOGO_W, LOGO_H, "tex/ui/game_name.png", device, queue);
+        ecs.clear_world();
+
         match self.state {
-            MenuState::Main => self.build_main(ecs, text_renderer, device, queue),
+            MenuState::Main => {
+                crate::data::map::load_map_to_ecs(ecs);
+                ecs.add_ui_sized(LOGO_X, LOGO_Y, LOGO_W, LOGO_H, "tex/ui/game_name.png", device, queue);
+                self.build_main(ecs, text_renderer, device, queue);
+            }
             MenuState::Worlds => self.build_worlds(ecs, text_renderer, device, queue),
         }
     }

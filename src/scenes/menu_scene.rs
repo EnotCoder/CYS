@@ -167,7 +167,7 @@ impl MenuScene {
     /// Расставляет декоративные объекты магазина по файлу menu_shop.txt.
     /// Каждый токен-буква соответствует предмету (b — box, r — rack, c — cassa и т.д.).
     fn place_decor(ecs: &mut crate::EcsAdapter) {
-        let bytes = crate::core::asset::load_bytes("menu_shop.txt").expect("menu_shop.txt not found!");
+        let bytes = crate::core::asset::load_bytes("assets/menu_shop.txt").expect("menu_shop.txt not found!");
         let reader = BufReader::new(&bytes[..]);
         for (j, line) in reader.lines().flatten().enumerate() {
             let parts: Vec<&str> = line.split_whitespace().collect();

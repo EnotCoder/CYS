@@ -105,8 +105,8 @@ pub const TEX_UI_ICON_SLOTS_OBJECT_DIR: &str = "tex/ui/icon_slots/icon_slots_obj
 pub const TEX_UI_ICON_SLOTS_MAP_DIR: &str = "tex/ui/icon_slots/";
 pub const TEX_FALLBACK: &str = "tex/dev_tools/null.png";
 
-pub const MAP_FILE: &str = "map.txt";
-pub const BASEMENT_FILE: &str = "basement.txt";
+pub const MAP_FILE: &str = "assets/map.txt";
+pub const BASEMENT_FILE: &str = "assets/basement.txt";
 
 // === Инвентарь ===
 pub const INVENTORY_BASE_Y: f32 = SLOT_BAR_Y + 1.0;

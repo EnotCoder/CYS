@@ -94,7 +94,7 @@ fn load_map_from_reader(ecs: &mut EcsAdapter, reader: impl std::io::Read, _is_ba
 /// Возвращает множество клеток, по которым могут ходить покупатели.
 /// Магазинные полы ("0"), трава и некоторые стены (двери) считаются проходимыми.
 pub fn load_walkable_cells() -> HashSet<Node> {
-    let src = include_str!("../../../map.txt");
+    let src = include_str!("../../../assets/map.txt");
     let mut cells = HashSet::new();
     for (j, line) in src.lines().enumerate() {
         for (i, token) in line.split_whitespace().enumerate() {
@@ -114,7 +114,7 @@ pub fn load_walkable_cells() -> HashSet<Node> {
 /// Находит точку спавна покупателей — самую нижнюю клетку `0` (пол магазина),
 /// ближайшую к центру по X.
 pub fn shopper_spawn_point() -> Node {
-    let src = include_str!("../../../map.txt");
+    let src = include_str!("../../../assets/map.txt");
     // Перебираем все клетки пола и ищем самую нижнюю (минимальный Y),
     // при равенстве Y — ближайшую к нулю по X
     let mut best: Option<Node> = None;

@@ -140,11 +140,6 @@ pub const ACTIVE_X: f32 = ICON_MODE_X + 1.0;
 pub const TEX_ACTIVE: &str = "tex/ui/active/active.png";
 pub const TEX_NO_ACTIVE: &str = "tex/ui/active/no_active.png";
 
-// === Лого в правом нижнем углу ===
-pub const LOGO_UI_X: f32 = ACTIVE_X + 1.3;
-pub const LOGO_UI_Y: f32 = SLOT_BAR_Y + 0.1;
-pub const TEX_MY_LOGO: &str = "tex/ui/my_logo.png";
-
 // === Текстуры иконки режима ===
 pub const MODE_ICON_TEX: [&str; 3] = [
     "tex/ui/mode/standart_mode.png",

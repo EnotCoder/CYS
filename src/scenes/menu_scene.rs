@@ -67,7 +67,6 @@ impl MenuScene {
         self.play_label = Some(pl);
         self.quit_bg = Some(quit_panel);
         self.quit_label = Some(ql);
-        ecs.add_ui(LOGO_UI_X, LOGO_UI_Y, TEX_MY_LOGO);
         Self::place_decor(ecs);
     }
 

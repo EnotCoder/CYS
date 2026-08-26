@@ -90,7 +90,7 @@ pub struct GameScene {
     food_pulses: Vec<FoodPulse>,
     // Аренда магазина: таймер с момента последнего списания
     rent_timer: f64,
-    // Банкротство: денег нет и магазин не может зарабатывать
+    // Банкротство: магазин не может зарабатывать и на восстановление не хватает денег
     bankrupt: bool,
     bankrupt_bg: Option<specs::Entity>,
     bankrupt_title: Option<specs::Entity>,
@@ -283,6 +283,26 @@ impl GameScene {
         has_food
     }
 
+    /// Минимальная сумма, чтобы снова сделать магазин зарабатывающим:
+    /// цена отсутствующей кассы + цена самого дешёвого источника еды (box).
+    /// Если оба уже есть — 0 (восстановление не нужно).
+    fn recovery_cost(ecs: &crate::EcsAdapter, cfg: &crate::scripts::config::BalanceConfig) -> i32 {
+        let tags = ecs.world.read_storage::<ObjectTag>();
+        let foods = ecs.world.read_storage::<FoodStorage>();
+        let has_cassa = (&tags).join().any(|t| t.name == "cassa");
+        let has_food = (&tags, &foods).join().any(|(t, f)| {
+            t.name == "box" || (t.name == "rack" && f.food_count > 0) || (t.name == "candies" && f.food_count > 0)
+        });
+        let mut cost = 0;
+        if !has_cassa {
+            cost += crate::data::object_price("cassa", cfg);
+        }
+        if !has_food {
+            cost += crate::data::object_price("box", cfg);
+        }
+        cost
+    }
+
     /// Пульс при смене активного слота/режима: рамка и иконка «подпрыгивают».
     /// Устанавливает пульс, если слот/режим изменились с прошлого кадра.
     fn update_slot_mode_pulse(&mut self, ecs: &mut crate::EcsAdapter, dt: f64) {
@@ -405,26 +425,29 @@ impl Scene for GameScene {
             }
         }
 
-        // --- Банкротство: денег нет и магазин не может зарабатывать ---
+        // --- Банкротство: магазин не может зарабатывать и на восстановление не хватает денег ---
         if !self.bankrupt && self.current_level == 0 && !self.settings.open {
-            let money = ecs.world.read_resource::<Money>().0;
-            if money <= 0 && !self.shop_can_earn(ecs) {
-                self.bankrupt = true;
-                self.shoppers.set_active(false);
-                crate::audio::play("error");
-                let bg = ecs.add_ui_sized(0.0, 0.0, 24.0, 16.0, "tex/dev_tools/black.png", device, queue);
-                ecs.update_sprite_alpha(bg, 0.75);
-                self.bankrupt_bg = Some(bg);
-                let title = text_renderer.add_text(ecs, device, queue, "BANKRUPT", FONT_SIZE_LOGO, 0.0, 2.0, 7.0, 1.0, RED);
-                self.bankrupt_title = Some(title);
-                let hint = text_renderer.add_text(ecs, device, queue, "Tap the button to return to menu", FONT_SIZE_BTN, 0.0, 0.5, 9.0, 1.0, WHITE);
-                self.bankrupt_hint = Some(hint);
-                // Кликабельная кнопка «В меню» (на телефоне нет клавиши R).
-                let btn = ecs.add_ui_sized(crate::core::constants::BANKRUPT_BTN_X, crate::core::constants::BANKRUPT_BTN_Y, crate::core::constants::BANKRUPT_BTN_HALF_W * 2.0, crate::core::constants::BANKRUPT_BTN_HALF_H * 2.0, "tex/dev_tools/black.png", device, queue);
-                ecs.update_sprite_alpha(btn, 0.85);
-                self.bankrupt_button = Some(btn);
-                let btn_label = text_renderer.add_text(ecs, device, queue, "Menu", FONT_SIZE_BTN, crate::core::constants::BANKRUPT_BTN_X, crate::core::constants::BANKRUPT_BTN_Y, 3.0, 1.0, WHITE);
-                self.bankrupt_button_label = Some(btn_label);
+            if !self.shop_can_earn(ecs) {
+                let money = ecs.world.read_resource::<Money>().0;
+                let recovery = Self::recovery_cost(ecs, &self.config);
+                if money < recovery {
+                    self.bankrupt = true;
+                    self.shoppers.set_active(false);
+                    crate::audio::play("error");
+                    let bg = ecs.add_ui_sized(0.0, 0.0, 24.0, 16.0, "tex/dev_tools/black.png", device, queue);
+                    ecs.update_sprite_alpha(bg, 0.75);
+                    self.bankrupt_bg = Some(bg);
+                    let title = text_renderer.add_text(ecs, device, queue, "BANKRUPT", FONT_SIZE_LOGO, 0.0, 2.0, 7.0, 1.0, RED);
+                    self.bankrupt_title = Some(title);
+                    let hint = text_renderer.add_text(ecs, device, queue, "Tap the button to return to menu", FONT_SIZE_BTN, 0.0, 0.5, 9.0, 1.0, WHITE);
+                    self.bankrupt_hint = Some(hint);
+                    // Кликабельная кнопка «В меню» (на телефоне нет клавиши R).
+                    let btn = ecs.add_ui_sized(crate::core::constants::BANKRUPT_BTN_X, crate::core::constants::BANKRUPT_BTN_Y, crate::core::constants::BANKRUPT_BTN_HALF_W * 2.0, crate::core::constants::BANKRUPT_BTN_HALF_H * 2.0, "tex/dev_tools/black.png", device, queue);
+                    ecs.update_sprite_alpha(btn, 0.85);
+                    self.bankrupt_button = Some(btn);
+                    let btn_label = text_renderer.add_text(ecs, device, queue, "Menu", FONT_SIZE_BTN, crate::core::constants::BANKRUPT_BTN_X, crate::core::constants::BANKRUPT_BTN_Y, 3.0, 1.0, WHITE);
+                    self.bankrupt_button_label = Some(btn_label);
+                }
             }
         }
         if self.bankrupt {

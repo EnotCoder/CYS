@@ -48,6 +48,10 @@ impl SceneManager {
     /// Переключает активную сцену: останавливает музыку, очищает мир,
     /// вызывает on_enter новой сцены
     pub fn switch_to(&mut self, name: &str, text_renderer: &mut crate::ui::text_renderer::TextRenderer) {
+        // Автосохранение/очистка исходящей сцены (например, сохранение мира)
+        if let Some(scene) = self.scenes.get_mut(&self.current) {
+            scene.on_exit(&mut self.ecs, text_renderer);
+        }
         crate::audio::stop_music();
         self.clear_ecs_world();
         if let Some(scene) = self.scenes.get_mut(name) {

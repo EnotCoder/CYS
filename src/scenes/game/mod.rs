@@ -92,6 +92,11 @@ pub struct GameScene {
     rent_timer: f64,
     // Банкротство: магазин не может зарабатывать и на восстановление не хватает денег
     bankrupt: bool,
+    // Система миров: id и имя текущего загруженного мира (None до первого входа)
+    world_id: Option<u32>,
+    world_name: String,
+    // Сущность кнопки настроек (иконка gear) в углу экрана
+    settings_entity: Option<specs::Entity>,
     bankrupt_bg: Option<specs::Entity>,
     bankrupt_title: Option<specs::Entity>,
     bankrupt_hint: Option<specs::Entity>,
@@ -145,6 +150,9 @@ impl GameScene {
             food_pulses: Vec::new(),
             rent_timer: 0.0,
             bankrupt: false,
+            world_id: None,
+            world_name: String::new(),
+            settings_entity: None,
             bankrupt_bg: None,
             bankrupt_title: None,
             bankrupt_hint: None,
@@ -186,18 +194,22 @@ impl GameScene {
         let inv_entity = ecs.add_ui(INV_BTN_X, SLOT_BAR_Y, TEX_INV_BUTTON);
         self.inv_entity = Some(inv_entity);
 
-        // Иконки всех слотов хотбара
+        // Кнопка настроек (иконка gear) в верхнем левом углу
+        let settings_entity = ecs.add_ui(SETTINGS_BTN_X, SETTINGS_BTN_Y, TEX_SETTINGS);
+        self.settings_entity = Some(settings_entity);
+
+        // Иконки всех слотов хотбара (сдвинуты на 1: кнопка настроек перед 1-м слотом)
         for (i, slot) in self.slots.iter().enumerate() {
             let icon_path = crate::core::util::slot_icon_path(slot.obj.name);
             let ent = ecs.add_ui(
-                SLOT_BAR_X + i as f32, SLOT_BAR_Y,
+                HOTBAR_X + i as f32, SLOT_BAR_Y,
                 &icon_path,
             );
             self.slot_entities.push(ent);
         }
 
         // Рамка выбора активного слота и игровой курсор
-        let icons_slot_cursor = ecs.add_ui(SLOT_BAR_X, SLOT_BAR_Y, SLOT_CURSOR_TEX);
+        let icons_slot_cursor = ecs.add_ui(HOTBAR_X, SLOT_BAR_Y, SLOT_CURSOR_TEX);
         self.icon_mode = Some(icon_mode);
         self.icons_slot_cursor = Some(icons_slot_cursor);
         self.cursor_entity = Some(ecs.add_cursor(0.0, 0.0, CURSOR_TEX[0]));
@@ -371,6 +383,8 @@ impl Scene for GameScene {
         self.active = true;
         self.active_entity = None;
         self.inv_entity = None;
+        self.settings_entity = None;
+        self.settings = crate::ui::settings::Settings::new();
         self.hud.reset();
         self.shoppers.clear();
         self.day_night.reset();
@@ -392,6 +406,14 @@ impl Scene for GameScene {
         crate::audio::play_music("music");
     }
 
+    /// Автосохранение мира при выходе из игры (в меню или закрытие приложения).
+    fn on_exit(&mut self, ecs: &mut crate::EcsAdapter, _text_renderer: &mut crate::ui::text_renderer::TextRenderer) {
+        if let Some(id) = self.world_id {
+            self.save_to_disk(ecs, id);
+            crate::save::touch_world(id);
+        }
+    }
+
     fn update(&mut self, ecs: &mut crate::EcsAdapter, input: &dyn InputSource, window_size: (f32, f32), text_renderer: &mut crate::ui::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) -> SceneAction {
         // Адаптивный масштаб UI под соотношение сторон (хотбар + иконки/логотип
         // справа умещаются в экран даже на портретных/узких дисплеях)
@@ -407,7 +429,31 @@ impl Scene for GameScene {
             }
             self.hide_loading(ecs);
             self.loaded = true;
-            self.setup_content(ecs, text_renderer, device, queue);
+            // Какой мир запустить — берём из глобальной статики (выставляет меню)
+            let selection = {
+                let g = crate::save::SELECTED_WORLD.lock().unwrap();
+                g.clone()
+            };
+            *crate::save::SELECTED_WORLD.lock().unwrap() = crate::save::WorldSelection::None;
+            match selection {
+                crate::save::WorldSelection::New(id, name) => {
+                    self.world_id = Some(id);
+                    self.world_name = name;
+                    self.setup_content(ecs, text_renderer, device, queue);
+                }
+                crate::save::WorldSelection::Load(id) => {
+                    self.world_id = Some(id);
+                    self.world_name = crate::save::world_meta(id)
+                        .map(|m| m.name)
+                        .unwrap_or_else(|| format!("Мир {}", id));
+                    if !self.load_from_disk(ecs, text_renderer, device, queue, id) {
+                        self.setup_content(ecs, text_renderer, device, queue);
+                    }
+                }
+                crate::save::WorldSelection::None => {
+                    self.setup_content(ecs, text_renderer, device, queue);
+                }
+            }
         }
 
         let now = std::time::Instant::now();
@@ -476,13 +522,28 @@ impl Scene for GameScene {
             crate::audio::play("click");
         }
 
-        // --- Save / Load ---
-        if input.held_control() && input.key_pressed(KeyCode::KeyS) {
-            self.save_to_disk(ecs);
+        // Кнопка настроек (иконка gear) — открыть/закрыть окно настроек
+        if let Some((mx, my)) = input.cursor() {
+            let (wx, wy) = crate::ui::system::ndc_to_ui(mx, my, window_size);
+            if input.mouse_pressed(winit::event::MouseButton::Left)
+                && (wx - SETTINGS_BTN_X).abs() < TILE_HALF
+                && (wy - SETTINGS_BTN_Y).abs() < TILE_HALF {
+                if self.settings.open {
+                    self.settings.close(ecs);
+                } else {
+                    self.settings.open(ecs, text_renderer, device, queue);
+                }
+                crate::audio::play("click");
+                return SceneAction::None;
+            }
         }
-        if input.held_control() && input.key_pressed(KeyCode::KeyL) {
-            self.load_from_disk(ecs, text_renderer, device, queue);
-            return SceneAction::None;
+
+        // --- Ручное сохранение (Ctrl+S) в текущий мир ---
+        if input.held_control() && input.key_pressed(KeyCode::KeyS) {
+            if let Some(id) = self.world_id {
+                self.save_to_disk(ecs, id);
+                crate::save::touch_world(id);
+            }
         }
 
         if self.settings.open {
@@ -498,6 +559,10 @@ impl Scene for GameScene {
             if self.settings.zoom_speed_changed {
                 self.settings.zoom_speed_changed = false;
                 self.zoom_step = self.settings.zoom_speed.value;
+            }
+            if self.settings.menu_requested {
+                self.settings.menu_requested = false;
+                return SceneAction::Switch("menu".to_string());
             }
         } else {
             let cursor = self.cursor_entity.unwrap();

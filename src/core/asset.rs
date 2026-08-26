@@ -81,6 +81,16 @@ pub fn load_data(name: &str) -> std::io::Result<Vec<u8>> {
     std::fs::read(save_dir().join(name))
 }
 
+/// Удаляет пользовательские данные по имени файла (игнорирует отсутствие файла).
+pub fn delete_data(name: &str) -> std::io::Result<()> {
+    let path = save_dir().join(name);
+    if path.exists() {
+        std::fs::remove_file(path)
+    } else {
+        Ok(())
+    }
+}
+
 /// Перечисляет имена файлов внутри каталога (для директорий ассетов,
 /// например sounds/). На десктопе — read_dir, на Android — AssetManager.open_dir.
 pub fn list_dir(dir: &str) -> Vec<String> {

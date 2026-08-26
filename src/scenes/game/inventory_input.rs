@@ -61,7 +61,7 @@ impl GameScene {
         }
 
         // --- Клик по слотам хотбара ---
-        let col = (wx - SLOT_BAR_X + TILE_HALF) as i32;
+        let col = (wx - HOTBAR_X + TILE_HALF) as i32;
         if (wy - SLOT_BAR_Y).abs() < TILE_HALF && col >= 0 && col < self.slots.len() as i32 {
             let target = col;
             if target != self.act_slot {
@@ -73,7 +73,7 @@ impl GameScene {
                     }
                     self.act_slot = target;
                     self.slots[target as usize].active = true;
-                    ecs.update_transform_position(cursor, SLOT_BAR_X + col as f32, SLOT_BAR_Y);
+                    ecs.update_transform_position(cursor, HOTBAR_X + col as f32, SLOT_BAR_Y);
                 }
                 crate::audio::play("hover");
             }

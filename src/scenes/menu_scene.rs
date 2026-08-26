@@ -6,13 +6,31 @@ use crate::scenes::scene_trait::{Scene, SceneAction};
 use crate::core::constants::*;
 use crate::ui::{Panel, create_panel, destroy_panel};
 use crate::input::platform::InputSource;
+use crate::save::{create_world, delete_world, list_worlds, WorldSelection, SELECTED_WORLD};
 
 // ========================================================================
 //  MenuScene — главное меню игры
 // ========================================================================
-//  Содержит карту-фон, логотип, кнопки Play/Quit и декоративную расстановку
-//  предметов (читается из menu_shop.txt). Контент создаётся один раз при
-//  первом входе (флаг ready), при повторных входах — очищается и строится заново.
+//  Состоит из двух состояний:
+//  - Main: карта-фон, логотип, кнопки Play/Quit.
+//  - Worlds: выбор мира (как в Minecraft) — «Новый мир» + список сохранённых
+//    миров + «Назад». При выборе мира выставляется глобальная SELECTED_WORLD,
+//    игра загружает/создаёт нужный мир.
+
+#[derive(Clone, Copy)]
+enum MenuState {
+    Main,
+    Worlds,
+}
+
+/// Запись списка миров: id + панель-кнопка + текст-надпись + кнопка удаления (X)
+struct WorldEntry {
+    id: u32,
+    bg: Panel,
+    label: Option<specs::Entity>,
+    del_bg: Panel,
+    del_label: Option<specs::Entity>,
+}
 
 pub struct MenuScene {
     ready: bool,
@@ -31,6 +49,13 @@ pub struct MenuScene {
     last_frame: Option<std::time::Instant>,
     // Адаптивный масштаб UI (и фона) под соотношение сторон экрана
     ui_scale: f32,
+    // Состояние меню: главное / выбор миров
+    state: MenuState,
+    // UI выбора миров: кнопки миров и прочие сущности (для очистки)
+    world_entries: Vec<WorldEntry>,
+    world_misc: Vec<specs::Entity>,
+    new_btn: Option<Panel>,
+    back_btn: Option<Panel>,
 }
 
 impl MenuScene {
@@ -47,16 +72,27 @@ impl MenuScene {
             quit_scale: 1.0,
             last_frame: None,
             ui_scale: MENU_MAP_SIZE,
+            state: MenuState::Main,
+            world_entries: Vec::new(),
+            world_misc: Vec::new(),
+            new_btn: None,
+            back_btn: None,
         }
     }
 
-    /// Строит всё содержимое меню: карта, логотип, панели и надписи кнопок, декор.
+    /// Строит содержимое меню в зависимости от состояния (Main/Worlds).
     /// Сначала разрушает старое, чтобы пересоздание было идемпотентным.
     fn setup_content(&mut self, ecs: &mut crate::EcsAdapter, text_renderer: &mut crate::ui::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) {
         self.destroy_content(ecs);
         crate::data::map::load_map_to_ecs(ecs);
         ecs.add_ui_sized(LOGO_X, LOGO_Y, LOGO_W, LOGO_H, "tex/ui/game_name.png", device, queue);
-        // Панели-подложки кнопок Play и Quit
+        match self.state {
+            MenuState::Main => self.build_main(ecs, text_renderer, device, queue),
+            MenuState::Worlds => self.build_worlds(ecs, text_renderer, device, queue),
+        }
+    }
+
+    fn build_main(&mut self, ecs: &mut crate::EcsAdapter, text_renderer: &mut crate::ui::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) {
         let mut play_panel = Panel::new(BTN_X, BTN_Y, BTN_W, BTN_H, 0.5);
         create_panel(ecs, device, queue, &mut play_panel);
         let mut quit_panel = Panel::new(QUIT_X, QUIT_Y, QUIT_W, QUIT_H, 0.5);
@@ -70,20 +106,58 @@ impl MenuScene {
         Self::place_decor(ecs);
     }
 
-    /// Удаляет из мира сущности кнопок и их панелей
+    fn build_worlds(&mut self, ecs: &mut crate::EcsAdapter, text_renderer: &mut crate::ui::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) {
+        let title = text_renderer.add_text(ecs, device, queue, "Выбери мир", FONT_SIZE_LOGO, 0.0, 3.7, 7.0, 1.0, WHITE);
+        self.world_misc.push(title);
+
+        // Кнопка «Новый мир»
+        let mut nb = Panel::new(0.0, 2.4, 3.2, 0.8, 0.5);
+        create_panel(ecs, device, queue, &mut nb);
+        let nbl = text_renderer.add_text(ecs, device, queue, "Новый мир", FONT_SIZE_BTN, 0.0, 2.45, 2.4, 1.0, BTN_TEXT_COLOR);
+        if let Some(e) = nb.entity { self.world_misc.push(e); }
+        self.world_misc.push(nbl);
+        self.new_btn = Some(nb);
+
+        // Список сохранённых миров (до 8, от недавно обновлённых)
+        let worlds = list_worlds();
+        let mut y = 1.2;
+        for w in worlds.iter().take(8) {
+            let mut pb = Panel::new(0.0, y, 3.2, 0.8, 0.5);
+            create_panel(ecs, device, queue, &mut pb);
+            let lbl = text_renderer.add_text(ecs, device, queue, &w.name, FONT_SIZE_BTN, 0.0, y + 0.05, 2.8, 1.0, BTN_TEXT_COLOR);
+            // Кнопка удаления (красный крестик X) справа от панели мира
+            let dx = pb.x + pb.w / 2.0 + 0.55;
+            let mut db = Panel::new(dx, y, 0.7, 0.7, 0.5);
+            create_panel(ecs, device, queue, &mut db);
+            let dl = text_renderer.add_text(ecs, device, queue, "X", FONT_SIZE_BTN, dx, y + 0.03, 0.6, 1.0, RED);
+            self.world_entries.push(WorldEntry { id: w.id, bg: pb, label: Some(lbl), del_bg: db, del_label: Some(dl) });
+            y -= 1.0;
+        }
+
+        // Кнопка «Назад»
+        let mut bb = Panel::new(0.0, -3.2, 3.2, 0.8, 0.5);
+        create_panel(ecs, device, queue, &mut bb);
+        let bbl = text_renderer.add_text(ecs, device, queue, "Назад", FONT_SIZE_BTN, 0.0, -3.15, 2.4, 1.0, BTN_TEXT_COLOR);
+        if let Some(e) = bb.entity { self.world_misc.push(e); }
+        self.world_misc.push(bbl);
+        self.back_btn = Some(bb);
+    }
+
+    /// Удаляет из мира все сущности меню (главного и выбора миров)
     fn destroy_content(&mut self, ecs: &mut crate::EcsAdapter) {
-        if let Some(mut p) = self.play_bg.take() {
-            destroy_panel(ecs, &mut p);
+        if let Some(mut p) = self.play_bg.take() { destroy_panel(ecs, &mut p); }
+        if let Some(mut p) = self.quit_bg.take() { destroy_panel(ecs, &mut p); }
+        if let Some(e) = self.play_label.take() { ecs.delete_entity(e); }
+        if let Some(e) = self.quit_label.take() { ecs.delete_entity(e); }
+        for e in self.world_misc.drain(..) { ecs.delete_entity(e); }
+        for mut we in self.world_entries.drain(..) {
+            destroy_panel(ecs, &mut we.bg);
+            if let Some(l) = we.label.take() { ecs.delete_entity(l); }
+            destroy_panel(ecs, &mut we.del_bg);
+            if let Some(l) = we.del_label.take() { ecs.delete_entity(l); }
         }
-        if let Some(mut p) = self.quit_bg.take() {
-            destroy_panel(ecs, &mut p);
-        }
-        if let Some(ent) = self.play_label.take() {
-            ecs.delete_entity(ent);
-        }
-        if let Some(ent) = self.quit_label.take() {
-            ecs.delete_entity(ent);
-        }
+        self.new_btn = None;
+        self.back_btn = None;
     }
 
     /// Расставляет декоративные объекты магазина по файлу menu_shop.txt.
@@ -146,19 +220,6 @@ impl MenuScene {
             && wy >= by - bh / 2.0 && wy <= by + bh / 2.0
     }
 
-    /// ЛКМ зажата и курсор внутри заданной области
-    fn is_btn_clicked(input: &dyn InputSource, window_size: (f32, f32), bx: f32, by: f32, bw: f32, bh: f32) -> bool {
-        input.mouse_pressed(winit::event::MouseButton::Left) && Self::is_inside(input, window_size, bx, by, bw, bh)
-    }
-
-    fn is_play_clicked(input: &dyn InputSource, window_size: (f32, f32)) -> bool {
-        Self::is_btn_clicked(input, window_size, BTN_X, BTN_Y, BTN_W, BTN_H)
-    }
-
-    fn is_quit_clicked(input: &dyn InputSource, window_size: (f32, f32)) -> bool {
-        Self::is_btn_clicked(input, window_size, QUIT_X, QUIT_Y, QUIT_W, QUIT_H)
-    }
-
     fn set_label_texture(ecs: &mut crate::EcsAdapter, label: Option<specs::Entity>, text_renderer: &mut crate::ui::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue, text: &str, x: f32, y: f32, w: f32, h: f32, color: [u8; 3]) -> Option<specs::Entity> {
         // Удаляем старую надпись и создаём новую с другим цветом
         if let Some(old) = label {
@@ -170,21 +231,21 @@ impl MenuScene {
 
 impl Scene for MenuScene {
     fn on_enter(&mut self, _ecs: &mut crate::EcsAdapter, _text_renderer: &mut crate::ui::text_renderer::TextRenderer) {
-        // Откладываем построение контента до первого update(), а в меню играет музыка
+        // При каждом возврате в меню начинаем с главного экрана
+        self.state = MenuState::Main;
         self.ready = false;
         crate::audio::play_music("music");
     }
 
     fn update(&mut self, ecs: &mut crate::EcsAdapter, input: &dyn InputSource, window_size: (f32, f32), text_renderer: &mut crate::ui::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) -> SceneAction {
-        // Замер dt кадра для интерполяции hover-анимации
-        let dt = match self.last_frame {
+        // Замер dt кадра (используется для hover-анимации в update_main)
+        let _dt = match self.last_frame {
             Some(t0) => t0.elapsed().as_secs_f64(),
             None => 1.0 / 60.0,
         };
         self.last_frame = Some(std::time::Instant::now());
 
-        // Адаптивный масштаб UI: кнопки Play/Quit (по ~±3 от центра) умещаются
-        // даже на портретных экранах; им же масштабируется и фон-магазин
+        // Адаптивный масштаб UI
         let aspect = if window_size.1 > 0.0 { window_size.0 / window_size.1 } else { 1.0 };
         self.ui_scale = crate::core::util::ui_fit_scale(aspect, 3.6);
 
@@ -193,13 +254,29 @@ impl Scene for MenuScene {
             self.setup_content(ecs, text_renderer, device, queue);
         }
 
+        match self.state {
+            MenuState::Main => self.update_main(input, window_size, ecs, text_renderer, device, queue),
+            MenuState::Worlds => self.update_worlds(input, window_size, ecs, text_renderer, device, queue),
+        }
+    }
+
+    fn sprites(&self, ecs: &crate::EcsAdapter, _visible_bounds: Option<(f32, f32, f32, f32)>) -> (Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>) {
+        ecs.get_sprites_by_layer(None)
+    }
+
+    fn map_size(&self) -> f32 { self.ui_scale }
+    fn ui_size(&self) -> f32 { self.ui_scale }
+    fn camera_offset(&self) -> (f32, f32) { (0.0, 0.0) }
+}
+
+impl MenuScene {
+    /// Логика главного экрана: подсветка Play/Quit и обработка кликов.
+    fn update_main(&mut self, input: &dyn InputSource, window_size: (f32, f32), ecs: &mut crate::EcsAdapter, text_renderer: &mut crate::ui::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) -> SceneAction {
         // Подсветка кнопки Play при наведении (зелёный текст вместо обычного)
         let h = Self::is_inside(input, window_size, BTN_X, BTN_Y, BTN_W, BTN_H);
         if h != self.play_hover {
             self.play_hover = h;
-            if h {
-                crate::audio::play("hover");
-            }
+            if h { crate::audio::play("hover"); }
             let color = if h { GREEN } else { BTN_TEXT_COLOR };
             self.play_label = Self::set_label_texture(ecs, self.play_label, text_renderer, device, queue, "Play", BTN_X, BTN_Y + 0.05, BTN_W * 0.75, 1.0, color);
         }
@@ -208,15 +285,13 @@ impl Scene for MenuScene {
         let h = Self::is_inside(input, window_size, QUIT_X, QUIT_Y, QUIT_W, QUIT_H);
         if h != self.quit_hover {
             self.quit_hover = h;
-            if h {
-                crate::audio::play("hover");
-            }
+            if h { crate::audio::play("hover"); }
             let color = if h { GREEN } else { BTN_TEXT_COLOR };
             self.quit_label = Self::set_label_texture(ecs, self.quit_label, text_renderer, device, queue, "Quit", QUIT_X, QUIT_Y + 0.05, QUIT_W * 0.75, 1.0, color);
         }
 
-        // Hover-масштаб кнопок: плавно нарастает к 1.12 при наведении и возвращается к 1.0
-        let k = (12.0 * dt as f32).min(1.0);
+        // Hover-масштаб кнопок: плавно нарастает/возвращается (~за 5 кадров)
+        let k = 0.2;
         let play_target = if self.play_hover { 1.12 } else { 1.0 };
         let quit_target = if self.quit_hover { 1.12 } else { 1.0 };
         self.play_scale += (play_target - self.play_scale) * k;
@@ -224,35 +299,74 @@ impl Scene for MenuScene {
         if (play_target - self.play_scale).abs() < 0.0001 { self.play_scale = play_target; }
         if (quit_target - self.quit_scale).abs() < 0.0001 { self.quit_scale = quit_target; }
         if let Some(bg) = &self.play_bg {
-            if let Some(e) = bg.entity {
-                ecs.update_sprite_scale(e, self.play_scale);
-            }
+            if let Some(e) = bg.entity { ecs.update_sprite_scale(e, self.play_scale); }
         }
         if let Some(bg) = &self.quit_bg {
-            if let Some(e) = bg.entity {
-                ecs.update_sprite_scale(e, self.quit_scale);
-            }
+            if let Some(e) = bg.entity { ecs.update_sprite_scale(e, self.quit_scale); }
         }
 
+        let clicked = |input: &dyn InputSource, bx: f32, by: f32, bw: f32, bh: f32| -> bool {
+            input.mouse_pressed(winit::event::MouseButton::Left) && Self::is_inside(input, window_size, bx, by, bw, bh)
+        };
+
         // Запуск игры по пробелу или клику на Play
-        if input.key_pressed(winit::keyboard::KeyCode::Space) || Self::is_play_clicked(input, window_size) {
+        if input.key_pressed(winit::keyboard::KeyCode::Space) || clicked(input, BTN_X, BTN_Y, BTN_W, BTN_H) {
             crate::audio::play("click");
-            return SceneAction::Switch("game".to_string());
+            self.state = MenuState::Worlds;
+            self.setup_content(ecs, text_renderer, device, queue);
+            return SceneAction::None;
         }
         // Выход по Escape или клику на Quit
-        if input.key_pressed(winit::keyboard::KeyCode::Escape) || Self::is_quit_clicked(input, window_size) {
+        if input.key_pressed(winit::keyboard::KeyCode::Escape) || clicked(input, QUIT_X, QUIT_Y, QUIT_W, QUIT_H) {
             crate::audio::play("click");
             return SceneAction::Quit;
         }
         SceneAction::None
     }
 
-    fn sprites(&self, ecs: &crate::EcsAdapter, _visible_bounds: Option<(f32, f32, f32, f32)>) -> (Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>) {
-        // В меню отдаём все слои, отсечение не нужно
-        ecs.get_sprites_by_layer(None)
-    }
+    /// Логика выбора миров: «Новый мир», список миров, «Назад».
+    fn update_worlds(&mut self, input: &dyn InputSource, window_size: (f32, f32), ecs: &mut crate::EcsAdapter, text_renderer: &mut crate::ui::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) -> SceneAction {
+        let clicked = |input: &dyn InputSource, bx: f32, by: f32, bw: f32, bh: f32| -> bool {
+            input.mouse_pressed(winit::event::MouseButton::Left) && Self::is_inside(input, window_size, bx, by, bw, bh)
+        };
 
-    fn map_size(&self) -> f32 { self.ui_scale }
-    fn ui_size(&self) -> f32 { self.ui_scale }
-    fn camera_offset(&self) -> (f32, f32) { (0.0, 0.0) }
+        // Новый мир
+        if let Some(ref nb) = self.new_btn {
+            if clicked(input, nb.x, nb.y, nb.w, nb.h) {
+                crate::audio::play("click");
+                let meta = create_world();
+                *SELECTED_WORLD.lock().unwrap() = WorldSelection::New(meta.id, meta.name);
+                return SceneAction::Switch("game".to_string());
+            }
+        }
+        // Список миров (удаление или загрузка)
+        let mut del_id = None;
+        for we in &self.world_entries {
+            if clicked(input, we.del_bg.x, we.del_bg.y, we.del_bg.w, we.del_bg.h) {
+                del_id = Some(we.id);
+                break;
+            }
+            if clicked(input, we.bg.x, we.bg.y, we.bg.w, we.bg.h) {
+                crate::audio::play("click");
+                *SELECTED_WORLD.lock().unwrap() = WorldSelection::Load(we.id);
+                return SceneAction::Switch("game".to_string());
+            }
+        }
+        if let Some(id) = del_id {
+            crate::audio::play("click");
+            delete_world(id);
+            self.setup_content(ecs, text_renderer, device, queue);
+            return SceneAction::None;
+        }
+        // Назад
+        if let Some(ref bb) = self.back_btn {
+            if clicked(input, bb.x, bb.y, bb.w, bb.h) {
+                crate::audio::play("click");
+                self.state = MenuState::Main;
+                self.setup_content(ecs, text_renderer, device, queue);
+                return SceneAction::None;
+            }
+        }
+        SceneAction::None
+    }
 }

@@ -208,10 +208,10 @@ impl GameScene {
         self.slot_entities.clear();
         for (i, slot) in self.slots.iter().enumerate() {
             let icon_path = crate::core::util::slot_icon_path(slot.obj.name);
-            let ent = ecs.add_ui(SLOT_BAR_X + i as f32, SLOT_BAR_Y, &icon_path);
+            let ent = ecs.add_ui(HOTBAR_X + i as f32, SLOT_BAR_Y, &icon_path);
             self.slot_entities.push(ent);
         }
-        let cursor_x = SLOT_BAR_X + self.act_slot as f32;
+        let cursor_x = HOTBAR_X + self.act_slot as f32;
         let icons_slot_cursor = ecs.add_ui(cursor_x, SLOT_BAR_Y, SLOT_CURSOR_TEX);
         self.icons_slot_cursor = Some(icons_slot_cursor);
         let icon_mode = ecs.add_ui(ICON_MODE_X, SLOT_BAR_Y, MODE_ICON_TEX[self.mode as usize]);
@@ -220,6 +220,8 @@ impl GameScene {
         self.active_entity = Some(active_entity);
         let inv_entity = ecs.add_ui(INV_BTN_X, SLOT_BAR_Y, TEX_INV_BUTTON);
         self.inv_entity = Some(inv_entity);
+        let settings_entity = ecs.add_ui(SETTINGS_BTN_X, SETTINGS_BTN_Y, TEX_SETTINGS);
+        self.settings_entity = Some(settings_entity);
         self.cursor_entity = Some(ecs.add_cursor(0.0, 0.0, CURSOR_TEX[self.mode as usize]));
 
         self.hud.create_info_panel(ecs, device, queue);
@@ -228,7 +230,7 @@ impl GameScene {
     }
 
     /// Сохраняет игру в файл save.json (Ctrl+S)
-    pub fn save_to_disk(&mut self, ecs: &mut EcsAdapter) {
+    pub fn save_to_disk(&mut self, ecs: &mut EcsAdapter, world_id: u32) {
         self.save_current_level(ecs);
         #[derive(Serialize)]
         struct ObjSave {
@@ -287,26 +289,28 @@ impl GameScene {
             busy_cassas,
         };
         if let Ok(json) = serde_json::to_string_pretty(&data) {
-            if crate::core::asset::save_data("save.json", json.as_bytes()).is_ok() {
+            if crate::core::asset::save_data(&crate::save::world_save_path(world_id), json.as_bytes()).is_ok() {
                 crate::audio::play("save");
             }
         }
     }
 
-    /// Загружает игру из файла save.json (Ctrl+L)
+    /// Загружает игру из файла мира worlds/world_{world_id}.json.
+    /// Возвращает true, если загрузка прошла успешно (файл есть и валиден).
     pub fn load_from_disk(
         &mut self,
         ecs: &mut EcsAdapter,
         text_renderer: &mut TextRenderer,
         device: &Device,
         queue: &Queue,
-    ) {
-        let content = match crate::core::asset::load_data("save.json") {
+        world_id: u32,
+    ) -> bool {
+        let content = match crate::core::asset::load_data(&crate::save::world_save_path(world_id)) {
             Ok(bytes) => match String::from_utf8(bytes) {
                 Ok(c) => c,
-                Err(_) => return,
+                Err(_) => return false,
             },
-            Err(_) => return,
+            Err(_) => return false,
         };
         #[derive(Deserialize)]
         struct ObjSave {
@@ -331,7 +335,7 @@ impl GameScene {
         }
         let data: Data = match serde_json::from_str(&content) {
             Ok(d) => d,
-            Err(_) => return,
+            Err(_) => return false,
         };
         crate::audio::play("save");
 
@@ -373,6 +377,7 @@ impl GameScene {
 
         // Строим сохранённый уровень (объекты уже в level_states)
         self.load_level(ecs, text_renderer, device, queue, self.current_level, true);
+        true
     }
 
     /// Отмечает, что подвал установлен у игрока, и рисует его выход в подвал

@@ -82,8 +82,10 @@ pub const SLOT_COUNT: usize = 5;
 // === Слот-бар ===
 pub const SLOT_BAR_Y: f32 = -4.0;
 pub const SLOT_BAR_X: f32 = -7.0;
+// Начало хотбара: кнопка настроек занимает позицию перед 1-м слотом
+pub const HOTBAR_X: f32 = SLOT_BAR_X + 1.0;
 pub const ICON_MODE_X: f32 = 6.2;
-pub const INV_BTN_X: f32 = SLOT_BAR_X + SLOT_COUNT as f32;
+pub const INV_BTN_X: f32 = HOTBAR_X + SLOT_COUNT as f32;
 pub const TEX_INV_BUTTON: &str = "tex/ui/icon_slots/inv.png";
 
 // === Текст (цвета, размеры) ===
@@ -139,6 +141,11 @@ pub const CURSOR_ERR_TEX: &str = "tex/ui/cursor/err cursor.png";
 pub const ACTIVE_X: f32 = ICON_MODE_X + 1.0;
 pub const TEX_ACTIVE: &str = "tex/ui/active/active.png";
 pub const TEX_NO_ACTIVE: &str = "tex/ui/active/no_active.png";
+
+// === Кнопка настроек в игре (иконка gear) — перед 1-м слотом хотбара ===
+pub const SETTINGS_BTN_X: f32 = SLOT_BAR_X;
+pub const SETTINGS_BTN_Y: f32 = SLOT_BAR_Y;
+pub const TEX_SETTINGS: &str = "tex/ui/settings.png";
 
 // === Текстуры иконки режима ===
 pub const MODE_ICON_TEX: [&str; 3] = [

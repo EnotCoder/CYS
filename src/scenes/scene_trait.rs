@@ -17,6 +17,10 @@ pub enum SceneAction {
 pub trait Scene {
     /// Вызывается один раз при входе в сцену (после очистки мира)
     fn on_enter(&mut self, ecs: &mut crate::EcsAdapter, text_renderer: &mut crate::ui::text_renderer::TextRenderer);
+    /// Вызывается перед выходом из сцены (переключение на другую сцену или
+    /// закрытие приложения). По умолчанию ничего не делает; GameScene здесь
+    /// автосохраняет текущий мир.
+    fn on_exit(&mut self, _ecs: &mut crate::EcsAdapter, _text_renderer: &mut crate::ui::text_renderer::TextRenderer) {}
     /// Ежекадровое обновление сцены: ввод, игровая логика; возвращает SceneAction
     fn update(&mut self, ecs: &mut crate::EcsAdapter, input: &dyn crate::input::platform::InputSource, window_size: (f32, f32), text_renderer: &mut crate::ui::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) -> SceneAction;
     /// Собирает спрайты всех слоёв рендера (земля/ковры/свет/декор/NPC/курсор/UI и т.д.);

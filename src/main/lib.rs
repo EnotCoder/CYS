@@ -22,6 +22,8 @@ mod input;
 mod npc;
 #[path = "../scenes/mod.rs"]
 mod scenes;
+#[path = "../save/mod.rs"]
+mod save;
 #[path = "../scripts/mod.rs"]
 mod scripts;
 #[path = "../ui/mod.rs"]
@@ -112,6 +114,9 @@ impl App {
                 self.scene_manager.switch_to(&name, &mut self.text_renderer);
             }
             crate::scenes::SceneAction::Quit => {
+                if let Some(scene) = self.scene_manager.scenes.get_mut(&self.scene_manager.current) {
+                    scene.on_exit(&mut self.scene_manager.ecs, &mut self.text_renderer);
+                }
                 self.quit_requested = true;
             }
             crate::scenes::SceneAction::VsyncToggle(enabled) => {

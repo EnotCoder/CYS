@@ -8,7 +8,7 @@
 // ========================================================================
 
 use specs::Entity;
-use crate::ui::{Panel, Checkbox, Slider, create_panel, destroy_panel, create_checkbox, destroy_checkbox, refresh_checkbox, checkbox_clicked, checkbox_hovered, create_slider, destroy_slider, slider_drag, slider_hovered, update_slider_thumb};
+use crate::ui::{Panel, Checkbox, Slider, Button, create_panel, destroy_panel, create_checkbox, destroy_checkbox, refresh_checkbox, checkbox_clicked, checkbox_hovered, create_slider, destroy_slider, slider_drag, slider_hovered, update_slider_thumb, create_button, destroy_button, button_clicked};
 use crate::ui::text_renderer::TextRenderer;
 use crate::core::constants::*;
 use crate::EcsAdapter;
@@ -31,6 +31,10 @@ pub struct Settings {
     /// Текущий масштаб галочки и ползунка (hover-анимация, ease к 1.0)
     checkbox_scale: f32,
     slider_scale: f32,
+    /// Кнопка «В меню» (выход из игры в выбор миров)
+    menu_button: Button,
+    /// Флаг запроса выхода в меню, устанавливается по клику на menu_button
+    pub menu_requested: bool,
 }
 
 impl Settings {
@@ -45,6 +49,8 @@ impl Settings {
             zoom_speed_changed: false,
             checkbox_scale: 1.0,
             slider_scale: 1.0,
+            menu_button: Button::new(0.0, -2.0, 3.0, 0.8, "В меню"),
+            menu_requested: false,
         }
     }
 
@@ -55,6 +61,7 @@ impl Settings {
         create_panel(ecs, device, queue, &mut self.panel);
         create_checkbox(ecs, text_renderer, device, queue, &mut self.vsync);
         create_slider(ecs, text_renderer, device, queue, &mut self.zoom_speed);
+        create_button(ecs, text_renderer, device, queue, &mut self.menu_button);
         let title = text_renderer.add_text(ecs, device, queue, "Settings", 64.0, 0.0, 1.8, 4.0, 2.0, WHITE);
         self.title = Some(title);
     }
@@ -66,11 +73,13 @@ impl Settings {
         destroy_panel(ecs, &mut self.panel);
         destroy_checkbox(ecs, &mut self.vsync);
         destroy_slider(ecs, &mut self.zoom_speed);
+        destroy_button(ecs, &mut self.menu_button);
         if let Some(ent) = self.title.take() {
             ecs.delete_entity(ent);
         }
         self.checkbox_scale = 1.0;
         self.slider_scale = 1.0;
+        self.menu_requested = false;
     }
 
     /// Ежекадровый hover-эффект: галочка и ползунок плавно увеличиваются
@@ -119,6 +128,13 @@ impl Settings {
             self.zoom_speed.value = self.zoom_speed.min + t * (self.zoom_speed.max - self.zoom_speed.min);
             update_slider_thumb(ecs, device, queue, &mut self.zoom_speed);
             self.zoom_speed_changed = true;
+            return true;
+        }
+
+        // Клик по кнопке «В меню» — запрашиваем выход из игры
+        if button_clicked(&self.menu_button, input, window_size) {
+            self.menu_requested = true;
+            crate::audio::play("click");
             return true;
         }
 

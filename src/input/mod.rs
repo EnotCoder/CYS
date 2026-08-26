@@ -50,7 +50,7 @@ pub fn do_input(
         // вызывать действие в мире — в этом случае ввод пропускается
         let skip = inventory_mode || input.cursor().map_or(false, |(mx, my)| {
             let (wx, wy) = crate::ui::system::ndc_to_ui(mx, my, window_size);
-            let col = (wx - SLOT_BAR_X + TILE_HALF) as i32;
+            let col = (wx - HOTBAR_X + TILE_HALF) as i32;
             let on_slot = (wy - SLOT_BAR_Y).abs() < TILE_HALF && col >= 0 && col < slots.len() as i32;
             let on_icons = (wy - SLOT_BAR_Y).abs() < TILE_HALF
                 && ((wx - ICON_MODE_X).abs() < TILE_HALF || (wx - ACTIVE_X).abs() < TILE_HALF);

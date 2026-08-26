@@ -63,6 +63,7 @@ orientation = "landscape"
 [package.metadata.android.application]
 theme = "@android:style/Theme.NoTitleBar.Fullscreen"
 icon = "@mipmap/ic_launcher"
+label = "Create your shop (CYS)"
 
 [package.metadata.android.sdk]
 min_sdk_version = 26

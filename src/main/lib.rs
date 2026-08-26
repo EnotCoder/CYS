@@ -219,7 +219,7 @@ impl ApplicationHandler for App {
     // Окно готово к работе: создаём окно, GPU-контекст и поверхность
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
         let window_attr = Window::default_attributes()
-            .with_title("CYS — Create your Shop")
+            .with_title("Create your shop (CYS)")
             .with_inner_size(PhysicalSize::new(WINDOW_WIDTH, WINDOW_HEIGHT));
         let window = event_loop.create_window(window_attr).unwrap();
         // Окно живёт всё время работы приложения, поэтому его можно утечь в 'static

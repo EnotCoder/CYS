@@ -29,6 +29,7 @@ rodio = "0.22.2"
 # Только под Android: точка входа android-activity + упаковка ассетов в APK.
 [target.'cfg(target_os = "android")'.dependencies]
 android-activity = { version = "0.6", features = ["native-activity"] }
+jni = "0.22"
 
 # Только под Windows (кросс-компиляция с mingw): в mingw нет импорт-либы
 # vulkan-1, поэтому отключаем Vulkan-бэкенд и используем Dx12 + WGSL.

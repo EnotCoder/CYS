@@ -30,6 +30,12 @@ fn android_main(app: AndroidApp) {
         android_activity::WindowManagerFlags::empty(),
     );
 
+    // Прячем системную навигационную панель (кнопки back/home/recents) в
+    // иммерсивном режиме, как в других мобильных играх. Эти флаги относятся
+    // к View.setSystemUiVisibility, а не к WindowManager, поэтому ставим их
+    // через JNI (WindowManagerFlags в android-activity их не содержит).
+    hide_system_ui(&app);
+
     // Цикл событий winit, привязанный к AndroidApp.
     let mut event_loop = EventLoop::builder();
     event_loop.with_android_app(app);
@@ -40,4 +46,35 @@ fn android_main(app: AndroidApp) {
 
     // Запуск главного цикла (блокирует до выхода/уничтожения активити).
     let _ = event_loop.run_app(&mut app_state);
+}
+
+// Скрывает статус- и навигационную панели через View.setSystemUiVisibility в
+// иммерсивном «липком» режиме (SYSTEM_UI_FLAG_IMMERSIVE_STICKY): панели сами
+// возвращаются после свайпа и снова прячутся, контент лежит под ними, поэтому
+// winit не меняет размер окна. Флаги (сумма бит):
+//   HIDE_NAVIGATION         0x00000002
+//   FULLSCREEN              0x00000004
+//   LAYOUT_HIDE_NAVIGATION  0x00000200
+//   LAYOUT_FULLSCREEN       0x00000100
+//   IMMERSIVE_STICKY        0x00001000
+fn hide_system_ui(app: &AndroidApp) {
+    use jni::errors::Result as JniResult;
+    use jni::objects::JObject;
+    use jni::objects::JValue;
+    use jni::refs::Global;
+    use jni::JavaVM;
+
+    let vm = unsafe { JavaVM::from_raw(app.vm_as_ptr().cast()) };
+    let res = vm.attach_current_thread(|env| -> JniResult<()> {
+        let raw = app.activity_as_ptr() as jni::sys::jobject;
+        let activity = unsafe { env.as_cast_raw::<Global<JObject>>(&raw) }?;
+        let window = env.call_method(activity, jni::jni_str!("getWindow"), jni::jni_sig!("()Landroid/view/Window;"), &[])?.l()?;
+        let decor = env.call_method(&window, jni::jni_str!("getDecorView"), jni::jni_sig!("()Landroid/view/View;"), &[])?.l()?;
+        let flags: i32 = (0x00000002 | 0x00000004 | 0x00000200 | 0x00000100 | 0x00001000) as i32;
+        env.call_method(&decor, jni::jni_str!("setSystemUiVisibility"), jni::jni_sig!("(I)V"), &[JValue::Int(flags)])?;
+        Ok(())
+    });
+    if let Err(e) = res {
+        eprintln!("hide_system_ui: JNI call failed: {e:?}");
+    }
 }

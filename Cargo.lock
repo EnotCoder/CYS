@@ -2781,6 +2781,7 @@ dependencies = [
  "android-activity",
  "bytemuck",
  "image",
+ "jni 0.22.4",
  "mlua",
  "pollster",
  "rodio",

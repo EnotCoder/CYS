@@ -146,7 +146,6 @@ impl super::EcsAdapter {
     // Выбирает текстуру забора по соседям: имя файла кодирует
     // наличие заборов сверху/снизу/слева/справа (например fence_1_0_1_0.png).
     pub fn update_fence_textures(&mut self) {
-        use std::path::Path;
         let transforms = self.world.read_storage::<Transform>();
         let fences = self.world.read_storage::<FenceComponent>();
         // Множество всех клеток с заборами для быстрой проверки соседства.
@@ -169,7 +168,9 @@ impl super::EcsAdapter {
                 ("tex/decor/regular/fence/fence", Arc::from("tex/decor/regular/fence/fence_0_0_0_0.png"))
             };
             let path = format!("{}_{}_{}_{}_{}.png", dir, up as u8, down as u8, left as u8, right as u8);
-            if Path::new(&path).exists() {
+            // Проверяем наличие варианта через загрузчик ассетов (работает и на
+            // Android, где текстуры упакованы в APK, а не лежат файлами на диске).
+            if crate::core::asset::load_bytes(&path).is_ok() {
                 sprite.texture_path = Arc::from(path.into_boxed_str());
             } else {
                 sprite.texture_path = fallback_arc;

@@ -135,7 +135,7 @@ impl MenuScene {
     }
 
     fn build_naming(&mut self, ecs: &mut crate::EcsAdapter, text_renderer: &mut crate::ui::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) {
-        let title = text_renderer.add_text(ecs, device, queue, "Название мира", FONT_SIZE_LOGO, 0.0, 3.7, 7.0, 1.0, WHITE);
+        let title = text_renderer.add_text(ecs, device, queue, "World Name", FONT_SIZE_LOGO, 0.0, 3.7, 7.0, 1.0, WHITE);
         self.naming_title = Some(title);
 
         // Поле ввода (чёрная панель) с текущим названием поверх
@@ -149,14 +149,14 @@ impl MenuScene {
         let mut cb = Panel::new(0.0, -1.0, 3.2, 0.8, 0.5);
         create_panel(ecs, device, queue, &mut cb);
         self.name_create_bg = Some(cb);
-        let cl = text_renderer.add_text(ecs, device, queue, "Создать", FONT_SIZE_BTN, 0.0, -0.95, 2.4, 1.0, BTN_TEXT_COLOR);
+        let cl = text_renderer.add_text(ecs, device, queue, "Create", FONT_SIZE_BTN, 0.0, -0.95, 2.4, 1.0, BTN_TEXT_COLOR);
         self.name_create_label = Some(cl);
 
         // Кнопка «Назад»
         let mut bb = Panel::new(0.0, -2.2, 3.2, 0.8, 0.5);
         create_panel(ecs, device, queue, &mut bb);
         self.name_back_bg = Some(bb);
-        let bl = text_renderer.add_text(ecs, device, queue, "Назад", FONT_SIZE_BTN, 0.0, -2.15, 2.4, 1.0, BTN_TEXT_COLOR);
+        let bl = text_renderer.add_text(ecs, device, queue, "Back", FONT_SIZE_BTN, 0.0, -2.15, 2.4, 1.0, BTN_TEXT_COLOR);
         self.name_back_label = Some(bl);
     }
 
@@ -175,13 +175,13 @@ impl MenuScene {
     }
 
     fn build_worlds(&mut self, ecs: &mut crate::EcsAdapter, text_renderer: &mut crate::ui::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) {
-        let title = text_renderer.add_text(ecs, device, queue, "Выбери мир", FONT_SIZE_LOGO, 0.0, 3.7, 7.0, 1.0, WHITE);
+        let title = text_renderer.add_text(ecs, device, queue, "Select World", FONT_SIZE_LOGO, 0.0, 3.7, 7.0, 1.0, WHITE);
         self.world_misc.push(title);
 
         // Кнопка «Новый мир»
         let mut nb = Panel::new(0.0, 2.4, 3.2, 0.8, 0.5);
         create_panel(ecs, device, queue, &mut nb);
-        let nbl = text_renderer.add_text(ecs, device, queue, "Новый мир", FONT_SIZE_BTN, 0.0, 2.45, 2.4, 1.0, BTN_TEXT_COLOR);
+        let nbl = text_renderer.add_text(ecs, device, queue, "New World", FONT_SIZE_BTN, 0.0, 2.45, 2.4, 1.0, BTN_TEXT_COLOR);
         if let Some(e) = nb.entity { self.world_misc.push(e); }
         self.world_misc.push(nbl);
         self.new_btn = Some(nb);
@@ -205,7 +205,7 @@ impl MenuScene {
         // Кнопка «Назад»
         let mut bb = Panel::new(0.0, -3.2, 3.2, 0.8, 0.5);
         create_panel(ecs, device, queue, &mut bb);
-        let bbl = text_renderer.add_text(ecs, device, queue, "Назад", FONT_SIZE_BTN, 0.0, -3.15, 2.4, 1.0, BTN_TEXT_COLOR);
+        let bbl = text_renderer.add_text(ecs, device, queue, "Back", FONT_SIZE_BTN, 0.0, -3.15, 2.4, 1.0, BTN_TEXT_COLOR);
         if let Some(e) = bb.entity { self.world_misc.push(e); }
         self.world_misc.push(bbl);
         self.back_btn = Some(bb);

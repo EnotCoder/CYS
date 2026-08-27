@@ -92,7 +92,15 @@ impl MenuScene {
                 ecs.add_ui_sized(LOGO_X, LOGO_Y, LOGO_W, LOGO_H, "assets/tex/ui/game_name.png", device, queue);
                 self.build_main(ecs, text_renderer, device, queue);
             }
-            MenuState::Worlds => self.build_worlds(ecs, text_renderer, device, queue),
+            MenuState::Worlds => {
+                // Тот же фон, что и в главном меню (карта + декор), но с
+                // затемняющим оверлеем, чтобы список миров был читаемым.
+                crate::data::map::load_map_to_ecs(ecs);
+                Self::place_decor(ecs);
+                let overlay = ecs.add_ui_sized(0.0, 0.0, 100.0, 100.0, "assets/tex/dev_tools/black.png", device, queue);
+                ecs.update_sprite_alpha(overlay, 0.6);
+                self.build_worlds(ecs, text_renderer, device, queue);
+            }
         }
     }
 

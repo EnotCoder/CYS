@@ -549,6 +549,19 @@ impl Scene for GameScene {
         if self.settings.open {
             // Hover-анимация настроек (масштаб галочки/ползунка)
             self.settings.tick_hover(ecs, input, window_size, dt);
+            // Закрытие по клику/тапу вне панели настроек (ПК и Android/тач).
+            // Панель центрирована в (0,0) с размерами w×h, поэтому «снаружи» —
+            // это выход за её половинные границы.
+            if let Some((mx, my)) = input.cursor() {
+                let (wx, wy) = crate::ui::system::ndc_to_ui(mx, my, window_size);
+                let p = &self.settings.panel;
+                let inside = (wx - p.x).abs() <= p.w / 2.0 && (wy - p.y).abs() <= p.h / 2.0;
+                if input.mouse_pressed(winit::event::MouseButton::Left) && !inside {
+                    self.settings.close(ecs);
+                    crate::audio::play("click");
+                    return SceneAction::None;
+                }
+            }
             // Пока открыты настройки — обрабатываем только их ввод
             self.settings.handle_input(ecs, text_renderer, device, queue, input, window_size);
             if self.settings.vsync_toggled {

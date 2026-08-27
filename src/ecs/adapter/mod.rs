@@ -17,7 +17,7 @@ use crate::Sprite;
 use crate::Texture;
 use crate::ecs::components::{
     BasementPlaced, FenceComponent, FoodStorage, Money, ObjectTag, PointLight, Rotation,
-    SpriteComponent, TotalFood, Transform, BusyCassas,
+    SpriteComponent, TotalFood, Transform, BusyCassas, PlacementError,
 };
 use crate::{GroupComponent, GroupInfoResource};
 use crate::core::constants::*;
@@ -96,6 +96,7 @@ impl EcsAdapter {
         let cfg = crate::scripts::config::BalanceConfig::load();
         world.insert(Money(cfg.start_money));
         world.insert(BasementPlaced(false));
+        world.insert(PlacementError(None));
         world.insert(cfg);
 
         Self {

@@ -15,7 +15,7 @@ use crate::core::constants::*;
 use crate::input::platform::InputSource;
 use crate::ui::inventory::Inventory;
 use crate::data::map::pathfinding::Node;
-use crate::ecs::components::{FoodStorage, ObjectTag, TotalFood, BusyCassas, Money};
+use crate::ecs::components::{FoodStorage, ObjectTag, TotalFood, BusyCassas, Money, PlacementError};
 use crate::scenes::game::day_night::DayNightCycle;
 use crate::scenes::game::hud::GameHud;
 use crate::scenes::game::shoppers::ShopperManager;
@@ -71,6 +71,9 @@ pub struct GameScene {
     ilm_entity: Option<specs::Entity>,
     ilm_timer: f64,
     ilm_cooldown: f64,
+    // Всплывающая красная подсказка «не хватает денег» при попытке поставить объект
+    no_money_entity: Option<specs::Entity>,
+    no_money_timer: f64,
     // Таймер регенерации еды в ящиках
     food_timer: f64,
     // Магазин открыт для покупателей или закрыт (иконка ACTIVE)
@@ -135,6 +138,8 @@ impl GameScene {
             ilm_entity: None,
             ilm_timer: 0.0,
             ilm_cooldown: 0.0,
+            no_money_entity: None,
+            no_money_timer: 0.0,
             food_timer: 0.0,
             active: true,
             active_entity: None,
@@ -379,6 +384,8 @@ impl Scene for GameScene {
         self.ilm_entity = None;
         self.ilm_timer = 0.0;
         self.ilm_cooldown = 0.0;
+        self.no_money_entity = None;
+        self.no_money_timer = 0.0;
         self.food_timer = 0.0;
         self.active = true;
         self.active_entity = None;
@@ -648,6 +655,19 @@ impl Scene for GameScene {
                 self.ilm_cooldown = 5.0;
             }
 
+            // Подсказка «не хватает денег»: если размещение не прошло из-за
+            // нехватки средств, PlacementError содержит (деньги, цена).
+            let no_money = ecs.world.read_resource::<PlacementError>().0;
+            if let Some((money, price)) = no_money {
+                ecs.world.write_resource::<PlacementError>().0 = None;
+                if self.no_money_entity.is_none() {
+                    let msg = format!("Not enough money: you have {}, but it costs {}", money, price);
+                    let ent = text_renderer.add_text(ecs, device, queue, &msg, 40.0, 0.0, -3.0, 8.0, 1.0, RED);
+                    self.no_money_entity = Some(ent);
+                    self.no_money_timer = 2.0;
+                }
+            }
+
             self.handle_inventory_input(ecs, input, window_size);
         }
 
@@ -747,6 +767,15 @@ impl Scene for GameScene {
             if self.ilm_timer <= 0.0 {
                 ecs.delete_entity(ent);
                 self.ilm_entity = None;
+            }
+        }
+
+        // Управление таймером красной подсказки «не хватает денег»
+        if let Some(ent) = self.no_money_entity {
+            self.no_money_timer -= dt;
+            if self.no_money_timer <= 0.0 {
+                ecs.delete_entity(ent);
+                self.no_money_entity = None;
             }
         }
 

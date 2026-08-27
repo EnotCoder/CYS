@@ -4,7 +4,7 @@
 use specs::WorldExt;
 use crate::EcsAdapter;
 use super::Slot;
-use crate::ecs::components::{BasementPlaced, Money};
+use crate::ecs::components::{BasementPlaced, Money, PlacementError};
 
 // ========================================================================
 //  Правила размещения объектов: категории, стены, трава
@@ -219,6 +219,8 @@ pub fn add(ecs: &mut EcsAdapter, slots: &mut Vec<Slot>, act_slot: i32, gx: i32, 
         super::object_price(active_slot.name, &cfg)
     };
     if ecs.world.read_resource::<Money>().0 < price {
+        let money = ecs.world.read_resource::<Money>().0;
+        ecs.world.write_resource::<PlacementError>().0 = Some((money, price));
         crate::audio::play("error");
         return;
     }

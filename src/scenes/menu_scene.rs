@@ -29,7 +29,7 @@ struct WorldEntry {
     bg: Panel,
     label: Option<specs::Entity>,
     del_bg: Panel,
-    del_label: Option<specs::Entity>,
+    del_icon: Option<specs::Entity>,
 }
 
 pub struct MenuScene {
@@ -137,12 +137,12 @@ impl MenuScene {
             let mut pb = Panel::new(0.0, y, 3.2, 0.8, 0.5);
             create_panel(ecs, device, queue, &mut pb);
             let lbl = text_renderer.add_text(ecs, device, queue, &w.name, FONT_SIZE_BTN, 0.0, y + 0.05, 2.8, 1.0, BTN_TEXT_COLOR);
-            // Кнопка удаления (красный крестик X) справа от панели мира
+            // Кнопка удаления: чёрная панель (del_bg) с иконкой «минус» поверх
             let dx = pb.x + pb.w / 2.0 + 0.55;
             let mut db = Panel::new(dx, y, 0.7, 0.7, 0.5);
             create_panel(ecs, device, queue, &mut db);
-            let dl = text_renderer.add_text(ecs, device, queue, "X", FONT_SIZE_BTN, dx, y + 0.03, 0.6, 1.0, RED);
-            self.world_entries.push(WorldEntry { id: w.id, bg: pb, label: Some(lbl), del_bg: db, del_label: Some(dl) });
+            let di = ecs.add_ui_sized(dx, y, 0.45, 0.45, "assets/tex/ui/mini_icons/minus.png", device, queue);
+            self.world_entries.push(WorldEntry { id: w.id, bg: pb, label: Some(lbl), del_bg: db, del_icon: Some(di) });
             y -= 1.0;
         }
 
@@ -166,7 +166,7 @@ impl MenuScene {
             destroy_panel(ecs, &mut we.bg);
             if let Some(l) = we.label.take() { ecs.delete_entity(l); }
             destroy_panel(ecs, &mut we.del_bg);
-            if let Some(l) = we.del_label.take() { ecs.delete_entity(l); }
+            if let Some(l) = we.del_icon.take() { ecs.delete_entity(l); }
         }
         self.new_btn = None;
         self.back_btn = None;

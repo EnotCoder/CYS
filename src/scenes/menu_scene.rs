@@ -459,10 +459,11 @@ impl MenuScene {
         // Забираем накопленный ввод: обычные символы, Backspace ('\u{8}'),
         // Enter ('\n') — последний подтверждает создание.
         let typed = TEXT_INPUT.take();
+        let mut enter = false;
         for ch in typed.chars() {
             match ch {
                 '\u{8}' => { self.name_buffer.pop(); }
-                '\n' => { return self.confirm_naming(ecs, text_renderer, device, queue); }
+                '\n' => { enter = true; }
                 c if !c.is_control() => {
                     if self.name_buffer.chars().count() < 20 {
                         self.name_buffer.push(c);
@@ -471,9 +472,14 @@ impl MenuScene {
                 _ => {}
             }
         }
+        // Текущая IME-композиция: на телефоне визуальная клавиатура держит
+        // набираемый текст здесь и часто не шлёт отдельного Commit, поэтому
+        // его тоже учитываем в итоговом названии.
+        let pre = TEXT_INPUT.preedit();
+        let display = format!("{}{}", self.name_buffer, pre);
 
         // Отражаем текущее название в поле (текстура меняется только при изменении)
-        let (e, k) = text_renderer.set_text(ecs, device, queue, self.name_text, self.name_text_key, &self.name_buffer, FONT_SIZE_BTN, 0.0, 0.65, 5.6, 1.0, WHITE);
+        let (e, k) = text_renderer.set_text(ecs, device, queue, self.name_text, self.name_text_key, &display, FONT_SIZE_BTN, 0.0, 0.65, 5.6, 1.0, WHITE);
         self.name_text = e;
         self.name_text_key = k;
 
@@ -485,11 +491,15 @@ impl MenuScene {
             return SceneAction::None;
         }
 
-        // Создать
+        // Создать (Enter на клавиатуре)
+        if enter {
+            return self.confirm_naming(ecs, text_renderer, device, queue, &display);
+        }
+        // Создать (кнопка)
         if let Some(ref cb) = self.name_create_bg {
             if clicked(input, cb.x, cb.y, cb.w, cb.h) {
                 crate::audio::play("click");
-                return self.confirm_naming(ecs, text_renderer, device, queue);
+                return self.confirm_naming(ecs, text_renderer, device, queue, &display);
             }
         }
         // Назад
@@ -506,8 +516,8 @@ impl MenuScene {
     }
 
     /// Подтверждает ввод: создаёт мир с уникальным именем и запускает игру.
-    fn confirm_naming(&mut self, _ecs: &mut crate::EcsAdapter, _text_renderer: &mut crate::ui::text_renderer::TextRenderer, _device: &wgpu::Device, _queue: &wgpu::Queue) -> SceneAction {
-        let name = self.name_buffer.trim();
+    fn confirm_naming(&mut self, _ecs: &mut crate::EcsAdapter, _text_renderer: &mut crate::ui::text_renderer::TextRenderer, _device: &wgpu::Device, _queue: &wgpu::Queue, name: &str) -> SceneAction {
+        let name = name.trim();
         let name = if name.is_empty() { "Мир" } else { name };
         let meta = create_world_with_name(name);
         TEXT_INPUT.set_active(false);

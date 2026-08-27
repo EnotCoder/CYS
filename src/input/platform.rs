@@ -71,13 +71,27 @@ impl InputSource for DesktopInput {
                 match ime {
                     winit::event::Ime::Commit(s) => {
                         crate::ui::text_input::IME_COMPOSING.store(false, std::sync::atomic::Ordering::SeqCst);
-                        crate::ui::text_input::TEXT_INPUT.push(s);
+                        // Забираем текущую композицию: если Commit несёт реальный
+                        // текст — он уже содержит набранное; если же пришёл только
+                        // перевод строки/пустышка (часто на телефоне при тапе Enter),
+                        // то настоящий текст всё ещё в preedit — сохраняем его.
+                        let pre = crate::ui::text_input::TEXT_INPUT.take_preedit();
+                        if s.trim().is_empty() {
+                            crate::ui::text_input::TEXT_INPUT.push(&pre);
+                            if s.contains('\n') {
+                                crate::ui::text_input::TEXT_INPUT.push_enter();
+                            }
+                        } else {
+                            crate::ui::text_input::TEXT_INPUT.push(s);
+                        }
                     }
                     winit::event::Ime::Preedit(s, _) => {
                         crate::ui::text_input::IME_COMPOSING.store(!s.is_empty(), std::sync::atomic::Ordering::SeqCst);
+                        crate::ui::text_input::TEXT_INPUT.set_preedit(s);
                     }
                     winit::event::Ime::Enabled | winit::event::Ime::Disabled => {
                         crate::ui::text_input::IME_COMPOSING.store(false, std::sync::atomic::Ordering::SeqCst);
+                        crate::ui::text_input::TEXT_INPUT.clear_preedit();
                     }
                 }
             }
@@ -218,13 +232,27 @@ impl InputSource for TouchInput {
                 match ime {
                     winit::event::Ime::Commit(s) => {
                         crate::ui::text_input::IME_COMPOSING.store(false, std::sync::atomic::Ordering::SeqCst);
-                        crate::ui::text_input::TEXT_INPUT.push(s);
+                        // Забираем текущую композицию: если Commit несёт реальный
+                        // текст — он уже содержит набранное; если же пришёл только
+                        // перевод строки/пустышка (часто на телефоне при тапе Enter),
+                        // то настоящий текст всё ещё в preedit — сохраняем его.
+                        let pre = crate::ui::text_input::TEXT_INPUT.take_preedit();
+                        if s.trim().is_empty() {
+                            crate::ui::text_input::TEXT_INPUT.push(&pre);
+                            if s.contains('\n') {
+                                crate::ui::text_input::TEXT_INPUT.push_enter();
+                            }
+                        } else {
+                            crate::ui::text_input::TEXT_INPUT.push(s);
+                        }
                     }
                     winit::event::Ime::Preedit(s, _) => {
                         crate::ui::text_input::IME_COMPOSING.store(!s.is_empty(), std::sync::atomic::Ordering::SeqCst);
+                        crate::ui::text_input::TEXT_INPUT.set_preedit(s);
                     }
                     winit::event::Ime::Enabled | winit::event::Ime::Disabled => {
                         crate::ui::text_input::IME_COMPOSING.store(false, std::sync::atomic::Ordering::SeqCst);
+                        crate::ui::text_input::TEXT_INPUT.clear_preedit();
                     }
                 }
             }

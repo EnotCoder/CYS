@@ -14,6 +14,10 @@ use std::sync::Mutex;
 pub struct TextInput {
     active: AtomicBool,
     buffer: Mutex<String>,
+    /// Текущая IME-композиция (набираемый, но ещё не закоммиченный текст).
+    /// На телефоне визуальная клавиатура держит набираемый текст именно здесь
+    /// и часто не шлёт отдельного Commit, поэтому его тоже нужно учитывать.
+    preedit: Mutex<String>,
 }
 
 impl TextInput {
@@ -21,6 +25,7 @@ impl TextInput {
         Self {
             active: AtomicBool::new(false),
             buffer: Mutex::new(String::new()),
+            preedit: Mutex::new(String::new()),
         }
     }
 
@@ -31,11 +36,32 @@ impl TextInput {
         } else {
             self.active.store(false, Ordering::SeqCst);
             self.buffer.lock().unwrap().clear();
+            self.preedit.lock().unwrap().clear();
         }
     }
 
     pub fn is_active(&self) -> bool {
         self.active.load(Ordering::SeqCst)
+    }
+
+    /// Текущий набираемый (composition) текст IME.
+    pub fn preedit(&self) -> String {
+        self.preedit.lock().unwrap().clone()
+    }
+
+    /// Заменяет текущую IME-композицию.
+    pub fn set_preedit(&self, s: &str) {
+        *self.preedit.lock().unwrap() = s.to_string();
+    }
+
+    /// Очищает текущую IME-композицию.
+    pub fn clear_preedit(&self) {
+        self.preedit.lock().unwrap().clear();
+    }
+
+    /// Забирает текущую IME-композицию (возвращает и очищает).
+    pub fn take_preedit(&self) -> String {
+        std::mem::take(&mut *self.preedit.lock().unwrap())
     }
 
     /// Добавляет введённый текст (только если поле активно).

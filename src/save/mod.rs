@@ -5,9 +5,10 @@
 //  save — система миров (как в Minecraft)
 // ========================================================================
 //  Каждый мир хранится в отдельном файле worlds/world_{id}.json, а список
-//  миров и их мета-данные — в worlds/manifest.json. На телефоне нет
-//  клавиатуры, поэтому сохранение/загрузка привязаны не к Ctrl+S/Ctrl+L, а
-//  к выбору мира в меню и автосохранению при выходе из игры.
+//  миров и их мета-данные — в worlds/manifest.json. Ввод имени мира
+//  осуществляется через системную экранную клавиатуру (IME), поэтому
+//  сохранение/загрузка привязаны не к Ctrl+S/Ctrl+L, а к выбору мира в
+//  меню и автосохранению при выходе из игры.
 
 use serde::{Serialize, Deserialize};
 
@@ -70,15 +71,18 @@ pub fn world_meta(id: u32) -> Option<WorldMeta> {
     list_worlds().into_iter().find(|w| w.id == id)
 }
 
-/// Создаёт новый мир: резервирует уникальный id и имя "Мир {id}",
-/// обновляет манифест. Файл сохранения появится при первом автосохранении.
-pub fn create_world() -> WorldMeta {
+/// Создаёт новый мир с заданным именем: резервирует уникальный id,
+/// подбирает не совпадающее с другими мирами имя (при коллизии добавляет
+/// суффикс "(N)", например "Мир" -> "Мир(1)"), обновляет манифест.
+/// Файл сохранения появится при первом автосохранении.
+pub fn create_world_with_name(desired: &str) -> WorldMeta {
     let mut m = read_manifest();
     let id = m.next_id;
     m.next_id += 1;
+    let name = unique_world_name(&m.worlds, desired);
     let meta = WorldMeta {
         id,
-        name: format!("Мир {}", id),
+        name,
         created: now(),
         updated: now(),
     };
@@ -86,6 +90,30 @@ pub fn create_world() -> WorldMeta {
     write_manifest(&m);
     meta
 }
+
+/// Подбирает уникальное имя: если базовое занято, добавляет "(1)", "(2)", ...
+fn unique_world_name(worlds: &[WorldMeta], desired: &str) -> String {
+    let base = desired.trim();
+    let base = if base.is_empty() { "Мир" } else { base }.to_string();
+    if !worlds.iter().any(|w| w.name == base) {
+        return base;
+    }
+    let mut n = 1u32;
+    loop {
+        let cand = format!("{}({})", base, n);
+        if !worlds.iter().any(|w| w.name == cand) {
+            return cand;
+        }
+        n += 1;
+    }
+}
+
+/// Создаёт новый мир с именем по умолчанию "Мир" (с дедупликацией).
+#[allow(dead_code)]
+pub fn create_world() -> WorldMeta {
+    create_world_with_name("Мир")
+}
+
 
 /// Обновляет метку времени мира при сохранении.
 pub fn touch_world(id: u32) {

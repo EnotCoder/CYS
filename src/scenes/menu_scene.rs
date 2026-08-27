@@ -6,7 +6,8 @@ use crate::scenes::scene_trait::{Scene, SceneAction};
 use crate::core::constants::*;
 use crate::ui::{Panel, create_panel, destroy_panel};
 use crate::input::platform::InputSource;
-use crate::save::{create_world, delete_world, list_worlds, WorldSelection, SELECTED_WORLD};
+use crate::save::{create_world_with_name, delete_world, list_worlds, WorldSelection, SELECTED_WORLD};
+use crate::ui::text_input::TEXT_INPUT;
 
 // ========================================================================
 //  MenuScene — главное меню игры
@@ -21,6 +22,8 @@ use crate::save::{create_world, delete_world, list_worlds, WorldSelection, SELEC
 enum MenuState {
     Main,
     Worlds,
+    /// Ввод названия нового мира (поле + кнопки «Создать»/«Назад»)
+    Naming,
 }
 
 /// Запись списка миров: id + панель-кнопка + текст-надпись + кнопка удаления (X)
@@ -49,13 +52,23 @@ pub struct MenuScene {
     last_frame: Option<std::time::Instant>,
     // Адаптивный масштаб UI (и фона) под соотношение сторон экрана
     ui_scale: f32,
-    // Состояние меню: главное / выбор миров
+    // Состояние меню: главное / выбор миров / ввод названия
     state: MenuState,
     // UI выбора миров: кнопки миров и прочие сущности (для очистки)
     world_entries: Vec<WorldEntry>,
     world_misc: Vec<specs::Entity>,
     new_btn: Option<Panel>,
     back_btn: Option<Panel>,
+    // Состояние ввода названия мира
+    name_buffer: String,
+    naming_title: Option<specs::Entity>,
+    name_panel: Option<Panel>,
+    name_text: Option<specs::Entity>,
+    name_text_key: Option<u64>,
+    name_create_bg: Option<Panel>,
+    name_create_label: Option<specs::Entity>,
+    name_back_bg: Option<Panel>,
+    name_back_label: Option<specs::Entity>,
 }
 
 impl MenuScene {
@@ -77,6 +90,15 @@ impl MenuScene {
             world_misc: Vec::new(),
             new_btn: None,
             back_btn: None,
+            name_buffer: String::new(),
+            naming_title: None,
+            name_panel: None,
+            name_text: None,
+            name_text_key: None,
+            name_create_bg: None,
+            name_create_label: None,
+            name_back_bg: None,
+            name_back_label: None,
         }
     }
 
@@ -101,7 +123,41 @@ impl MenuScene {
                 ecs.update_sprite_alpha(overlay, 0.6);
                 self.build_worlds(ecs, text_renderer, device, queue);
             }
+            MenuState::Naming => {
+                // Тот же затемнённый фон, что и в выборе миров.
+                crate::data::map::load_map_to_ecs(ecs);
+                Self::place_decor(ecs);
+                let overlay = ecs.add_ui_sized(0.0, 0.0, 100.0, 100.0, "assets/tex/dev_tools/black.png", device, queue);
+                ecs.update_sprite_alpha(overlay, 0.6);
+                self.build_naming(ecs, text_renderer, device, queue);
+            }
         }
+    }
+
+    fn build_naming(&mut self, ecs: &mut crate::EcsAdapter, text_renderer: &mut crate::ui::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) {
+        let title = text_renderer.add_text(ecs, device, queue, "Название мира", FONT_SIZE_LOGO, 0.0, 3.7, 7.0, 1.0, WHITE);
+        self.naming_title = Some(title);
+
+        // Поле ввода (чёрная панель) с текущим названием поверх
+        let mut np = Panel::new(0.0, 0.6, 6.0, 1.0, 0.5);
+        create_panel(ecs, device, queue, &mut np);
+        self.name_panel = Some(np);
+        let nt = text_renderer.add_text(ecs, device, queue, &self.name_buffer, FONT_SIZE_BTN, 0.0, 0.65, 5.6, 1.0, WHITE);
+        self.name_text = Some(nt);
+
+        // Кнопка «Создать»
+        let mut cb = Panel::new(0.0, -1.0, 3.2, 0.8, 0.5);
+        create_panel(ecs, device, queue, &mut cb);
+        self.name_create_bg = Some(cb);
+        let cl = text_renderer.add_text(ecs, device, queue, "Создать", FONT_SIZE_BTN, 0.0, -0.95, 2.4, 1.0, BTN_TEXT_COLOR);
+        self.name_create_label = Some(cl);
+
+        // Кнопка «Назад»
+        let mut bb = Panel::new(0.0, -2.2, 3.2, 0.8, 0.5);
+        create_panel(ecs, device, queue, &mut bb);
+        self.name_back_bg = Some(bb);
+        let bl = text_renderer.add_text(ecs, device, queue, "Назад", FONT_SIZE_BTN, 0.0, -2.15, 2.4, 1.0, BTN_TEXT_COLOR);
+        self.name_back_label = Some(bl);
     }
 
     fn build_main(&mut self, ecs: &mut crate::EcsAdapter, text_renderer: &mut crate::ui::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) {
@@ -168,6 +224,14 @@ impl MenuScene {
             destroy_panel(ecs, &mut we.del_bg);
             if let Some(l) = we.del_icon.take() { ecs.delete_entity(l); }
         }
+        if let Some(e) = self.naming_title.take() { ecs.delete_entity(e); }
+        if let Some(mut p) = self.name_panel.take() { destroy_panel(ecs, &mut p); }
+        if let Some(e) = self.name_text.take() { ecs.delete_entity(e); }
+        self.name_text_key = None;
+        if let Some(mut p) = self.name_create_bg.take() { destroy_panel(ecs, &mut p); }
+        if let Some(e) = self.name_create_label.take() { ecs.delete_entity(e); }
+        if let Some(mut p) = self.name_back_bg.take() { destroy_panel(ecs, &mut p); }
+        if let Some(e) = self.name_back_label.take() { ecs.delete_entity(e); }
         self.new_btn = None;
         self.back_btn = None;
     }
@@ -269,6 +333,7 @@ impl Scene for MenuScene {
         match self.state {
             MenuState::Main => self.update_main(input, window_size, ecs, text_renderer, device, queue),
             MenuState::Worlds => self.update_worlds(input, window_size, ecs, text_renderer, device, queue),
+            MenuState::Naming => self.update_naming(input, window_size, ecs, text_renderer, device, queue),
         }
     }
 
@@ -342,13 +407,15 @@ impl MenuScene {
             input.mouse_pressed(winit::event::MouseButton::Left) && Self::is_inside(input, window_size, bx, by, bw, bh)
         };
 
-        // Новый мир
+        // Новый мир — переходим в состояние ввода названия
         if let Some(ref nb) = self.new_btn {
             if clicked(input, nb.x, nb.y, nb.w, nb.h) {
                 crate::audio::play("click");
-                let meta = create_world();
-                *SELECTED_WORLD.lock().unwrap() = WorldSelection::New(meta.id, meta.name);
-                return SceneAction::Switch("game".to_string());
+                self.name_buffer = "Мир".to_string();
+                TEXT_INPUT.set_active(true);
+                self.state = MenuState::Naming;
+                self.setup_content(ecs, text_renderer, device, queue);
+                return SceneAction::None;
             }
         }
         // Список миров (удаление или загрузка)
@@ -380,5 +447,71 @@ impl MenuScene {
             }
         }
         SceneAction::None
+    }
+
+    /// Логика ввода названия: захват символов из TEXT_INPUT, отрисовка поля,
+    /// кнопки «Создать» (подтверждение) и «Назад».
+    fn update_naming(&mut self, input: &dyn InputSource, window_size: (f32, f32), ecs: &mut crate::EcsAdapter, text_renderer: &mut crate::ui::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) -> SceneAction {
+        let clicked = |input: &dyn InputSource, bx: f32, by: f32, bw: f32, bh: f32| -> bool {
+            input.mouse_pressed(winit::event::MouseButton::Left) && Self::is_inside(input, window_size, bx, by, bw, bh)
+        };
+
+        // Забираем накопленный ввод: обычные символы, Backspace ('\u{8}'),
+        // Enter ('\n') — последний подтверждает создание.
+        let typed = TEXT_INPUT.take();
+        for ch in typed.chars() {
+            match ch {
+                '\u{8}' => { self.name_buffer.pop(); }
+                '\n' => { return self.confirm_naming(ecs, text_renderer, device, queue); }
+                c if !c.is_control() => {
+                    if self.name_buffer.chars().count() < 20 {
+                        self.name_buffer.push(c);
+                    }
+                }
+                _ => {}
+            }
+        }
+
+        // Отражаем текущее название в поле (текстура меняется только при изменении)
+        let (e, k) = text_renderer.set_text(ecs, device, queue, self.name_text, self.name_text_key, &self.name_buffer, FONT_SIZE_BTN, 0.0, 0.65, 5.6, 1.0, WHITE);
+        self.name_text = e;
+        self.name_text_key = k;
+
+        // Escape — назад к списку миров
+        if input.key_pressed(winit::keyboard::KeyCode::Escape) {
+            TEXT_INPUT.set_active(false);
+            self.state = MenuState::Worlds;
+            self.setup_content(ecs, text_renderer, device, queue);
+            return SceneAction::None;
+        }
+
+        // Создать
+        if let Some(ref cb) = self.name_create_bg {
+            if clicked(input, cb.x, cb.y, cb.w, cb.h) {
+                crate::audio::play("click");
+                return self.confirm_naming(ecs, text_renderer, device, queue);
+            }
+        }
+        // Назад
+        if let Some(ref bb) = self.name_back_bg {
+            if clicked(input, bb.x, bb.y, bb.w, bb.h) {
+                crate::audio::play("click");
+                TEXT_INPUT.set_active(false);
+                self.state = MenuState::Worlds;
+                self.setup_content(ecs, text_renderer, device, queue);
+                return SceneAction::None;
+            }
+        }
+        SceneAction::None
+    }
+
+    /// Подтверждает ввод: создаёт мир с уникальным именем и запускает игру.
+    fn confirm_naming(&mut self, _ecs: &mut crate::EcsAdapter, _text_renderer: &mut crate::ui::text_renderer::TextRenderer, _device: &wgpu::Device, _queue: &wgpu::Queue) -> SceneAction {
+        let name = self.name_buffer.trim();
+        let name = if name.is_empty() { "Мир" } else { name };
+        let meta = create_world_with_name(name);
+        TEXT_INPUT.set_active(false);
+        *SELECTED_WORLD.lock().unwrap() = WorldSelection::New(meta.id, meta.name);
+        SceneAction::Switch("game".to_string())
     }
 }

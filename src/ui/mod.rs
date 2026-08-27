@@ -13,6 +13,7 @@ pub mod fps;
 pub mod inventory;
 pub mod settings;
 pub mod system;
+pub mod text_input;
 pub mod text_renderer;
 
 pub use components::*;

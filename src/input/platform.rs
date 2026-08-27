@@ -11,6 +11,7 @@
 
 use winit::event::{DeviceEvent, MouseButton, WindowEvent};
 use winit::keyboard::KeyCode;
+use winit::event::ElementState;
 use winit_input_helper::WinitInputHelper;
 
 #[cfg(target_os = "android")]
@@ -64,7 +65,41 @@ impl InputSource for DesktopInput {
     fn close_requested(&self) -> bool { self.inner.close_requested() }
     fn step(&mut self) { let _ = self.inner.step(); }
     fn end_step(&mut self) { self.inner.end_step(); }
-    fn process_window_event(&mut self, event: &WindowEvent) { let _ = self.inner.process_window_event(event); }
+    fn process_window_event(&mut self, event: &WindowEvent) {
+        match event {
+            WindowEvent::Ime(ime) => {
+                match ime {
+                    winit::event::Ime::Commit(s) => {
+                        crate::ui::text_input::IME_COMPOSING.store(false, std::sync::atomic::Ordering::SeqCst);
+                        crate::ui::text_input::TEXT_INPUT.push(s);
+                    }
+                    winit::event::Ime::Preedit(s, _) => {
+                        crate::ui::text_input::IME_COMPOSING.store(!s.is_empty(), std::sync::atomic::Ordering::SeqCst);
+                    }
+                    winit::event::Ime::Enabled | winit::event::Ime::Disabled => {
+                        crate::ui::text_input::IME_COMPOSING.store(false, std::sync::atomic::Ordering::SeqCst);
+                    }
+                }
+            }
+            WindowEvent::KeyboardInput { event: key, .. } => {
+                match key.physical_key {
+                    winit::keyboard::PhysicalKey::Code(KeyCode::Backspace) => crate::ui::text_input::TEXT_INPUT.push_backspace(),
+                    winit::keyboard::PhysicalKey::Code(KeyCode::Enter) => crate::ui::text_input::TEXT_INPUT.push_enter(),
+                    _ => {}
+                }
+                // Прямой ввод символа (ПК, вне IME-композиции)
+                if !crate::ui::text_input::IME_COMPOSING.load(std::sync::atomic::Ordering::SeqCst) {
+                    if let winit::keyboard::Key::Character(s) = &key.logical_key {
+                        if key.state == ElementState::Pressed {
+                            crate::ui::text_input::TEXT_INPUT.push(s);
+                        }
+                    }
+                }
+            }
+            _ => {}
+        }
+        let _ = self.inner.process_window_event(event);
+    }
     fn process_device_event(&mut self, event: &DeviceEvent) { let _ = self.inner.process_device_event(event); }
 }
 
@@ -178,6 +213,24 @@ impl InputSource for TouchInput {
     }
 
     fn process_window_event(&mut self, event: &WindowEvent) {
+        match event {
+            WindowEvent::Ime(winit::event::Ime::Commit(s)) => {
+                crate::ui::text_input::TEXT_INPUT.push(s);
+            }
+            WindowEvent::ReceivedCharacter(c) if !c.is_control() => {
+                let mut s = String::new();
+                s.push(*c);
+                crate::ui::text_input::TEXT_INPUT.push(&s);
+            }
+            WindowEvent::KeyboardInput { event: key, .. } => {
+                match key.physical_key {
+                    winit::keyboard::PhysicalKey::Code(KeyCode::Backspace) => crate::ui::text_input::TEXT_INPUT.push_backspace(),
+                    winit::keyboard::PhysicalKey::Code(KeyCode::Enter) => crate::ui::text_input::TEXT_INPUT.push_enter(),
+                    _ => {}
+                }
+            }
+            _ => {}
+        }
         if let WindowEvent::Touch(touch) = event {
             self.apply_touch(touch);
         }

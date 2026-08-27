@@ -61,6 +61,8 @@ struct App {
     fps_counter: FpsCounter,
     // Флаг выхода из приложения
     quit_requested: bool,
+    // Последнее применённое состояние IME (чтобы не дёргать окно каждый кадр)
+    ime_active: bool,
 }
 
 impl App {
@@ -79,6 +81,7 @@ impl App {
             input,
             fps_counter: FpsCounter::new(),
             quit_requested: false,
+            ime_active: false,
         }
     }
 
@@ -86,6 +89,14 @@ impl App {
     fn render(&mut self) {
         let Some(surface) = &self.surface else { return };
         let Some(ref window) = self.window else { return };
+
+        // Синхронизируем состояние IME (экранная клавиатура Android и
+        // метод ввода на ПК) с активным полем ввода имени мира.
+        let ime_wanted = crate::ui::text_input::TEXT_INPUT.is_active();
+        if ime_wanted != self.ime_active {
+            window.set_ime_allowed(ime_wanted);
+            self.ime_active = ime_wanted;
+        }
 
         let window_size = (
             window.inner_size().width as f32,

@@ -9,7 +9,7 @@
 // ========================================================================
 
 use specs::Entity;
-use crate::ui::{Panel, create_panel, destroy_panel};
+use crate::ui::{Panel, destroy_panel};
 use crate::ui::text_renderer::TextRenderer;
 use crate::core::constants::*;
 use crate::EcsAdapter;
@@ -22,7 +22,7 @@ const ROW_STEP: f32 = -1.1;
 const ROW_HALF_W: f32 = 4.4;
 const ROW_HALF_H: f32 = 0.5;
 const ICON_X: f32 = -3.2;
-const LABEL_X: f32 = -2.2;
+const LABEL_X: f32 = -2.0;
 
 /// Одна строка каталога: иконка предмета, подпись и имя объекта.
 struct ShopRow {
@@ -58,7 +58,9 @@ impl Shop {
     pub fn open(&mut self, ecs: &mut EcsAdapter, tr: &mut TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue, items: &[ShopItem]) {
         if self.open { return; }
         self.open = true;
-        create_panel(ecs, device, queue, &mut self.panel);
+        let ent = ecs.add_ui_sized(self.panel.x, self.panel.y, self.panel.w, self.panel.h, "assets/tex/ui/shop_panel.png", device, queue);
+        ecs.update_sprite_alpha(ent, self.panel.alpha);
+        self.panel.entity = Some(ent);
         self.title = Some(tr.add_text(ecs, device, queue, "Shop", 64.0, 0.0, 2.4, 4.0, 2.0, WHITE));
         self.build_rows(ecs, tr, device, queue, items);
     }
@@ -70,9 +72,9 @@ impl Shop {
             let y = ROW_START_Y + ROW_STEP * i as f32;
             let icon_ent = ecs.add_ui_sized(ICON_X, y, 0.8, 0.8, icon, device, queue);
             let text = if *owned {
-                format!("{}  —  Owned", name)
+                "— Owned".to_string()
             } else {
-                format!("{}  —  ${}", name, price)
+                format!("— ${}", price)
             };
             let label = tr.add_text(ecs, device, queue, &text, 36.0, LABEL_X, y, 6.0, 1.0, WHITE);
             self.rows.push(ShopRow { icon: icon_ent, label, label_key: None, name: name.clone(), y });
@@ -99,12 +101,12 @@ impl Shop {
 
     /// Обновляет подписи строк (например, после покупки предмет становится Owned).
     pub fn refresh(&mut self, ecs: &mut EcsAdapter, tr: &mut TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue, items: &[ShopItem]) {
-        for (i, (name, _icon, price, owned)) in items.iter().enumerate() {
+        for (i, (_name, _icon, price, owned)) in items.iter().enumerate() {
             if let Some(r) = self.rows.get_mut(i) {
                 let text = if *owned {
-                    format!("{}  —  Owned", name)
+                    "— Owned".to_string()
                 } else {
-                    format!("{}  —  ${}", name, price)
+                    format!("— ${}", price)
                 };
                 let (e, k) = tr.set_text(ecs, device, queue, Some(r.label), r.label_key, &text, 36.0, LABEL_X, r.y, 6.0, 1.0, WHITE);
                 if let Some(e) = e { r.label = e; }

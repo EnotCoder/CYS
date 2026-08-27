@@ -12,6 +12,7 @@ pub mod components;
 pub mod fps;
 pub mod inventory;
 pub mod settings;
+pub mod shop;
 pub mod system;
 pub mod text_input;
 pub mod text_renderer;

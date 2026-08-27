@@ -4,7 +4,7 @@
 use specs::WorldExt;
 use crate::EcsAdapter;
 use super::Slot;
-use crate::ecs::components::{BasementPlaced, Money, PlacementError};
+use crate::ecs::components::{BasementPlaced, Money, PlacementError, ShopOwned, ShopDenied};
 
 // ========================================================================
 //  Правила размещения объектов: категории, стены, трава
@@ -213,6 +213,14 @@ pub fn add(ecs: &mut EcsAdapter, slots: &mut Vec<Slot>, act_slot: i32, gx: i32, 
         return;
     }
 
+    // Доступ к светящимся предметам покупается в магазине (проверяем ДО
+    // денег, чтобы подсказка была «Buy this in the Shop», а не про деньги).
+    if is_light && !ecs.world.read_resource::<ShopOwned>().0.iter().any(|o| o == &active_slot.name) {
+        ecs.world.write_resource::<ShopDenied>().0 = true;
+        crate::audio::play("error");
+        return;
+    }
+
     // Мини-экономика: установка объекта стоит денег.
     let price = {
         let cfg = ecs.world.read_resource::<crate::scripts::config::BalanceConfig>();
@@ -224,6 +232,7 @@ pub fn add(ecs: &mut EcsAdapter, slots: &mut Vec<Slot>, act_slot: i32, gx: i32, 
         crate::audio::play("error");
         return;
     }
+
 
     if !ecs.can_place_at(
         gx, gy,

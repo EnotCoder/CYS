@@ -15,7 +15,7 @@ use specs::WorldExt;
 use wgpu::{Device, Queue};
 use crate::EcsAdapter;
 use crate::core::constants::*;
-use crate::ecs::components::{BasementPlaced, BusyCassas, FenceComponent, FoodStorage, Money, ObjectTag, TotalFood};
+use crate::ecs::components::{BasementPlaced, BusyCassas, FenceComponent, FoodStorage, Money, ObjectTag, TotalFood, ShopOwned};
 use crate::data::{attach_point_light, is_carpet_name, is_flower_name, is_light_name, is_outdoor_name, is_wall_decor_name, make_slot};
 use crate::data::map::{load_basement_to_ecs, load_map_to_ecs, load_walkable_cells, token_to_texture};
 use crate::ui::text_renderer::TextRenderer;
@@ -252,6 +252,7 @@ impl GameScene {
             camera_offset_x: f32, camera_offset_y: f32, map_size: f32,
             active: bool, basement_placed: bool,
             busy_cassas: Vec<(i32, i32)>,
+            shop_owned: Vec<String>,
         }
         let mut levels = HashMap::new();
         // Сериализуем состояния всех уровней в транспортные структуры
@@ -287,6 +288,7 @@ impl GameScene {
             active: self.active,
             basement_placed,
             busy_cassas,
+            shop_owned: ecs.world.read_resource::<crate::ecs::components::ShopOwned>().0.clone(),
         };
         if let Ok(json) = serde_json::to_string_pretty(&data) {
             if crate::core::asset::save_data(&crate::save::world_save_path(world_id), json.as_bytes()).is_ok() {
@@ -332,6 +334,8 @@ impl GameScene {
             camera_offset_x: f32, camera_offset_y: f32, map_size: f32,
             active: bool, basement_placed: bool,
             busy_cassas: Vec<(i32, i32)>,
+            #[serde(default)]
+            shop_owned: Vec<String>,
         }
         let data: Data = match serde_json::from_str(&content) {
             Ok(d) => d,
@@ -342,6 +346,7 @@ impl GameScene {
         // Восстанавливаем глобальные ресурсы мира и настройки игрока
         ecs.clear_world();
         ecs.world.write_resource::<BusyCassas>().0 = data.busy_cassas.into_iter().collect();
+        ecs.world.write_resource::<ShopOwned>().0 = data.shop_owned.clone();
         ecs.world.write_resource::<Money>().0 = data.money;
         ecs.world.write_resource::<TotalFood>().0 = data.total_food;
         ecs.world.write_resource::<BasementPlaced>().0 = data.basement_placed;

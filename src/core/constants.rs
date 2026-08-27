@@ -88,6 +88,13 @@ pub const ICON_MODE_X: f32 = 6.2;
 pub const INV_BTN_X: f32 = HOTBAR_X + SLOT_COUNT as f32;
 pub const TEX_INV_BUTTON: &str = "assets/tex/ui/icon_slots/inv.png";
 
+// === Магазин (покупка доступа к светящимся предметам) ===
+// Каталог строится из INV_LIGHT (все объекты, издающие свет = необычные
+// предметы). Доступ к каждому покупается отдельно и хранится в мире.
+pub const TEX_SHOP: &str = "assets/tex/ui/shop.png";
+// Кнопка магазина — правее кнопки инвентаря на хотбаре.
+pub const SHOP_BTN_X: f32 = INV_BTN_X + 1.0;
+
 // === Текст (цвета, размеры) ===
 pub const WHITE: [u8; 3] = [255, 255, 255];
 pub const RED: [u8; 3] = [255, 60, 60];

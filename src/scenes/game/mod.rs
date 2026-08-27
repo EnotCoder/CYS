@@ -15,7 +15,7 @@ use crate::core::constants::*;
 use crate::input::platform::InputSource;
 use crate::ui::inventory::Inventory;
 use crate::data::map::pathfinding::Node;
-use crate::ecs::components::{FoodStorage, ObjectTag, TotalFood, BusyCassas, Money, PlacementError};
+use crate::ecs::components::{FoodStorage, ObjectTag, TotalFood, BusyCassas, Money, PlacementError, ShopOwned, ShopDenied};
 use crate::scenes::game::day_night::DayNightCycle;
 use crate::scenes::game::hud::GameHud;
 use crate::scenes::game::shoppers::ShopperManager;
@@ -80,6 +80,8 @@ pub struct GameScene {
     active: bool,
     active_entity: Option<specs::Entity>,
     settings: crate::ui::settings::Settings,
+    shop: crate::ui::shop::Shop,
+    shop_entity: Option<specs::Entity>,
     inv_entity: Option<specs::Entity>,
     // Уровни: 0 — магазин, -1 — подвал; кэш состояний при хождении между ними
     current_level: i32,
@@ -144,6 +146,8 @@ impl GameScene {
             active: true,
             active_entity: None,
             settings: crate::ui::settings::Settings::new(),
+            shop: crate::ui::shop::Shop::new(),
+            shop_entity: None,
             inv_entity: None,
             current_level: 0,
             level_states: HashMap::new(),
@@ -198,6 +202,10 @@ impl GameScene {
         self.active_entity = Some(active_entity);
         let inv_entity = ecs.add_ui(INV_BTN_X, SLOT_BAR_Y, TEX_INV_BUTTON);
         self.inv_entity = Some(inv_entity);
+
+        // Кнопка магазина — правее кнопки инвентаря
+        let shop_entity = ecs.add_ui(SHOP_BTN_X, SLOT_BAR_Y, TEX_SHOP);
+        self.shop_entity = Some(shop_entity);
 
         // Кнопка настроек (иконка gear) в верхнем левом углу
         let settings_entity = ecs.add_ui(SETTINGS_BTN_X, SETTINGS_BTN_Y, TEX_SETTINGS);
@@ -298,6 +306,19 @@ impl GameScene {
             }
         }
         has_food
+    }
+
+    /// Собрать содержимое каталога магазина: для каждого светящегося
+    /// предмета (INV_LIGHT) — имя, иконка, цена из баланса и флаг,
+    /// куплен ли уже доступ в текущем мире (ShopOwned).
+    fn shop_items(&self, ecs: &crate::EcsAdapter) -> Vec<crate::ui::shop::ShopItem> {
+        let owned = &ecs.world.read_resource::<ShopOwned>().0;
+        INV_LIGHT.iter().map(|n| {
+            let is_owned = owned.iter().any(|o| o.as_str() == *n);
+            let price = crate::data::object_price(n, &self.config);
+            let icon = crate::core::util::slot_icon_path(n);
+            ((*n).to_string(), icon, price, is_owned)
+        }).collect()
     }
 
     /// Минимальная сумма, чтобы снова сделать магазин зарабатывающим:
@@ -415,6 +436,10 @@ impl Scene for GameScene {
 
     /// Автосохранение мира при выходе из игры (в меню или закрытие приложения).
     fn on_exit(&mut self, ecs: &mut crate::EcsAdapter, _text_renderer: &mut crate::ui::text_renderer::TextRenderer) {
+        if self.shop.open {
+            self.shop.close(ecs);
+        }
+        self.shop_entity = None;
         if let Some(id) = self.world_id {
             self.save_to_disk(ecs, id);
             crate::save::touch_world(id);
@@ -519,9 +544,11 @@ impl Scene for GameScene {
             return SceneAction::None;
         }
 
-        // --- Toggle settings ---
+        // --- Toggle settings / close shop ---
         if input.key_pressed(winit::keyboard::KeyCode::Escape) {
-            if self.settings.open {
+            if self.shop.open {
+                self.shop.close(ecs);
+            } else if self.settings.open {
                 self.settings.close(ecs);
             } else {
                 self.settings.open(ecs, text_renderer, device, queue);
@@ -530,18 +557,44 @@ impl Scene for GameScene {
         }
 
         // Кнопка настроек (иконка gear) — открыть/закрыть окно настроек
-        if let Some((mx, my)) = input.cursor() {
-            let (wx, wy) = crate::ui::system::ndc_to_ui(mx, my, window_size);
-            if input.mouse_pressed(winit::event::MouseButton::Left)
-                && (wx - SETTINGS_BTN_X).abs() < TILE_HALF
-                && (wy - SETTINGS_BTN_Y).abs() < TILE_HALF {
-                if self.settings.open {
-                    self.settings.close(ecs);
-                } else {
-                    self.settings.open(ecs, text_renderer, device, queue);
+        // (неактивна, пока открыт магазин)
+        if !self.shop.open {
+            if let Some((mx, my)) = input.cursor() {
+                let (wx, wy) = crate::ui::system::ndc_to_ui(mx, my, window_size);
+                if input.mouse_pressed(winit::event::MouseButton::Left)
+                    && (wx - SETTINGS_BTN_X).abs() < TILE_HALF
+                    && (wy - SETTINGS_BTN_Y).abs() < TILE_HALF {
+                    if self.settings.open {
+                        self.settings.close(ecs);
+                    } else {
+                        self.settings.open(ecs, text_renderer, device, queue);
+                    }
+                    crate::audio::play("click");
+                    return SceneAction::None;
                 }
-                crate::audio::play("click");
-                return SceneAction::None;
+            }
+        }
+
+        // Кнопка магазина (правее инвентаря) — открыть/закрыть окно магазина
+        // (неактивна, пока открыты настройки)
+        if !self.settings.open {
+            if let Some((mx, my)) = input.cursor() {
+                let (wx, wy) = crate::ui::system::ndc_to_ui(mx, my, window_size);
+                if input.mouse_pressed(winit::event::MouseButton::Left)
+                    && (wx - SHOP_BTN_X).abs() < TILE_HALF
+                    && (wy - SLOT_BAR_Y).abs() < TILE_HALF {
+                    if self.shop.open {
+                        self.shop.close(ecs);
+                    } else {
+                        if self.inventory.open {
+                            self.inventory.exit(ecs);
+                        }
+                        let items = self.shop_items(ecs);
+                        self.shop.open(ecs, text_renderer, device, queue, &items);
+                    }
+                    crate::audio::play("click");
+                    return SceneAction::None;
+                }
             }
         }
 
@@ -583,6 +636,38 @@ impl Scene for GameScene {
             if self.settings.menu_requested {
                 self.settings.menu_requested = false;
                 return SceneAction::Switch("menu".to_string());
+            }
+        } else if self.shop.open {
+            // --- Магазин открыт: клики только по каталогу ---
+            if let Some(idx) = self.shop.row_clicked(input, window_size) {
+                let name = INV_LIGHT[idx].to_string();
+                let owned = ecs.world.read_resource::<ShopOwned>().0.iter().any(|o| o == &name);
+                if !owned {
+                    let price = crate::data::object_price(&name, &self.config);
+                    let money = ecs.world.read_resource::<Money>().0;
+                    if money >= price {
+                        ecs.world.write_resource::<Money>().0 = money - price;
+                        ecs.world.write_resource::<ShopOwned>().0.push(name.clone());
+                        crate::audio::play("click");
+                        let items = self.shop_items(ecs);
+                        self.shop.refresh(ecs, text_renderer, device, queue, &items);
+                    } else {
+                        // Недостаточно денег — покажем красную подсказку
+                        ecs.world.write_resource::<PlacementError>().0 = Some((money, price));
+                    }
+                }
+                return SceneAction::None;
+            }
+            // Закрытие по клику вне панели магазина
+            if let Some((mx, my)) = input.cursor() {
+                let (wx, wy) = crate::ui::system::ndc_to_ui(mx, my, window_size);
+                let p = &self.shop.panel;
+                let inside = (wx - p.x).abs() <= p.w / 2.0 && (wy - p.y).abs() <= p.h / 2.0;
+                if input.mouse_pressed(winit::event::MouseButton::Left) && !inside {
+                    self.shop.close(ecs);
+                    crate::audio::play("click");
+                    return SceneAction::None;
+                }
             }
         } else {
             let cursor = self.cursor_entity.unwrap();
@@ -655,20 +740,31 @@ impl Scene for GameScene {
                 self.ilm_cooldown = 5.0;
             }
 
-            // Подсказка «не хватает денег»: если размещение не прошло из-за
-            // нехватки средств, PlacementError содержит (деньги, цена).
-            let no_money = ecs.world.read_resource::<PlacementError>().0;
-            if let Some((money, price)) = no_money {
-                ecs.world.write_resource::<PlacementError>().0 = None;
-                if self.no_money_entity.is_none() {
-                    let msg = format!("Not enough money: you have {}, but it costs {}", money, price);
-                    let ent = text_renderer.add_text(ecs, device, queue, &msg, 40.0, 0.0, -3.0, 8.0, 1.0, RED);
-                    self.no_money_entity = Some(ent);
-                    self.no_money_timer = 2.0;
-                }
-            }
-
             self.handle_inventory_input(ecs, input, window_size);
+        }
+
+        // --- Всплывающие подсказки (работают во всех режимах) ---
+        // Не хватает денег: PlacementError содержит (деньги, цена).
+        let placement_err = ecs.world.read_resource::<PlacementError>().0;
+        if let Some((money, price)) = placement_err {
+            ecs.world.write_resource::<PlacementError>().0 = None;
+            if self.no_money_entity.is_none() {
+                let msg = format!("Not enough money: you have {}, but it costs {}", money, price);
+                let ent = text_renderer.add_text(ecs, device, queue, &msg, 40.0, 0.0, -3.0, 8.0, 1.0, RED);
+                self.no_money_entity = Some(ent);
+                self.no_money_timer = 2.0;
+            }
+        }
+        // Светящийся предмет не куплен: ShopDenied выставляется при попытке
+        // поставить объект, доступ к которому покупается в магазине.
+        let shop_denied = ecs.world.read_resource::<ShopDenied>().0;
+        if shop_denied {
+            ecs.world.write_resource::<ShopDenied>().0 = false;
+            if self.no_money_entity.is_none() {
+                let ent = text_renderer.add_text(ecs, device, queue, "Buy this in the Shop", 40.0, 0.0, -3.0, 8.0, 1.0, RED);
+                self.no_money_entity = Some(ent);
+                self.no_money_timer = 2.0;
+            }
         }
 
         // Прогресс дня/ночи в независимости от режима настроек

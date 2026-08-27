@@ -15,6 +15,26 @@ use image::RgbaImage;
 use specs::{WorldExt, Builder};
 use crate::{Sprite, Texture};
 
+/// Коэффициент перевода растрового размера глифа (в пикселях) в мировые
+/// единицы. Благодаря ему мировой размер текста зависит только от font_size
+/// (разрешения растра), а не от длины строки, как этого ожидает вызывающий код.
+const PX_TO_WORLD: f32 = 0.013;
+
+/// Вычисляет мировые размеры спрайта текста.
+/// Естественный размер = растровый размер * PX_TO_WORLD (зависит только от
+/// кегля). Если естественная ширина превышает `max_width`, текст
+/// пропорционально уменьшается, чтобы вписаться в ограничение по ширине.
+fn fit_size(tw: u32, th: u32, max_width: f32) -> (f32, f32) {
+    let natural_w = tw as f32 * PX_TO_WORLD;
+    let natural_h = th as f32 * PX_TO_WORLD;
+    if max_width <= 0.0 || natural_w <= max_width {
+        (natural_w, natural_h)
+    } else {
+        let aspect = tw as f32 / th as f32;
+        (max_width, max_width / aspect)
+    }
+}
+
 pub struct TextRenderer {
     font: FontRef<'static>,
     /// Кэш растров: ключ -> (RGBA-байты, ширина, высота изображения).
@@ -165,8 +185,7 @@ impl TextRenderer {
     ) -> (f32, f32) {
         let rasterized = self.rasterize(text, font_size, outline, color);
         let (_, tw, th) = rasterized;
-        let aspect = *tw as f32 / *th as f32;
-        (world_width, world_width / aspect)
+        fit_size(*tw, *th, world_width)
     }
 
     /// Создаёт текстовый спрайт на слое Z_UI с шириной world_width.
@@ -226,12 +245,11 @@ impl TextRenderer {
             let r = self.rasterize(text, font_size, outline, color);
             (r.0.clone(), r.1, r.2)
         };
-        let aspect = tw as f32 / th as f32;
-        let world_h = if aspect > 0.0 { world_width / aspect } else { world_width };
+        let (world_w, world_h) = fit_size(tw, th, world_width);
 
         // Создаём текстуру и спрайт из растра, кладём спрайт в кэш по ключу.
         let tex = crate::Texture::from_rgba(device, queue, &rgba, tw, th, text);
-        let sprite = crate::Sprite::from_texture(device, &tex, text, world_width, world_h);
+        let sprite = crate::Sprite::from_texture(device, &tex, text, world_w, world_h);
         ecs.sprite_cache.insert(new_key, sprite);
 
         let text_key = Self::cache_key(text, font_size, outline, color);
@@ -322,11 +340,10 @@ impl TextRenderer {
         z: f32,
     ) -> specs::Entity {
         let (rgba, tw, th) = self.rasterize(text, font_size, outline, color).clone();
-        let aspect = tw as f32 / th as f32;
-        let world_h = world_width / aspect;
+        let (world_w, world_h) = fit_size(tw, th, world_width);
 
         let tex = Texture::from_rgba(device, queue, &rgba, tw, th, text);
-        let sprite = Sprite::from_texture(device, &tex, text, world_width, world_h);
+        let sprite = Sprite::from_texture(device, &tex, text, world_w, world_h);
 
         let text_key = Self::cache_key(text, font_size, outline, color);
         // Ключ кэша различает слой UI и слой декора (иначе спрайты бы коллизировали).

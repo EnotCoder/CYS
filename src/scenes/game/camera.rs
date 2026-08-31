@@ -37,7 +37,8 @@ impl GameScene {
         let step = CAMERA_SPEED * (dt as f32);
 
         // Камера: перемещение зажатой средней кнопкой мыши
-        if input.mouse_held(winit::event::MouseButton::Middle) {
+        // (пропускаем, пока открыт магазин — палец используется для скролла каталога)
+        if input.mouse_held(winit::event::MouseButton::Middle) && !self.shop.open {
             let sensitivity = 0.01;
             let (dx, dy) = input.cursor_diff();
             self.camera_offset_x = (self.camera_offset_x - dx * sensitivity).clamp(cam_min_x, cam_max_x);

@@ -46,7 +46,7 @@ pub struct Object {
 
 // Статическая «база данных» всех объектов, которые можно ставить в магазине.
 // Это декларативный список данных (размеры, текстуры, категории, цены), а не логика.
-const ALL_OBJECTS: &[Object] = &[
+pub const ALL_OBJECTS: &[Object] = &[
     //def object
     Object {
         width: 1, height: 1, name: "box",         path: "assets/tex/decor/regular/box/box_0.png",
@@ -290,6 +290,14 @@ pub fn get_slot_vec() -> Vec<Slot> {
 // или дефолт из данных объекта.
 pub fn object_price(name: &str, cfg: &crate::scripts::config::BalanceConfig) -> i32 {
     cfg.object_prices.get(name).copied().unwrap_or_else(|| make_slot(name).obj.price)
+}
+
+// Имена объектов, доступных в магазине (все кроме SHOP_EXEMPT).
+pub fn shop_item_names() -> Vec<&'static str> {
+    ALL_OBJECTS.iter()
+        .filter(|o| !crate::core::constants::SHOP_EXEMPT.contains(&o.name))
+        .map(|o| o.name)
+        .collect()
 }
 
 pub use placement::{add, attach_point_light, is_carpet_name, is_flower_name, is_light_name, is_outdoor_name, is_wall_decor_name, remove};

@@ -33,6 +33,10 @@ pub fn is_light_name(name: &str) -> bool {
     crate::core::constants::INV_LIGHT.contains(&name)
 }
 
+pub fn requires_shop(name: &str) -> bool {
+    !crate::core::constants::SHOP_EXEMPT.contains(&name)
+}
+
 // Привязывает PointLight к сущности по имени объекта.
 // Используется при установке объекта и при восстановлении уровня из сохранения.
 pub fn attach_point_light(ecs: &EcsAdapter, entity: specs::Entity, name: &str) {
@@ -213,9 +217,9 @@ pub fn add(ecs: &mut EcsAdapter, slots: &mut Vec<Slot>, act_slot: i32, gx: i32, 
         return;
     }
 
-    // Доступ к светящимся предметам покупается в магазине (проверяем ДО
-    // денег, чтобы подсказка была «Buy this in the Shop», а не про деньги).
-    if is_light && !ecs.world.read_resource::<ShopOwned>().0.iter().any(|o| o == &active_slot.name) {
+    // Доступ к объектам (кроме box/sign/rack/cassa) покупается в магазине
+    // (проверяем ДО денег, чтобы подсказка была «Buy this in the Shop»).
+    if requires_shop(active_slot.name) && !ecs.world.read_resource::<ShopOwned>().0.iter().any(|o| o == &active_slot.name) {
         ecs.world.write_resource::<ShopDenied>().0 = true;
         crate::audio::play("error");
         return;

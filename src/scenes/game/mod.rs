@@ -308,17 +308,19 @@ impl GameScene {
         has_food
     }
 
-    /// Собрать содержимое каталога магазина: для каждого светящегося
-    /// предмета (INV_LIGHT) — имя, иконка, цена из баланса и флаг,
-    /// куплен ли уже доступ в текущем мире (ShopOwned).
+    /// Собрать содержимое каталога магазина: для каждого покупаемого
+    /// объекта (все объекты кроме box/sign/rack/cassa) — имя, иконка,
+    /// цена из баланса и флаг, куплен ли уже доступ в текущем мире (ShopOwned).
     fn shop_items(&self, ecs: &crate::EcsAdapter) -> Vec<crate::ui::shop::ShopItem> {
         let owned = &ecs.world.read_resource::<ShopOwned>().0;
-        INV_LIGHT.iter().map(|n| {
-            let is_owned = owned.iter().any(|o| o.as_str() == *n);
-            let price = crate::data::object_price(n, &self.config);
-            let icon = crate::core::util::slot_icon_path(n);
-            ((*n).to_string(), icon, price, is_owned)
-        }).collect()
+        crate::data::ALL_OBJECTS.iter()
+            .filter(|o| !crate::core::constants::SHOP_EXEMPT.contains(&o.name))
+            .map(|o| {
+                let is_owned = owned.iter().any(|a| a.as_str() == o.name);
+                let price = crate::data::object_price(o.name, &self.config);
+                let icon = crate::core::util::slot_icon_path(o.name);
+                (o.name.to_string(), icon, price, is_owned)
+            }).collect()
     }
 
     /// Минимальная сумма, чтобы снова сделать магазин зарабатывающим:
@@ -638,22 +640,31 @@ impl Scene for GameScene {
                 return SceneAction::Switch("menu".to_string());
             }
         } else if self.shop.open {
-            // --- Магазин открыт: клики только по каталогу ---
+            // --- Магазин открыт: скролл + клики по каталогу ---
+            let items = self.shop_items(ecs);
+            let prev_scroll = self.shop.scroll_offset;
+            self.shop.scroll_input(input, items.len(), window_size);
+            if (self.shop.scroll_offset - prev_scroll).abs() > 0.001 {
+                self.shop.refresh(ecs, text_renderer, device, queue, &items);
+            }
+            let shop_names = crate::data::shop_item_names();
             if let Some(idx) = self.shop.row_clicked(input, window_size) {
-                let name = INV_LIGHT[idx].to_string();
-                let owned = ecs.world.read_resource::<ShopOwned>().0.iter().any(|o| o == &name);
-                if !owned {
-                    let price = crate::data::object_price(&name, &self.config);
-                    let money = ecs.world.read_resource::<Money>().0;
-                    if money >= price {
-                        ecs.world.write_resource::<Money>().0 = money - price;
-                        ecs.world.write_resource::<ShopOwned>().0.push(name.clone());
-                        crate::audio::play("click");
-                        let items = self.shop_items(ecs);
-                        self.shop.refresh(ecs, text_renderer, device, queue, &items);
-                    } else {
-                        // Недостаточно денег — покажем красную подсказку
-                        ecs.world.write_resource::<PlacementError>().0 = Some((money, price));
+                if let Some(name) = shop_names.get(idx) {
+                    let name = name.to_string();
+                    let owned = ecs.world.read_resource::<ShopOwned>().0.iter().any(|o| o == &name);
+                    if !owned {
+                        let price = crate::data::object_price(&name, &self.config);
+                        let money = ecs.world.read_resource::<Money>().0;
+                        if money >= price {
+                            ecs.world.write_resource::<Money>().0 = money - price;
+                            ecs.world.write_resource::<ShopOwned>().0.push(name.clone());
+                            crate::audio::play("click");
+                            let items = self.shop_items(ecs);
+                            self.shop.refresh(ecs, text_renderer, device, queue, &items);
+                        } else {
+                            // Недостаточно денег — покажем красную подсказку
+                            ecs.world.write_resource::<PlacementError>().0 = Some((money, price));
+                        }
                     }
                 }
                 return SceneAction::None;

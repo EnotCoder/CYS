@@ -147,7 +147,7 @@ fn scrollbar_input(input: &dyn InputSource, offset: &mut f32, items_len: usize, 
 
     if let Some((mx, my)) = input.cursor() {
         let (wx, wy) = crate::ui::system::ndc_to_ui(mx, my, window_size);
-        let on_track = (wx - SCROLLBAR_X).abs() < SCROLLBAR_W * 2.0 && wy >= SCROLLBAR_BOT && wy <= SCROLLBAR_TOP;
+        let on_track = (wx - SCROLLBAR_X).abs() < SCROLLBAR_W * 4.0 && wy >= SCROLLBAR_BOT - 0.5 && wy <= SCROLLBAR_TOP + 0.5;
         let pressing = input.mouse_held(winit::event::MouseButton::Left);
 
         if pressing && (on_track || *thumb_dragging) {
@@ -157,7 +157,7 @@ fn scrollbar_input(input: &dyn InputSource, offset: &mut f32, items_len: usize, 
                 *thumb_grab_offset = *offset;
             }
             let dy = *thumb_grab_y - wy;
-            *offset = (*thumb_grab_offset + dy / SCROLLBAR_H * max).clamp(0.0, max);
+            *offset = (*thumb_grab_offset + dy / (SCROLLBAR_H * 0.8) * max).clamp(0.0, max);
         } else {
             *thumb_dragging = false;
         }

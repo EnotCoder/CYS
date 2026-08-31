@@ -648,26 +648,27 @@ impl Scene for GameScene {
                 self.shop.refresh(ecs, text_renderer, device, queue, &items);
             }
             let shop_names = crate::data::shop_item_names();
-            if let Some(idx) = self.shop.row_clicked(input, window_size) {
-                if let Some(name) = shop_names.get(idx) {
-                    let name = name.to_string();
-                    let owned = ecs.world.read_resource::<ShopOwned>().0.iter().any(|o| o == &name);
-                    if !owned {
-                        let price = crate::data::object_price(&name, &self.config);
-                        let money = ecs.world.read_resource::<Money>().0;
-                        if money >= price {
-                            ecs.world.write_resource::<Money>().0 = money - price;
-                            ecs.world.write_resource::<ShopOwned>().0.push(name.clone());
-                            crate::audio::play("click");
-                            let items = self.shop_items(ecs);
-                            self.shop.refresh(ecs, text_renderer, device, queue, &items);
-                        } else {
-                            // Недостаточно денег — покажем красную подсказку
-                            ecs.world.write_resource::<PlacementError>().0 = Some((money, price));
+            if !self.shop.thumb_dragging {
+                if let Some(idx) = self.shop.row_clicked(input, window_size) {
+                    if let Some(name) = shop_names.get(idx) {
+                        let name = name.to_string();
+                        let owned = ecs.world.read_resource::<ShopOwned>().0.iter().any(|o| o == &name);
+                        if !owned {
+                            let price = crate::data::object_price(&name, &self.config);
+                            let money = ecs.world.read_resource::<Money>().0;
+                            if money >= price {
+                                ecs.world.write_resource::<Money>().0 = money - price;
+                                ecs.world.write_resource::<ShopOwned>().0.push(name.clone());
+                                crate::audio::play("click");
+                                let items = self.shop_items(ecs);
+                                self.shop.refresh(ecs, text_renderer, device, queue, &items);
+                            } else {
+                                ecs.world.write_resource::<PlacementError>().0 = Some((money, price));
+                            }
                         }
                     }
+                    return SceneAction::None;
                 }
-                return SceneAction::None;
             }
             // Закрытие по клику вне панели магазина
             if let Some((mx, my)) = input.cursor() {

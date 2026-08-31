@@ -86,11 +86,9 @@ impl Shop {
         self.clear_rows(ecs);
         let top = self.scroll_offset;
         // Панель: y ∈ [-3, 3], строка: y = 1.4 - 1.1*(i - top).
-        // Строка видна целиком, если y ± 0.5 ⊂ [-3, 3] → y ∈ [-2.5, 2.5]:
-        //   -2.5 ≤ 1.4 - 1.1*(i - top) ≤ 2.5
-        //   top - 1.0 ≤ i ≤ top + 3.5
-        let min_i = (top - 1.0).ceil() as i32;
-        let max_i = (top + 3.5).floor() as i32;
+        // Ровно 4 строки: y ∈ [-1.9, 1.4] → i ∈ [top - 0.5, top + 3.0]
+        let min_i = (top - 0.5).ceil() as i32;
+        let max_i = (top + 3.0).floor() as i32;
         for (i, (name, icon, price, owned)) in items.iter().enumerate() {
             if (i as i32) < min_i || (i as i32) > max_i { continue; }
             let y = ROW_START_Y + ROW_STEP * (i as f32 - top);

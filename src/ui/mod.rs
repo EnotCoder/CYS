@@ -16,6 +16,7 @@ pub mod shop;
 pub mod system;
 pub mod text_input;
 pub mod text_renderer;
+pub mod weather;
 
 pub use components::*;
 pub use system::*;

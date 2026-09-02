@@ -149,6 +149,34 @@ impl Component for FenceComponent {
     type Storage = VecStorage<Self>;
 }
 
+/// Текущий сезон ( погода): определяет текстуру травы на карте.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Season {
+    Summer,
+    Spring,
+    Autumn,
+    Winter,
+}
+
+impl Season {
+    pub fn grass_texture(&self) -> &'static str {
+        match self {
+            Season::Summer => "assets/tex/map/grass.png",
+            Season::Spring => "assets/tex/map/spring_grass.png",
+            Season::Autumn => "assets/tex/map/autumn_grass.png",
+            Season::Winter => "assets/tex/map/winter_grass.png",
+        }
+    }
+
+    pub fn all() -> &'static [Season] {
+        &[Season::Spring, Season::Summer, Season::Autumn, Season::Winter]
+    }
+}
+
+impl Default for Season {
+    fn default() -> Self { Season::Summer }
+}
+
 /// Источник света для динамического освещения.
 /// color: RGB, intensity: яркость, radius: радиус затухания.
 #[derive(Debug, Clone, Copy)]

@@ -96,6 +96,11 @@ pub const TEX_SHOP: &str = "assets/tex/ui/shop.png";
 // Кнопка магазина — правее кнопки инвентаря на хотбаре.
 pub const SHOP_BTN_X: f32 = INV_BTN_X + 1.0;
 
+// Кнопка погоды — 1 клетку правее и 1 клетку выше кнопки режима.
+pub const WEATHER_BTN_X: f32 = ICON_MODE_X + 1.0;
+pub const WEATHER_BTN_Y: f32 = SLOT_BAR_Y + 1.0;
+pub const TEX_WEATHER: &str = "assets/tex/ui/weather.png";
+
 // === Текст (цвета, размеры) ===
 pub const WHITE: [u8; 3] = [255, 255, 255];
 pub const RED: [u8; 3] = [255, 60, 60];

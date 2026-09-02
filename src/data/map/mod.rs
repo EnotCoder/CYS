@@ -14,6 +14,7 @@ pub mod pathfinding;
 
 use std::collections::HashSet;
 use std::io::BufRead;
+use specs::WorldExt;
 use crate::ecs::EcsAdapter;
 use crate::core::constants::{WORLD_OFFSET_X, WORLD_OFFSET_Y, Z_MAP};
 use crate::data::map::pathfinding::Node;
@@ -33,6 +34,7 @@ pub fn load_basement_to_ecs(ecs: &mut EcsAdapter) {
 /// Читает текстовую карту построчно и превращает каждый токен в спрайт-сущность
 fn load_map_from_reader(ecs: &mut EcsAdapter, reader: impl std::io::Read, _is_basement: bool) {
     let reader = std::io::BufReader::new(reader);
+    let season = *ecs.world.read_resource::<crate::ecs::components::Season>();
 
     // j — номер строки (ось Y), i — позиция в строке (ось X)
     for (j, line) in reader.lines().flatten().enumerate() {
@@ -44,7 +46,7 @@ fn load_map_from_reader(ecs: &mut EcsAdapter, reader: impl std::io::Read, _is_ba
         let mut grid_row: Vec<String> = Vec::new();
         for (i, token) in parts.iter().enumerate() {
             grid_row.push(token.to_string());
-            let (tex_path, tex_pos, tex_count) = token_to_texture(token);
+            let (tex_path, tex_pos, tex_count) = token_to_texture(token, season);
 
             let x = i as f32 + WORLD_OFFSET_X;
             let y = -(j as f32) + WORLD_OFFSET_Y;
@@ -137,22 +139,23 @@ pub fn shopper_spawn_point() -> Node {
 
 /// Сопоставляет токен карты с текстурой земли и кадром атласа.
 /// Возвращает (путь к текстуре, позиция кадра в атласе, число кадров).
-pub fn token_to_texture(token: &str) -> (&str, [i32; 2], [i32; 2]) {
+pub fn token_to_texture(token: &str, season: crate::ecs::components::Season) -> (&str, [i32; 2], [i32; 2]) {
+    let grass = season.grass_texture();
     match token {
-        "." => ("assets/tex/map/grass.png", [0, 0], [4, 4]),
-        "@" => ("assets/tex/map/grass.png", [0, 2], [4, 4]),
-        "*" => ("assets/tex/map/grass.png", [2, 2], [4, 4]),
-        "m" => ("assets/tex/map/grass.png", [3, 2], [4, 4]),
-        "f" => ("assets/tex/map/grass.png", [2, 3], [4, 4]),
-        "~" => ("assets/tex/map/grass.png", [1, 2], [4, 4]),
-        "l" => ("assets/tex/map/grass.png", [0, 3], [4, 4]),
+        "." => (grass, [0, 0], [4, 4]),
+        "@" => (grass, [0, 2], [4, 4]),
+        "*" => (grass, [2, 2], [4, 4]),
+        "m" => (grass, [3, 2], [4, 4]),
+        "f" => (grass, [2, 3], [4, 4]),
+        "~" => (grass, [1, 2], [4, 4]),
+        "l" => (grass, [0, 3], [4, 4]),
         //shadow
-        "1" => ("assets/tex/map/grass.png", [0, 1], [4, 4]),
-        "2" => ("assets/tex/map/grass.png", [1, 1], [4, 4]),
-        "3" => ("assets/tex/map/grass.png", [2, 1], [4, 4]),
-        "4" => ("assets/tex/map/grass.png", [1, 0], [4, 4]),
-        "5" => ("assets/tex/map/grass.png", [2, 0], [4, 4]),
-        "6" => ("assets/tex/map/grass.png", [3, 0], [4, 4]),
+        "1" => (grass, [0, 1], [4, 4]),
+        "2" => (grass, [1, 1], [4, 4]),
+        "3" => (grass, [2, 1], [4, 4]),
+        "4" => (grass, [1, 0], [4, 4]),
+        "5" => (grass, [2, 0], [4, 4]),
+        "6" => (grass, [3, 0], [4, 4]),
         "0" => ("assets/tex/map/floor.png", [0, 0], [2, 2]),
         "=" => ("assets/tex/map/wall.png", [0, 0], [5, 5]),
         "-" => ("assets/tex/map/wall.png", [0, 1], [5, 5]),

@@ -17,7 +17,7 @@ use crate::Sprite;
 use crate::Texture;
 use crate::ecs::components::{
     BasementPlaced, FenceComponent, FoodStorage, Money, ObjectTag, PointLight, Rotation,
-    SpriteComponent, TotalFood, Transform, BusyCassas, PlacementError, ShopOwned, ShopDenied,
+    Season, SpriteComponent, TotalFood, Transform, BusyCassas, PlacementError, ShopOwned, ShopDenied,
 };
 use crate::{GroupComponent, GroupInfoResource};
 use crate::core::constants::*;
@@ -99,6 +99,7 @@ impl EcsAdapter {
         world.insert(PlacementError(None));
         world.insert(ShopOwned(Vec::new()));
         world.insert(ShopDenied(false));
+        world.insert(Season::default());
         world.insert(cfg);
 
         Self {

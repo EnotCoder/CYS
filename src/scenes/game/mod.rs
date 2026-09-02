@@ -81,7 +81,9 @@ pub struct GameScene {
     active_entity: Option<specs::Entity>,
     settings: crate::ui::settings::Settings,
     shop: crate::ui::shop::Shop,
+    weather: crate::ui::weather::Weather,
     shop_entity: Option<specs::Entity>,
+    weather_entity: Option<specs::Entity>,
     inv_entity: Option<specs::Entity>,
     // Уровни: 0 — магазин, -1 — подвал; кэш состояний при хождении между ними
     current_level: i32,
@@ -147,7 +149,9 @@ impl GameScene {
             active_entity: None,
             settings: crate::ui::settings::Settings::new(),
             shop: crate::ui::shop::Shop::new(),
+            weather: crate::ui::weather::Weather::new(),
             shop_entity: None,
+            weather_entity: None,
             inv_entity: None,
             current_level: 0,
             level_states: HashMap::new(),
@@ -206,6 +210,9 @@ impl GameScene {
         // Кнопка магазина — правее кнопки инвентаря
         let shop_entity = ecs.add_ui(SHOP_BTN_X, SLOT_BAR_Y, TEX_SHOP);
         self.shop_entity = Some(shop_entity);
+
+        let weather_entity = ecs.add_ui(WEATHER_BTN_X, WEATHER_BTN_Y, TEX_WEATHER);
+        self.weather_entity = Some(weather_entity);
 
         // Кнопка настроек (иконка gear) в верхнем левом углу
         let settings_entity = ecs.add_ui(SETTINGS_BTN_X, SETTINGS_BTN_Y, TEX_SETTINGS);
@@ -380,6 +387,25 @@ impl GameScene {
     pub fn clear_food_fx(&mut self) {
         self.food_pulses.clear();
     }
+
+    pub fn refresh_grass_tiles(&self, ecs: &mut crate::EcsAdapter) {
+        let season = *ecs.world.read_resource::<crate::ecs::components::Season>();
+        let tokens = ecs.original_tokens.clone();
+        for (pos, token) in &tokens {
+            let is_grass = matches!(token.as_str(), "." | "@" | "*" | "m" | "f" | "~" | "l" | "1" | "2" | "3" | "4" | "5" | "6");
+            if is_grass {
+                if let Some(&entity) = ecs.map_entities.get(pos) {
+                    let (tex, frame, count) = crate::data::map::token_to_texture(token, season);
+                    ecs.update_sprite_texture(entity, tex);
+                    let mut sprites = ecs.world.write_storage::<crate::ecs::components::SpriteComponent>();
+                    if let Some(sprite) = sprites.get_mut(entity) {
+                        sprite.texture_frame = frame;
+                        sprite.texture_count = count;
+                    }
+                }
+            }
+        }
+    }
 }
 
 impl Scene for GameScene {
@@ -441,7 +467,11 @@ impl Scene for GameScene {
         if self.shop.open {
             self.shop.close(ecs);
         }
+        if self.weather.open {
+            self.weather.close(ecs);
+        }
         self.shop_entity = None;
+        self.weather_entity = None;
         if let Some(id) = self.world_id {
             self.save_to_disk(ecs, id);
             crate::save::touch_world(id);
@@ -546,9 +576,11 @@ impl Scene for GameScene {
             return SceneAction::None;
         }
 
-        // --- Toggle settings / close shop ---
+        // --- Toggle settings / close shop/weather ---
         if input.key_pressed(winit::keyboard::KeyCode::Escape) {
-            if self.shop.open {
+            if self.weather.open {
+                self.weather.close(ecs);
+            } else if self.shop.open {
                 self.shop.close(ecs);
             } else if self.settings.open {
                 self.settings.close(ecs);
@@ -558,9 +590,8 @@ impl Scene for GameScene {
             crate::audio::play("click");
         }
 
-        // Кнопка настроек (иконка gear) — открыть/закрыть окно настроек
-        // (неактивна, пока открыт магазин)
-        if !self.shop.open {
+        // Кнопка настроек (иконка gear) — неактивна, пока открыты магазин или погода
+        if !self.shop.open && !self.weather.open {
             if let Some((mx, my)) = input.cursor() {
                 let (wx, wy) = crate::ui::system::ndc_to_ui(mx, my, window_size);
                 if input.mouse_pressed(winit::event::MouseButton::Left)
@@ -577,9 +608,8 @@ impl Scene for GameScene {
             }
         }
 
-        // Кнопка магазина (правее инвентаря) — открыть/закрыть окно магазина
-        // (неактивна, пока открыты настройки)
-        if !self.settings.open {
+        // Кнопка магазина — неактивна, пока открыты настройки или погода
+        if !self.settings.open && !self.weather.open {
             if let Some((mx, my)) = input.cursor() {
                 let (wx, wy) = crate::ui::system::ndc_to_ui(mx, my, window_size);
                 if input.mouse_pressed(winit::event::MouseButton::Left)
@@ -593,6 +623,24 @@ impl Scene for GameScene {
                         }
                         let items = self.shop_items(ecs);
                         self.shop.open(ecs, text_renderer, device, queue, &items);
+                    }
+                    crate::audio::play("click");
+                    return SceneAction::None;
+                }
+            }
+        }
+
+        // Кнопка погоды — неактивна, пока открыты настройки или магазин
+        if !self.settings.open && !self.shop.open {
+            if let Some((mx, my)) = input.cursor() {
+                let (wx, wy) = crate::ui::system::ndc_to_ui(mx, my, window_size);
+                if input.mouse_pressed(winit::event::MouseButton::Left)
+                    && (wx - WEATHER_BTN_X).abs() < TILE_HALF
+                    && (wy - WEATHER_BTN_Y).abs() < TILE_HALF {
+                    if self.weather.open {
+                        self.weather.close(ecs);
+                    } else {
+                        self.weather.open(ecs, text_renderer, device, queue);
                     }
                     crate::audio::play("click");
                     return SceneAction::None;
@@ -638,6 +686,24 @@ impl Scene for GameScene {
             if self.settings.menu_requested {
                 self.settings.menu_requested = false;
                 return SceneAction::Switch("menu".to_string());
+            }
+        } else if self.weather.open {
+            // --- Окно погоды: выбор сезона ---
+            if let Some((mx, my)) = input.cursor() {
+                let (wx, wy) = crate::ui::system::ndc_to_ui(mx, my, window_size);
+                let p = &self.weather.panel;
+                let inside = (wx - p.x).abs() <= p.w / 2.0 && (wy - p.y).abs() <= p.h / 2.0;
+                if input.mouse_pressed(winit::event::MouseButton::Left) && !inside {
+                    self.weather.close(ecs);
+                    crate::audio::play("click");
+                    return SceneAction::None;
+                }
+            }
+            self.weather.handle_input(ecs, text_renderer, device, queue, input, window_size);
+            if self.weather.season_changed {
+                self.weather.season_changed = false;
+                *ecs.world.write_resource::<crate::ecs::components::Season>() = self.weather.selected;
+                self.refresh_grass_tiles(ecs);
             }
         } else if self.shop.open {
             // --- Магазин открыт: скролл + клики по каталогу ---

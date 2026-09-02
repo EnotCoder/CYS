@@ -106,7 +106,7 @@ impl GameScene {
             // Пересоздаём спрайты земли для каждой сохранённой клетки
             for (pos, _) in ecs.original_tokens.clone() {
                 let token = ecs.original_tokens.get(&pos).cloned().unwrap_or_default();
-                let (tex, frame, count) = token_to_texture(&token);
+                let (tex, frame, count) = token_to_texture(&token, *ecs.world.read_resource::<crate::ecs::components::Season>());
                 let (wx, wy) = (pos.0 as f32, pos.1 as f32);
                 let entity = crate::ecs::factory::create_sprite(&mut ecs.world, wx, wy, Z_MAP, tex, frame, count, 1.0, 1.0);
                 ecs.map_entities.insert(pos, entity);
@@ -220,6 +220,10 @@ impl GameScene {
         self.active_entity = Some(active_entity);
         let inv_entity = ecs.add_ui(INV_BTN_X, SLOT_BAR_Y, TEX_INV_BUTTON);
         self.inv_entity = Some(inv_entity);
+        let shop_entity = ecs.add_ui(SHOP_BTN_X, SLOT_BAR_Y, TEX_SHOP);
+        self.shop_entity = Some(shop_entity);
+        let weather_entity = ecs.add_ui(WEATHER_BTN_X, WEATHER_BTN_Y, TEX_WEATHER);
+        self.weather_entity = Some(weather_entity);
         let settings_entity = ecs.add_ui(SETTINGS_BTN_X, SETTINGS_BTN_Y, TEX_SETTINGS);
         self.settings_entity = Some(settings_entity);
         self.cursor_entity = Some(ecs.add_cursor(0.0, 0.0, CURSOR_TEX[self.mode as usize]));

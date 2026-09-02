@@ -142,7 +142,7 @@ fn revert_to_grass(ecs: &mut EcsAdapter, nx: i32, ny: i32, file_row: i32, file_c
         ecs.outdoor_positions.insert((nx, ny));
         ecs.flower_positions.insert((nx, ny));
     }
-    let (tex, frame, count) = crate::data::map::token_to_texture(&original);
+    let (tex, frame, count) = crate::data::map::token_to_texture(&original, *ecs.world.read_resource::<crate::ecs::components::Season>());
     if let Some(&map_entity) = ecs.map_entities.get(&(nx, ny)) {
         ecs.update_sprite_texture(map_entity, tex);
         let mut sprites = ecs.world.write_storage::<crate::SpriteComponent>();

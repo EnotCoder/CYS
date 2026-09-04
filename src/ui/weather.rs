@@ -15,7 +15,7 @@ use crate::EcsAdapter;
 use crate::input::platform::InputSource;
 
 const SEASON_ICON_SIZE: f32 = 0.8;
-const SEASON_BTN_START_Y: f32 = 0.8;
+const SEASON_BTN_START_Y: f32 = 1.3;
 const SEASON_BTN_STEP: f32 = -1.1;
 const SEASON_COL_X: f32 = -1.2;
 const SEASON_LABEL_X: f32 = 0.5;

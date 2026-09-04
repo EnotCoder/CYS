@@ -392,16 +392,13 @@ impl GameScene {
         let season = *ecs.world.read_resource::<crate::ecs::components::Season>();
         let tokens = ecs.original_tokens.clone();
         for (pos, token) in &tokens {
-            let is_grass = matches!(token.as_str(), "." | "@" | "*" | "m" | "f" | "~" | "l" | "1" | "2" | "3" | "4" | "5" | "6");
-            if is_grass {
-                if let Some(&entity) = ecs.map_entities.get(pos) {
-                    let (tex, frame, count) = crate::data::map::token_to_texture(token, season);
-                    ecs.update_sprite_texture(entity, tex);
-                    let mut sprites = ecs.world.write_storage::<crate::ecs::components::SpriteComponent>();
-                    if let Some(sprite) = sprites.get_mut(entity) {
-                        sprite.texture_frame = frame;
-                        sprite.texture_count = count;
-                    }
+            if let Some(&entity) = ecs.map_entities.get(pos) {
+                let (tex, frame, count) = crate::data::map::token_to_texture(token, season);
+                ecs.update_sprite_texture(entity, tex);
+                let mut sprites = ecs.world.write_storage::<crate::ecs::components::SpriteComponent>();
+                if let Some(sprite) = sprites.get_mut(entity) {
+                    sprite.texture_frame = frame;
+                    sprite.texture_count = count;
                 }
             }
         }

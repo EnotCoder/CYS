@@ -17,7 +17,7 @@ use crate::EcsAdapter;
 use crate::core::constants::*;
 use crate::ecs::components::{BasementPlaced, BusyCassas, FenceComponent, FoodStorage, Money, ObjectTag, TotalFood, ShopOwned};
 use crate::data::{attach_point_light, is_carpet_name, is_flower_name, is_light_name, is_outdoor_name, is_wall_decor_name, make_slot};
-use crate::data::map::{load_basement_to_ecs, load_map_to_ecs, load_walkable_cells, token_to_texture};
+use crate::data::map::{is_floor_tile, load_basement_to_ecs, load_map_to_ecs, load_walkable_cells, token_to_texture};
 use crate::ui::text_renderer::TextRenderer;
 use crate::GroupInfoResource;
 use super::GameScene;
@@ -122,7 +122,7 @@ impl GameScene {
                     let is_grass = matches!(token.as_str(), "." | "@" | "*" | "m" | "f" | "~" | "l" | "1" | "2" | "3" | "4" | "5" | "6");
                     if token == "=" || token == "-" {
                         ecs.wall_positions.insert((gx, gy));
-                    } else if token == "0" {
+                    } else if is_floor_tile(token) {
                         ecs.floor_positions.insert((gx, gy));
                     }
                     if is_grass {

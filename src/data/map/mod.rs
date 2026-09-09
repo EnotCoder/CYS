@@ -7,7 +7,8 @@ pub mod pathfinding;
 //  Загрузка карты из map.txt в ECS мир
 // ========================================================================
 //  map.txt описывает уровень строками токенов, разделённых пробелами.
-//  Каждый токен кодирует клетку: "=" / "-" — стены, "0" — пол магазина,
+//  Каждый токен кодирует клетку: "=" / "-" — стены, "0" и его паркетные
+//  варианты ("P" "_" "Q" "A" "Z" "," "X" "D") — пол магазина,
 //  "." и прочие — трава снаружи, "/" / "|" / "&" — стены, на которые можно
 //  ставить предметы, "^" / "[" / "]" и др. — декоративные стены и окна.
 //  Здесь же происходит разбор файла и создание ECS-сущностей земли.
@@ -60,7 +61,7 @@ fn load_map_from_reader(ecs: &mut EcsAdapter, reader: impl std::io::Read, _is_ba
             let is_grass = matches!(*token, "." | "@" | "*" | "m" | "f" | "~" | "l" | "1" | "2" | "3" | "4" | "5" | "6");
             if *token == "=" || *token == "-" {
                 ecs.wall_positions.insert((grid_x, grid_y));
-            } else if *token == "0" {
+            } else if is_floor_tile(token) {
                 ecs.floor_positions.insert((grid_x, grid_y));
             }
             if is_grass {
@@ -89,6 +90,12 @@ fn load_map_from_reader(ecs: &mut EcsAdapter, reader: impl std::io::Read, _is_ba
         }
         ecs.map_grid.push(grid_row);
     }
+}
+
+/// Токены пола магазина: "0" (центр) и варианты краёв/углов паркета
+/// ("P" "_" "Q" "A" "Z" "," "X" "D"). На них можно ставить предметы.
+pub fn is_floor_tile(token: &str) -> bool {
+    matches!(token, "0" | "P" | "_" | "Q" | "A" | "Z" | "," | "X" | "D")
 }
 
 /// Загружает проходимые клетки из map.txt (для NPC pathfinding)

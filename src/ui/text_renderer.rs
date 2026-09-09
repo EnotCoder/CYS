@@ -202,7 +202,7 @@ impl TextRenderer {
         outline: f32,
         color: [u8; 3],
     ) -> specs::Entity {
-        self.add_text_z(ecs, device, queue, text, font_size, x, y, world_width, outline, color, crate::core::constants::Z_UI)
+        self.add_text_z(ecs, device, queue, text, font_size, x, y, world_width, outline, color, crate::core::constants::Z_UI_TEXT)
     }
 
     /// Инкрементальная установка текста: если текст не изменился — спрайт не трогается,
@@ -264,7 +264,7 @@ impl TextRenderer {
                 let e = ecs.world
                     .create_entity()
                     .with(crate::Transform {
-                        position: [x, y, crate::core::constants::Z_UI],
+                        position: [x, y, crate::core::constants::Z_UI_TEXT],
                     })
                     .with(crate::SpriteComponent {
                         texture_path: std::sync::Arc::from(text_key.as_str()),
@@ -309,7 +309,7 @@ impl TextRenderer {
         ecs.world
             .create_entity()
             .with(crate::Transform {
-                position: [x, y, crate::core::constants::Z_UI],
+                position: [x, y, crate::core::constants::Z_UI_TEXT],
             })
             .with(crate::SpriteComponent {
                 texture_path: Arc::from(text_key.as_str()),
@@ -347,7 +347,8 @@ impl TextRenderer {
 
         let text_key = Self::cache_key(text, font_size, outline, color);
         // Ключ кэша различает слой UI и слой декора (иначе спрайты бы коллизировали).
-        let layer_prefix = if (z - crate::core::constants::Z_UI).abs() < 0.001 { "ui" } else { "decor" };
+        // Все под-слои UI (Z_UI, Z_UI_TEXT, тултипы) близки к 3.0 — попадают в "ui".
+        let layer_prefix = if (z - crate::core::constants::Z_UI).abs() < 0.1 { "ui" } else { "decor" };
         let skey = crate::core::util::sprite_cache_key(layer_prefix, &text_key, [0, 0], [1, 1], 1.0);
         ecs.sprite_cache.insert(skey, sprite);
 

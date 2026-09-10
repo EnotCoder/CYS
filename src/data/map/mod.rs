@@ -149,6 +149,7 @@ pub fn shopper_spawn_point() -> Node {
 pub fn token_to_texture(token: &str, season: crate::ecs::components::Season) -> (&str, [i32; 2], [i32; 2]) {
     let grass = season.grass_texture();
     match token {
+        //grass
         "." => (grass, [0, 0], [4, 6]),
         "@" => (grass, [0, 2], [4, 6]),
         "*" => (grass, [2, 2], [4, 6]),
@@ -156,6 +157,9 @@ pub fn token_to_texture(token: &str, season: crate::ecs::components::Season) -> 
         "f" => (grass, [2, 3], [4, 6]),
         "~" => (grass, [1, 2], [4, 6]),
         "l" => (grass, [0, 3], [4, 6]),
+        "H" => (grass, [1, 3], [4, 6]),
+        "K" => (grass, [3, 1], [4, 6]),
+
         //shadow
         "1" => (grass, [0, 1], [4, 6]),
         "2" => (grass, [1, 1], [4, 6]),
@@ -163,7 +167,8 @@ pub fn token_to_texture(token: &str, season: crate::ecs::components::Season) -> 
         "4" => (grass, [1, 0], [4, 6]),
         "5" => (grass, [2, 0], [4, 6]),
         "6" => (grass, [3, 0], [4, 6]),
-
+        
+        //floor
         "P" => ("assets/tex/map/floor.png", [0, 0], [3, 3]),
         "Q" => ("assets/tex/map/floor.png", [2, 0], [3, 3]),
         "Z" => ("assets/tex/map/floor.png", [0, 2], [3, 3]),
@@ -174,6 +179,7 @@ pub fn token_to_texture(token: &str, season: crate::ecs::components::Season) -> 
         "D" => ("assets/tex/map/floor.png", [2, 1], [3, 3]),
         "0" => ("assets/tex/map/floor.png", [1, 1], [3, 3]),
 
+        //wall
         "=" => ("assets/tex/map/wall.png", [0, 0], [5, 5]),
         "-" => ("assets/tex/map/wall.png", [0, 1], [5, 5]),
         "h" => ("assets/tex/map/wall.png", [0, 0], [5, 5]),
@@ -189,6 +195,7 @@ pub fn token_to_texture(token: &str, season: crate::ecs::components::Season) -> 
         "{" => (grass, [2, 5], [4, 6]),
         ")" => (grass, [3, 4], [4, 6]),
         "}" => (grass, [3, 5], [4, 6]),
+        
         //window
         "[" => ("assets/tex/map/wall.png", [2, 0], [5, 5]),
         "]" => ("assets/tex/map/wall.png", [4, 0], [5, 5]),
@@ -199,6 +206,7 @@ pub fn token_to_texture(token: &str, season: crate::ecs::components::Season) -> 
         "q" => ("assets/tex/map/wall.png", [2, 3], [5, 5]),
         "p" => ("assets/tex/map/wall.png", [3, 3], [5, 5]),
         "i" => ("assets/tex/map/wall.png", [4, 3], [5, 5]),
+
         //default
         _    => ("assets/tex/map/floor.png", [0, 0], [2, 2]),
     }

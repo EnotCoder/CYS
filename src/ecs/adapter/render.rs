@@ -3,7 +3,7 @@
 
 // ========================================================================
 //  Рендер-методы EcsAdapter: get_sprites_by_layer (разбиение всех сущностей
-//  по 7 z-слоям с отсечением видимой области), update_object_textures
+//  по 8 z-слоям с отсечением видимой области), update_object_textures
 //  (кадры box/rack по количеству еды), update_fence_textures (заборы по соседям).
 // ========================================================================
 
@@ -15,14 +15,16 @@ use crate::GroupComponent;
 use super::SpriteRenderData;
 
 impl super::EcsAdapter {
-    // Собирает все спрайты мира и раскладывает их по семи слоям рендера.
-    // Возвращает кортеж векторов (карта, ковры, свет, декор, NPC, курсор, UI).
+    // Собирает все спрайты мира и раскладывает их по восьми слоям рендера.
+    // Возвращает кортеж векторов (карта, ковры, свет, декор, NPC, погода,
+    // курсор, UI).
     // `visible_bounds` (l, r, b, t) для карты/декора/NPC включает отсечение
     // по экрану — экономия на запредельных объектах.
     pub fn get_sprites_by_layer(
         &self,
         visible_bounds: Option<(f32, f32, f32, f32)>,
     ) -> (
+        Vec<SpriteRenderData>,
         Vec<SpriteRenderData>,
         Vec<SpriteRenderData>,
         Vec<SpriteRenderData>,
@@ -42,6 +44,7 @@ impl super::EcsAdapter {
         let mut light_sprites = Vec::with_capacity(5);
         let mut decor_sprites = Vec::with_capacity(20);
         let mut npc_sprites = Vec::with_capacity(5);
+        let mut weather_sprites = Vec::with_capacity(20);
         let mut cursor_sprites = Vec::with_capacity(1);
         let mut ui_sprites = Vec::with_capacity(10);
 
@@ -85,6 +88,8 @@ impl super::EcsAdapter {
                 decor_sprites.push(data);
             } else if z == crate::core::constants::Z_NPC {
                 npc_sprites.push(data);
+            } else if z == crate::core::constants::Z_WEATHER {
+                weather_sprites.push(data);
             } else if z == crate::core::constants::Z_CURSOR {
                 cursor_sprites.push(data);
             } else {
@@ -92,7 +97,7 @@ impl super::EcsAdapter {
             }
         }
 
-        (map_sprites, carpet_sprites, light_sprites, decor_sprites, npc_sprites, cursor_sprites, ui_sprites)
+        (map_sprites, carpet_sprites, light_sprites, decor_sprites, npc_sprites, weather_sprites, cursor_sprites, ui_sprites)
     }
 
     // Обновляет текстуры заполненных объектов (box/rack) по количеству еды.

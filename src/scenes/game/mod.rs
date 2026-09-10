@@ -26,6 +26,7 @@ mod hud;
 mod inventory_input;
 mod level;
 mod shoppers;
+mod weather_fx;
 
 pub use level::LevelState;
 
@@ -116,6 +117,8 @@ pub struct GameScene {
     prev_mode: i32,
     // Масштаб UI для текущего соотношения сторон (адаптация под экран)
     ui_scale: f32,
+    // Погодные частицы (снег зимой, дождь осенью)
+    weather_fx: weather_fx::WeatherFx,
 }
 
 impl GameScene {
@@ -176,6 +179,7 @@ impl GameScene {
             prev_act_slot: 0,
             prev_mode: 0,
             ui_scale: 1.0,
+            weather_fx: weather_fx::WeatherFx::new(),
         }
     }
 
@@ -456,6 +460,7 @@ impl Scene for GameScene {
         self.mode_pulse = 0.0;
         self.prev_act_slot = 0;
         self.prev_mode = 0;
+        self.weather_fx.reset();
         crate::audio::play_music("music");
     }
 
@@ -847,6 +852,18 @@ impl Scene for GameScene {
 
         self.update_camera(input, window_size, dt);
 
+        // --- Погодные частицы (снег/дождь) по текущему сезону ---
+        {
+            let aspect = if window_size.1 > 0.0 { window_size.0 / window_size.1 } else { 1.0 };
+            let vis_w = 2.0 * aspect / (SHADER_SCALE * self.map_size);
+            let vis_h = 2.0 / (SHADER_SCALE * self.map_size);
+            let cam_x = self.camera_offset_x;
+            let cam_y = self.camera_offset_y;
+            let bounds = (cam_x - vis_w / 2.0, cam_x + vis_w / 2.0, cam_y - vis_h / 2.0, cam_y + vis_h / 2.0);
+            let season = *ecs.world.read_resource::<crate::ecs::components::Season>();
+            self.weather_fx.tick(ecs, device, queue, season, dt, bounds);
+        }
+
         // --- Обновление всех объектов по компонентам ---
         // Периодическая регенерация еды в ящиках (box)
         self.food_timer += dt;
@@ -965,7 +982,7 @@ impl Scene for GameScene {
         SceneAction::None
     }
 
-    fn sprites(&self, ecs: &crate::EcsAdapter, visible_bounds: Option<(f32, f32, f32, f32)>) -> (Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>) {
+    fn sprites(&self, ecs: &crate::EcsAdapter, visible_bounds: Option<(f32, f32, f32, f32)>) -> (Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>) {
         // Отдаём слои рендера с отсечением по видимой области
         ecs.get_sprites_by_layer(visible_bounds)
     }

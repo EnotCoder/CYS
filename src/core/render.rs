@@ -13,7 +13,7 @@ use std::collections::HashMap;
 //
 //  Порядок слоёв:
 //    1. map        (z=0.0)       — первый, очищает экран и depth buffer
-//    2. transparent (z=1.0-2.0)  — carpet + light + decor + npc + cursor (слиты в 1 pass)
+//    2. transparent (z=1.0-2.0)  — carpet + light + decor + npc + weather + cursor (слиты в 1 pass)
 //    3. ui         (z=3.0)       — UI (использует отдельный ui_bind_group)
 // ========================================================================
 pub fn render(
@@ -28,6 +28,7 @@ pub fn render(
     light_sprites: &[SpriteRenderData],
     decor_sprites: &[SpriteRenderData],
     npc_sprites: &[SpriteRenderData],
+    weather_sprites: &[SpriteRenderData],
     cursor_sprites: &[SpriteRenderData],
     ui_sprites: &[SpriteRenderData],
     size_bind_group: &wgpu::BindGroup,
@@ -70,16 +71,17 @@ pub fn render(
         texture_cache, &mut encoder, &view, size_bind_group, "map", true,
         dynamic_uniform_buffer, dynamic_bind_group, dynamic_alignment, &mut buf_offset);
 
-    // Прозрачные слои (carpet/light/decor/npc/cursor) объединяем в один массив
+    // Прозрачные слои (carpet/light/decor/npc/weather/cursor) объединяем в один массив
     // (порядок = z-порядок), чтобы рисовать их одним проходом и одним батчем
     // записи uniform'ов.
-    let transparent_count = carpet_sprites.len() + light_sprites.len() + decor_sprites.len() + npc_sprites.len() + cursor_sprites.len();
+    let transparent_count = carpet_sprites.len() + light_sprites.len() + decor_sprites.len() + npc_sprites.len() + weather_sprites.len() + cursor_sprites.len();
     if transparent_count > 0 {
         let mut transparent = Vec::with_capacity(transparent_count);
         transparent.extend_from_slice(carpet_sprites);
         transparent.extend_from_slice(light_sprites);
         transparent.extend_from_slice(decor_sprites);
         transparent.extend_from_slice(npc_sprites);
+        transparent.extend_from_slice(weather_sprites);
         transparent.extend_from_slice(cursor_sprites);
         render_group(device, queue, transparent_pipeline, &transparent, depth_view, sprite_cache,
             texture_cache, &mut encoder, &view, size_bind_group, "transparent", false,

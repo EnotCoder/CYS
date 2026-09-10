@@ -180,6 +180,9 @@ pub fn token_to_texture(token: &str, season: crate::ecs::components::Season) -> 
         "d" => ("assets/tex/map/wall.png", [0, 1], [5, 5]),
         "^" => ("assets/tex/map/wall.png", [1, 0], [5, 5]),
         "&" => ("assets/tex/map/wall.png", [1, 1], [5, 5]),
+        "W" => ("assets/tex/map/wall.png", [0, 2], [5, 5]),
+        "S" => ("assets/tex/map/wall.png", [0, 3], [5, 5]),
+
         "/" => (grass, [0, 4], [4, 6]),
         "|" => (grass, [1, 4], [4, 6]),
         "(" => (grass, [2, 4], [4, 6]),

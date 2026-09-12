@@ -841,7 +841,7 @@ impl Scene for GameScene {
         if shop_denied {
             ecs.world.write_resource::<ShopDenied>().0 = false;
             if self.no_money_entity.is_none() {
-                let ent = text_renderer.add_text(ecs, device, queue, "Buy this in the Shop", 40.0, 0.0, -3.0, 8.0, 1.0, RED);
+                let ent = text_renderer.add_text(ecs, device, queue, "You don't have this item", 40.0, 0.0, -3.0, 8.0, 1.0, RED);
                 self.no_money_entity = Some(ent);
                 self.no_money_timer = 2.0;
             }

@@ -5,7 +5,7 @@ use specs::Entity;
 use specs::WorldExt;
 use crate::EcsAdapter;
 use crate::core::constants::*;
-use crate::ecs::components::ShopOwned;
+use crate::ecs::components::{ShopDenied, ShopOwned};
 
 // ========================================================================
 //  Inventory — управление инвентарём (сетка, табы, курсор)
@@ -166,7 +166,9 @@ impl Inventory {
     //  Перенос предмета на панель
     // ================================================================
 
-    // Положить выбранный предмет инвентаря в активный слот хотбара
+    // Положить выбранный предмет инвентаря в активный слот хотбара.
+    // Некупленные предметы брать нельзя — выставляем ShopDenied (покажет
+    // подсказку «You don't have this item») и инвентарь не закрываем.
     pub fn transfer_to_slot(
         &mut self,
         ecs: &mut EcsAdapter,
@@ -175,6 +177,12 @@ impl Inventory {
         hotbar_entities: &[Entity],
     ) {
         let Some(name) = self.selected_item_name() else { return };
+        let owned = ecs.world.read_resource::<ShopOwned>().0.iter().any(|o| o == name);
+        if crate::data::placement::requires_shop(name) && !owned {
+            ecs.world.write_resource::<ShopDenied>().0 = true;
+            crate::audio::play("error");
+            return;
+        }
         let new_slot = crate::data::make_slot(name);
         if act_slot < hotbar_slots.len() {
             hotbar_slots[act_slot] = new_slot;

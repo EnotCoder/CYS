@@ -146,6 +146,13 @@ pub const OUTDOOR_NAMES: [&str; 10] = ["street_fence", "tree", "pink_flower", "b
 pub const FLOWER_NAMES: [&str; 5] = ["pink_flower", "blue_flower", "yellow_flower", "red_flower", "white_flower"];
 pub const INV_TAB_Y: f32 = 2.0;
 
+// === Замок на некупленных предметах инвентаря/магазина ===
+pub const TEX_LOCK: &str = "assets/tex/ui/mini_icons/lock.png";
+// Размер значка замка и его смещение в правый нижний угол ячейки.
+pub const LOCK_SIZE: f32 = 0.4;
+pub const LOCK_OFFSET_X: f32 = 0.28;
+pub const LOCK_OFFSET_Y: f32 = -0.28;
+
 // === Текстуры курсора по режимам ===
 pub const CURSOR_TEX: [&str; 3] = [
     "assets/tex/ui/cursor/def_cursor.png",  // mode 0

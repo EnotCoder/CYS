@@ -2,8 +2,10 @@
 // Copyright (C) 2026 EnotCoder
 
 use specs::Entity;
+use specs::WorldExt;
 use crate::EcsAdapter;
 use crate::core::constants::*;
+use crate::ecs::components::ShopOwned;
 
 // ========================================================================
 //  Inventory — управление инвентарём (сетка, табы, курсор)
@@ -20,6 +22,8 @@ pub struct Inventory {
     // UI-сущности сетки предметов и закладок табов (нужны для скрытия/показа)
     grid_entities: Vec<Entity>,
     tab_entities: Vec<Entity>,
+    // Замочки на некупленных предметах (значок в углу ячейки)
+    lock_entities: Vec<Entity>,
     // Анимация открытия: отсчёт времени и активность «попа» появления
     pop_timer: f64,
     popping: bool,
@@ -34,6 +38,7 @@ impl Inventory {
             tab: 0,
             grid_entities: Vec::new(),
             tab_entities: Vec::new(),
+            lock_entities: Vec::new(),
             pop_timer: 0.0,
             popping: false,
         }
@@ -47,6 +52,7 @@ impl Inventory {
         self.tab = 0;
         self.grid_entities.clear();
         self.tab_entities.clear();
+        self.lock_entities.clear();
         self.pop_timer = 0.0;
         self.popping = false;
     }
@@ -56,10 +62,10 @@ impl Inventory {
     // ================================================================
 
     // Открыть инвентарь: сбросить выбор, показать сетку и табы
-    pub fn enter(&mut self, ecs: &mut EcsAdapter) {
+    pub fn enter(&mut self, ecs: &mut EcsAdapter, device: &wgpu::Device, queue: &wgpu::Queue) {
         self.tab = 0;
         self.selected = INV_NONE;
-        self.show_grid(ecs);
+        self.show_grid(ecs, device, queue);
         self.show_tabs(ecs);
         self.open = true;
         self.mode = true;
@@ -144,10 +150,10 @@ impl Inventory {
     // ================================================================
 
     // Переключить таб: перерисовать сетку, подсветить активный таб, сбросить выбор
-    pub fn switch_tab(&mut self, new_tab: i32, ecs: &mut EcsAdapter) {
+    pub fn switch_tab(&mut self, new_tab: i32, ecs: &mut EcsAdapter, device: &wgpu::Device, queue: &wgpu::Queue) {
         self.tab = new_tab;
         self.hide_grid(ecs);
-        self.show_grid(ecs);
+        self.show_grid(ecs, device, queue);
         // Активный таб — насыщенный, остальные — полупрозрачные
         for (i, ent) in self.tab_entities.iter().enumerate() {
             let a = if i as i32 == self.tab { 1.0 } else { 0.5 };
@@ -200,8 +206,9 @@ impl Inventory {
     //  Рендер сетки
     // ================================================================
 
-    // Создаём UI-иконки всех предметов сетки (снизу вверх); пустые ячейки — null.png
-    fn show_grid(&mut self, ecs: &mut EcsAdapter) {
+    // Создаём UI-иконки всех предметов сетки (снизу вверх); пустые ячейки — null.png.
+    // На некупленных предметах рисуем замок в углу (см. TEX_LOCK).
+    fn show_grid(&mut self, ecs: &mut EcsAdapter, device: &wgpu::Device, queue: &wgpu::Queue) {
         let items = self.items();
         for row in (0..INVENTORY_ROWS).rev() {
             for col in 0..INVENTORY_COLS {
@@ -211,12 +218,25 @@ impl Inventory {
                 } else {
                     format!("{}{}", TEX_UI_ICON_SLOTS_MAP_DIR, "null.png")
                 };
-                let ent = ecs.add_ui(
-                    SLOT_BAR_X + col as f32,
-                    INVENTORY_BASE_Y + row as f32,
-                    &tex,
-                );
+                let x = SLOT_BAR_X + col as f32;
+                let y = INVENTORY_BASE_Y + row as f32;
+                let ent = ecs.add_ui(x, y, &tex);
                 self.grid_entities.push(ent);
+
+                // Доступ к такому предмету НЕ открыт (нужна покупка в магазине).
+                if item_idx < items.len() {
+                    let name = items[item_idx];
+                    let owned = ecs.world.read_resource::<ShopOwned>().0.iter().any(|o| o == name);
+                    if crate::data::placement::requires_shop(name) && !owned {
+                        let lock = ecs.add_ui_sized(
+                            x + LOCK_OFFSET_X, y + LOCK_OFFSET_Y,
+                            LOCK_SIZE, LOCK_SIZE, TEX_LOCK, device, queue,
+                        );
+                        // Замок рисуется поверх иконки предмета (следующий под-слой Z_UI).
+                        ecs.update_transform_z(lock, Z_UI_TEXT);
+                        self.lock_entities.push(lock);
+                    }
+                }
             }
         }
     }
@@ -225,6 +245,8 @@ impl Inventory {
     fn hide_grid(&mut self, ecs: &mut EcsAdapter) {
         let removed: Vec<Entity> = self.grid_entities.drain(..).collect();
         ecs.delete_entities(&removed);
+        let locks: Vec<Entity> = self.lock_entities.drain(..).collect();
+        ecs.delete_entities(&locks);
     }
 
     // ================================================================

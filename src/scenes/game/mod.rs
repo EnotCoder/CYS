@@ -774,7 +774,7 @@ impl Scene for GameScene {
                         if self.inventory.open {
                             self.inventory.exit(ecs);
                         } else {
-                            self.inventory.enter(ecs);
+                            self.inventory.enter(ecs, device, queue);
                         }
                     }
                 }
@@ -820,7 +820,7 @@ impl Scene for GameScene {
                 self.ilm_cooldown = 5.0;
             }
 
-            self.handle_inventory_input(ecs, input, window_size);
+            self.handle_inventory_input(ecs, input, window_size, device, queue);
         }
 
         // --- Всплывающие подсказки (работают во всех режимах) ---

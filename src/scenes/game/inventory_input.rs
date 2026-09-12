@@ -17,13 +17,13 @@ use super::GameScene;
 
 impl GameScene {
     /// Обработка кликов по инвентарю: таб, сетка предметов, слоты хотбара
-    pub fn handle_inventory_input(&mut self, ecs: &mut EcsAdapter, input: &dyn InputSource, window_size: (f32, f32)) {
+    pub fn handle_inventory_input(&mut self, ecs: &mut EcsAdapter, input: &dyn InputSource, window_size: (f32, f32), device: &wgpu::Device, queue: &wgpu::Queue) {
         // Клавиша E — открыть/закрыть инвентарь
         if input.key_pressed(KeyCode::KeyE) {
             if self.inventory.open {
                 self.inventory.exit(ecs);
             } else {
-                self.inventory.enter(ecs);
+                self.inventory.enter(ecs, device, queue);
             }
             crate::audio::play("click");
         }
@@ -41,7 +41,7 @@ impl GameScene {
             let tcol = (wx - SLOT_BAR_X + TILE_HALF) as i32;
             if (wy - INV_TAB_Y).abs() < TILE_HALF && tcol >= 0 && tcol < TAB_TEX.len() as i32 {
                 if tcol != self.inventory.tab {
-                    self.inventory.switch_tab(tcol, ecs);
+                    self.inventory.switch_tab(tcol, ecs, device, queue);
                     crate::audio::play("click");
                 }
                 return;

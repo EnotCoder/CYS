@@ -26,6 +26,7 @@ mod hud;
 mod inventory_input;
 mod level;
 mod shoppers;
+mod tutorial;
 mod weather_fx;
 
 pub use level::LevelState;
@@ -118,7 +119,11 @@ pub struct GameScene {
     // Масштаб UI для текущего соотношения сторон (адаптация под экран)
     ui_scale: f32,
     // Погодные частицы (снег зимой, дождь осенью)
+    // Погодные частицы (снег зимой, дождь осенью)
     weather_fx: weather_fx::WeatherFx,
+    // Мини-туториал: панель «как играть» на новой игре и флаг «уже показан»
+    tutorial: tutorial::Tutorial,
+    tutorial_shown: bool,
 }
 
 impl GameScene {
@@ -180,6 +185,8 @@ impl GameScene {
             prev_mode: 0,
             ui_scale: 1.0,
             weather_fx: weather_fx::WeatherFx::new(),
+            tutorial: tutorial::Tutorial::new(),
+            tutorial_shown: false,
         }
     }
 
@@ -461,6 +468,8 @@ impl Scene for GameScene {
         self.prev_act_slot = 0;
         self.prev_mode = 0;
         self.weather_fx.reset();
+        self.tutorial = tutorial::Tutorial::new();
+        self.tutorial_shown = false;
         crate::audio::play_music("music");
     }
 
@@ -525,6 +534,33 @@ impl Scene for GameScene {
         let now = std::time::Instant::now();
         let dt = (now - self.last_frame).as_secs_f64();
         self.last_frame = now;
+
+        // --- Мини-туториал: панель «как играть» в пустом магазине ---
+        if self.tutorial.is_open() {
+            // Закрытие по «Got it!» / клику вне панели / Escape.
+            if let Some((mx, my)) = input.cursor() {
+                let (wx, wy) = crate::ui::system::ndc_to_ui(mx, my, window_size);
+                if input.mouse_pressed(winit::event::MouseButton::Left)
+                    && (self.tutorial.button_hit(wx, wy) || !self.tutorial.panel_hit(wx, wy)) {
+                    self.tutorial.close(ecs);
+                    crate::audio::play("click");
+                }
+            }
+            if input.key_pressed(winit::keyboard::KeyCode::Escape) {
+                self.tutorial.close(ecs);
+                crate::audio::play("click");
+            }
+            return SceneAction::None;
+        }
+        // Показываем один раз сессию, только если в магазине ещё ничего нет.
+        if !self.tutorial_shown && self.current_level == 0 {
+            let empty = ecs.world.read_resource::<crate::ecs::components::GroupInfoResource>().groups.is_empty();
+            if empty {
+                self.tutorial.open(ecs, text_renderer, device, queue);
+                self.tutorial_shown = true;
+                return SceneAction::None;
+            }
+        }
 
         // --- Аренда магазина (экономическая нагрузка) ---
         if !self.bankrupt {

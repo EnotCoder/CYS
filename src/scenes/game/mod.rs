@@ -470,6 +470,7 @@ impl Scene for GameScene {
         self.weather_fx.reset();
         self.tutorial = tutorial::Tutorial::new();
         self.tutorial_shown = false;
+        crate::audio::stop_ambient();
         crate::audio::play_music("music");
     }
 
@@ -655,14 +656,15 @@ impl Scene for GameScene {
                     && (wy - SLOT_BAR_Y).abs() < TILE_HALF {
                     if self.shop.open {
                         self.shop.close(ecs);
+                        crate::audio::play("close");
                     } else {
                         if self.inventory.open {
                             self.inventory.exit(ecs);
                         }
                         let items = self.shop_items(ecs);
                         self.shop.open(ecs, text_renderer, device, queue, &items);
+                        crate::audio::play("open");
                     }
-                    crate::audio::play("click");
                     return SceneAction::None;
                 }
             }
@@ -677,10 +679,11 @@ impl Scene for GameScene {
                     && (wy - WEATHER_BTN_Y).abs() < TILE_HALF {
                     if self.weather.open {
                         self.weather.close(ecs);
+                        crate::audio::play("close");
                     } else {
                         self.weather.open(ecs, text_renderer, device, queue);
+                        crate::audio::play("open");
                     }
-                    crate::audio::play("click");
                     return SceneAction::None;
                 }
             }
@@ -763,7 +766,7 @@ impl Scene for GameScene {
                             if money >= price {
                                 ecs.world.write_resource::<Money>().0 = money - price;
                                 ecs.world.write_resource::<ShopOwned>().0.push(name.clone());
-                                crate::audio::play("click");
+                                crate::audio::play("buy");
                                 let items = self.shop_items(ecs);
                                 self.shop.refresh(ecs, text_renderer, device, queue, &items);
                             } else {
@@ -809,8 +812,10 @@ impl Scene for GameScene {
                     if (wx - INV_BTN_X).abs() < TILE_HALF && (wy - SLOT_BAR_Y).abs() < TILE_HALF {
                         if self.inventory.open {
                             self.inventory.exit(ecs);
+                            crate::audio::play("close");
                         } else {
                             self.inventory.enter(ecs, device, queue);
+                            crate::audio::play("open");
                         }
                     }
                 }

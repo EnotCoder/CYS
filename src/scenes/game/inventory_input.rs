@@ -22,10 +22,11 @@ impl GameScene {
         if input.key_pressed(KeyCode::KeyE) {
             if self.inventory.open {
                 self.inventory.exit(ecs);
+                crate::audio::play("close");
             } else {
                 self.inventory.enter(ecs, device, queue);
+                crate::audio::play("open");
             }
-            crate::audio::play("click");
         }
 
         let click = input.mouse_pressed(winit::event::MouseButton::Left);

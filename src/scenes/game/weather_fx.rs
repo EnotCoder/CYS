@@ -34,19 +34,22 @@ pub struct WeatherFx {
     // Активный эффект (None — лето/весна без осадков)
     effect: Option<Effect>,
     particles: Vec<Particle>,
+    // Таймер случайного грома во время дождя (секунды до следующего прогресса)
+    thunder_timer: f32,
     // Семя простого LCG-генератора (без внешних зависимостей на rand)
     seed: u64,
 }
 
 impl WeatherFx {
     pub fn new() -> Self {
-        Self { effect: None, particles: Vec::new(), seed: 0x2545_4914_F6CD_DD1D }
+        Self { effect: None, particles: Vec::new(), thunder_timer: 0.0, seed: 0x2545_4914_F6CD_DD1D }
     }
 
     // Сброс при входе в сцену: мир и кэши уже очищены снаружи.
     pub fn reset(&mut self) {
         self.effect = None;
         self.particles.clear();
+        self.thunder_timer = 0.0;
     }
 
     fn effect_for(season: Season) -> Option<Effect> {
@@ -88,6 +91,12 @@ impl WeatherFx {
         if needs_respawn {
             self.teardown(ecs);
             self.effect = want;
+            // Включаем/выключаем звук погоды при смене сезона.
+            match want {
+                Some(Effect::Snow) => crate::audio::play_ambient("snow"),
+                Some(Effect::Rain) => crate::audio::play_ambient("rain"),
+                None => crate::audio::stop_ambient(),
+            }
             if let Some(effect) = want {
                 self.spawn(effect, ecs, device, queue, bounds);
             }
@@ -114,6 +123,15 @@ impl WeatherFx {
                 p.x = l + r * (r - l);
             }
             ecs.update_transform_position(p.entity, p.x, p.y);
+        }
+
+        // Редкий гром во время дождя: ждём случайный интервал и играем звук.
+        if self.effect == Some(Effect::Rain) {
+            self.thunder_timer -= dt32;
+            if self.thunder_timer <= 0.0 {
+                crate::audio::play("thunder");
+                self.thunder_timer = 12.0 + rand01(&mut self.seed) * 25.0;
+            }
         }
     }
 

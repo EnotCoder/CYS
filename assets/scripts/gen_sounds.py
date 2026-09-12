@@ -51,6 +51,18 @@ def add_noise(buf, start, dur, amp, decay=20.0):
         buf[i] += amp * env * (random.random() * 2 - 1)
 
 
+def add_steady_noise(buf, start, dur, amp, lowpass=0.2, wobble=1.0):
+    """Стационарный цветной шум с лёгкой фильтрацией и медленным покачиванием голоса."""
+    n0 = int(start * SR)
+    n1 = int((start + dur) * SR)
+    prev = 0.0
+    for i in range(n0, min(n1, len(buf))):
+        t = (i - n0) / SR
+        prev = prev + lowpass * ((random.random() * 2 - 1) - prev)
+        wob = math.sin(2 * math.pi * wobble * t)
+        buf[i] += amp * (0.75 + 0.25 * wob) * prev
+
+
 def add_sweep(buf, start, f0, f1, dur, amp, decay=8.0):
     """Синусоида с плавным скольжением частоты f0 -> f1."""
     n0 = int(start * SR)
@@ -145,6 +157,57 @@ def build_save():
     return b
 
 
+def build_rain():
+    b = synth(2.4)
+    add_steady_noise(b, 0.0, 2.4, 0.5, lowpass=0.35, wobble=6.0)
+    return b
+
+
+def build_snow():
+    b = synth(2.4)
+    add_steady_noise(b, 0.0, 2.4, 0.28, lowpass=0.06, wobble=1.5)
+    return b
+
+
+def build_thunder():
+    b = synth(2.2)
+    add_noise(b, 0.0, 0.4, 0.7, decay=8.0)
+    add_tone(b, 0.0, 55.0, 2.0, 0.55, decay=2.2, harmonics=((2, 0.5), (3, 0.3)))
+    add_tone(b, 0.35, 40.0, 1.6, 0.4, decay=2.5, harmonics=((2, 0.5),))
+    return b
+
+
+def build_buy():
+    b = synth(0.35)
+    add_tone(b, 0.0, 784.0, 0.22, 0.4, decay=12.0, harmonics=((2, 0.3), (3, 0.15)))
+    add_tone(b, 0.07, 1046.5, 0.26, 0.4, decay=10.0, harmonics=((2, 0.3), (3, 0.15)))
+    return b
+
+
+def build_open():
+    b = synth(0.16)
+    add_sweep(b, 0.0, 260.0, 880.0, 0.16, 0.35, decay=18.0)
+    return b
+
+
+def build_close():
+    b = synth(0.16)
+    add_sweep(b, 0.0, 880.0, 260.0, 0.16, 0.35, decay=18.0)
+    return b
+
+
+def build_step():
+    b = synth(0.06)
+    add_noise(b, 0.0, 0.06, 0.3, decay=45.0)
+    return b
+
+
+def build_swish():
+    b = synth(0.2)
+    add_sweep(b, 0.0, 200.0, 1400.0, 0.18, 0.25, decay=14.0)
+    return b
+
+
 def main():
     for name, fn in {
         "click": build_click,
@@ -156,6 +219,14 @@ def main():
         "candy": build_candy,
         "stair": build_stair,
         "save": build_save,
+        "rain": build_rain,
+        "snow": build_snow,
+        "thunder": build_thunder,
+        "buy": build_buy,
+        "open": build_open,
+        "close": build_close,
+        "step": build_step,
+        "swish": build_swish,
     }.items():
         render(name, fn())
 

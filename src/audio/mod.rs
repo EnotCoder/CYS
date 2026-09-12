@@ -12,7 +12,7 @@ use std::sync::{Mutex, OnceLock};
 
 use rodio::{Decoder, DeviceSinkBuilder, MixerDeviceSink, Player, Source};
 
-pub const SOUND_DIR: &str = "sounds";
+pub const SOUND_DIR: &str = "assets/sounds";
 
 pub struct AudioEngine {
     // _sink держится живым на всё время жизни движка: именно он является
@@ -24,6 +24,8 @@ pub struct AudioEngine {
     clips: HashMap<String, Vec<u8>>,
     // Активные музыкальные треки (зацикленные), чтобы их можно было остановить.
     music: Vec<Player>,
+    // Активные фоновые лупы (погода), чтобы их можно было останавливать отдельно.
+    ambient: Vec<Player>,
 }
 
 impl AudioEngine {
@@ -37,6 +39,7 @@ impl AudioEngine {
             mixer,
             clips: HashMap::new(),
             music: Vec::new(),
+            ambient: Vec::new(),
         };
         engine.load_all(SOUND_DIR);
         Some(engine)
@@ -91,6 +94,25 @@ impl AudioEngine {
             player.stop();
         }
     }
+
+    // Зацикленный фоновый луп (погода): тише музыки, чтобы не перебивать её.
+    fn play_ambient_clip(&mut self, name: &str) {
+        let Some(bytes) = self.clips.get(name) else { return };
+        let Ok(decoder) = Decoder::new(Cursor::new(bytes.clone())) else {
+            return;
+        };
+        let player = Player::connect_new(&self.mixer);
+        player.append(decoder.repeat_infinite());
+        player.set_volume(0.5);
+        self.ambient.push(player);
+    }
+
+    fn stop_ambient(&mut self) {
+        // Останавливаем все активные фоновые лупы.
+        for player in self.ambient.drain(..) {
+            player.stop();
+        }
+    }
 }
 
 // ========================================================================
@@ -131,4 +153,14 @@ pub fn play_music(name: &str) {
 // Остановить всю зацикленную музыку.
 pub fn stop_music() {
     with_engine(|engine| engine.stop_music());
+}
+
+/// Зациклить фоновый звук (погода) по имени файла из sounds/ (без расширения).
+pub fn play_ambient(name: &str) {
+    with_engine(|engine| engine.play_ambient_clip(name));
+}
+
+// Остановить все фоновые лупы (погоду).
+pub fn stop_ambient() {
+    with_engine(|engine| engine.stop_ambient());
 }

@@ -53,6 +53,7 @@ impl SceneManager {
             scene.on_exit(&mut self.ecs, text_renderer);
         }
         crate::audio::stop_music();
+        crate::audio::stop_ambient();
         self.clear_ecs_world();
         if let Some(scene) = self.scenes.get_mut(name) {
             scene.on_enter(&mut self.ecs, text_renderer);

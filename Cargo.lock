@@ -2775,7 +2775,7 @@ dependencies = [
 
 [[package]]
 name = "wgpu"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "ab_glyph",
  "android-activity",

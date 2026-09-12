@@ -20,10 +20,10 @@ const PANEL_H: f32 = 5.2;
 const TITLE_Y: f32 = 2.0;
 // Строки шагов: y каждого шага.
 const ROW_YS: [f32; 4] = [0.95, 0.25, -0.45, -1.15];
-const ICON_X: f32 = -4.15;
+const ICON_X: f32 = -3.6;
 const ICON_SIZE: f32 = 0.75;
-const TEXT_X: f32 = -1.7;
-const TEXT_W: f32 = 4.3;
+const TEXT_X: f32 = -0.7;
+const TEXT_W: f32 = 4.5;
 const BUTTON_X: f32 = 0.0;
 const BUTTON_Y: f32 = -1.9;
 const BUTTON_W: f32 = 3.0;

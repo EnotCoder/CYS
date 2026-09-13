@@ -169,7 +169,7 @@ impl WeatherFx {
                 (2, 16, rgba)
             }
         };
-        let tex = crate::Texture::from_rgba(device, queue, &rgba, tw, th, "weather_particle");
+        let tex = crate::Texture::from_rgba(device, queue, &rgba, tw, th, "weather_particle", wgpu::FilterMode::Linear);
         let sprite = crate::Sprite::from_texture(device, &tex, path, world_w, world_h);
         ecs.sprite_cache.insert(Self::sprite_key(effect), sprite);
 

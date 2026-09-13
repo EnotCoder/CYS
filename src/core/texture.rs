@@ -110,7 +110,7 @@ impl Texture {
 
     // Создаёт текстуру из готовых пикселей RGBA (например, для курсора/UI),
     // в отличие от from_bytes не декодирует файлы — данные уже в памяти.
-    // Использует Linear-фильтрацию, т.к. такие текстуры часто масштабируются.
+    // Фильтрация задаётся явно: Linear — для масштабируемых, Nearest — для пиксельных.
     pub fn from_rgba(
         device: &wgpu::Device,
         queue: &wgpu::Queue,
@@ -118,6 +118,7 @@ impl Texture {
         width: u32,
         height: u32,
         label: &str,
+        filter: wgpu::FilterMode,
     ) -> Self {
         let size = wgpu::Extent3d {
             width,
@@ -157,8 +158,8 @@ impl Texture {
             address_mode_u: wgpu::AddressMode::ClampToEdge,
             address_mode_v: wgpu::AddressMode::ClampToEdge,
             address_mode_w: wgpu::AddressMode::ClampToEdge,
-            mag_filter: wgpu::FilterMode::Linear,
-            min_filter: wgpu::FilterMode::Linear,
+            mag_filter: filter,
+            min_filter: filter,
             mipmap_filter: wgpu::MipmapFilterMode::Nearest,
             ..Default::default()
         });

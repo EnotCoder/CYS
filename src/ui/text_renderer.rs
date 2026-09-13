@@ -248,7 +248,7 @@ impl TextRenderer {
         let (world_w, world_h) = fit_size(tw, th, world_width);
 
         // Создаём текстуру и спрайт из растра, кладём спрайт в кэш по ключу.
-        let tex = crate::Texture::from_rgba(device, queue, &rgba, tw, th, text);
+        let tex = crate::Texture::from_rgba(device, queue, &rgba, tw, th, text, wgpu::FilterMode::Nearest);
         let sprite = crate::Sprite::from_texture(device, &tex, text, world_w, world_h);
         ecs.sprite_cache.insert(new_key, sprite);
 
@@ -299,7 +299,7 @@ impl TextRenderer {
     ) -> specs::Entity {
         let (rgba, tw, th) = self.rasterize(text, font_size, outline, color).clone();
 
-        let tex = Texture::from_rgba(device, queue, &rgba, tw, th, text);
+        let tex = Texture::from_rgba(device, queue, &rgba, tw, th, text, wgpu::FilterMode::Nearest);
         let sprite = Sprite::from_texture(device, &tex, text, world_width, world_height);
 
         let text_key = Self::cache_key(text, font_size, outline, color);
@@ -342,7 +342,7 @@ impl TextRenderer {
         let (rgba, tw, th) = self.rasterize(text, font_size, outline, color).clone();
         let (world_w, world_h) = fit_size(tw, th, world_width);
 
-        let tex = Texture::from_rgba(device, queue, &rgba, tw, th, text);
+        let tex = Texture::from_rgba(device, queue, &rgba, tw, th, text, wgpu::FilterMode::Nearest);
         let sprite = Sprite::from_texture(device, &tex, text, world_w, world_h);
 
         let text_key = Self::cache_key(text, font_size, outline, color);

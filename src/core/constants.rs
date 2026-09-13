@@ -6,7 +6,7 @@
 // ========================================================================
 
 // === Мировые константы ===
-pub const WORLD_OFFSET_X: f32 = -21.0;
+pub const WORLD_OFFSET_X: f32 = -26.0;
 pub const WORLD_OFFSET_Y: f32 = 14.0;
 
 pub const TILE_HALF: f32 = 0.5;

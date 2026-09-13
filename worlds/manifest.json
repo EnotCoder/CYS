@@ -1,11 +1,11 @@
 {
-  "next_id": 11,
+  "next_id": 13,
   "worlds": [
     {
-      "id": 10,
+      "id": 12,
       "name": "Мир",
-      "created": 1789185469,
-      "updated": 1789185469
+      "created": 1789309921,
+      "updated": 1789309921
     }
   ]
 }

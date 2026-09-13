@@ -72,7 +72,7 @@ fn build_rows(ecs: &mut EcsAdapter, tr: &mut TextRenderer, device: &wgpu::Device
             let x = COL_ICON_X[col];
             let icon_ent = ecs.add_ui_sized(x, y, 0.8, 0.8, icon, device, queue);
             let text = if *owned { "— Owned".to_string() } else { format!("— ${}", price) };
-            let label = tr.add_text(ecs, device, queue, &text, 36.0, COL_LABEL_X[col], y, 4.0, 1.0, WHITE);
+            let label = tr.add_text(ecs, device, queue, &text, 36.0, COL_LABEL_X[col], y, 4.0, 2.0, WHITE);
             rows.push(ShopRow { icon: icon_ent, label, label_key: None, name: name.clone(), item_idx: idx, x: COL_LABEL_X[col], y });
         }
     }

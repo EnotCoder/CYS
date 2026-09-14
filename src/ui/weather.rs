@@ -8,7 +8,7 @@
 
 use specs::Entity;
 use crate::ecs::components::Season;
-use crate::ui::{Panel, create_panel, destroy_panel};
+use crate::ui::{Panel, destroy_panel};
 use crate::ui::text_renderer::TextRenderer;
 use crate::core::constants::*;
 use crate::EcsAdapter;
@@ -30,7 +30,6 @@ struct SeasonButton {
 pub struct Weather {
     pub open: bool,
     pub panel: Panel,
-    pub title: Option<Entity>,
     buttons: Vec<SeasonButton>,
     pub selected: Season,
     pub season_changed: bool,
@@ -48,7 +47,6 @@ impl Weather {
         Self {
             open: false,
             panel: Panel::new(0.0, 0.0, 5.0, 5.5, 0.85),
-            title: None,
             buttons: Vec::new(),
             selected: Season::Summer,
             season_changed: false,
@@ -58,8 +56,9 @@ impl Weather {
     pub fn open(&mut self, ecs: &mut EcsAdapter, text_renderer: &mut TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) {
         if self.open { return; }
         self.open = true;
-        create_panel(ecs, device, queue, &mut self.panel);
-        self.title = Some(text_renderer.add_text(ecs, device, queue, "Weather", 56.0, 0.0, 2.2, 4.0, 2.0, WHITE));
+        let ent = ecs.add_ui_sized(self.panel.x, self.panel.y, self.panel.w, self.panel.h, "assets/tex/ui/time_of_year_panel.png", device, queue);
+        ecs.update_sprite_alpha(ent, self.panel.alpha);
+        self.panel.entity = Some(ent);
 
         let seasons = Season::all();
         for (i, (name, icon_path)) in SEASON_ICONS.iter().enumerate() {
@@ -76,7 +75,6 @@ impl Weather {
         if !self.open { return; }
         self.open = false;
         destroy_panel(ecs, &mut self.panel);
-        if let Some(ent) = self.title.take() { ecs.delete_entity(ent); }
         for btn in self.buttons.drain(..) {
             ecs.delete_entity(btn.icon);
             ecs.delete_entity(btn.label);

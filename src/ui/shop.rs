@@ -17,10 +17,10 @@ const COL_LABEL_X: [f32; 2] = [-2.0, 3.0];
 const COL_HALF_W: f32 = 2.2;
 
 const SCROLLBAR_X: f32 = 4.0;
-const SCROLLBAR_W: f32 = 0.3;
-const SCROLLBAR_TOP: f32 = 2.5;
+const SCROLLBAR_W: f32 = 0.25;
+const SCROLLBAR_TOP: f32 = 2.0;
 const SCROLLBAR_BOT: f32 = -2.5;
-const SCROLLBAR_H: f32 = 5.0;
+const SCROLLBAR_H: f32 = 4.0;
 
 struct ShopRow {
     icon: Entity,
@@ -33,7 +33,6 @@ struct ShopRow {
 pub struct Shop {
     pub open: bool,
     pub panel: Panel,
-    title: Option<Entity>,
     rows: Vec<ShopRow>,
     pub scroll_offset: f32,
     touch_scroll_start: Option<(f32, f32)>,
@@ -169,7 +168,6 @@ impl Shop {
         Self {
             open: false,
             panel: Panel::new(0.0, 0.0, 9.0, 6.0, 0.85),
-            title: None,
             rows: Vec::new(),
             scroll_offset: 0.0,
             touch_scroll_start: None,
@@ -193,7 +191,6 @@ impl Shop {
         let ent = ecs.add_ui_sized(self.panel.x, self.panel.y, self.panel.w, self.panel.h, "assets/tex/ui/shop_panel.png", device, queue);
         ecs.update_sprite_alpha(ent, self.panel.alpha);
         self.panel.entity = Some(ent);
-        self.title = Some(tr.add_text(ecs, device, queue, "Shop", 64.0, 0.0, 2.4, 4.0, 2.0, WHITE));
 
         if items.len() > 8 {
             let t = ecs.add_ui_sized(SCROLLBAR_X, 0.0, SCROLLBAR_W, SCROLLBAR_H, "assets/tex/dev_tools/black.png", device, queue);
@@ -213,7 +210,6 @@ impl Shop {
         self.open = false;
         destroy_panel(ecs, &mut self.panel);
         clear_rows(ecs, &mut self.rows);
-        if let Some(ent) = self.title.take() { ecs.delete_entity(ent); }
         if let Some(ent) = self.track.take() { ecs.delete_entity(ent); }
         if let Some(ent) = self.thumb.take() { ecs.delete_entity(ent); }
     }

@@ -176,7 +176,7 @@ piccadilly
 - **fps.rs** — `FpsCounter`: пересчёт FPS раз в секунду по числу кадров.
 - **text_renderer.rs** — `TextRenderer`: растеризация ab_glyph в RGBA-текстуру
   (обводка + заливка), текстовые спрайты, кэш по текст+кегль+цвет; `add_text`,
-  `set_text` (инкрементальное обновление), `add_text_fixed`, `add_text_z`.
+  `set_text` (инкрементальное обновление), `add_text_z`.
 
 ---
 

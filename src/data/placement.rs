@@ -81,23 +81,6 @@ fn refresh_walls_around(ecs: &mut EcsAdapter, gx: i32, gy: i32) {
         if let Some(new_token) = recompute_wall_token(ecs, nx, ny) {
             if new_token != token {
                 ecs.map_grid[file_row as usize][file_col as usize] = new_token.to_string();
-                // На стену ("&") можно ставить напольные предметы, если она
-                // стоит на клетке пола — отслеживаем это в списке позиций.
-                if new_token == "&" {
-                    let is_bottom = file_row > 0
-                        && ecs.map_grid.get(file_row as usize - 1)
-                            .and_then(|row| row.get(file_col as usize))
-                            .map_or(false, |t| t == "0");
-                    if is_bottom {
-                        ecs.floor_placeable_positions.remove(&(nx, ny));
-                    } else {
-                        ecs.floor_placeable_positions.insert((nx, ny));
-                    }
-                } else if matches!(new_token, "/" | "|") {
-                    ecs.floor_placeable_positions.insert((nx, ny));
-                } else {
-                    ecs.floor_placeable_positions.remove(&(nx, ny));
-                }
                 // Обновляем спрайт стены на новый визуальный кадр.
                 if let Some(&map_entity) = ecs.map_entities.get(&(nx, ny)) {
                     ecs.update_sprite_texture(map_entity, "assets/tex/map/wall.png");
@@ -120,23 +103,8 @@ fn refresh_walls_around(ecs: &mut EcsAdapter, gx: i32, gy: i32) {
 // позиции для уличных объектов/цветов и спрайт из original_tokens.
 fn revert_to_grass(ecs: &mut EcsAdapter, nx: i32, ny: i32, file_row: i32, file_col: i32) {
     ecs.floor_positions.remove(&(nx, ny));
-    ecs.floor_placed_positions.remove(&(nx, ny));
     let original = ecs.original_tokens.get(&(nx, ny)).cloned().unwrap_or_else(|| ".".to_string());
     ecs.map_grid[file_row as usize][file_col as usize] = original.clone();
-    // Восстанавливаем, можно ли на эту клетку ставить напольные предметы.
-    if original == "&" {
-        let is_bottom = file_row > 0
-            && ecs.map_grid.get(file_row as usize - 1)
-                .and_then(|row| row.get(file_col as usize))
-                .map_or(false, |t| t == "0");
-        if is_bottom {
-            ecs.floor_placeable_positions.remove(&(nx, ny));
-        } else {
-            ecs.floor_placeable_positions.insert((nx, ny));
-        }
-    } else if !matches!(original.as_str(), "/" | "|" | ".") {
-        ecs.floor_placeable_positions.remove(&(nx, ny));
-    }
     // Исходная трава снова принимает уличные объекты и цветы.
     if is_grass_token(&original) {
         ecs.outdoor_positions.insert((nx, ny));

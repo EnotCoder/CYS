@@ -89,7 +89,6 @@ impl Component for Rotation {
 /// Позволяет отличить тип объекта по компоненту, а не по пути к текстуре.
 #[derive(Debug)]
 pub struct ObjectTag {
-    #[allow(dead_code)]
     pub name: String,
 }
 

@@ -20,7 +20,6 @@ use crate::core::constants::SLOT_COUNT;
 // выбран ли он сейчас (активным может быть только один слот).
 pub struct Slot {
     pub obj: Object,
-    pub active: bool,
 }
 
 // Описание объекта размещения: его размер в клетках и текстура.
@@ -271,17 +270,15 @@ pub fn make_slot(name: &str) -> Slot {
         .unwrap_or(&ALL_OBJECTS[0]);
     Slot {
         obj: Object { ..*obj },
-        active: true,
     }
 }
 
-// Стартовая панель инструментов: настоящее может быть только первое место.
+// Стартовая панель инструментов.
 pub fn get_slot_vec() -> Vec<Slot> {
-    INITIAL_SLOTS.iter().enumerate().map(|(i, name)| {
+    INITIAL_SLOTS.iter().map(|name| {
         let obj = ALL_OBJECTS.iter().find(|o| o.name == *name).unwrap();
         Slot {
             obj: Object { ..*obj },
-            active: i == 0,
         }
     }).collect()
 }

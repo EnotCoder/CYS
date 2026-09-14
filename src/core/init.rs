@@ -51,24 +51,17 @@ pub static mut UI_UNIFORMS: UiUniforms = UiUniforms {
     _padding2: [0.0; 2],
 };
 
-#[allow(dead_code)]
 // Главная структура приложения: держит всё "железо" wgpu на протяжении жизни.
 pub struct WgpuApp {
     // Базовые объекты wgpu, с которыми работает пайплайн.
     pub instance: wgpu::Instance,
     pub device: wgpu::Device,
     pub queue: wgpu::Queue,
-    pub surface_format: wgpu::TextureFormat,
 
     // Связанное с динамическим storage-буфером спрайтов (group 0).
-    pub dynamic_bind_group_layout: wgpu::BindGroupLayout,
     pub dynamic_uniform_buffer: wgpu::Buffer,
     pub dynamic_bind_group: wgpu::BindGroup,
     pub dynamic_alignment: u64,
-    // Depth-состояния: обычный и прозрачный проходы.
-    pub depth_stencil: wgpu::DepthStencilState,
-    pub transparent_depth_stencil: wgpu::DepthStencilState,
-    pub texture_bind_group_layout: wgpu::BindGroupLayout,
     pub depth_buffer: DepthBuffer,
 
     // Готовые пайплайны + конфигурация поверхности для смены размера.
@@ -192,14 +185,9 @@ impl WgpuApp {
             instance,
             device,
             queue,
-            surface_format,
-            dynamic_bind_group_layout: buffers.dynamic_bind_group_layout,
             dynamic_uniform_buffer,
             dynamic_bind_group,
             dynamic_alignment: alignment,
-            depth_stencil: buffers.depth_stencil,
-            transparent_depth_stencil: buffers.transparent_depth_stencil,
-            texture_bind_group_layout: buffers.texture_bind_group_layout,
             depth_buffer: buffers.depth_buffer,
             render_pipeline,
             transparent_pipeline,

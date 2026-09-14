@@ -66,14 +66,9 @@ impl GameScene {
         if (wy - SLOT_BAR_Y).abs() < TILE_HALF && col >= 0 && col < self.slots.len() as i32 {
             let target = col;
             if target != self.act_slot {
-                // Деактивируем старый слот, активируем новый и двигаем рамку выбора
+                // Двигаем рамку выбора на новый слот
                 if let Some(cursor) = self.icons_slot_cursor {
-                    let old = self.act_slot as usize;
-                    if old < self.slots.len() {
-                        self.slots[old].active = false;
-                    }
                     self.act_slot = target;
-                    self.slots[target as usize].active = true;
                     ecs.update_transform_position(cursor, HOTBAR_X + col as f32, SLOT_BAR_Y);
                 }
                 crate::audio::play("hover");

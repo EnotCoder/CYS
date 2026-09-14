@@ -282,48 +282,6 @@ impl TextRenderer {
         }
     }
 
-    /// Создаёт текст с точной высотой world_height (мир. размер фиксируется явно).
-    pub fn add_text_fixed(
-        &mut self,
-        ecs: &mut crate::EcsAdapter,
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
-        text: &str,
-        font_size: f32,
-        x: f32,
-        y: f32,
-        world_width: f32,
-        world_height: f32,
-        outline: f32,
-        color: [u8; 3],
-    ) -> specs::Entity {
-        let (rgba, tw, th) = self.rasterize(text, font_size, outline, color).clone();
-
-        let tex = Texture::from_rgba(device, queue, &rgba, tw, th, text, wgpu::FilterMode::Nearest);
-        let sprite = Sprite::from_texture(device, &tex, text, world_width, world_height);
-
-        let text_key = Self::cache_key(text, font_size, outline, color);
-        let skey = crate::core::util::sprite_cache_key("ui", &text_key, [0, 0], [1, 1], 1.0);
-        ecs.sprite_cache.insert(skey, sprite);
-
-        ecs.world
-            .create_entity()
-            .with(crate::Transform {
-                position: [x, y, crate::core::constants::Z_UI_TEXT],
-            })
-            .with(crate::SpriteComponent {
-                texture_path: Arc::from(text_key.as_str()),
-                texture_frame: [0, 0],
-                texture_count: [1, 1],
-                scale: 1.0,
-                alpha: 1.0,
-                animated: false,
-                frame_paths: Vec::new(),
-                current_frame: 0,
-            })
-            .build()
-    }
-
     /// Создаёт текстовый спрайт на заданном слое z (Z_UI или мир/декор).
     pub fn add_text_z(
         &mut self,

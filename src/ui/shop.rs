@@ -25,8 +25,6 @@ const SCROLLBAR_H: f32 = 5.0;
 struct ShopRow {
     icon: Entity,
     label: Entity,
-    label_key: Option<u64>,
-    name: String,
     item_idx: usize,
     x: f32,
     y: f32,
@@ -67,13 +65,13 @@ fn build_rows(ecs: &mut EcsAdapter, tr: &mut TextRenderer, device: &wgpu::Device
         for col in 0..2 {
             let idx = top + row * 2 + col;
             if idx >= items.len() { continue; }
-            let (name, icon, price, owned) = &items[idx];
+            let (_, icon, price, owned) = &items[idx];
             let y = ROW_START_Y + ROW_STEP * row as f32;
             let x = COL_ICON_X[col];
             let icon_ent = ecs.add_ui_sized(x, y, 0.8, 0.8, icon, device, queue);
             let text = if *owned { "— Owned".to_string() } else { format!("— ${}", price) };
             let label = tr.add_text(ecs, device, queue, &text, 36.0, COL_LABEL_X[col], y, 4.0, 2.0, WHITE);
-            rows.push(ShopRow { icon: icon_ent, label, label_key: None, name: name.clone(), item_idx: idx, x: COL_LABEL_X[col], y });
+            rows.push(ShopRow { icon: icon_ent, label, item_idx: idx, x: COL_LABEL_X[col], y });
         }
     }
 }

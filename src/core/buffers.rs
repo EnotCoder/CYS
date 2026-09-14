@@ -45,13 +45,6 @@ pub struct LightData {
     pub _padding: [f32; 7],
 }
 
-#[repr(C)]
-#[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
-pub struct BlurUniforms {
-    pub horizontal: u32,
-    pub _padding: [u32; 3],
-}
-
 // Буфер глубины: текстура Depth32Float (равная размеру окна) + её view.
 // `_texture` хранится только чтобы текстура не унечтожалась, рисуем мы
 // через `view`. Пересоздаётся целиком при изменении размера окна.

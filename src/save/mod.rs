@@ -66,11 +66,6 @@ pub fn list_worlds() -> Vec<WorldMeta> {
     worlds
 }
 
-/// Ищет мета-данные мира по id (нужно для имени при загрузке).
-pub fn world_meta(id: u32) -> Option<WorldMeta> {
-    list_worlds().into_iter().find(|w| w.id == id)
-}
-
 /// Создаёт новый мир с заданным именем: резервирует уникальный id,
 /// подбирает не совпадающее с другими мирами имя (при коллизии добавляет
 /// суффикс "(N)", например "Мир" -> "Мир(1)"), обновляет манифест.
@@ -108,13 +103,6 @@ fn unique_world_name(worlds: &[WorldMeta], desired: &str) -> String {
     }
 }
 
-/// Создаёт новый мир с именем по умолчанию "Мир" (с дедупликацией).
-#[allow(dead_code)]
-pub fn create_world() -> WorldMeta {
-    create_world_with_name("Мир")
-}
-
-
 /// Обновляет метку времени мира при сохранении.
 pub fn touch_world(id: u32) {
     let mut m = read_manifest();
@@ -137,7 +125,7 @@ pub fn delete_world(id: u32) {
 #[derive(Clone)]
 pub enum WorldSelection {
     None,
-    New(u32, String),
+    New(u32),
     Load(u32),
 }
 

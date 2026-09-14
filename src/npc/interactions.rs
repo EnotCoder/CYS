@@ -88,7 +88,6 @@ impl ShopperNpc {
         };
         if taken {
             ecs.update_object_textures();
-            self.candy_taken = true;
             crate::audio::play("candy");
         }
         taken

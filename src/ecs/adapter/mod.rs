@@ -66,9 +66,6 @@ pub struct EcsAdapter {
     pub floor_positions: HashSet<(i32, i32)>,
     pub outdoor_positions: HashSet<(i32, i32)>,
     pub flower_positions: HashSet<(i32, i32)>,
-    // Клетки пола в текущей постройке и клетки, куда пол ещё можно положить.
-    pub floor_placed_positions: HashSet<(i32, i32)>,
-    pub floor_placeable_positions: HashSet<(i32, i32)>,
     // Текущая сетка карты, соответствие клетка -> сущность тайла, а также
     // исходные токены для восстановления карты после стирания объектов.
     pub map_grid: Vec<Vec<String>>,
@@ -115,8 +112,6 @@ impl EcsAdapter {
             floor_positions: HashSet::new(),
             outdoor_positions: HashSet::new(),
             flower_positions: HashSet::new(),
-            floor_placed_positions: HashSet::new(),
-            floor_placeable_positions: HashSet::new(),
             map_grid: Vec::new(),
             map_entities: HashMap::new(),
             original_tokens: HashMap::new(),
@@ -283,8 +278,6 @@ impl EcsAdapter {
         self.floor_positions.clear();
         self.outdoor_positions.clear();
         self.flower_positions.clear();
-        self.floor_placed_positions.clear();
-        self.floor_placeable_positions.clear();
         self.world.write_resource::<crate::GroupInfoResource>().groups.clear();
         self.world.write_resource::<BasementPlaced>().0 = false;
     }

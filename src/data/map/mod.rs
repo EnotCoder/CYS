@@ -68,18 +68,6 @@ fn load_map_from_reader(ecs: &mut EcsAdapter, reader: impl std::io::Read, _is_ba
                 ecs.outdoor_positions.insert((grid_x, grid_y));
                 ecs.flower_positions.insert((grid_x, grid_y));
             }
-            // Стены с полкой сверху: на "/" "|" и "." можно ставить предметы,
-            // "&" — только если стена не является нижней частью ряда
-            if matches!(*token, "/" | "|" | ".") {
-                ecs.floor_placeable_positions.insert((grid_x, grid_y));
-            } else if *token == "&" {
-                let is_bottom_wall = j > 0 && ecs.map_grid.get(j - 1)
-                    .and_then(|row| row.get(i))
-                    .map_or(false, |t| t == "0");
-                if !is_bottom_wall {
-                    ecs.floor_placeable_positions.insert((grid_x, grid_y));
-                }
-            }
 
             // Создаём спрайт земли на уровне Z_MAP и запоминаем сущность по клетке
             let entity = crate::ecs::factory::create_sprite(

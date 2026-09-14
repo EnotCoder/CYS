@@ -19,20 +19,6 @@ use crate::data::map::pathfinding::Node;
 /// Путь к скрипту NPC; при его отсутствии используется Rust-автомат.
 const SCRIPT_PATH: &str = "assets/scripts/npc.lua";
 
-/// Состояние NPC в виде целых чисел для Lua (зеркало ShopperState).
-#[allow(dead_code)]
-pub const ST_GOING_TO_RACK: i32 = 1;
-#[allow(dead_code)]
-pub const ST_GOING_TO_CASSA: i32 = 2;
-#[allow(dead_code)]
-pub const ST_AT_CASSA: i32 = 3;
-#[allow(dead_code)]
-pub const ST_GOING_TO_CANDIES: i32 = 4;
-#[allow(dead_code)]
-pub const ST_AT_CANDIES: i32 = 5;
-#[allow(dead_code)]
-pub const ST_GOING_TO_EXIT: i32 = 6;
-
 /// Движок Lua-скриптов NPC. Создаётся один раз и переиспользуется.
 pub struct NpcScript {
     lua: Lua,

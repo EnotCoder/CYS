@@ -101,9 +101,8 @@ pub struct GameScene {
     rent_timer: f64,
     // Банкротство: магазин не может зарабатывать и на восстановление не хватает денег
     bankrupt: bool,
-    // Система миров: id и имя текущего загруженного мира (None до первого входа)
+    // Система миров: id текущего загруженного мира (None до первого входа)
     world_id: Option<u32>,
-    world_name: String,
     // Сущность кнопки настроек (иконка gear) в углу экрана
     settings_entity: Option<specs::Entity>,
     bankrupt_bg: Option<specs::Entity>,
@@ -172,7 +171,6 @@ impl GameScene {
             rent_timer: 0.0,
             bankrupt: false,
             world_id: None,
-            world_name: String::new(),
             settings_entity: None,
             bankrupt_bg: None,
             bankrupt_title: None,
@@ -512,16 +510,12 @@ impl Scene for GameScene {
             };
             *crate::save::SELECTED_WORLD.lock().unwrap() = crate::save::WorldSelection::None;
             match selection {
-                crate::save::WorldSelection::New(id, name) => {
+                crate::save::WorldSelection::New(id) => {
                     self.world_id = Some(id);
-                    self.world_name = name;
                     self.setup_content(ecs, text_renderer, device, queue);
                 }
                 crate::save::WorldSelection::Load(id) => {
                     self.world_id = Some(id);
-                    self.world_name = crate::save::world_meta(id)
-                        .map(|m| m.name)
-                        .unwrap_or_else(|| format!("Мир {}", id));
                     if !self.load_from_disk(ecs, text_renderer, device, queue, id) {
                         self.setup_content(ecs, text_renderer, device, queue);
                     }

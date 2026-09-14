@@ -72,7 +72,6 @@ pub struct Slider {
     pub x: f32,
     pub y: f32,
     pub width: f32,
-    pub height: f32,
     pub min: f32,
     pub max: f32,
     pub value: f32,
@@ -88,7 +87,7 @@ pub struct Slider {
 impl Slider {
     pub fn new(x: f32, y: f32, label: &str, min: f32, max: f32, value: f32) -> Self {
         Self {
-            x, y, width: 3.0, height: 0.3,
+            x, y, width: 3.0,
             min, max, value,
             label: label.to_string(),
             font_size: 50.0,

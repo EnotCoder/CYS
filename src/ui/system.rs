@@ -150,10 +150,9 @@ pub fn checkbox_hovered(checkbox: &Checkbox, input: &dyn InputSource, window_siz
 //  Slider (горизонтальный)
 // ========================================================================
 
-// Геометрия слайдера: толщина дорожки, размер ползунка, ширина подписи.
+// Геометрия слайдера: толщина дорожки и размер ползунка.
 const SLIDER_TRACK_THICKNESS: f32 = 0.12;
 const SLIDER_THUMB_SIZE: f32 = 0.35;
-const SLIDER_TEXT_WIDTH: f32 = 2.5;
 const SLIDER_LABEL_Y_OFFSET: f32 = 0.3;
 
 /// X-координата центра ползунка по текущему значению (линейная интерполяция).

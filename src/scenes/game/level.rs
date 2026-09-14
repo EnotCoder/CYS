@@ -129,16 +129,6 @@ impl GameScene {
                         ecs.outdoor_positions.insert((gx, gy));
                         ecs.flower_positions.insert((gx, gy));
                     }
-                    if matches!(token.as_str(), "/" | "|" | ".") {
-                        ecs.floor_placeable_positions.insert((gx, gy));
-                    } else if token == "&" {
-                        let is_bottom_wall = j > 0 && ecs.map_grid.get(j - 1)
-                            .and_then(|r| r.get(i))
-                            .map_or(false, |t| t == "0");
-                        if !is_bottom_wall {
-                            ecs.floor_placeable_positions.insert((gx, gy));
-                        }
-                    }
                 }
             }
             // Восстанавливаем размещённые объекты: спрайты, теги, хранилища еды

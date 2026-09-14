@@ -521,7 +521,7 @@ impl MenuScene {
         let name = if name.is_empty() { "Мир" } else { name };
         let meta = create_world_with_name(name);
         TEXT_INPUT.set_active(false);
-        *SELECTED_WORLD.lock().unwrap() = WorldSelection::New(meta.id, meta.name);
+        *SELECTED_WORLD.lock().unwrap() = WorldSelection::New(meta.id);
         SceneAction::Switch("game".to_string())
     }
 }

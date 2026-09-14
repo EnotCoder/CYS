@@ -1010,6 +1010,9 @@ impl Scene for GameScene {
         // --- UI-анимации: пульсы счётчиков, фейды подсказок, поп инвентаря ---
         self.hud.tick(ecs, dt);
         self.inventory.tick(ecs, dt);
+        self.shop.tick(ecs, dt);
+        self.weather.tick(ecs, dt);
+        self.settings.tick(ecs, dt);
 
         // --- Пульс активного слота и иконки режима при их смене ---
         self.update_slot_mode_pulse(ecs, dt);

@@ -27,6 +27,9 @@ pub struct Inventory {
     // Анимация открытия: отсчёт времени и активность «попа» появления
     pop_timer: f64,
     popping: bool,
+    // Анимация закрытия: сжатие + затухание перед удалением сущностей
+    close_timer: f64,
+    closing: bool,
 }
 
 impl Inventory {
@@ -41,6 +44,8 @@ impl Inventory {
             lock_entities: Vec::new(),
             pop_timer: 0.0,
             popping: false,
+            close_timer: 0.0,
+            closing: false,
         }
     }
 
@@ -55,6 +60,8 @@ impl Inventory {
         self.lock_entities.clear();
         self.pop_timer = 0.0;
         self.popping = false;
+        self.close_timer = 0.0;
+        self.closing = false;
     }
 
     // ================================================================
@@ -63,6 +70,12 @@ impl Inventory {
 
     // Открыть инвентарь: сбросить выбор, показать сетку и табы
     pub fn enter(&mut self, ecs: &mut EcsAdapter, device: &wgpu::Device, queue: &wgpu::Queue) {
+        // Если ещё идёт анимация закрытия — доводим её до конца (удаляем остатки)
+        if self.closing {
+            self.hide_grid(ecs);
+            self.hide_tabs(ecs);
+            self.closing = false;
+        }
         self.tab = 0;
         self.selected = INV_NONE;
         self.show_grid(ecs, device, queue);
@@ -72,13 +85,14 @@ impl Inventory {
         self.start_pop();
     }
 
-    // Закрыть: убрать UI-элементы сетки и табов из ECS
-    pub fn exit(&mut self, ecs: &mut EcsAdapter) {
-        self.hide_grid(ecs);
-        self.hide_tabs(ecs);
+    // Закрыть: запустить анимацию сжатия; сущности удаляются в tick()
+    pub fn exit(&mut self, _ecs: &mut EcsAdapter) {
+        if !self.open { return; }
         self.open = false;
         self.mode = false;
         self.popping = false;
+        self.close_timer = 0.0;
+        self.closing = true;
     }
 
     // Стартуем анимацию появления только для отрисуемых сейчас элементов.
@@ -90,9 +104,15 @@ impl Inventory {
     /// Ежекадровая анимация открытия: иконки «подпрыгивают» с каскадной задержкой
     /// (easeOutBack). Вызывается из update() игровой сцены.
     pub fn tick(&mut self, ecs: &mut EcsAdapter, dt: f64) {
-        if !self.popping {
-            return;
+        if self.popping {
+            self.tick_pop(ecs, dt);
         }
+        if self.closing {
+            self.tick_close(ecs, dt);
+        }
+    }
+
+    fn tick_pop(&mut self, ecs: &mut EcsAdapter, dt: f64) {
         self.pop_timer += dt;
         // Каскад: каждая иконка стартует чуть позже предыдущей.
         let dur = 0.35;
@@ -115,6 +135,28 @@ impl Inventory {
         }
         if all_done {
             self.popping = false;
+        }
+    }
+
+    /// Анимация закрытия: плавное сжатие и затухание, затем удаление сущностей.
+    fn tick_close(&mut self, ecs: &mut EcsAdapter, dt: f64) {
+        self.close_timer += dt;
+        let t = (self.close_timer / 0.3).clamp(0.0, 1.0) as f32;
+        let e = t * t;
+        let s = 1.0 - 0.3 * e;
+        let a = 1.0 - e;
+        for ent in self.grid_entities.iter().chain(self.tab_entities.iter()) {
+            ecs.update_sprite_scale(*ent, s);
+            ecs.update_sprite_alpha(*ent, a);
+        }
+        for ent in &self.lock_entities {
+            ecs.update_sprite_alpha(*ent, a);
+        }
+        if t >= 1.0 {
+            self.hide_grid(ecs);
+            self.hide_tabs(ecs);
+            self.closing = false;
+            self.selected = INV_NONE;
         }
     }
 

@@ -8,6 +8,7 @@
 
 #![allow(dead_code)]
 
+pub mod anim;
 pub mod components;
 pub mod fps;
 pub mod inventory;

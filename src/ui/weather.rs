@@ -9,6 +9,7 @@
 use specs::Entity;
 use crate::ecs::components::Season;
 use crate::ui::{Panel, destroy_panel};
+use crate::ui::anim::{AnimEvent, PanelAnim};
 use crate::ui::text_renderer::TextRenderer;
 use crate::core::constants::*;
 use crate::EcsAdapter;
@@ -33,6 +34,7 @@ pub struct Weather {
     buttons: Vec<SeasonButton>,
     pub selected: Season,
     pub season_changed: bool,
+    anim: PanelAnim,
 }
 
 const SEASON_ICONS: [(&str, &str); 4] = [
@@ -50,11 +52,36 @@ impl Weather {
             buttons: Vec::new(),
             selected: Season::Summer,
             season_changed: false,
+            anim: PanelAnim::new(),
+        }
+    }
+
+    fn collect_entities(&self) -> Vec<Entity> {
+        let mut v = Vec::new();
+        if let Some(e) = self.panel.entity {
+            v.push(e);
+        }
+        for btn in &self.buttons {
+            v.push(btn.icon);
+            v.push(btn.label);
+        }
+        v
+    }
+
+    fn destroy_content(&mut self, ecs: &mut EcsAdapter) {
+        destroy_panel(ecs, &mut self.panel);
+        for btn in self.buttons.drain(..) {
+            ecs.delete_entity(btn.icon);
+            ecs.delete_entity(btn.label);
         }
     }
 
     pub fn open(&mut self, ecs: &mut EcsAdapter, text_renderer: &mut TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) {
         if self.open { return; }
+        if self.anim.is_active() {
+            self.anim.cancel(ecs);
+            self.destroy_content(ecs);
+        }
         self.open = true;
         let ent = ecs.add_ui_sized(self.panel.x, self.panel.y, self.panel.w, self.panel.h, "assets/tex/ui/time_of_year_panel.png", device, queue);
         ecs.update_sprite_alpha(ent, self.panel.alpha);
@@ -69,15 +96,21 @@ impl Weather {
             let label = text_renderer.add_text(ecs, device, queue, name, 42.0, SEASON_LABEL_X, y, 2.5, 1.0, WHITE);
             self.buttons.push(SeasonButton { icon, label, x: SEASON_COL_X, y });
         }
+
+        let ents = self.collect_entities();
+        self.anim.start_open(ecs, ents);
     }
 
     pub fn close(&mut self, ecs: &mut EcsAdapter) {
         if !self.open { return; }
         self.open = false;
-        destroy_panel(ecs, &mut self.panel);
-        for btn in self.buttons.drain(..) {
-            ecs.delete_entity(btn.icon);
-            ecs.delete_entity(btn.label);
+        let ents = self.collect_entities();
+        self.anim.start_close(ecs, ents);
+    }
+
+    pub fn tick(&mut self, ecs: &mut EcsAdapter, dt: f64) {
+        if self.anim.tick(ecs, dt) == AnimEvent::Closed {
+            self.destroy_content(ecs);
         }
     }
 

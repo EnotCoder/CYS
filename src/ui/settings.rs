@@ -9,6 +9,7 @@
 
 use specs::Entity;
 use crate::ui::{Panel, Checkbox, Slider, Button, create_panel, destroy_panel, create_checkbox, destroy_checkbox, refresh_checkbox, checkbox_clicked, checkbox_hovered, create_slider, destroy_slider, slider_drag, slider_hovered, update_slider_thumb, create_button, destroy_button, button_clicked};
+use crate::ui::anim::{AnimEvent, PanelAnim};
 use crate::ui::text_renderer::TextRenderer;
 use crate::core::constants::*;
 use crate::EcsAdapter;
@@ -35,6 +36,7 @@ pub struct Settings {
     menu_button: Button,
     /// Флаг запроса выхода в меню, устанавливается по клику на menu_button
     pub menu_requested: bool,
+    anim: PanelAnim,
 }
 
 impl Settings {
@@ -51,25 +53,44 @@ impl Settings {
             slider_scale: 1.0,
             menu_button: Button::new(0.0, -2.0, 3.0, 0.8, "В меню"),
             menu_requested: false,
+            anim: PanelAnim::new(),
         }
     }
 
-    /// Открывает окно: создаёт подложку, элементы управления и заголовок.
-    pub fn open(&mut self, ecs: &mut EcsAdapter, text_renderer: &mut TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) {
-        if self.open { return; }
-        self.open = true;
-        create_panel(ecs, device, queue, &mut self.panel);
-        create_checkbox(ecs, text_renderer, device, queue, &mut self.vsync);
-        create_slider(ecs, text_renderer, device, queue, &mut self.zoom_speed);
-        create_button(ecs, text_renderer, device, queue, &mut self.menu_button);
-        let title = text_renderer.add_text(ecs, device, queue, "Settings", 64.0, 0.0, 1.8, 4.0, 2.0, WHITE);
-        self.title = Some(title);
+    fn collect_entities(&self) -> Vec<Entity> {
+        let mut v = Vec::new();
+        if let Some(e) = self.panel.entity {
+            v.push(e);
+        }
+        if let Some(e) = self.title {
+            v.push(e);
+        }
+        if let Some(e) = self.vsync.box_entity {
+            v.push(e);
+        }
+        if let Some(e) = self.vsync.label_entity {
+            v.push(e);
+        }
+        if let Some(e) = self.zoom_speed.track {
+            v.push(e);
+        }
+        if let Some(e) = self.zoom_speed.thumb {
+            v.push(e);
+        }
+        if let Some(e) = self.zoom_speed.label_entity {
+            v.push(e);
+        }
+        if let Some(e) = self.menu_button.bg {
+            v.push(e);
+        }
+        if let Some(e) = self.menu_button.text {
+            v.push(e);
+        }
+        v
     }
 
-    /// Закрывает окно и убирает все созданные сущности.
-    pub fn close(&mut self, ecs: &mut EcsAdapter) {
-        if !self.open { return; }
-        self.open = false;
+    // Сброс полей и удаление сущностей (по завершении анимации закрытия).
+    fn destroy_content(&mut self, ecs: &mut EcsAdapter) {
         destroy_panel(ecs, &mut self.panel);
         destroy_checkbox(ecs, &mut self.vsync);
         destroy_slider(ecs, &mut self.zoom_speed);
@@ -80,6 +101,40 @@ impl Settings {
         self.checkbox_scale = 1.0;
         self.slider_scale = 1.0;
         self.menu_requested = false;
+    }
+
+    /// Открывает окно: создаёт подложку, элементы управления и заголовок.
+    pub fn open(&mut self, ecs: &mut EcsAdapter, text_renderer: &mut TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) {
+        if self.open { return; }
+        if self.anim.is_active() {
+            self.anim.cancel(ecs);
+            self.destroy_content(ecs);
+        }
+        self.open = true;
+        create_panel(ecs, device, queue, &mut self.panel);
+        create_checkbox(ecs, text_renderer, device, queue, &mut self.vsync);
+        create_slider(ecs, text_renderer, device, queue, &mut self.zoom_speed);
+        create_button(ecs, text_renderer, device, queue, &mut self.menu_button);
+        let title = text_renderer.add_text(ecs, device, queue, "Settings", 64.0, 0.0, 1.8, 4.0, 2.0, WHITE);
+        self.title = Some(title);
+
+        let ents = self.collect_entities();
+        self.anim.start_open(ecs, ents);
+    }
+
+    /// Закрывает окно: запускает анимацию ухода, сущности удаляются в tick().
+    pub fn close(&mut self, ecs: &mut EcsAdapter) {
+        if !self.open { return; }
+        self.open = false;
+        let ents = self.collect_entities();
+        self.anim.start_close(ecs, ents);
+    }
+
+    /// Ежекадровая анимация окна: вызывает PanelAnim и подчищает поля.
+    pub fn tick(&mut self, ecs: &mut EcsAdapter, dt: f64) {
+        if self.anim.tick(ecs, dt) == AnimEvent::Closed {
+            self.destroy_content(ecs);
+        }
     }
 
     /// Ежекадровый hover-эффект: галочка и ползунок плавно увеличиваются

@@ -3,6 +3,7 @@
 
 use specs::Entity;
 use crate::ui::{Panel, destroy_panel};
+use crate::ui::anim::{AnimEvent, PanelAnim};
 use crate::ui::text_renderer::TextRenderer;
 use crate::core::constants::*;
 use crate::EcsAdapter;
@@ -42,6 +43,7 @@ pub struct Shop {
     pub thumb_dragging: bool,
     thumb_grab_y: f32,
     thumb_grab_offset: f32,
+    anim: PanelAnim,
 }
 
 pub type ShopItem = (String, String, i32, bool);
@@ -177,11 +179,47 @@ impl Shop {
             thumb_dragging: false,
             thumb_grab_y: 0.0,
             thumb_grab_offset: 0.0,
+            anim: PanelAnim::new(),
+        }
+    }
+
+    // Все живые сущности панели — для анимации закрытия/открытия.
+    fn collect_entities(&self) -> Vec<Entity> {
+        let mut v = Vec::new();
+        if let Some(e) = self.panel.entity {
+            v.push(e);
+        }
+        if let Some(e) = self.track {
+            v.push(e);
+        }
+        if let Some(e) = self.thumb {
+            v.push(e);
+        }
+        for r in &self.rows {
+            v.push(r.icon);
+            v.push(r.label);
+        }
+        v
+    }
+
+    // Убирает сущности и обнуляет поля (вызывается по завершении закрытия).
+    fn destroy_content(&mut self, ecs: &mut EcsAdapter) {
+        destroy_panel(ecs, &mut self.panel);
+        clear_rows(ecs, &mut self.rows);
+        if let Some(e) = self.track.take() {
+            ecs.delete_entity(e);
+        }
+        if let Some(e) = self.thumb.take() {
+            ecs.delete_entity(e);
         }
     }
 
     pub fn open(&mut self, ecs: &mut EcsAdapter, tr: &mut TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue, items: &[ShopItem]) {
         if self.open { return; }
+        if self.anim.is_active() {
+            self.anim.cancel(ecs);
+            self.destroy_content(ecs);
+        }
         self.open = true;
         self.scroll_offset = 0.0;
         self.touch_scroll_start = None;
@@ -203,15 +241,29 @@ impl Shop {
         }
 
         build_rows(ecs, tr, device, queue, items, self.scroll_offset, &mut self.rows);
+
+        let ents = self.collect_entities();
+        self.anim.start_open(ecs, ents);
     }
 
     pub fn close(&mut self, ecs: &mut EcsAdapter) {
         if !self.open { return; }
         self.open = false;
-        destroy_panel(ecs, &mut self.panel);
-        clear_rows(ecs, &mut self.rows);
-        if let Some(ent) = self.track.take() { ecs.delete_entity(ent); }
-        if let Some(ent) = self.thumb.take() { ecs.delete_entity(ent); }
+        self.thumb_dragging = false;
+        self.touch_scroll_start = None;
+        let ents = self.collect_entities();
+        self.anim.start_close(ecs, ents);
+    }
+
+    /// Ежекадровая анимация окна: вызывает PanelAnim и подчищает поля.
+    pub fn tick(&mut self, ecs: &mut EcsAdapter, dt: f64) {
+        if self.anim.tick(ecs, dt) == AnimEvent::Closed {
+            self.destroy_content(ecs);
+            self.scroll_offset = 0.0;
+            self.thumb_dragging = false;
+            self.touch_scroll_start = None;
+            self.touch_scroll_base = 0.0;
+        }
     }
 
     pub fn refresh(&mut self, ecs: &mut EcsAdapter, tr: &mut TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue, items: &[ShopItem]) {

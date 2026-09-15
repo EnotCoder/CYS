@@ -197,6 +197,15 @@ pub const LOGO_X: f32 = 0.0;
 pub const LOGO_Y: f32 = 2.0;
 pub const LOGO_W: f32 = 2.5;
 pub const LOGO_H: f32 = 2.5;
+
+// === Сплэш-экран (логотип при запуске) ===
+// Размер логотипа в мировых единицах UI (квадратная текстура 512x512).
+pub const SPLASH_LOGO_W: f32 = 6.0;
+pub const SPLASH_LOGO_H: f32 = 6.0;
+// Длительности фаз анимации сплэша (секунды): появление / удержание / уход
+pub const SPLASH_FADE_IN: f64 = 0.8;
+pub const SPLASH_HOLD: f64 = 1.1;
+pub const SPLASH_FADE_OUT: f64 = 0.6;
 pub const FONT_SIZE_BTN: f32 = 48.0;
 pub const FONT_SIZE_LOGO: f32 = 128.0;
 

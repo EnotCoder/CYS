@@ -20,6 +20,8 @@ use crate::ui::text_input::TEXT_INPUT;
 
 #[derive(Clone, Copy)]
 enum MenuState {
+    /// Сплэш-экран: логотип assets/icon.png при запуске приложения
+    Splash,
     Main,
     Worlds,
     /// Ввод названия нового мира (поле + кнопки «Создать»/«Назад»)
@@ -37,6 +39,11 @@ struct WorldEntry {
 
 pub struct MenuScene {
     ready: bool,
+    // Сплэш-экран показывается один раз при самом первом запуске
+    splash_shown: bool,
+    splash_timer: f64,
+    splash_bg: Option<specs::Entity>,
+    splash_logo: Option<specs::Entity>,
     // Сущности кнопок Play и Quit (панель-подложка + текстовая надпись)
     play_bg: Option<Panel>,
     play_label: Option<specs::Entity>,
@@ -75,6 +82,10 @@ impl MenuScene {
     pub fn new() -> Self {
         MenuScene {
             ready: false,
+            splash_shown: false,
+            splash_timer: 0.0,
+            splash_bg: None,
+            splash_logo: None,
             play_bg: None,
             play_label: None,
             quit_bg: None,
@@ -85,7 +96,8 @@ impl MenuScene {
             quit_scale: 1.0,
             last_frame: None,
             ui_scale: MENU_MAP_SIZE,
-            state: MenuState::Main,
+            // Стартуем со сплэш-экрана (on_enter при самом первом запуске не вызывается)
+            state: MenuState::Splash,
             world_entries: Vec::new(),
             world_misc: Vec::new(),
             new_btn: None,
@@ -109,6 +121,15 @@ impl MenuScene {
         ecs.clear_world();
 
         match self.state {
+            MenuState::Splash => {
+                // Чёрный фон на весь экран для контраста логотипа
+                let bg = ecs.add_ui_sized(0.0, 0.0, 400.0, 400.0, "assets/tex/dev_tools/black.png", device, queue);
+                self.splash_bg = Some(bg);
+                // Логотип пользователя (иконка приложения)
+                let logo = ecs.add_ui_sized(0.0, 0.0, SPLASH_LOGO_W, SPLASH_LOGO_H, "assets/icon.png", device, queue);
+                self.splash_logo = Some(logo);
+                self.splash_timer = 0.0;
+            }
             MenuState::Main => {
                 crate::data::map::load_map_to_ecs(ecs);
                 ecs.add_ui_sized(LOGO_X, LOGO_Y, LOGO_W, LOGO_H, "assets/tex/ui/game_name.png", device, queue);
@@ -213,6 +234,8 @@ impl MenuScene {
 
     /// Удаляет из мира все сущности меню (главного и выбора миров)
     fn destroy_content(&mut self, ecs: &mut crate::EcsAdapter) {
+        if let Some(e) = self.splash_bg.take() { ecs.delete_entity(e); }
+        if let Some(e) = self.splash_logo.take() { ecs.delete_entity(e); }
         if let Some(mut p) = self.play_bg.take() { destroy_panel(ecs, &mut p); }
         if let Some(mut p) = self.quit_bg.take() { destroy_panel(ecs, &mut p); }
         if let Some(e) = self.play_label.take() { ecs.delete_entity(e); }
@@ -307,15 +330,15 @@ impl MenuScene {
 
 impl Scene for MenuScene {
     fn on_enter(&mut self, _ecs: &mut crate::EcsAdapter, _text_renderer: &mut crate::ui::text_renderer::TextRenderer) {
-        // При каждом возврате в меню начинаем с главного экрана
-        self.state = MenuState::Main;
+        // При самом первом запуске открываем сплэш-экран, дальше сразу в главное меню
+        self.state = if self.splash_shown { MenuState::Main } else { MenuState::Splash };
         self.ready = false;
         crate::audio::play_music("music");
     }
 
     fn update(&mut self, ecs: &mut crate::EcsAdapter, input: &dyn InputSource, window_size: (f32, f32), text_renderer: &mut crate::ui::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) -> SceneAction {
         // Замер dt кадра (используется для hover-анимации в update_main)
-        let _dt = match self.last_frame {
+        let dt = match self.last_frame {
             Some(t0) => t0.elapsed().as_secs_f64(),
             None => 1.0 / 60.0,
         };
@@ -331,6 +354,7 @@ impl Scene for MenuScene {
         }
 
         match self.state {
+            MenuState::Splash => self.update_splash(dt, input, ecs, text_renderer, device, queue),
             MenuState::Main => self.update_main(input, window_size, ecs, text_renderer, device, queue),
             MenuState::Worlds => self.update_worlds(input, window_size, ecs, text_renderer, device, queue),
             MenuState::Naming => self.update_naming(input, window_size, ecs, text_renderer, device, queue),
@@ -347,6 +371,60 @@ impl Scene for MenuScene {
 }
 
 impl MenuScene {
+    /// Сплэш-экран: лого показывается «попом» (fade-in + scale upward),
+    /// затем мягко «дышит» (медленная пульсация масштаба на удержании),
+    /// потом затухает — и переходим в главное меню. Клик/клавиша скипают.
+    fn update_splash(&mut self, dt: f64, input: &dyn InputSource, ecs: &mut crate::EcsAdapter, text_renderer: &mut crate::ui::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) -> SceneAction {
+        self.splash_timer += dt;
+
+        // Пропуск сплэша любым кликом или клавишей действия
+        if input.mouse_pressed(winit::event::MouseButton::Left)
+            || input.key_pressed(winit::keyboard::KeyCode::Space)
+            || input.key_pressed(winit::keyboard::KeyCode::Enter)
+            || input.key_pressed(winit::keyboard::KeyCode::Escape) {
+            self.finish_splash(ecs, text_renderer, device, queue);
+            return SceneAction::None;
+        }
+
+        let t = self.splash_timer;
+        let fade_in = SPLASH_FADE_IN;
+        let hold = SPLASH_FADE_IN + SPLASH_HOLD;
+        let total = SPLASH_FADE_IN + SPLASH_HOLD + SPLASH_FADE_OUT;
+
+        // Вычисляем alpha и scale лого по фазам анимации
+        let (alpha, scale): (f32, f32) = if t < fade_in {
+            let p = (t / fade_in).clamp(0.0, 1.0) as f32;
+            let smooth = p * p * (3.0 - 2.0 * p);
+            let e = crate::core::util::ease_out_back(p);
+            (smooth, 0.7 + 0.3 * e)
+        } else if t < hold {
+            // Дыхание: мягкая пульсация масштаба на весь период удержания
+            let p = ((t - fade_in) / SPLASH_HOLD).clamp(0.0, 1.0) as f32;
+            (1.0, 1.0 + 0.05 * (p * std::f32::consts::TAU).sin())
+        } else {
+            let p = ((t - hold) / SPLASH_FADE_OUT).clamp(0.0, 1.0) as f32;
+            let smooth = p * p * (3.0 - 2.0 * p);
+            (1.0 - smooth, 1.0 + 0.08 * p)
+        };
+
+        if let Some(e) = self.splash_logo {
+            ecs.update_sprite_alpha(e, alpha);
+            ecs.update_sprite_scale(e, scale);
+        }
+
+        if t >= total {
+            self.finish_splash(ecs, text_renderer, device, queue);
+        }
+        SceneAction::None
+    }
+
+    /// Завершает сплэш и переходит в главное меню (один раз за запуск).
+    fn finish_splash(&mut self, ecs: &mut crate::EcsAdapter, text_renderer: &mut crate::ui::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) {
+        self.splash_shown = true;
+        self.state = MenuState::Main;
+        self.setup_content(ecs, text_renderer, device, queue);
+    }
+
     /// Логика главного экрана: подсветка Play/Quit и обработка кликов.
     fn update_main(&mut self, input: &dyn InputSource, window_size: (f32, f32), ecs: &mut crate::EcsAdapter, text_renderer: &mut crate::ui::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) -> SceneAction {
         // Подсветка кнопки Play при наведении (зелёный текст вместо обычного)

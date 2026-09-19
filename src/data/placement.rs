@@ -224,6 +224,7 @@ pub fn add(ecs: &mut EcsAdapter, slots: &mut Vec<Slot>, act_slot: i32, gx: i32, 
     let group_id = ecs.add_group_object(
         gx, gy,
         active_slot.width, active_slot.height,
+        active_slot.name,
         active_slot.path,
         active_slot.texture_frame,
         active_slot.texture_count,
@@ -233,29 +234,34 @@ pub fn add(ecs: &mut EcsAdapter, slots: &mut Vec<Slot>, act_slot: i32, gx: i32, 
         active_slot.frame_paths,
     );
 
-    // Берём «главный» спрайт группы (первый) для привязки компонентов.
-    let first = {
+    // Получаем список сущностей созданной группы для привязки компонентов.
+    let entities = {
         let groups = ecs.world.read_resource::<crate::GroupInfoResource>();
-        groups.groups.get(&group_id).and_then(|g| g.entities.first().copied())
+        groups.groups.get(&group_id).map(|g| g.entities.clone()).unwrap_or_default()
     };
-    if let Some(entity) = first {
-        // Запоминаем имя объекта и вешаем на него логику под конкретный тип.
-        ecs.world.write_storage::<crate::ObjectTag>().insert(entity, crate::ObjectTag {
-            name: active_slot.name.to_string(),
-        }).ok();
+
+    if !entities.is_empty() {
+        // Запоминаем имя объекта на всех его сущностях.
+        for &entity in &entities {
+            ecs.world.write_storage::<crate::ObjectTag>().insert(entity, crate::ObjectTag {
+                name: active_slot.name.to_string(),
+            }).ok();
+        }
+
+        let first = entities[0];
         if active_slot.name == "basement" {
             // Подвал можно поставить только один — фиксируем это.
             ecs.world.write_resource::<BasementPlaced>().0 = true;
         } else if active_slot.name == "box" {
             // Ящик и стеллаж хранят еду для покупателей.
             let max_food = ecs.world.read_resource::<crate::scripts::config::BalanceConfig>().max_food_box;
-            ecs.world.write_storage::<crate::FoodStorage>().insert(entity, crate::FoodStorage {
+            ecs.world.write_storage::<crate::FoodStorage>().insert(first, crate::FoodStorage {
                 food_count: 0,
                 max_food,
             }).ok();
         } else if active_slot.name == "rack" {
             let max_food = ecs.world.read_resource::<crate::scripts::config::BalanceConfig>().max_food_rack;
-            ecs.world.write_storage::<crate::FoodStorage>().insert(entity, crate::FoodStorage {
+            ecs.world.write_storage::<crate::FoodStorage>().insert(first, crate::FoodStorage {
                 food_count: 0,
                 max_food,
             }).ok();
@@ -263,15 +269,15 @@ pub fn add(ecs: &mut EcsAdapter, slots: &mut Vec<Slot>, act_slot: i32, gx: i32, 
             // Конфеты начинаются с частично заполненного запаса.
             let cfg = ecs.world.read_resource::<crate::scripts::config::BalanceConfig>();
             let (max_food, start) = (cfg.max_food_candies, cfg.candies_start_food);
-            ecs.world.write_storage::<crate::FoodStorage>().insert(entity, crate::FoodStorage {
+            ecs.world.write_storage::<crate::FoodStorage>().insert(first, crate::FoodStorage {
                 food_count: start,
                 max_food,
             }).ok();
         } else if active_slot.name == "fence" || active_slot.name == "street_fence" {
-            ecs.world.write_storage::<crate::FenceComponent>().insert(entity, crate::FenceComponent { name: active_slot.name.to_string() }).ok();
+            ecs.world.write_storage::<crate::FenceComponent>().insert(first, crate::FenceComponent { name: active_slot.name.to_string() }).ok();
         }
         if is_light_name(active_slot.name) || active_slot.name == "street_ice_cream" || active_slot.name == "arcade_machine" || active_slot.name == "candies" {
-            attach_point_light(ecs, entity, active_slot.name);
+            attach_point_light(ecs, first, active_slot.name);
         }
     }
 }

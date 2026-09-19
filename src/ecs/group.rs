@@ -23,6 +23,7 @@ impl EcsAdapter {
         &mut self,
         x: i32, y: i32,
         width: i32, height: i32,
+        name: &str,
         texture_path: &str,
         base_frame: [i32; 2],
         tex_count: [i32; 2],
@@ -112,6 +113,7 @@ impl EcsAdapter {
                 group_id,
                 GroupInfo {
                     entities,
+                    name: name.to_string(),
                     width,
                     height,
                     pos_x: x,

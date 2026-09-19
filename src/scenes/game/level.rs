@@ -45,18 +45,18 @@ impl GameScene {
     pub fn save_current_level(&mut self, ecs: &mut EcsAdapter) {
         let mut objects = Vec::new();
         let groups = ecs.world.read_resource::<GroupInfoResource>();
-        let tags = ecs.world.read_storage::<ObjectTag>();
         let foods = ecs.world.read_storage::<FoodStorage>();
         // Перебираем все группы объектов и собираем их параметры
         for (_, group) in &groups.groups {
-            let name = group.entities.first()
-                .and_then(|e| tags.get(*e))
-                .map(|t| t.name.as_str())
-                .unwrap_or("");
-            let food_storage = group.entities.first()
-                .and_then(|e| foods.get(*e));
+            let name = &group.name;
+            if name.is_empty() {
+                continue;
+            }
+
+            let food_storage = group.entities.iter()
+                .find_map(|e| foods.get(*e));
             objects.push(SavedObject {
-                slot_name: name.to_string(),
+                slot_name: name.clone(),
                 x: group.pos_x,
                 y: group.pos_y,
                 food_count: food_storage.map_or(0, |f| f.food_count),
@@ -142,6 +142,7 @@ impl GameScene {
                 let new_group_id = ecs.add_group_object(
                     obj.x, obj.y,
                     slot.obj.width, slot.obj.height,
+                    &obj.slot_name,
                     slot.obj.path,
                     slot.obj.texture_frame,
                     slot.obj.texture_count,
@@ -152,9 +153,14 @@ impl GameScene {
                 );
                 let groups = ecs.world.read_resource::<GroupInfoResource>();
                 if let Some(info) = groups.groups.get(&new_group_id) {
-                    if let Some(&entity) = info.entities.first() {
+                    // Вешаем ObjectTag на все сущности группы, чтобы при сохранении
+                    // гарантированно найти имя объекта.
+                    for &entity in &info.entities {
                         let tag = ObjectTag { name: obj.slot_name.clone() };
                         ecs.world.write_storage::<ObjectTag>().insert(entity, tag).ok();
+                    }
+                    
+                    if let Some(&entity) = info.entities.first() {
                         // Восстанавливаем специфичные компоненты по имени объекта
                         if obj.slot_name == "basement" {
                             ecs.world.write_resource::<BasementPlaced>().0 = true;
@@ -383,6 +389,7 @@ impl GameScene {
     pub fn place_basement_exit(&mut self, ecs: &mut EcsAdapter) {
         let gid = ecs.add_group_object(
             -6, 3, 1, 2,
+            "basement",
             "assets/tex/decor/regular/basement.png",
             [0, 1], [1, 2],
             false, false, false, &[],

@@ -63,6 +63,7 @@ pub struct GroupInfoResource {
 #[derive(Debug, Clone)]
 pub struct GroupInfo {
     pub entities: Vec<specs::Entity>,
+    pub name: String,
     pub width: i32,
     pub height: i32,
     pub pos_x: i32,

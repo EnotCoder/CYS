@@ -298,6 +298,7 @@ impl MenuScene {
                 ecs.add_group_object(
                     x as i32, y as i32,
                     slot.obj.width, slot.obj.height,
+                    name,
                     slot.obj.path,
                     slot.obj.texture_frame,
                     slot.obj.texture_count,

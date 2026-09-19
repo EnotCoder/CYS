@@ -59,7 +59,7 @@ fn load_map_from_reader(ecs: &mut EcsAdapter, reader: impl std::io::Read, _is_ba
 
             // Токены травы/улицы — помечаем клетки как outdoor и пригодные к посадке цветов
             let is_grass = matches!(*token, "." | "@" | "*" | "m" | "f" | "~" | "l" | "1" | "2" | "3" | "4" | "5" | "6");
-            if *token == "=" || *token == "-" {
+            if is_wall_tile(token) {
                 ecs.wall_positions.insert((grid_x, grid_y));
             } else if is_floor_tile(token) {
                 ecs.floor_positions.insert((grid_x, grid_y));
@@ -84,6 +84,11 @@ fn load_map_from_reader(ecs: &mut EcsAdapter, reader: impl std::io::Read, _is_ba
 /// ("P" "_" "Q" "A" "Z" "," "X" "D"). На них можно ставить предметы.
 pub fn is_floor_tile(token: &str) -> bool {
     matches!(token, "0" | "P" | "_" | "Q" | "A" | "Z" | "," | "X" | "D")
+}
+
+/// Токены стен магазина: "=", "-", "W", "S" и др. На них можно вешать настенный декор.
+pub fn is_wall_tile(token: &str) -> bool {
+    matches!(token, "W" | "S")
 }
 
 /// Загружает проходимые клетки из map.txt (для NPC pathfinding)

@@ -51,7 +51,7 @@ strip = true
 [package.metadata.android]
 assets = "assets"
 resources = "res"
-package = "com.cys.game"
+package = "ru.enotcoder.createshop"
 build_targets = ["aarch64-linux-android", "x86_64-linux-android"]
 
 # Всегда горизонтальная ориентация на телефоне (android:screenOrientation)

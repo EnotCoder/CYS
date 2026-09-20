@@ -4,5 +4,6 @@
 // Десктопная точка входа: делегирует в библиотеку `cys` (crate-type cdylib+rlib),
 // которая содержит всю логику приложения и android_main для Android-сборки.
 fn main() {
+    #[cfg(not(target_os = "android"))]
     cys::run();
 }

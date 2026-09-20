@@ -488,6 +488,27 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f27ae1dd37df86211c42e150270f82743308803d90a6f6e6651cd730d5e1732f"
 
 [[package]]
+name = "cys"
+version = "0.1.3"
+dependencies = [
+ "ab_glyph",
+ "android-activity",
+ "bytemuck",
+ "image",
+ "jni 0.22.4",
+ "mlua",
+ "pollster",
+ "rodio",
+ "serde",
+ "serde_json",
+ "specs",
+ "wgpu",
+ "winit",
+ "winit_input_helper",
+ "winres",
+]
+
+[[package]]
 name = "dasp_sample"
 version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2771,27 +2792,6 @@ checksum = "5a6580f308b1fad9207618087a65c04e7a10bc77e02c8e84e9b00dd4b12fa0bb"
 dependencies = [
  "js-sys",
  "wasm-bindgen",
-]
-
-[[package]]
-name = "wgpu"
-version = "0.1.2"
-dependencies = [
- "ab_glyph",
- "android-activity",
- "bytemuck",
- "image",
- "jni 0.22.4",
- "mlua",
- "pollster",
- "rodio",
- "serde",
- "serde_json",
- "specs",
- "wgpu 30.0.0",
- "winit",
- "winit_input_helper",
- "winres",
 ]
 
 [[package]]

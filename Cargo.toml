@@ -1,6 +1,6 @@
 [package]
-name = "wgpu"
-version = "0.1.2"
+name = "cys"
+version = "0.1.3"
 edition = "2021"
 
 [lib]
@@ -9,7 +9,7 @@ path = "src/main/lib.rs"
 crate-type = ["cdylib", "rlib"]
 
 [[bin]]
-name = "wgpu"
+name = "cys"
 path = "src/main/main.rs"
 
 [dependencies]

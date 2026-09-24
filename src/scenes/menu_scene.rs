@@ -533,7 +533,7 @@ impl MenuScene {
             if clicked(input, nb.x, nb.y, nb.w, nb.h) {
                 crate::audio::play("click");
                 self.name_buffer = "Мир".to_string();
-                TEXT_INPUT.request_focus();
+                TEXT_INPUT.request_focus_with_text(&self.name_buffer);
                 self.state = MenuState::Naming;
                 self.setup_content(ecs, text_renderer, device, queue);
                 return SceneAction::None;
@@ -612,8 +612,20 @@ impl MenuScene {
 
         // Забираем накопленный ввод: обычные символы, Backspace ('\u{8}'),
         // Enter ('\n') — последний подтверждает создание.
-        let typed = TEXT_INPUT.take();
+        #[allow(unused_mut)]
+        let mut typed = TEXT_INPUT.take();
         let mut enter = false;
+        #[cfg(target_os = "android")]
+        if let Some((text, native_enter)) = crate::android::text_input_value() {
+            let original_len = text.chars().count();
+            self.name_buffer = text.chars().filter(|ch| !ch.is_control()).take(20).collect();
+            if original_len > 20 {
+                crate::android::set_text_input_value(&self.name_buffer);
+            }
+            enter = native_enter;
+            typed.clear();
+            TEXT_INPUT.clear_preedit();
+        }
         for ch in typed.chars() {
             match ch {
                 '\u{8}' => { self.name_buffer.pop(); }
@@ -681,7 +693,7 @@ impl MenuScene {
             }).unwrap_or(false);
             if in_name_field {
                 self.cursor_timer = 0.0;
-                TEXT_INPUT.request_focus();
+                TEXT_INPUT.request_focus_with_text(&self.name_buffer);
             } else {
                 TEXT_INPUT.set_active(false);
             }

@@ -18,6 +18,21 @@ use std::collections::HashMap;
 #[cfg(target_os = "android")]
 use winit::event::{Touch, TouchPhase};
 
+// Android soft keyboards can report deletion as a control character in text/IME events.
+fn push_text_with_controls(s: &str) {
+    for ch in s.chars() {
+        match ch {
+            '\u{8}' | '\u{7f}' => crate::ui::text_input::TEXT_INPUT.push_backspace(),
+            '\n' | '\r' => crate::ui::text_input::TEXT_INPUT.push_enter(),
+            c if !c.is_control() => {
+                let text = c.to_string();
+                crate::ui::text_input::TEXT_INPUT.push(&text);
+            }
+            _ => {}
+        }
+    }
+}
+
 fn process_ime_event(ime: &winit::event::Ime) {
     match ime {
         winit::event::Ime::Commit(s) => {
@@ -25,12 +40,10 @@ fn process_ime_event(ime: &winit::event::Ime) {
             let pre = crate::ui::text_input::TEXT_INPUT.take_preedit();
             let only_action = s.is_empty() || s.chars().all(|ch| ch == '\n' || ch == '\r');
             if only_action {
-                crate::ui::text_input::TEXT_INPUT.push(&pre);
-                if s.contains('\n') || s.contains('\r') {
-                    crate::ui::text_input::TEXT_INPUT.push_enter();
-                }
+                push_text_with_controls(&pre);
+                push_text_with_controls(s);
             } else {
-                crate::ui::text_input::TEXT_INPUT.push(s);
+                push_text_with_controls(s);
             }
         }
         winit::event::Ime::Preedit(s, _) => {
@@ -44,7 +57,7 @@ fn process_ime_event(ime: &winit::event::Ime) {
         winit::event::Ime::Disabled => {
             crate::ui::text_input::IME_COMPOSING.store(false, std::sync::atomic::Ordering::SeqCst);
             let pre = crate::ui::text_input::TEXT_INPUT.take_preedit();
-            crate::ui::text_input::TEXT_INPUT.push(&pre);
+            push_text_with_controls(&pre);
         }
     }
 }
@@ -54,15 +67,42 @@ fn process_keyboard_event(key: &KeyEvent) {
         return;
     }
 
-    let text_is_enter = key.text.as_deref().map_or(false, |text| {
+    let text = key.text.as_deref().or_else(|| match &key.logical_key {
+        Key::Character(s) => Some(s.as_str()),
+        _ => None,
+    });
+    let text_has_controls = text.map_or(false, |text| text.chars().any(|ch| ch.is_control()));
+    let text_is_enter = text.map_or(false, |text| {
         text.contains('\n') || text.contains('\r')
+    });
+    let text_is_backspace = text.map_or(false, |text| {
+        text.contains('\u{8}') || text.contains('\u{7f}')
     });
     let logical_enter = matches!(&key.logical_key, Key::Named(NamedKey::Enter));
     let is_enter = logical_enter
         || matches!(key.physical_key, PhysicalKey::Code(KeyCode::Enter | KeyCode::NumpadEnter))
         || text_is_enter;
-    let is_backspace = matches!(key.physical_key, PhysicalKey::Code(KeyCode::Backspace))
-        || matches!(&key.logical_key, Key::Named(NamedKey::Backspace));
+    let is_backspace = matches!(
+        key.physical_key,
+        PhysicalKey::Code(KeyCode::Backspace | KeyCode::NumpadBackspace | KeyCode::Delete)
+    ) || matches!(
+        &key.logical_key,
+        Key::Named(NamedKey::Backspace | NamedKey::Delete)
+    ) || text_is_backspace;
+
+    if text_has_controls {
+        if crate::ui::text_input::IME_COMPOSING.load(std::sync::atomic::Ordering::SeqCst) {
+            let controls: String = text
+                .unwrap_or("")
+                .chars()
+                .filter(|ch| matches!(ch, '\u{8}' | '\u{7f}' | '\n' | '\r'))
+                .collect();
+            push_text_with_controls(&controls);
+        } else if let Some(text) = text {
+            push_text_with_controls(text);
+        }
+        return;
+    }
 
     if is_backspace {
         crate::ui::text_input::TEXT_INPUT.push_backspace();
@@ -75,15 +115,8 @@ fn process_keyboard_event(key: &KeyEvent) {
         return;
     }
 
-    let text = key.text.as_deref().or_else(|| match &key.logical_key {
-        Key::Character(s) => Some(s.as_str()),
-        _ => None,
-    });
     if let Some(text) = text {
-        let printable: String = text.chars().filter(|ch| !ch.is_control()).collect();
-        if !printable.is_empty() {
-            crate::ui::text_input::TEXT_INPUT.push(&printable);
-        }
+        crate::ui::text_input::TEXT_INPUT.push(text);
     }
 }
 

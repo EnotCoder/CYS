@@ -103,6 +103,9 @@ impl App {
             window.inner_size().height as f32,
         );
 
+        #[cfg(target_os = "android")]
+        crate::android::poll_text_input();
+
         // Шаг 1: update сцены — временно берём wgpu_app immutably
         // (внутри обрабатываются ввод, логика игры и возвращается действие сцены)
             let action = {
@@ -155,6 +158,8 @@ impl App {
             window.set_ime_allowed(ime_wanted);
             self.ime_active = ime_wanted;
         }
+        #[cfg(target_os = "android")]
+        crate::android::sync_text_input(ime_wanted, focus_requested);
 
         // Шаг 3: рендер — снова берём wgpu_app immutably
         let Some(ref wgpu_app) = self.wgpu_app else { return };
@@ -344,4 +349,4 @@ pub fn run() {
 
 // Android-точка входа (компилируется только под android-таргет)
 #[cfg(target_os = "android")]
-mod android;
+pub(crate) mod android;

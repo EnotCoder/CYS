@@ -19,6 +19,7 @@ pub struct TextInput {
     /// На телефоне визуальная клавиатура держит набираемый текст именно здесь
     /// и часто не шлёт отдельного Commit, поэтому его тоже нужно учитывать.
     preedit: Mutex<String>,
+    focus_text: Mutex<String>,
 }
 
 impl TextInput {
@@ -28,6 +29,7 @@ impl TextInput {
             focus_requested: AtomicBool::new(false),
             buffer: Mutex::new(String::new()),
             preedit: Mutex::new(String::new()),
+            focus_text: Mutex::new(String::new()),
         }
     }
 
@@ -42,6 +44,7 @@ impl TextInput {
             IME_COMPOSING.store(false, Ordering::SeqCst);
             self.buffer.lock().unwrap().clear();
             self.preedit.lock().unwrap().clear();
+            self.focus_text.lock().unwrap().clear();
         }
     }
 
@@ -54,6 +57,15 @@ impl TextInput {
         self.active.store(true, Ordering::SeqCst);
         self.focus_requested.store(true, Ordering::SeqCst);
         IME_COMPOSING.store(false, Ordering::SeqCst);
+    }
+
+    pub fn request_focus_with_text(&self, text: &str) {
+        *self.focus_text.lock().unwrap() = text.to_string();
+        self.request_focus();
+    }
+
+    pub fn focus_text(&self) -> String {
+        self.focus_text.lock().unwrap().clone()
     }
 
     pub fn take_focus_request(&self) -> bool {

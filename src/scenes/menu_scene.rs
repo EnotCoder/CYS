@@ -72,6 +72,7 @@ pub struct MenuScene {
     name_panel: Option<Panel>,
     name_text: Option<specs::Entity>,
     name_text_key: Option<u64>,
+    cursor_timer: f32,
     name_create_bg: Option<Panel>,
     name_create_label: Option<specs::Entity>,
     name_back_bg: Option<Panel>,
@@ -107,6 +108,7 @@ impl MenuScene {
             name_panel: None,
             name_text: None,
             name_text_key: None,
+            cursor_timer: 0.0,
             name_create_bg: None,
             name_create_label: None,
             name_back_bg: None,
@@ -165,6 +167,7 @@ impl MenuScene {
         self.name_panel = Some(np);
         let nt = text_renderer.add_text(ecs, device, queue, &self.name_buffer, FONT_SIZE_BTN, 0.0, 0.65, 5.6, 1.0, WHITE);
         self.name_text = Some(nt);
+        self.cursor_timer = 0.0;
 
         // Кнопка «Создать»
         let mut cb = Panel::new(0.0, -1.0, 3.2, 0.8, 0.5);
@@ -358,7 +361,7 @@ impl Scene for MenuScene {
             MenuState::Splash => self.update_splash(dt, input, ecs, text_renderer, device, queue),
             MenuState::Main => self.update_main(input, window_size, ecs, text_renderer, device, queue),
             MenuState::Worlds => self.update_worlds(input, window_size, ecs, text_renderer, device, queue),
-            MenuState::Naming => self.update_naming(input, window_size, ecs, text_renderer, device, queue),
+            MenuState::Naming => self.update_naming(dt, input, window_size, ecs, text_renderer, device, queue),
         }
     }
 
@@ -530,7 +533,7 @@ impl MenuScene {
 
     /// Логика ввода названия: захват символов из TEXT_INPUT, отрисовка поля,
     /// кнопки «Создать» (подтверждение) и «Назад».
-    fn update_naming(&mut self, input: &dyn InputSource, window_size: (f32, f32), ecs: &mut crate::EcsAdapter, text_renderer: &mut crate::ui::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) -> SceneAction {
+    fn update_naming(&mut self, dt: f64, input: &dyn InputSource, window_size: (f32, f32), ecs: &mut crate::EcsAdapter, text_renderer: &mut crate::ui::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) -> SceneAction {
         let clicked = |input: &dyn InputSource, bx: f32, by: f32, bw: f32, bh: f32| -> bool {
             input.mouse_pressed(winit::event::MouseButton::Left) && Self::is_inside(input, window_size, bx, by, bw, bh)
         };
@@ -556,9 +559,15 @@ impl MenuScene {
         // его тоже учитываем в итоговом названии.
         let pre = TEXT_INPUT.preedit();
         let display = format!("{}{}", self.name_buffer, pre);
+        self.cursor_timer = (self.cursor_timer + dt as f32) % 1.0;
+        let display_with_cursor = if TEXT_INPUT.is_active() && self.cursor_timer < 0.5 {
+            format!("{}|", display)
+        } else {
+            display.clone()
+        };
 
         // Отражаем текущее название в поле (текстура меняется только при изменении)
-        let (e, k) = text_renderer.set_text(ecs, device, queue, self.name_text, self.name_text_key, &display, FONT_SIZE_BTN, 0.0, 0.65, 5.6, 1.0, WHITE);
+        let (e, k) = text_renderer.set_text(ecs, device, queue, self.name_text, self.name_text_key, &display_with_cursor, FONT_SIZE_BTN, 0.0, 0.65, 5.6, 1.0, WHITE);
         self.name_text = e;
         self.name_text_key = k;
 
@@ -599,6 +608,7 @@ impl MenuScene {
                 Self::is_inside(input, window_size, panel.x, panel.y, panel.w, panel.h)
             }).unwrap_or(false);
             if in_name_field {
+                self.cursor_timer = 0.0;
                 TEXT_INPUT.request_focus();
             } else {
                 TEXT_INPUT.set_active(false);

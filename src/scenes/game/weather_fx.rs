@@ -2,11 +2,11 @@
 // Copyright (C) 2026 EnotCoder
 
 // Погодные эффекты: зимой идёт снег (мелкие белые квадраты), осенью — дождь
-// (вытянутые вниз прямоугольники). Частицы размещаются в мировых координатах
-// внутри видимой области, падают сверху вниз и возвращаются наверх за её
+// (вытянутые вниз прямоугольники). Частицы размещаются в фиксированной
+// мировой области карты, падают сверху вниз и возвращаются наверх за её
 // пределами. Текстуры частиц генерируются в памяти (не нужны файлы-ассеты).
 
-use crate::core::constants::Z_WEATHER;
+use crate::core::constants::{TILE_HALF, WORLD_OFFSET_X, WORLD_OFFSET_Y, Z_WEATHER};
 use crate::core::util;
 use crate::ecs::components::{Season, Transform};
 use crate::ecs::factory::create_sprite;
@@ -15,6 +15,8 @@ use crate::EcsAdapter;
 
 const SNOW_COUNT: usize = 90;
 const RAIN_COUNT: usize = 80;
+
+type Bounds = (f32, f32, f32, f32);
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum Effect {
@@ -41,6 +43,21 @@ pub struct WeatherFx {
 }
 
 impl WeatherFx {
+    fn world_bounds(ecs: &EcsAdapter) -> Option<Bounds> {
+        let width = ecs.map_grid.iter().map(|row| row.len()).max().unwrap_or(0);
+        let height = ecs.map_grid.len();
+        if width == 0 || height == 0 {
+            return None;
+        }
+
+        Some((
+            WORLD_OFFSET_X - TILE_HALF,
+            WORLD_OFFSET_X + width as f32 - TILE_HALF,
+            WORLD_OFFSET_Y - height as f32 + TILE_HALF,
+            WORLD_OFFSET_Y + TILE_HALF,
+        ))
+    }
+
     pub fn new() -> Self {
         Self { effect: None, particles: Vec::new(), thunder_timer: 0.0, seed: 0x2545_4914_F6CD_DD1D }
     }
@@ -72,7 +89,7 @@ impl WeatherFx {
     }
 
     // Ежекадровое обновление погоды: применяет смену сезона, двигает частицы
-    // вниз и возвращает выпавшие за видимую область наверх.
+    // вниз и возвращает выпавшие за пределы мира наверх.
     pub fn tick(
         &mut self,
         ecs: &mut EcsAdapter,
@@ -80,9 +97,12 @@ impl WeatherFx {
         queue: &wgpu::Queue,
         season: Season,
         dt: f64,
-        bounds: (f32, f32, f32, f32),
     ) {
         let want = Self::effect_for(season);
+        let bounds = Self::world_bounds(ecs);
+        if want.is_some() && bounds.is_none() {
+            return;
+        }
         let alive = self.particles.iter().all(|p| {
             ecs.world.read_storage::<Transform>().get(p.entity).is_some()
         });
@@ -97,16 +117,18 @@ impl WeatherFx {
                 Some(Effect::Rain) => crate::audio::play_ambient("rain"),
                 None => crate::audio::stop_ambient(),
             }
-            if let Some(effect) = want {
+            if let (Some(effect), Some(bounds)) = (want, bounds) {
                 self.spawn(effect, ecs, device, queue, bounds);
             }
         }
         if want.is_none() {
             return;
         }
+        let Some((l, r, b, t)) = bounds else {
+            return;
+        };
 
         let dt32 = dt as f32;
-        let (l, r, b, t) = bounds;
         for i in 0..self.particles.len() {
             let p = &mut self.particles[i];
             p.y -= p.speed * dt32;
@@ -117,10 +139,10 @@ impl WeatherFx {
                 p.y = t + r1 * 0.4;
                 p.x = l + r2 * (r - l);
             }
-            // При движении камеры возвращаем частицы в видимую область.
+            // Возвращаем частицы в фиксированную мировую область.
             if p.x < l - 0.4 || p.x > r + 0.4 {
-                let r = rand01(&mut self.seed);
-                p.x = l + r * (r - l);
+                let random = rand01(&mut self.seed);
+                p.x = l + random * (r - l);
             }
             ecs.update_transform_position(p.entity, p.x, p.y);
         }
@@ -150,7 +172,7 @@ impl WeatherFx {
         ecs: &mut EcsAdapter,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
-        bounds: (f32, f32, f32, f32),
+        bounds: Bounds,
     ) {
         let (l, r, b, t) = bounds;
         let (world_w, world_h, count, alpha, min_speed, max_speed, drift) = match effect {

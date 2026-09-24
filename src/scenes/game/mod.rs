@@ -889,14 +889,8 @@ impl Scene for GameScene {
 
         // --- Погодные частицы (снег/дождь) по текущему сезону ---
         {
-            let aspect = if window_size.1 > 0.0 { window_size.0 / window_size.1 } else { 1.0 };
-            let vis_w = 2.0 * aspect / (SHADER_SCALE * self.map_size);
-            let vis_h = 2.0 / (SHADER_SCALE * self.map_size);
-            let cam_x = self.camera_offset_x;
-            let cam_y = self.camera_offset_y;
-            let bounds = (cam_x - vis_w / 2.0, cam_x + vis_w / 2.0, cam_y - vis_h / 2.0, cam_y + vis_h / 2.0);
             let season = *ecs.world.read_resource::<crate::ecs::components::Season>();
-            self.weather_fx.tick(ecs, device, queue, season, dt, bounds);
+            self.weather_fx.tick(ecs, device, queue, season, dt);
         }
 
         // --- Обновление всех объектов по компонентам ---

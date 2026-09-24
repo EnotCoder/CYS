@@ -8,11 +8,34 @@
 use std::collections::HashMap;
 use std::io::Cursor;
 use std::path::Path;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Mutex, OnceLock};
 
 use rodio::{Decoder, DeviceSinkBuilder, MixerDeviceSink, Player, Source};
 
 pub const SOUND_DIR: &str = "assets/sounds";
+
+// Переключатели звука из настроек (settings.json): применяются глобально,
+// чтобы музыка в меню и эффекты в игре уважали выбор пользователя.
+static MUSIC_ENABLED: AtomicBool = AtomicBool::new(true);
+static SFX_ENABLED: AtomicBool = AtomicBool::new(true);
+
+/// Включает/выключает фоновую музыку; при выключении останавливает текущий трек.
+pub fn set_music_enabled(enabled: bool) {
+    MUSIC_ENABLED.store(enabled, Ordering::SeqCst);
+    if !enabled {
+        stop_music();
+    }
+}
+
+/// Включает/выключает звуковые эффекты; при выключении останавливает
+/// фоновые погодные лупы (дождь/снег).
+pub fn set_sfx_enabled(enabled: bool) {
+    SFX_ENABLED.store(enabled, Ordering::SeqCst);
+    if !enabled {
+        stop_ambient();
+    }
+}
 
 pub struct AudioEngine {
     // _sink держится живым на всё время жизни движка: именно он является
@@ -142,11 +165,17 @@ pub fn init() {
 
 /// Воспроизвести звук один раз по имени файла из sounds/ (без расширения).
 pub fn play(name: &str) {
+    if !SFX_ENABLED.load(Ordering::SeqCst) {
+        return;
+    }
     with_engine(|engine| engine.play_clip(name));
 }
 
 /// Зациклить музыку по имени файла из sounds/ (без расширения).
 pub fn play_music(name: &str) {
+    if !MUSIC_ENABLED.load(Ordering::SeqCst) {
+        return;
+    }
     with_engine(|engine| engine.play_music_clip(name));
 }
 
@@ -157,6 +186,9 @@ pub fn stop_music() {
 
 /// Зациклить фоновый звук (погода) по имени файла из sounds/ (без расширения).
 pub fn play_ambient(name: &str) {
+    if !SFX_ENABLED.load(Ordering::SeqCst) {
+        return;
+    }
     with_engine(|engine| engine.play_ambient_clip(name));
 }
 

@@ -27,12 +27,16 @@ Requires Rust edition 2021; a wgpu 30 compatible GPU (Vulkan on Linux).
 | Open / close inventory          | `E`                            |
 | Select hotbar slot              | Click the slot                 |
 | Toggle shop open/closed         | Click the active icon          |
-| Zoom                            | `Scroll`, `K` / `L`            |
-| Move camera                     | Drag `MMB` or `Arrow keys`     |
-| Settings                        | `Esc`                          |
-| Save / Load                     | `Ctrl+S` / `Ctrl+L`            |
+| Zoom                            | `Scroll`, `K` / `L`, pinch     |
+| Move camera                     | Drag `MMB`, Arrow keys, swipe  |
+| Settings (pauses the game)      | `Esc` / Android Back button    |
+| Quick save                      | `Ctrl+S` (load via world menu) |
 | Enter basement                  | Click the basement stairs      |
 | Back to menu                    | `R` (when bankrupt)            |
+
+On Android: tap = click, one-finger drag = move camera, two-finger
+pinch = zoom, system Back button = close panels / open the pause menu
+(settings), which also pauses the game when opened.
 
 ## Features
 
@@ -42,7 +46,10 @@ Requires Rust edition 2021; a wgpu 30 compatible GPU (Vulkan on Linux).
 - Day/night cycle with dynamic 2D point lighting
 - Mini-economy: prices, rent, bankruptcy, open/closed state
 - Basement level with two-way transitions
-- Settings (VSync, zoom speed), save/load to `save.json`
+- World slots: create new worlds, delete with confirmation (Minecraft-style)
+- Pause: opening Settings freezes the world (day/night, rent, shoppers, weather)
+- Settings with sound toggles (music / SFX); all settings persist in
+  `settings.json` across launches (VSync, zoom speed, sound)
 - Balance and NPC logic configurable in `scripts/config.lua`, `scripts/npc.lua`
 
 ## Architecture

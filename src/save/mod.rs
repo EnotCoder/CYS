@@ -133,3 +133,55 @@ pub enum WorldSelection {
 /// передавать параметры через SceneAction, поэтому используем статику.
 pub static SELECTED_WORLD: std::sync::Mutex<WorldSelection> =
     std::sync::Mutex::new(WorldSelection::None);
+
+// ========================================================================
+//  Пользовательские настройки (settings.json) — сохраняются между запусками
+// ========================================================================
+
+/// Настройки приложения, которые пишутся в settings.json.
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct GameSettings {
+    /// Вертикальная синхронизация (VSync)
+    pub vsync: bool,
+    /// Скорость зума камеры (шаг колеса/щипка)
+    pub zoom_speed: f32,
+    /// Фоновая музыка (music.ogg)
+    pub music: bool,
+    /// Звуковые эффекты (клики, касса, погода)
+    pub sfx: bool,
+}
+
+impl Default for GameSettings {
+    fn default() -> Self {
+        Self { vsync: true, zoom_speed: 0.1, music: true, sfx: true }
+    }
+}
+
+const SETTINGS_FILE: &str = "settings.json";
+
+/// Читает сохранённые настройки; при отсутствии/порче файла — дефолтные.
+pub fn load_settings() -> GameSettings {
+    match crate::core::asset::load_data(SETTINGS_FILE) {
+        Ok(bytes) => String::from_utf8(bytes)
+            .ok()
+            .and_then(|s| serde_json::from_str(&s).ok())
+            .unwrap_or_default(),
+        Err(_) => GameSettings::default(),
+    }
+}
+
+/// Записывает настройки в settings.json (ошибки игнорируем — это не критично).
+pub fn save_settings(s: &GameSettings) {
+    if let Ok(json) = serde_json::to_string_pretty(s) {
+        let _ = crate::core::asset::save_data(SETTINGS_FILE, json.as_bytes());
+    }
+}
+
+/// Глобальная копия настроек: грузится при старте приложения (App::new),
+/// обновляется из панели настроек и читается сценой при входе в игру.
+pub static SETTINGS: std::sync::Mutex<GameSettings> = std::sync::Mutex::new(GameSettings {
+    vsync: true,
+    zoom_speed: 0.1,
+    music: true,
+    sfx: true,
+});

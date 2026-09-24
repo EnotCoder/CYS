@@ -74,6 +74,11 @@ pub const CURSOR_MOVE_DELAY_MS: u64 = 150;
 pub const EPSILON: f32 = 0.01;
 // MouseButton теперь из winit::mouse
 
+// === Время кадра ===
+/// Верхний предел dt (сек): защита от скачка игрового времени после
+/// возвращения приложения из фона (первый кадр после resume).
+pub const MAX_FRAME_DT: f64 = 0.1;
+
 // === Окно ===
 pub const WINDOW_WIDTH: u32 = 1280;
 pub const WINDOW_HEIGHT: u32 = 720;

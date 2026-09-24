@@ -123,6 +123,8 @@ pub struct GameScene {
     // Мини-туториал: панель «как играть» на новой игре и флаг «уже показан»
     tutorial: tutorial::Tutorial,
     tutorial_shown: bool,
+    // Применение сохранённой настройки VSync при входе в игру (первый кадр)
+    pending_vsync: Option<bool>,
 }
 
 impl GameScene {
@@ -185,6 +187,7 @@ impl GameScene {
             weather_fx: weather_fx::WeatherFx::new(),
             tutorial: tutorial::Tutorial::new(),
             tutorial_shown: false,
+            pending_vsync: None,
         }
     }
 
@@ -412,6 +415,19 @@ impl GameScene {
             }
         }
     }
+
+    /// Записывает текущие настройки из панели в глобальную копию и файл
+    /// settings.json (VSync, зум, музыка, звуки).
+    fn persist_settings(&self) {
+        let s = crate::save::GameSettings {
+            vsync: self.settings.vsync.checked,
+            zoom_speed: self.settings.zoom_speed.value,
+            music: self.settings.music.checked,
+            sfx: self.settings.sfx.checked,
+        };
+        *crate::save::SETTINGS.lock().unwrap() = s.clone();
+        crate::save::save_settings(&s);
+    }
 }
 
 impl Scene for GameScene {
@@ -447,6 +463,10 @@ impl Scene for GameScene {
         self.inv_entity = None;
         self.settings_entity = None;
         self.settings = crate::ui::settings::Settings::new();
+        // Применяем сохранённые настройки (VSync, зум, звук) к панели настроек.
+        let saved = crate::save::SETTINGS.lock().unwrap().clone();
+        self.settings.apply_saved(&saved);
+        self.pending_vsync = if saved.vsync { None } else { Some(false) };
         self.hud.reset();
         self.shoppers.clear();
         self.day_night.reset();
@@ -472,8 +492,9 @@ impl Scene for GameScene {
         crate::audio::play_music("music");
     }
 
-    /// Автосохранение мира при выходе из игры (в меню или закрытие приложения).
+    /// Автосохранение мира и настроек при выходе из игры (в меню или закрытие приложения).
     fn on_exit(&mut self, ecs: &mut crate::EcsAdapter, _text_renderer: &mut crate::ui::text_renderer::TextRenderer) {
+        self.persist_settings();
         if self.shop.open {
             self.shop.close(ecs);
         }
@@ -493,6 +514,11 @@ impl Scene for GameScene {
         // справа умещаются в экран даже на портретных/узких дисплеях)
         let aspect = if window_size.1 > 0.0 { window_size.0 / window_size.1 } else { 1.0 };
         self.ui_scale = crate::core::util::ui_fit_scale(aspect, 6.5);
+
+        // Сохранённая настройка VSync применяется сразу при входе в игру
+        if let Some(vsync) = self.pending_vsync.take() {
+            return SceneAction::VsyncToggle(vsync);
+        }
 
         // Отложенная загрузка: показываем "Loading..." на один кадр, затем строим контент
         if !self.loaded {
@@ -527,7 +553,9 @@ impl Scene for GameScene {
         }
 
         let now = std::time::Instant::now();
-        let dt = (now - self.last_frame).as_secs_f64();
+        // dt ограничиваем сверху: после возврата из фона (свёрнутое приложение)
+        // первый кадр не должен «проскакивать» десятки секунд игрового времени.
+        let dt = (now - self.last_frame).as_secs_f64().min(MAX_FRAME_DT);
         self.last_frame = now;
 
         // --- Мини-туториал: панель «как играть» в пустом магазине ---
@@ -557,8 +585,8 @@ impl Scene for GameScene {
             }
         }
 
-        // --- Аренда магазина (экономическая нагрузка) ---
-        if !self.bankrupt {
+        // --- Аренда магазина (экономическая нагрузка; на паузе не списывается) ---
+        if !self.bankrupt && !self.settings.open {
             self.rent_timer += dt;
             if self.rent_timer >= self.config.rent_interval_secs {
                 self.rent_timer = 0.0;
@@ -712,11 +740,23 @@ impl Scene for GameScene {
             if self.settings.vsync_toggled {
                 self.settings.vsync_toggled = false;
                 let enabled = self.settings.vsync.checked;
+                self.persist_settings();
                 return SceneAction::VsyncToggle(enabled);
             }
             if self.settings.zoom_speed_changed {
                 self.settings.zoom_speed_changed = false;
                 self.zoom_step = self.settings.zoom_speed.value;
+                self.persist_settings();
+            }
+            if self.settings.music_toggled {
+                self.settings.music_toggled = false;
+                crate::audio::set_music_enabled(self.settings.music.checked);
+                self.persist_settings();
+            }
+            if self.settings.sfx_toggled {
+                self.settings.sfx_toggled = false;
+                crate::audio::set_sfx_enabled(self.settings.sfx.checked);
+                self.persist_settings();
             }
             if self.settings.menu_requested {
                 self.settings.menu_requested = false;
@@ -882,42 +922,51 @@ impl Scene for GameScene {
             }
         }
 
-        // Прогресс дня/ночи в независимости от режима настроек
-        self.day_night.tick(dt);
+        // Пауза: пока открыты настройки, мир замирает — день/ночь, погода,
+        // регенерация еды, покупатели и анимации не двигаются (как в обычном
+        // мобильном меню паузы).
+        let paused = self.settings.open;
+
+        // Прогресс дня/ночи
+        if !paused {
+            self.day_night.tick(dt);
+        }
 
         self.update_camera(input, window_size, dt);
 
         // --- Погодные частицы (снег/дождь) по текущему сезону ---
-        {
+        if !paused {
             let season = *ecs.world.read_resource::<crate::ecs::components::Season>();
             self.weather_fx.tick(ecs, device, queue, season, dt);
         }
 
         // --- Обновление всех объектов по компонентам ---
-        // Периодическая регенерация еды в ящиках (box)
-        self.food_timer += dt;
-        if self.food_timer >= self.config.food_regen_tick {
-            self.food_timer -= self.config.food_regen_tick;
-            let amount = self.config.food_regen_amount;
-            let mut adds = Vec::new();
-            {
-                let tags = ecs.world.read_storage::<ObjectTag>();
-                let mut foods = ecs.world.write_storage::<FoodStorage>();
-                let groups = ecs.world.read_storage::<crate::GroupComponent>();
-                for (tag, storage, group) in (&tags, &mut foods, &groups).join() {
-                    if tag.name == "box" && storage.food_count < storage.max_food {
-                        storage.food_count += amount;
-                        adds.push(group.group_id);
+        if !paused {
+            // Периодическая регенерация еды в ящиках (box)
+            self.food_timer += dt;
+            if self.food_timer >= self.config.food_regen_tick {
+                self.food_timer -= self.config.food_regen_tick;
+                let amount = self.config.food_regen_amount;
+                let mut adds = Vec::new();
+                {
+                    let tags = ecs.world.read_storage::<ObjectTag>();
+                    let mut foods = ecs.world.write_storage::<FoodStorage>();
+                    let groups = ecs.world.read_storage::<crate::GroupComponent>();
+                    for (tag, storage, group) in (&tags, &mut foods, &groups).join() {
+                        if tag.name == "box" && storage.food_count < storage.max_food {
+                            storage.food_count += amount;
+                            adds.push(group.group_id);
+                        }
                     }
                 }
+                ecs.update_object_textures();
+                ecs.pending_food_adds.extend(adds);
             }
-            ecs.update_object_textures();
-            ecs.pending_food_adds.extend(adds);
+            // Обрабатываем накопленные эффекты появления еды (ящики и стеллажи)
+            self.drain_food_fx(ecs);
+            self.update_food_fx(ecs, dt);
+            ecs.update_fence_textures();
         }
-        // Обрабатываем накопленные эффекты появления еды (ящики и стеллажи)
-        self.drain_food_fx(ecs);
-        self.update_food_fx(ecs, dt);
-        ecs.update_fence_textures();
         // Определяем объект под курсором для подсказки о запасах еды
         let cursor_pos = self.cursor_entity.map(|e| ecs.get_transform_position(e));
         let hovered_object = cursor_pos.and_then(|(cx, cy)| {
@@ -996,10 +1045,11 @@ impl Scene for GameScene {
             }
         }
 
-        // --- Shopper NPCs ---
-        self.shoppers.tick(ecs, dt, &self.npc_walkable, self.active, &self.config, self.npc_script.as_ref());
-
-        self.update_animations(ecs, dt);
+        // --- Shopper NPCs и анимации спрайтов (замирают на паузе) ---
+        if !paused {
+            self.shoppers.tick(ecs, dt, &self.npc_walkable, self.active, &self.config, self.npc_script.as_ref());
+            self.update_animations(ecs, dt);
+        }
 
         // --- UI-анимации: пульсы счётчиков, фейды подсказок, поп инвентаря ---
         self.hud.tick(ecs, dt);

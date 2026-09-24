@@ -491,7 +491,7 @@ impl MenuScene {
             if clicked(input, nb.x, nb.y, nb.w, nb.h) {
                 crate::audio::play("click");
                 self.name_buffer = "Мир".to_string();
-                TEXT_INPUT.set_active(true);
+                TEXT_INPUT.request_focus();
                 self.state = MenuState::Naming;
                 self.setup_content(ecs, text_renderer, device, queue);
                 return SceneAction::None;
@@ -563,7 +563,9 @@ impl MenuScene {
         self.name_text_key = k;
 
         // Escape — назад к списку миров
-        if input.key_pressed(winit::keyboard::KeyCode::Escape) {
+        if input.key_pressed(winit::keyboard::KeyCode::Escape)
+            || input.key_pressed(winit::keyboard::KeyCode::BrowserBack)
+        {
             TEXT_INPUT.set_active(false);
             self.state = MenuState::Worlds;
             self.setup_content(ecs, text_renderer, device, queue);
@@ -589,6 +591,17 @@ impl MenuScene {
                 self.state = MenuState::Worlds;
                 self.setup_content(ecs, text_renderer, device, queue);
                 return SceneAction::None;
+            }
+        }
+
+        if input.mouse_pressed(winit::event::MouseButton::Left) {
+            let in_name_field = self.name_panel.as_ref().map(|panel| {
+                Self::is_inside(input, window_size, panel.x, panel.y, panel.w, panel.h)
+            }).unwrap_or(false);
+            if in_name_field {
+                TEXT_INPUT.request_focus();
+            } else {
+                TEXT_INPUT.set_active(false);
             }
         }
         SceneAction::None

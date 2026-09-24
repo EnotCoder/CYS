@@ -90,14 +90,6 @@ impl App {
         let Some(surface) = &self.surface else { return };
         let Some(ref window) = self.window else { return };
 
-        // Синхронизируем состояние IME (экранная клавиатура Android и
-        // метод ввода на ПК) с активным полем ввода имени мира.
-        let ime_wanted = crate::ui::text_input::TEXT_INPUT.is_active();
-        if ime_wanted != self.ime_active {
-            window.set_ime_allowed(ime_wanted);
-            self.ime_active = ime_wanted;
-        }
-
         let window_size = (
             window.inner_size().width as f32,
             window.inner_size().height as f32,
@@ -146,6 +138,14 @@ impl App {
                 }
             }
             crate::scenes::SceneAction::None => {}
+        }
+
+        // focus_requested повторно вызывает showSoftInput после системного скрытия.
+        let ime_wanted = crate::ui::text_input::TEXT_INPUT.is_active();
+        let focus_requested = crate::ui::text_input::TEXT_INPUT.take_focus_request();
+        if ime_wanted != self.ime_active || (ime_wanted && focus_requested) {
+            window.set_ime_allowed(ime_wanted);
+            self.ime_active = ime_wanted;
         }
 
         // Шаг 3: рендер — снова берём wgpu_app immutably
@@ -265,12 +265,14 @@ impl ApplicationHandler for App {
 
         self.window = Some(window);
         self.surface = Some(surface);
+        self.ime_active = false;
     }
 
     // Переход в фон / уничтожение нативного окна: сбрасываем только поверхность.
     // Instance/Device/пайплайны оставляем живыми, чтобы не пересоздавать GPU-контекст.
     fn suspended(&mut self, _event_loop: &ActiveEventLoop) {
         self.surface = None;
+        self.ime_active = false;
     }
 
     // Оконные события: передаём их в накопитель ввода

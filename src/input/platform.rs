@@ -9,15 +9,83 @@
 //  системы ввода работают с трейтом InputSource, не зная, откуда пришёл ввод.
 // ========================================================================
 
-use winit::event::{DeviceEvent, MouseButton, WindowEvent};
-use winit::keyboard::KeyCode;
-use winit::event::ElementState;
+use winit::event::{DeviceEvent, ElementState, KeyEvent, MouseButton, WindowEvent};
+use winit::keyboard::{Key, KeyCode, NamedKey, PhysicalKey};
 use winit_input_helper::WinitInputHelper;
 
 #[cfg(target_os = "android")]
 use std::collections::HashMap;
 #[cfg(target_os = "android")]
 use winit::event::{Touch, TouchPhase};
+
+fn process_ime_event(ime: &winit::event::Ime) {
+    match ime {
+        winit::event::Ime::Commit(s) => {
+            crate::ui::text_input::IME_COMPOSING.store(false, std::sync::atomic::Ordering::SeqCst);
+            let pre = crate::ui::text_input::TEXT_INPUT.take_preedit();
+            let only_action = s.is_empty() || s.chars().all(|ch| ch == '\n' || ch == '\r');
+            if only_action {
+                crate::ui::text_input::TEXT_INPUT.push(&pre);
+                if s.contains('\n') || s.contains('\r') {
+                    crate::ui::text_input::TEXT_INPUT.push_enter();
+                }
+            } else {
+                crate::ui::text_input::TEXT_INPUT.push(s);
+            }
+        }
+        winit::event::Ime::Preedit(s, _) => {
+            crate::ui::text_input::IME_COMPOSING.store(!s.is_empty(), std::sync::atomic::Ordering::SeqCst);
+            crate::ui::text_input::TEXT_INPUT.set_preedit(s);
+        }
+        winit::event::Ime::Enabled => {
+            crate::ui::text_input::IME_COMPOSING.store(false, std::sync::atomic::Ordering::SeqCst);
+            crate::ui::text_input::TEXT_INPUT.clear_preedit();
+        }
+        winit::event::Ime::Disabled => {
+            crate::ui::text_input::IME_COMPOSING.store(false, std::sync::atomic::Ordering::SeqCst);
+            let pre = crate::ui::text_input::TEXT_INPUT.take_preedit();
+            crate::ui::text_input::TEXT_INPUT.push(&pre);
+        }
+    }
+}
+
+fn process_keyboard_event(key: &KeyEvent) {
+    if key.state != ElementState::Pressed {
+        return;
+    }
+
+    let text_is_enter = key.text.as_deref().map_or(false, |text| {
+        text.contains('\n') || text.contains('\r')
+    });
+    let logical_enter = matches!(&key.logical_key, Key::Named(NamedKey::Enter));
+    let is_enter = logical_enter
+        || matches!(key.physical_key, PhysicalKey::Code(KeyCode::Enter | KeyCode::NumpadEnter))
+        || text_is_enter;
+    let is_backspace = matches!(key.physical_key, PhysicalKey::Code(KeyCode::Backspace))
+        || matches!(&key.logical_key, Key::Named(NamedKey::Backspace));
+
+    if is_backspace {
+        crate::ui::text_input::TEXT_INPUT.push_backspace();
+    }
+    if is_enter {
+        crate::ui::text_input::TEXT_INPUT.push_enter();
+    }
+
+    if crate::ui::text_input::IME_COMPOSING.load(std::sync::atomic::Ordering::SeqCst) {
+        return;
+    }
+
+    let text = key.text.as_deref().or_else(|| match &key.logical_key {
+        Key::Character(s) => Some(s.as_str()),
+        _ => None,
+    });
+    if let Some(text) = text {
+        let printable: String = text.chars().filter(|ch| !ch.is_control()).collect();
+        if !printable.is_empty() {
+            crate::ui::text_input::TEXT_INPUT.push(&printable);
+        }
+    }
+}
 
 /// Единый интерфейс ввода для десктопа и мобильных платформ.
 pub trait InputSource {
@@ -67,49 +135,8 @@ impl InputSource for DesktopInput {
     fn end_step(&mut self) { self.inner.end_step(); }
     fn process_window_event(&mut self, event: &WindowEvent) {
         match event {
-            WindowEvent::Ime(ime) => {
-                match ime {
-                    winit::event::Ime::Commit(s) => {
-                        crate::ui::text_input::IME_COMPOSING.store(false, std::sync::atomic::Ordering::SeqCst);
-                        // Забираем текущую композицию: если Commit несёт реальный
-                        // текст — он уже содержит набранное; если же пришёл только
-                        // перевод строки/пустышка (часто на телефоне при тапе Enter),
-                        // то настоящий текст всё ещё в preedit — сохраняем его.
-                        let pre = crate::ui::text_input::TEXT_INPUT.take_preedit();
-                        if s.trim().is_empty() {
-                            crate::ui::text_input::TEXT_INPUT.push(&pre);
-                            if s.contains('\n') {
-                                crate::ui::text_input::TEXT_INPUT.push_enter();
-                            }
-                        } else {
-                            crate::ui::text_input::TEXT_INPUT.push(s);
-                        }
-                    }
-                    winit::event::Ime::Preedit(s, _) => {
-                        crate::ui::text_input::IME_COMPOSING.store(!s.is_empty(), std::sync::atomic::Ordering::SeqCst);
-                        crate::ui::text_input::TEXT_INPUT.set_preedit(s);
-                    }
-                    winit::event::Ime::Enabled | winit::event::Ime::Disabled => {
-                        crate::ui::text_input::IME_COMPOSING.store(false, std::sync::atomic::Ordering::SeqCst);
-                        crate::ui::text_input::TEXT_INPUT.clear_preedit();
-                    }
-                }
-            }
-            WindowEvent::KeyboardInput { event: key, .. } => {
-                match key.physical_key {
-                    winit::keyboard::PhysicalKey::Code(KeyCode::Backspace) => crate::ui::text_input::TEXT_INPUT.push_backspace(),
-                    winit::keyboard::PhysicalKey::Code(KeyCode::Enter) => crate::ui::text_input::TEXT_INPUT.push_enter(),
-                    _ => {}
-                }
-                // Прямой ввод символа (ПК, вне IME-композиции)
-                if !crate::ui::text_input::IME_COMPOSING.load(std::sync::atomic::Ordering::SeqCst) {
-                    if let winit::keyboard::Key::Character(s) = &key.logical_key {
-                        if key.state == ElementState::Pressed {
-                            crate::ui::text_input::TEXT_INPUT.push(s);
-                        }
-                    }
-                }
-            }
+            WindowEvent::Ime(ime) => process_ime_event(ime),
+            WindowEvent::KeyboardInput { event: key, .. } => process_keyboard_event(key),
             _ => {}
         }
         let _ = self.inner.process_window_event(event);
@@ -126,6 +153,8 @@ pub struct TouchInput {
     pos: Option<(f32, f32)>,
     last_pos: Option<(f32, f32)>,
     pressed_this_frame: bool,
+    back_pressed: bool,
+    tap_candidate: bool,
     dragging: bool,
     // Активные касания по id -> позиция (для распознавания щипка и пана).
     touches: HashMap<u64, (f32, f32)>,
@@ -147,6 +176,8 @@ impl TouchInput {
             pos: None,
             last_pos: None,
             pressed_this_frame: false,
+            back_pressed: false,
+            tap_candidate: false,
             dragging: false,
             touches: HashMap::new(),
             pinch_last_dist: 0.0,
@@ -186,8 +217,8 @@ impl InputSource for TouchInput {
         }
     }
 
-    fn key_pressed(&self, _key: KeyCode) -> bool {
-        false
+    fn key_pressed(&self, key: KeyCode) -> bool {
+        self.back_pressed && matches!(key, KeyCode::Escape | KeyCode::BrowserBack)
     }
 
     fn key_held(&self, _key: KeyCode) -> bool {
@@ -215,6 +246,7 @@ impl InputSource for TouchInput {
 
     fn step(&mut self) {
         self.pressed_this_frame = false;
+        self.back_pressed = false;
     }
 
     fn end_step(&mut self) {
@@ -228,47 +260,14 @@ impl InputSource for TouchInput {
 
     fn process_window_event(&mut self, event: &WindowEvent) {
         match event {
-            WindowEvent::Ime(ime) => {
-                match ime {
-                    winit::event::Ime::Commit(s) => {
-                        crate::ui::text_input::IME_COMPOSING.store(false, std::sync::atomic::Ordering::SeqCst);
-                        // Забираем текущую композицию: если Commit несёт реальный
-                        // текст — он уже содержит набранное; если же пришёл только
-                        // перевод строки/пустышка (часто на телефоне при тапе Enter),
-                        // то настоящий текст всё ещё в preedit — сохраняем его.
-                        let pre = crate::ui::text_input::TEXT_INPUT.take_preedit();
-                        if s.trim().is_empty() {
-                            crate::ui::text_input::TEXT_INPUT.push(&pre);
-                            if s.contains('\n') {
-                                crate::ui::text_input::TEXT_INPUT.push_enter();
-                            }
-                        } else {
-                            crate::ui::text_input::TEXT_INPUT.push(s);
-                        }
-                    }
-                    winit::event::Ime::Preedit(s, _) => {
-                        crate::ui::text_input::IME_COMPOSING.store(!s.is_empty(), std::sync::atomic::Ordering::SeqCst);
-                        crate::ui::text_input::TEXT_INPUT.set_preedit(s);
-                    }
-                    winit::event::Ime::Enabled | winit::event::Ime::Disabled => {
-                        crate::ui::text_input::IME_COMPOSING.store(false, std::sync::atomic::Ordering::SeqCst);
-                        crate::ui::text_input::TEXT_INPUT.clear_preedit();
-                    }
-                }
-            }
+            WindowEvent::Ime(ime) => process_ime_event(ime),
             WindowEvent::KeyboardInput { event: key, .. } => {
-                match key.physical_key {
-                    winit::keyboard::PhysicalKey::Code(KeyCode::Backspace) => crate::ui::text_input::TEXT_INPUT.push_backspace(),
-                    winit::keyboard::PhysicalKey::Code(KeyCode::Enter) => crate::ui::text_input::TEXT_INPUT.push_enter(),
-                    _ => {}
-                }
-                // Прямой ввод символа (ПК, вне IME-композиции)
-                if !crate::ui::text_input::IME_COMPOSING.load(std::sync::atomic::Ordering::SeqCst) {
-                    if let winit::keyboard::Key::Character(s) = &key.logical_key {
-                        if key.state == ElementState::Pressed {
-                            crate::ui::text_input::TEXT_INPUT.push(s);
-                        }
-                    }
+                process_keyboard_event(key);
+                if key.state == ElementState::Pressed
+                    && (matches!(&key.logical_key, Key::Named(NamedKey::Escape | NamedKey::BrowserBack))
+                        || matches!(key.physical_key, PhysicalKey::Code(KeyCode::Escape | KeyCode::BrowserBack)))
+                {
+                    self.back_pressed = true;
                 }
             }
             _ => {}
@@ -290,13 +289,13 @@ impl TouchInput {
             TouchPhase::Started => {
                 self.touches.insert(id, (x, y));
                 if self.touches.len() == 1 {
-                    // Первый палец: начало возможного тапа или перетаскивания.
                     self.pos = Some((x, y));
                     self.last_pos = Some((x, y));
+                    self.tap_candidate = true;
                     self.dragging = false;
                     self.pressed_this_frame = false;
                 } else if self.touches.len() == 2 {
-                    // Второй палец: начинаем щипок, отменяем панорамирование.
+                    self.tap_candidate = false;
                     self.dragging = false;
                     let pts: Vec<(f32, f32)> = self.touches.values().copied().collect();
                     self.pinch_last_dist = Self::distance(pts[0], pts[1]);
@@ -307,26 +306,35 @@ impl TouchInput {
                     *p = (x, y);
                 }
                 if self.touches.len() == 1 {
-                    // Одиночное перетаскивание: заметное смещение = панорама.
                     if let Some((cx, cy)) = self.pos {
                         if Self::distance((cx, cy), (x, y)) > 8.0 {
+                            self.tap_candidate = false;
                             self.dragging = true;
                         }
                     }
                     self.pos = Some((x, y));
                 }
             }
-            TouchPhase::Ended | TouchPhase::Cancelled => {
+            TouchPhase::Ended => {
+                let was_tap = self.tap_candidate && !self.dragging;
                 self.touches.remove(&id);
                 if self.touches.is_empty() {
-                    // Палец отпущен: это был тап (клик), если не тащили.
+                    self.pressed_this_frame = was_tap;
+                    self.tap_candidate = false;
                     self.dragging = false;
-                    self.pressed_this_frame = true;
                 } else if self.touches.len() == 1 {
-                    // Остался один палец после щипка — продолжаем как тач/пан.
                     let (_, p) = self.touches.iter().next().unwrap();
                     self.pos = Some(*p);
                     self.last_pos = Some(*p);
+                    self.tap_candidate = false;
+                    self.dragging = false;
+                }
+            }
+            TouchPhase::Cancelled => {
+                self.touches.remove(&id);
+                if self.touches.is_empty() {
+                    self.pressed_this_frame = false;
+                    self.tap_candidate = false;
                     self.dragging = false;
                 }
             }

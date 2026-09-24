@@ -13,6 +13,7 @@ use std::sync::Mutex;
 
 pub struct TextInput {
     active: AtomicBool,
+    focus_requested: AtomicBool,
     buffer: Mutex<String>,
     /// Текущая IME-композиция (набираемый, но ещё не закоммиченный текст).
     /// На телефоне визуальная клавиатура держит набираемый текст именно здесь
@@ -24,17 +25,21 @@ impl TextInput {
     pub const fn new() -> Self {
         Self {
             active: AtomicBool::new(false),
+            focus_requested: AtomicBool::new(false),
             buffer: Mutex::new(String::new()),
             preedit: Mutex::new(String::new()),
         }
     }
 
-    /// Включает/выключает захват ввода. При выключении буфер очищается.
+    /// Включает/выключает захват ввода. При включении также запрашивается
+    /// повторный показ IME; при выключении буфер очищается.
     pub fn set_active(&self, on: bool) {
         if on {
-            self.active.store(true, Ordering::SeqCst);
+            self.request_focus();
         } else {
             self.active.store(false, Ordering::SeqCst);
+            self.focus_requested.store(false, Ordering::SeqCst);
+            IME_COMPOSING.store(false, Ordering::SeqCst);
             self.buffer.lock().unwrap().clear();
             self.preedit.lock().unwrap().clear();
         }
@@ -42,6 +47,17 @@ impl TextInput {
 
     pub fn is_active(&self) -> bool {
         self.active.load(Ordering::SeqCst)
+    }
+
+    /// Запрашивает повторное отображение IME даже если поле уже активно.
+    pub fn request_focus(&self) {
+        self.active.store(true, Ordering::SeqCst);
+        self.focus_requested.store(true, Ordering::SeqCst);
+        IME_COMPOSING.store(false, Ordering::SeqCst);
+    }
+
+    pub fn take_focus_request(&self) -> bool {
+        self.focus_requested.swap(false, Ordering::SeqCst)
     }
 
     /// Текущий набираемый (composition) текст IME.

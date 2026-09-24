@@ -4,7 +4,7 @@
 use std::io::{BufRead, BufReader};
 use crate::scenes::scene_trait::{Scene, SceneAction};
 use crate::core::constants::*;
-use crate::ui::{Panel, create_panel, destroy_panel};
+use crate::ui::{Button, Panel, create_button, create_panel, destroy_button, destroy_panel};
 use crate::input::platform::InputSource;
 use crate::save::{create_world_with_name, delete_world, list_worlds, WorldSelection, SELECTED_WORLD};
 use crate::ui::text_input::TEXT_INPUT;
@@ -26,6 +26,7 @@ enum MenuState {
     Worlds,
     /// Ввод названия нового мира (поле + кнопки «Создать»/«Назад»)
     Naming,
+    ConfirmDelete(u32),
 }
 
 /// Запись списка миров: id + панель-кнопка + текст-надпись + кнопка удаления (X)
@@ -77,6 +78,9 @@ pub struct MenuScene {
     name_create_label: Option<specs::Entity>,
     name_back_bg: Option<Panel>,
     name_back_label: Option<specs::Entity>,
+    delete_confirm_panel: Option<Panel>,
+    delete_confirm_delete_btn: Option<Button>,
+    delete_confirm_cancel_btn: Option<Button>,
 }
 
 impl MenuScene {
@@ -113,6 +117,9 @@ impl MenuScene {
             name_create_label: None,
             name_back_bg: None,
             name_back_label: None,
+            delete_confirm_panel: None,
+            delete_confirm_delete_btn: None,
+            delete_confirm_cancel_btn: None,
         }
     }
 
@@ -153,6 +160,14 @@ impl MenuScene {
                 let overlay = ecs.add_ui_sized(0.0, 0.0, 100.0, 100.0, "assets/tex/dev_tools/black.png", device, queue);
                 ecs.update_sprite_alpha(overlay, 0.6);
                 self.build_naming(ecs, text_renderer, device, queue);
+            }
+            MenuState::ConfirmDelete(_) => {
+                crate::data::map::load_map_to_ecs(ecs);
+                Self::place_decor(ecs);
+                let overlay = ecs.add_ui_sized(0.0, 0.0, 100.0, 100.0, "assets/tex/dev_tools/black.png", device, queue);
+                ecs.update_sprite_alpha(overlay, 0.6);
+                self.build_worlds(ecs, text_renderer, device, queue);
+                self.build_delete_confirm(ecs, text_renderer, device, queue);
             }
         }
     }
@@ -235,7 +250,27 @@ impl MenuScene {
         self.back_btn = Some(bb);
     }
 
-    /// Удаляет из мира все сущности меню (главного и выбора миров)
+    fn build_delete_confirm(&mut self, ecs: &mut crate::EcsAdapter, text_renderer: &mut crate::ui::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) {
+        let overlay = ecs.add_ui_sized(0.0, 0.0, 100.0, 100.0, "assets/tex/dev_tools/black.png", device, queue);
+        ecs.update_sprite_alpha(overlay, 0.55);
+        self.world_misc.push(overlay);
+
+        let mut panel = Panel::new(0.0, 0.0, 6.0, 3.0, 0.9);
+        create_panel(ecs, device, queue, &mut panel);
+        self.delete_confirm_panel = Some(panel);
+
+        let message = text_renderer.add_text(ecs, device, queue, "Are you sure?", FONT_SIZE_BTN, 0.0, 0.65, 5.2, 1.0, WHITE);
+        self.world_misc.push(message);
+
+        let mut delete = Button::new(-1.2, -0.8, 2.0, 0.8, "Delete");
+        create_button(ecs, text_renderer, device, queue, &mut delete);
+        self.delete_confirm_delete_btn = Some(delete);
+
+        let mut cancel = Button::new(1.2, -0.8, 2.0, 0.8, "Cancel");
+        create_button(ecs, text_renderer, device, queue, &mut cancel);
+        self.delete_confirm_cancel_btn = Some(cancel);
+    }
+
     fn destroy_content(&mut self, ecs: &mut crate::EcsAdapter) {
         if let Some(e) = self.splash_bg.take() { ecs.delete_entity(e); }
         if let Some(e) = self.splash_logo.take() { ecs.delete_entity(e); }
@@ -258,6 +293,9 @@ impl MenuScene {
         if let Some(e) = self.name_create_label.take() { ecs.delete_entity(e); }
         if let Some(mut p) = self.name_back_bg.take() { destroy_panel(ecs, &mut p); }
         if let Some(e) = self.name_back_label.take() { ecs.delete_entity(e); }
+        if let Some(mut p) = self.delete_confirm_panel.take() { destroy_panel(ecs, &mut p); }
+        if let Some(mut b) = self.delete_confirm_delete_btn.take() { destroy_button(ecs, &mut b); }
+        if let Some(mut b) = self.delete_confirm_cancel_btn.take() { destroy_button(ecs, &mut b); }
         self.new_btn = None;
         self.back_btn = None;
     }
@@ -362,6 +400,7 @@ impl Scene for MenuScene {
             MenuState::Main => self.update_main(input, window_size, ecs, text_renderer, device, queue),
             MenuState::Worlds => self.update_worlds(input, window_size, ecs, text_renderer, device, queue),
             MenuState::Naming => self.update_naming(dt, input, window_size, ecs, text_renderer, device, queue),
+            MenuState::ConfirmDelete(id) => self.update_delete_confirm(id, input, window_size, ecs, text_renderer, device, queue),
         }
     }
 
@@ -515,7 +554,7 @@ impl MenuScene {
         }
         if let Some(id) = del_id {
             crate::audio::play("click");
-            delete_world(id);
+            self.state = MenuState::ConfirmDelete(id);
             self.setup_content(ecs, text_renderer, device, queue);
             return SceneAction::None;
         }
@@ -524,6 +563,39 @@ impl MenuScene {
             if clicked(input, bb.x, bb.y, bb.w, bb.h) {
                 crate::audio::play("click");
                 self.state = MenuState::Main;
+                self.setup_content(ecs, text_renderer, device, queue);
+                return SceneAction::None;
+            }
+        }
+        SceneAction::None
+    }
+
+    fn update_delete_confirm(&mut self, id: u32, input: &dyn InputSource, window_size: (f32, f32), ecs: &mut crate::EcsAdapter, text_renderer: &mut crate::ui::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) -> SceneAction {
+        if input.key_pressed(winit::keyboard::KeyCode::Escape)
+            || input.key_pressed(winit::keyboard::KeyCode::BrowserBack)
+        {
+            crate::audio::play("click");
+            self.state = MenuState::Worlds;
+            self.setup_content(ecs, text_renderer, device, queue);
+            return SceneAction::None;
+        }
+
+        if let Some(button) = &self.delete_confirm_delete_btn {
+            if input.key_pressed(winit::keyboard::KeyCode::Enter)
+                || crate::ui::button_clicked(button, input, window_size)
+            {
+                crate::audio::play("click");
+                delete_world(id);
+                self.state = MenuState::Worlds;
+                self.setup_content(ecs, text_renderer, device, queue);
+                return SceneAction::None;
+            }
+        }
+
+        if let Some(button) = &self.delete_confirm_cancel_btn {
+            if crate::ui::button_clicked(button, input, window_size) {
+                crate::audio::play("click");
+                self.state = MenuState::Worlds;
                 self.setup_content(ecs, text_renderer, device, queue);
                 return SceneAction::None;
             }

@@ -179,7 +179,7 @@ impl InputSource for DesktopInput {
 
 /// Мобильный (тач) ввод.
 /// - Один палец без движения = тап (эмулирует ЛКМ).
-/// - Перетаскивание одним пальцем = движение камеры (эмулирует среднюю кнопку).
+/// - Перетаскивание одним пальцем = движение камеры в режиме move.
 /// - Щипок двумя пальцами = зум (эмулирует колесо мыши).
 #[cfg(target_os = "android")]
 pub struct TouchInput {
@@ -244,7 +244,7 @@ impl InputSource for TouchInput {
         match btn {
             // ЛКМ «зажата» пока идёт тап или перетаскивание (для совместимости).
             MouseButton::Left => self.pressed_this_frame || self.dragging,
-            // Средняя кнопка — именно она крутит камеру в update_camera.
+            // Средняя кнопка тоже используется для перемещения камеры.
             MouseButton::Middle => self.dragging,
             _ => false,
         }

@@ -4,7 +4,7 @@
 // ========================================================================
 //  camera.rs — управление камерой в игровой сцене
 // ========================================================================
-//  Камера перемещается зажатой средней кнопкой мыши (drag) или стрелками
+//  В режиме move камера перемещается drag'ом мыши/пальца или стрелками
 //  клавиатуры. Ограничивается видимой областью карты, чтобы не уходить
 //  за пределы уровня.
 // ========================================================================
@@ -35,28 +35,34 @@ impl GameScene {
         let (cam_min_y, cam_max_y) = if cam_max_y >= cam_min_y { (cam_min_y, cam_max_y) } else { (cam_center_y, cam_center_y) };
 
         let step = CAMERA_SPEED * (dt as f32);
+        let ui_open = self.shop.open || self.inventory.open || self.inventory.mode
+            || self.weather.open || self.settings.open;
+        let move_mode = self.mode == MODE_MOVE && !ui_open;
 
-        // Камера: перемещение зажатой средней кнопкой мыши
-        // (пропускаем, пока открыт магазин — палец используется для скролла каталога)
-        if input.mouse_held(winit::event::MouseButton::Middle) && !self.shop.open {
-            let sensitivity = 0.01;
-            let (dx, dy) = input.cursor_diff();
-            self.camera_offset_x = (self.camera_offset_x - dx * sensitivity).clamp(cam_min_x, cam_max_x);
-            self.camera_offset_y = (self.camera_offset_y + dy * sensitivity).clamp(cam_min_y, cam_max_y);
-        }
+        // Перемещение камеры доступно только в отдельном режиме move.
+        // На телефоне это drag одним пальцем, на ПК — drag мышью или стрелки.
+        if move_mode {
+            let dragging = input.mouse_held(winit::event::MouseButton::Middle)
+                || input.mouse_held(winit::event::MouseButton::Left);
+            if dragging {
+                let sensitivity = 0.01;
+                let (dx, dy) = input.cursor_diff();
+                self.camera_offset_x = (self.camera_offset_x - dx * sensitivity).clamp(cam_min_x, cam_max_x);
+                self.camera_offset_y = (self.camera_offset_y + dy * sensitivity).clamp(cam_min_y, cam_max_y);
+            }
 
-        // Камера: перемещение стрелками клавиатуры
-        if input.key_held(KeyCode::ArrowLeft) {
-            self.camera_offset_x = (self.camera_offset_x - step).max(cam_min_x);
-        }
-        if input.key_held(KeyCode::ArrowRight) {
-            self.camera_offset_x = (self.camera_offset_x + step).min(cam_max_x);
-        }
-        if input.key_held(KeyCode::ArrowDown) {
-            self.camera_offset_y = (self.camera_offset_y - step).max(cam_min_y);
-        }
-        if input.key_held(KeyCode::ArrowUp) {
-            self.camera_offset_y = (self.camera_offset_y + step).min(cam_max_y);
+            if input.key_held(KeyCode::ArrowLeft) {
+                self.camera_offset_x = (self.camera_offset_x - step).max(cam_min_x);
+            }
+            if input.key_held(KeyCode::ArrowRight) {
+                self.camera_offset_x = (self.camera_offset_x + step).min(cam_max_x);
+            }
+            if input.key_held(KeyCode::ArrowDown) {
+                self.camera_offset_y = (self.camera_offset_y - step).max(cam_min_y);
+            }
+            if input.key_held(KeyCode::ArrowUp) {
+                self.camera_offset_y = (self.camera_offset_y + step).min(cam_max_y);
+            }
         }
         self.camera_offset_x = self.camera_offset_x.clamp(cam_min_x, cam_max_x);
         self.camera_offset_y = self.camera_offset_y.clamp(cam_min_y, cam_max_y);

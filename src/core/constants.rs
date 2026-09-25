@@ -159,11 +159,21 @@ pub const LOCK_SIZE: f32 = 0.4;
 pub const LOCK_OFFSET_X: f32 = 0.28;
 pub const LOCK_OFFSET_Y: f32 = -0.28;
 
+// === Режимы взаимодействия ===
+// Сохраняем старые индексы миров: 0 — взаимодействие, 1 —build, 2 — удаление.
+// Режим 3 перемещает камеру и включён по умолчанию.
+pub const MODE_INTERACT: i32 = 0;
+pub const MODE_BUILD: i32 = 1;
+pub const MODE_DELETE: i32 = 2;
+pub const MODE_MOVE: i32 = 3;
+pub const MODE_COUNT: usize = 4;
+
 // === Текстуры курсора по режимам ===
-pub const CURSOR_TEX: [&str; 3] = [
-    "assets/tex/ui/cursor/def_cursor.png",  // mode 0
-    "assets/tex/ui/cursor/cursor.png",      // mode 1 (build)
-    "assets/tex/ui/cursor/del_cursor.png",  // mode 2 (delete)
+pub const CURSOR_TEX: [&str; MODE_COUNT] = [
+    "assets/tex/ui/cursor/def_cursor.png",  // mode 0: interact
+    "assets/tex/ui/cursor/cursor.png",      // mode 1: build
+    "assets/tex/ui/cursor/del_cursor.png",  // mode 2: delete
+    "assets/tex/ui/cursor/def_cursor.png",  // mode 3: move
 ];
 pub const CURSOR_ERR_TEX: &str = "assets/tex/ui/cursor/err cursor.png";
 
@@ -179,10 +189,11 @@ pub const SETTINGS_BTN_Y: f32 = SLOT_BAR_Y;
 pub const TEX_SETTINGS: &str = "assets/tex/ui/settings.png";
 
 // === Текстуры иконки режима ===
-pub const MODE_ICON_TEX: [&str; 3] = [
+pub const MODE_ICON_TEX: [&str; MODE_COUNT] = [
     "assets/tex/ui/mode/standart_mode.png",
     "assets/tex/ui/mode/build_mode.png",
     "assets/tex/ui/mode/del_mode.png",
+    "assets/tex/ui/mode/move.png",
 ];
 
 // === Пути к текстурам ковров ===

@@ -77,7 +77,7 @@ pub fn do_input(
     }
 
     // В режиме расстановки проверяем, можно ли ставить предмет в клетку под курсором
-    if new_mode == 1 {
+    if new_mode == MODE_BUILD {
         cursor::update_cursor_validity(ecs, cursor_entity, slots, act_slot);
     }
 

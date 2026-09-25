@@ -66,7 +66,7 @@ pub fn handle_mouse_movement(
     ecs.update_transform_position(cursor, grid_x, grid_y);
 
     // В режиме расстановки сразу пересчитываем допустимость размещения
-    if mode == 1 {
+    if mode == MODE_BUILD {
         update_cursor_validity(ecs, cursor, slots, act_slot);
     }
 }
@@ -90,9 +90,9 @@ pub fn update_cursor_validity(ecs: &mut EcsAdapter, cursor: Entity, slots: &[Slo
 }
 
 // Превью объекта перед размещением (полупрозрачная копия с габаритами),
-// показывается только в режиме расстановки (mode == 1)
+// показывается только в режиме расстановки
 pub fn update_cursor_preview(ecs: &mut EcsAdapter, mode: i32, slots: &[Slot], act_slot: i32, cursor: Entity) {
-    if mode != 1 {
+    if mode != MODE_BUILD {
         ecs.clear_cursor_preview();
         return;
     }

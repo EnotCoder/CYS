@@ -42,7 +42,7 @@ struct FoodPulse {
 //  GameScene — основная игровая сцена
 // ========================================================================
 //  Координирует игровой цикл: загрузку уровней (level), режимы строительства
-//  (build/del/interact), управление камерой (camera), слоты хотбара и
+//  (interact/build/delete/move), управление камерой (camera), слоты хотбара и
 //  инвентарь (inventory_input), сохранение/загрузку состояния, покупку и продажу.
 //  На шкале кадра: сначала ввод, затем камера, потом обновление компонентов
 //  (еда, заборы, HUD) и покупатели с днём/ночью.
@@ -50,7 +50,8 @@ struct FoodPulse {
 pub struct GameScene {
     loaded: bool,
     loading: bool,
-    // Хотбар: список слотов-предметов, активный слот и режим игры (build/del/interact)
+    // Хотбар: список слотов-предметов, активный слот и режим игры
+    // (interact/build/delete/move)
     slots: Vec<crate::data::Slot>,
     act_slot: i32,
     mode: i32,
@@ -135,7 +136,7 @@ impl GameScene {
             loading: false,
             slots: Vec::new(),
             act_slot: 0,
-            mode: 0,
+            mode: MODE_MOVE,
             map_size: 0.8,
             zoom_step: 0.1,
             cursor_entity: None,
@@ -182,7 +183,7 @@ impl GameScene {
             slot_pulse: 0.0,
             mode_pulse: 0.0,
             prev_act_slot: 0,
-            prev_mode: 0,
+            prev_mode: MODE_MOVE,
             ui_scale: 1.0,
             weather_fx: weather_fx::WeatherFx::new(),
             tutorial: tutorial::Tutorial::new(),
@@ -213,7 +214,7 @@ impl GameScene {
         self.slots = crate::data::get_slot_vec();
 
         // Иконки режима игры, активного состояния и кнопки инвентаря
-        let icon_mode = ecs.add_ui(ICON_MODE_X, SLOT_BAR_Y, MODE_ICON_TEX[0]);
+        let icon_mode = ecs.add_ui(ICON_MODE_X, SLOT_BAR_Y, MODE_ICON_TEX[self.mode as usize]);
         let active_entity = ecs.add_ui(ACTIVE_X, SLOT_BAR_Y, TEX_ACTIVE);
         self.active_entity = Some(active_entity);
         let inv_entity = ecs.add_ui(INV_BTN_X, SLOT_BAR_Y, TEX_INV_BUTTON);
@@ -244,7 +245,7 @@ impl GameScene {
         let icons_slot_cursor = ecs.add_ui(HOTBAR_X, SLOT_BAR_Y, SLOT_CURSOR_TEX);
         self.icon_mode = Some(icon_mode);
         self.icons_slot_cursor = Some(icons_slot_cursor);
-        self.cursor_entity = Some(ecs.add_cursor(0.0, 0.0, CURSOR_TEX[0]));
+        self.cursor_entity = Some(ecs.add_cursor(0.0, 0.0, CURSOR_TEX[self.mode as usize]));
 
         self.hud.create_info_panel(ecs, device, queue);
         self.npc_walkable = crate::data::map::load_walkable_cells();
@@ -438,7 +439,7 @@ impl Scene for GameScene {
         self.loading = true;
         self.slots = Vec::new();
         self.act_slot = 0;
-        self.mode = 0;
+        self.mode = MODE_MOVE;
         self.map_size = 0.8;
         self.cursor_entity = None;
         self.icon_mode = None;
@@ -484,7 +485,7 @@ impl Scene for GameScene {
         self.slot_pulse = 0.0;
         self.mode_pulse = 0.0;
         self.prev_act_slot = 0;
-        self.prev_mode = 0;
+        self.prev_mode = MODE_MOVE;
         self.weather_fx.reset();
         self.tutorial = tutorial::Tutorial::new();
         self.tutorial_shown = false;

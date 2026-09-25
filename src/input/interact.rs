@@ -3,8 +3,8 @@
 
 // ========================================================================
 //  Взаимодействие с миром: try_interact (box — продажа еды, rack — пополнение,
-//  basement — смена уровня, аркада — подсветка), cycle_mode (смена режима
-//  0/1/2), do_interact (клик в зависимости от режима).
+//  basement — смена уровня, аркада — подсветка), cycle_mode (смена режимов),
+//  do_interact (клик в зависимости от режима).
 // ========================================================================
 
 use specs::{Entity, WorldExt};
@@ -89,9 +89,17 @@ pub fn try_interact(ecs: &mut EcsAdapter, gx: i32, gy: i32) -> i32 {
     0
 }
 
-// Циклическое переключение режимов (0 -> 1 -> 2 -> 0) с обновлением иконок
+pub(crate) fn next_mode(mode: i32) -> i32 {
+    if mode < MODE_INTERACT || mode >= MODE_COUNT as i32 {
+        MODE_INTERACT
+    } else {
+        (mode + 1) % MODE_COUNT as i32
+    }
+}
+
+// Циклическое переключение режимов (0 -> 1 -> 2 -> 3 -> 0) с обновлением иконок
 pub fn cycle_mode(mode: i32, ecs: &mut EcsAdapter, cursor: Entity, icon: Entity) -> i32 {
-    let new_mode = if mode == 2 { 0 } else { mode + 1 };
+    let new_mode = next_mode(mode);
     // Меняем текстуру курсора и иконку режима в хотбаре
     ecs.update_sprite_texture(cursor, CURSOR_TEX[new_mode as usize]);
     ecs.update_sprite_texture(icon, MODE_ICON_TEX[new_mode as usize]);
@@ -111,11 +119,13 @@ pub fn do_interact(
     let mut result = 0;
     match mode {
         // Режим просмотра: обычное взаимодействие с объектами
-        0 => { result = try_interact(ecs, gx, gy); }
+        MODE_INTERACT => { result = try_interact(ecs, gx, gy); }
         // Режим расстановки: разместить выбранный предмет
-        1 => add(ecs, slots, act_slot, gx, gy),
+        MODE_BUILD => add(ecs, slots, act_slot, gx, gy),
         // Режим удаления: убрать объект с клетки
-        2 => { remove(ecs, gx, gy); }
+        MODE_DELETE => { remove(ecs, gx, gy); }
+        // В режиме перемещения клики обрабатываются камерой.
+        MODE_MOVE => {}
         _ => {}
     }
     result

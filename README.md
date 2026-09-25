@@ -23,20 +23,21 @@ Requires Rust edition 2021; a wgpu 30 compatible GPU (Vulkan on Linux).
 | Action                          | Input                          |
 | ------------------------------- | ------------------------------ |
 | Place / remove / interact       | `LMB` or `F`                   |
-| Cycle mode (interact/build/del) | `Tab`                          |
+| Cycle mode (move/interact/build/del) | `Tab` or click the mode icon |
 | Open / close inventory          | `E`                            |
 | Select hotbar slot              | Click the slot                 |
 | Toggle shop open/closed         | Click the active icon          |
 | Zoom                            | `Scroll`, `K` / `L`, pinch     |
-| Move camera                     | Drag `MMB`, Arrow keys, swipe  |
+| Move camera (mode `move`)       | Drag mouse/finger, Arrow keys |
 | Settings (pauses the game)      | `Esc` / Android Back button    |
 | Quick save                      | `Ctrl+S` (load via world menu) |
 | Enter basement                  | Click the basement stairs      |
 | Back to menu                    | `R` (when bankrupt)            |
 
-On Android: tap = click, one-finger drag = move camera, two-finger
-pinch = zoom, system Back button = close panels / open the pause menu
-(settings), which also pauses the game when opened.
+On Android: tap = click, one-finger drag moves the camera only in `move` mode,
+two-finger pinch = zoom, system Back button = close panels / open the pause
+menu (settings), which also pauses the game when opened. `move` is the default
+mode; switch to interact/build/delete to work with the world.
 
 ## Features
 

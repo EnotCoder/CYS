@@ -8,6 +8,16 @@
 // ========================================================================
 
 #[test]
+fn mode_cycle_includes_move_mode() {
+    use crate::core::constants::{MODE_BUILD, MODE_DELETE, MODE_INTERACT, MODE_MOVE};
+
+    assert_eq!(crate::input::interact::next_mode(MODE_MOVE), MODE_INTERACT);
+    assert_eq!(crate::input::interact::next_mode(MODE_INTERACT), MODE_BUILD);
+    assert_eq!(crate::input::interact::next_mode(MODE_BUILD), MODE_DELETE);
+    assert_eq!(crate::input::interact::next_mode(MODE_DELETE), MODE_MOVE);
+}
+
+#[test]
 fn text_input_accepts_unicode_and_focus_request() {
     let input = crate::ui::text_input::TextInput::new();
     input.request_focus();

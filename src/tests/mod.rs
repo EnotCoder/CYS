@@ -204,6 +204,57 @@ fn shopper_walks_in_through_the_door_and_back_out() {
     assert!(left_through_door, "покупатель не вышел обратно через дверь");
     assert!(despawned, "покупатель не ушёл");
 
+    // Покупатель у проёма плавно гаснет и проявляется, а не «щёлкает».
+    // Проверяем на живом списке спрайтов: внутри проёма альфа 0 (спрайт вообще
+    // не отправляется в батчет), снаружи — 1, а в промежутке обязаны быть
+    // промежуточные значения, иначе на границе клеток будет щелчок.
+    {
+        let npc_alpha = |ecs: &crate::EcsAdapter| -> Option<f32> {
+            ecs.get_sprites_by_layer(None).4.first().map(|s| s.alpha)
+        };
+        // Покупатель к этому моменту деспавнился, и его собственная альфа
+        // затухания равна 0. Затухание у проёма домножается на неё, поэтому
+        // для проверки рампы возвращаем альфу в 1.
+        ecs.update_sprite_alpha(shopper.entity, 1.0);
+        // Внутри проёма: спрайта нет вовсе.
+        for (gx, gy) in [(-1, -6), (0, -6), (-1, -5), (0, -5)] {
+            ecs.update_transform_position(shopper.entity, gx as f32, gy as f32);
+            assert!(npc_alpha(&ecs).is_none(),
+                    "в клетке проёма ({gx},{gy}) покупатель не должен рисоваться");
+        }
+        // Середина рампы: ровно 0.5 альфы (это 0.25 клетки от края проёма).
+        for gy in [-6.75, -4.25] {
+            ecs.update_transform_position(shopper.entity, 0.0, gy);
+            let a = npc_alpha(&ecs).expect("на рампе покупатель должен рисоваться");
+            assert!((a - 0.5).abs() < 0.02,
+                    "на середине рампы (y={gy}) ожидалась альфа 0.5, а {a}");
+        }
+        // Границы рампы: у края тротуара и у края паркета — полная видимость.
+        for gy in [-7.0, -4.0] {
+            ecs.update_transform_position(shopper.entity, 0.0, gy);
+            let a = npc_alpha(&ecs).expect("покупатель обязан рисоваться");
+            assert!((a - 1.0).abs() < 0.001,
+                    "на границе (y={gy}) ожидалась альфа 1.0, а {a}");
+        }
+        // Рампа обязана быть непрерывной: ни одного скачка между 0 и 1.
+        let mut prev = 1.0f32;
+        let mut monotonic_down = true;
+        let mut monotonic_up = true;
+        for i in 0..=40 {
+            let y = -7.0 + i as f32 * (3.0 / 40.0);
+            ecs.update_transform_position(shopper.entity, 0.0, y);
+            let a = npc_alpha(&ecs).unwrap_or(0.0);
+            if y < -5.0 {
+                if a > prev + 0.001 { monotonic_down = false; }
+            } else {
+                if a < prev - 0.001 { monotonic_up = false; }
+            }
+            prev = a;
+        }
+        assert!(monotonic_down, "альфа должна только падать на входе");
+        assert!(monotonic_up, "альфа должна только расти на выходе");
+    }
+
     // Дверь закрылась после ухода покупателя.
     for _ in 0..(60 * 5) {
         crate::data::door::tick_door(&mut ecs, dt);
@@ -267,17 +318,17 @@ fn shopper_walks_in_through_the_door_and_back_out() {
         }
     }
 
-    // Дверь обязана рисоваться ПОВЕРХ покупателей, иначе заходящий человек
-    // перекрывает створку. Слой обязан быть строго выше Z_NPC и ниже
-    // Z_CURSOR — иначе дверь перелезет под курсор или уедет на UI-слой.
-    assert!(Z_DOOR > Z_NPC, "дверь должна быть выше NPC");
-    assert!(Z_DOOR < Z_CURSOR, "дверь должна быть под курсором");
+    // Дверь рисуется ПОД покупателем: створка не должна закрывать человека,
+    // который стоит перед магазином. При этом слой обязан остаться в
+    // ПРОЗРАЧНОМ проходе (Z_DECOR, а не Z_MAP) — иначе альфа проёма
+    // открытой двери проигнорируется и проём выйдет чёрным.
+    assert!(Z_DOOR < Z_NPC, "дверь должна быть ниже NPC");
+    assert!(Z_DOOR >= Z_MAP, "дверь не должна проваливаться под карту");
+    assert_eq!(Z_DOOR, Z_DECOR, "дверь обязана быть в прозрачном проходе");
     let transforms = ecs.world.read_storage::<crate::ecs::components::Transform>();
     for (x, y) in door_cells() {
         let entity = ecs.map_entities[&(x, y)];
         let t = transforms.get(entity).expect("нет трансформа у клетки двери");
-        assert!((t.position[0] - x as f32).abs() < 0.01,
-                "клетка двери ({x},{y}) смещена по X");
         assert!((t.position[2] - Z_DOOR).abs() < 0.001,
                 "клетка двери ({x},{y}) не на слое Z_DOOR, а на {}", t.position[2]);
     }

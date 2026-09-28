@@ -132,6 +132,33 @@ pub const TEX_FALLBACK: &str = "assets/tex/dev_tools/null.png";
 pub const MAP_FILE: &str = "assets/map.txt";
 pub const BASEMENT_FILE: &str = "assets/basement.txt";
 
+// === Дверь магазина ===
+// Токен дверного проёма в map.txt и клетки, которые он занимает (2x2).
+// Проём стоит в южном фасаде, ведёт с тротуара на паркетный пол магазина.
+pub const DOOR_TOKEN: &str = "E";
+pub const DOOR_X_MIN: i32 = -1;
+pub const DOOR_X_MAX: i32 = 0;
+pub const DOOR_Y_MIN: i32 = -6;
+pub const DOOR_Y_MAX: i32 = -5;
+/// Линия тротуара перед магазином: по ней приходят и уходят покупатели.
+pub const SIDEWALK_Y: i32 = -7;
+/// Вход покупателей с улицы: клетка тротуара восточнее двери магазина.
+/// Отсюда покупатель идёт вдоль фасада на запад и заворачивает в дверь.
+pub const SHOPPER_SPAWN_X: i32 = 14;
+
+/// Текстуры двери по состояниям. Порядок = цикл анимации:
+/// закрыта -> открывается (3 шага) -> открыта.
+pub const DOOR_TEX_CLOSED: &str = "assets/tex/decor/regular/shop_door/shop_door.png";
+pub const DOOR_TEX_OPEN_1: &str = "assets/tex/decor/regular/shop_door/anim/shop_door_anim_1.png";
+pub const DOOR_TEX_OPEN_2: &str = "assets/tex/decor/regular/shop_door/anim/shop_door_anim_2.png";
+pub const DOOR_TEX_OPEN_3: &str = "assets/tex/decor/regular/shop_door/anim/shop_door_open_3.png";
+pub const DOOR_TEX_OPEN: &str = "assets/tex/decor/regular/shop_door/shop_door_open.png";
+/// Длительность одного шага анимации (сек) при открытии и закрытии.
+pub const DOOR_STEP_OPEN_SECS: f64 = 0.12;
+pub const DOOR_STEP_CLOSE_SECS: f64 = 0.10;
+/// Радиус, в котором покупатель вызывает открывание двери (в клетках).
+pub const DOOR_TRIGGER_RADIUS: f32 = 1.4;
+
 // === Инвентарь ===
 pub const INVENTORY_BASE_Y: f32 = SLOT_BAR_Y + 1.0;
 pub const INVENTORY_ROWS: i32 = 5;

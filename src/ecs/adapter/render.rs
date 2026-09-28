@@ -11,6 +11,7 @@ use specs::{WorldExt, Join};
 use std::collections::HashSet;
 use std::sync::Arc;
 use crate::ecs::components::{Transform, SpriteComponent, Rotation, ObjectTag, FoodStorage, FenceComponent};
+use crate::data::map::{door_cells, door_frame_for_cell, door_texture_for_step};
 use crate::GroupComponent;
 use super::SpriteRenderData;
 
@@ -180,6 +181,26 @@ impl super::EcsAdapter {
             } else {
                 sprite.texture_path = fallback_arc;
             }
+        }
+    }
+
+    // Текстура двери магазина по прогрессу анимации. Дверь — четыре тайла
+    // карты с токеном "E", у каждого свой кадр в атласе 2x2, поэтому
+    // подменяем и путь, и кадр: четыре кадра вместе снова собирают
+    // цельный проём. Шаг 0 = закрыта, шаг 3 = открыта.
+    pub fn update_door_textures(&mut self, step: i32) {
+        let path = door_texture_for_step(step);
+        for (x, y) in door_cells() {
+            let Some(&entity) = self.map_entities.get(&(x, y)) else { continue };
+            self.set_door_cell_frame(entity, door_frame_for_cell(x, y));
+            self.update_sprite_texture(entity, path);
+        }
+    }
+
+    // Кадр атласа 2x2 для одной клетки двери.
+    pub fn set_door_cell_frame(&mut self, entity: specs::Entity, frame: [i32; 2]) {
+        if let Some(sprite) = self.world.write_storage::<SpriteComponent>().get_mut(entity) {
+            sprite.texture_frame = frame;
         }
     }
 }

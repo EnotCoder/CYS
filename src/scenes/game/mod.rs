@@ -415,6 +415,11 @@ impl GameScene {
                 }
             }
         }
+        // Проход выше прогоняет и клетки двери, возвращая им закрытое
+        // состояние из token_to_texture. Возвращаем двери текущий шаг
+        // анимации, иначе смена сезона закрыла бы её на середине opensвания.
+        let step = ecs.world.read_resource::<crate::ecs::components::DoorProgress>().step;
+        ecs.update_door_textures(step);
     }
 
     /// Записывает текущие настройки из панели в глобальную копию и файл
@@ -967,6 +972,9 @@ impl Scene for GameScene {
             self.drain_food_fx(ecs);
             self.update_food_fx(ecs, dt);
             ecs.update_fence_textures();
+            // Дверь магазина реагирует на покупателей: открывается, когда
+            // кто-то подошёл, и закрывается, когда ушёл.
+            crate::data::door::tick_door(ecs, dt);
         }
         // Определяем объект под курсором для подсказки о запасах еды
         let cursor_pos = self.cursor_entity.map(|e| ecs.get_transform_position(e));

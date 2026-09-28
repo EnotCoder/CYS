@@ -16,8 +16,8 @@ use std::sync::Arc;
 use crate::Sprite;
 use crate::Texture;
 use crate::ecs::components::{
-    BasementPlaced, FenceComponent, FoodStorage, Money, ObjectTag, PointLight, Rotation,
-    Season, SpriteComponent, TotalFood, Transform, BusyCassas, PlacementError, ShopOwned, ShopDenied,
+    BasementPlaced, DoorProgress, FenceComponent, FoodStorage, Money, ObjectTag, PointLight, Rotation,
+    Season, ShopperTag, SpriteComponent, TotalFood, Transform, BusyCassas, PlacementError, ShopOwned, ShopDenied,
 };
 use crate::{GroupComponent, GroupInfoResource};
 use crate::core::constants::*;
@@ -85,11 +85,13 @@ impl EcsAdapter {
         world.register::<FoodStorage>();
         world.register::<FenceComponent>();
         world.register::<PointLight>();
+        world.register::<ShopperTag>();
         world.insert(GroupInfoResource {
             groups: HashMap::new(),
         });
         world.insert(TotalFood(0));
         world.insert(BusyCassas(HashSet::new()));
+        world.insert(DoorProgress::new());
         let cfg = crate::scripts::config::BalanceConfig::load();
         world.insert(Money(cfg.start_money));
         world.insert(BasementPlaced(false));
@@ -280,6 +282,8 @@ impl EcsAdapter {
         self.flower_positions.clear();
         self.world.write_resource::<crate::GroupInfoResource>().groups.clear();
         self.world.write_resource::<BasementPlaced>().0 = false;
+        // Дверь магазина возвращается в закрытое состояние вместе с миром.
+        *self.world.write_resource::<DoorProgress>() = DoorProgress::new();
     }
 
 }

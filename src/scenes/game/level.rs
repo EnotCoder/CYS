@@ -119,7 +119,7 @@ impl GameScene {
                     let y = -(j as f32) + WORLD_OFFSET_Y;
                     let gx = (x + 0.5).floor() as i32;
                     let gy = (y + 0.5).floor() as i32;
-                    let is_grass = matches!(token.as_str(), "." | "@" | "*" | "m" | "f" | "~" | "l" | "1" | "2" | "3" | "4" | "5" | "6");
+                    let is_grass = crate::data::is_grass_token(token);
                     if is_wall_tile(token) {
                         ecs.wall_positions.insert((gx, gy));
                     } else if is_floor_tile(token) {

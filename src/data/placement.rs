@@ -4,6 +4,7 @@
 use specs::WorldExt;
 use crate::EcsAdapter;
 use super::Slot;
+use crate::core::constants::{WORLD_OFFSET_X, WORLD_OFFSET_Y};
 use crate::ecs::components::{BasementPlaced, Money, PlacementError, ShopOwned, ShopDenied};
 
 // ========================================================================
@@ -54,8 +55,18 @@ pub fn attach_point_light(ecs: &EcsAdapter, entity: specs::Entity, name: &str) {
 
 // Токеры «травы» — свободный открытый грунт, на который можно сажать
 // уличные объекты и цветы (например "." — трава, "f" — цветок и т.д.)
-fn is_grass_token(token: &str) -> bool {
-    matches!(token, "." | "@" | "*" | "m" | "f" | "~" | "l" | "1" | "2" | "3" | "4" | "5" | "6")
+// Декоративные "H" и "K" — тоже трава, но на них ничего не сажают:
+// это цветы/травинки-декор, которые при этом проходимы для NPC.
+// Список один на весь проект: его используют и загрузка карты, и
+// восстановление уровня из кэша, и load_walkable_cells.
+pub fn is_grass_token(token: &str) -> bool {
+    matches!(token, "." | "@" | "*" | "m" | "f" | "~" | "l" | "1" | "2" | "3" | "4" | "5" | "6" | "H" | "K")
+}
+
+// Стены, которые игра пересобирает сама по соседям с полом (см.
+// recompute_wall_token). Только их трогает refresh_walls_around.
+fn is_generated_wall_token(token: &str) -> bool {
+    matches!(token, "&" | "|" | "/" | "p" | "i")
 }
 
 // Пересчитать вид стен вокруг клетки (gx, gy) после установки/удаления.
@@ -70,13 +81,19 @@ fn refresh_walls_around(ecs: &mut EcsAdapter, gx: i32, gy: i32) {
         let nx = gx + dx;
         let ny = gy + dy;
         // Переводим игровые координаты в индексы сетки карты (карта читается из файла).
-        let file_col = nx + 21;
-        let file_row = 14 - ny;
+        let file_col = nx - WORLD_OFFSET_X as i32;
+        let file_row = WORLD_OFFSET_Y as i32 - ny;
         if file_row < 0 || file_row >= ecs.map_grid.len() as i32 { continue; }
         if file_col < 0 || file_col >= ecs.map_grid[file_row as usize].len() as i32 { continue; }
         let token = ecs.map_grid[file_row as usize][file_col as usize].clone();
-        // Пустота и трава стены не образуют.
-        if token == "0" || is_grass_token(&token) { continue; }
+        // Пересчитываем ТОЛЬКО сгенерированные стены ("&" "|" "/" "p" "i") —
+        // их игра собирает сама по соседям с полом. Всё остальное задано
+        // автором карты и не должно меняться от действий игрока: статические
+        // стены "W"/"S", углы фасада, паркет рамки пола, витрины и дверной
+        // проём. Раньше здесь перезаписывался любой не-травяный токен, из-за
+        // чего снос плитки пола у края магазина превращал паркет в стену, а
+        // витрину — в траву (дыру в фасаде).
+        if !is_generated_wall_token(&token) { continue; }
         // Пересчитываем вид стены; None — значит без пола рядом стена не нужна.
         if let Some(new_token) = recompute_wall_token(ecs, nx, ny) {
             if new_token != token {
@@ -316,8 +333,8 @@ pub fn remove(ecs: &mut EcsAdapter, gx: i32, gy: i32) -> bool {
         return true;
     }
     // Если объекта нет — возможно, клетка является стеной.
-    let file_col = gx + 21;
-    let file_row = 14 - gy;
+    let file_col = gx - WORLD_OFFSET_X as i32;
+    let file_row = WORLD_OFFSET_Y as i32 - gy;
     if file_row >= 0 && file_row < ecs.map_grid.len() as i32 &&
        file_col >= 0 && file_col < ecs.map_grid[file_row as usize].len() as i32
     {

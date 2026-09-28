@@ -61,6 +61,8 @@ impl ShopperNpc {
             tex_idle, [0, 0], [1, 1], NPC_SCALE, 0.0,
         );
         ecs.world.write_storage::<crate::Rotation>().insert(entity, crate::Rotation { rotation: [0.0; 3] }).ok();
+        // Маркер покупателя: по нему дверь магазина понимает, что пора открыться.
+        ecs.world.write_storage::<crate::ecs::components::ShopperTag>().insert(entity, crate::ecs::components::ShopperTag).ok();
         Some(ShopperNpc {
             entity,
             pos: (sx, sy),

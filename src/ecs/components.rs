@@ -149,6 +149,49 @@ impl Component for FenceComponent {
     type Storage = VecStorage<Self>;
 }
 
+/// Состояние анимации двери магазина. Цикл: Closed -> Opening -> Open ->
+/// Closing -> Closed. Пока дверь не меняет состояние, покупатель не может
+/// заставить её открыться.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DoorState {
+    Closed,
+    Opening,
+    Open,
+    Closing,
+}
+
+/// Прогресс анимации двери магазина (ресурс мира).
+/// Дверь — не объект, а четыре тайла карты, поэтому состояние живёт здесь,
+/// а на спрайты тайлов его отражает update_door_textures.
+/// `step` — сколько шагов анимации уже отыграно (0 = закрыта, 3 = открыта),
+/// `timer` — время в текущем шаге, сек.
+#[derive(Debug)]
+pub struct DoorProgress {
+    pub state: DoorState,
+    pub step: i32,
+    pub timer: f64,
+}
+
+impl DoorProgress {
+    pub fn new() -> Self {
+        Self { state: DoorState::Closed, step: 0, timer: 0.0 }
+    }
+}
+
+impl Default for DoorProgress {
+    fn default() -> Self { Self::new() }
+}
+
+/// Маркер покупателя. Нужен, чтобы дверь могла реагировать на приход
+/// NPC: дверь открывается, если рядом с проёмом стоит покупатель.
+/// Работает одинаково для ShopperNpc и для покупателей конкурента.
+#[derive(Debug)]
+pub struct ShopperTag;
+
+impl Component for ShopperTag {
+    type Storage = VecStorage<Self>;
+}
+
 /// Текущий сезон ( погода): определяет текстуру травы на карте.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Season {

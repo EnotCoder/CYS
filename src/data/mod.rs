@@ -9,6 +9,7 @@
 
 pub mod placement;
 pub mod map;
+pub mod door;
 
 use crate::core::constants::SLOT_COUNT;
 
@@ -297,4 +298,4 @@ pub fn shop_item_names() -> Vec<&'static str> {
         .collect()
 }
 
-pub use placement::{add, attach_point_light, is_carpet_name, is_flower_name, is_light_name, is_outdoor_name, is_wall_decor_name, remove};
+pub use placement::{add, attach_point_light, is_carpet_name, is_flower_name, is_grass_token, is_light_name, is_outdoor_name, is_wall_decor_name, remove};

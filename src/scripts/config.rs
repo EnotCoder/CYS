@@ -216,9 +216,9 @@ fn get_string(v: Value, default: &str) -> String {
 impl Default for BalanceConfig {
     fn default() -> Self {
         BalanceConfig {
-            shopper_spawn_interval: 3.0,
+            shopper_spawn_interval: 2.0,
             shopper_spawn_cooldown: 2.0,
-            max_shoppers: 15,
+            max_shoppers: 22,
             food_regen_tick: 1.0,
             food_regen_amount: 1,
             day_cycle_secs: 120.0,
@@ -229,8 +229,8 @@ impl Default for BalanceConfig {
             npc_speed: 3.0,
             walk_anim_interval: 0.3,
             npc_fade_speed: 2.0,
-            spawn_x: 0,
-            spawn_y: -3,
+            spawn_x: 14,
+            spawn_y: -7,
             cassa_wait_secs: 1.0,
             candy_wait_secs: 3.0,
             money_at_cassa: 5,

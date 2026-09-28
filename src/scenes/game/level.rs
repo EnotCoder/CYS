@@ -17,7 +17,7 @@ use crate::EcsAdapter;
 use crate::core::constants::*;
 use crate::ecs::components::{BasementPlaced, BusyCassas, FenceComponent, FoodStorage, Money, ObjectTag, TotalFood, ShopOwned};
 use crate::data::{attach_point_light, is_carpet_name, is_flower_name, is_light_name, is_outdoor_name, is_wall_decor_name, make_slot};
-use crate::data::map::{is_floor_tile, is_wall_tile, load_basement_to_ecs, load_map_to_ecs, load_walkable_cells, token_to_texture};
+use crate::data::map::{is_floor_tile, is_wall_tile, load_basement_to_ecs, load_map_to_ecs, load_walkable_cells};
 use crate::ui::text_renderer::TextRenderer;
 use crate::GroupInfoResource;
 use super::GameScene;
@@ -103,13 +103,13 @@ impl GameScene {
         if let Some(state) = self.level_states.get(&level) {
             ecs.map_grid = state.map_grid.clone();
             ecs.original_tokens = state.original_tokens.clone();
-            // Пересоздаём спрайты земли для каждой сохранённой клетки
+            // Пересоздаём спрайты земли для каждой сохранённой клетки.
+            // Через spawn_map_tile, а не напрямую: он же ставит клеткам
+            // двери её кадр атласа и слой Z_DOOR.
             for (pos, _) in ecs.original_tokens.clone() {
                 let token = ecs.original_tokens.get(&pos).cloned().unwrap_or_default();
-                let (tex, frame, count) = token_to_texture(&token, *ecs.world.read_resource::<crate::ecs::components::Season>());
                 let (wx, wy) = (pos.0 as f32, pos.1 as f32);
-                let entity = crate::ecs::factory::create_sprite(&mut ecs.world, wx, wy, Z_MAP, tex, frame, count, 1.0, 1.0);
-                ecs.map_entities.insert(pos, entity);
+                crate::data::map::spawn_map_tile(ecs, &token, wx, wy, pos.0, pos.1);
                 ecs.map_grid[(-wy + WORLD_OFFSET_Y) as usize][(wx + -WORLD_OFFSET_X) as usize] = token;
             }
             // Восстанавливаем вспомогательные множества (стены, пол, трава и т.д.)

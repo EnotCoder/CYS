@@ -230,4 +230,55 @@ fn shopper_walks_in_through_the_door_and_back_out() {
     frames.sort_unstable();
     assert_eq!(frames, vec![[0, 0], [0, 1], [1, 0], [1, 1]],
                "у четырёх клеток двери должны быть четыре разных кадра атласа");
+
+    // Дверь переживает пересборку мира и не теряет ни кадр, ни слой.
+    // Проверяем оба пути создания тайлов — обычную загрузку карты и
+    // восстановление уровня из кэша (общий spawn_map_tile). Раньше логика
+    // двери жила только в загрузке, и после похода в подвал клетки
+    // пересоздавались как обычные тайлы на Z_MAP — дверь уезжала под NPC.
+    {
+        let mut ecs = crate::EcsAdapter::new();
+        // Путь 1: восстановление уровня, как это делает GameScene::load_level.
+        for (x, y) in door_cells() {
+            crate::data::map::spawn_map_tile(&mut ecs, DOOR_TOKEN, x as f32, y as f32, x, y);
+        }
+        let transforms = ecs.world.read_storage::<crate::ecs::components::Transform>();
+        let sprites = ecs.world.read_storage::<crate::ecs::components::SpriteComponent>();
+        for (x, y) in door_cells() {
+            let entity = ecs.map_entities[&(x, y)];
+            let t = transforms.get(entity).expect("нет клетки двери после spawn_map_tile");
+            assert!((t.position[2] - Z_DOOR).abs() < 0.001,
+                    "через spawn_map_tile клетка ({x},{y}) уехала на слой {}", t.position[2]);
+            let s = sprites.get(entity).unwrap();
+            assert_eq!(s.texture_frame, crate::data::map::door_frame_for_cell(x, y),
+                       "через spawn_map_tile у клетки ({x},{y}) сбился кадр");
+        }
+        // Путь 2: полная перезагрузка карты в чистом мире.
+        let mut ecs2 = crate::EcsAdapter::new();
+        load_map_to_ecs(&mut ecs2);
+        ecs2.clear_world();
+        load_map_to_ecs(&mut ecs2);
+        let transforms2 = ecs2.world.read_storage::<crate::ecs::components::Transform>();
+        for (x, y) in door_cells() {
+            let entity = ecs2.map_entities[&(x, y)];
+            let t = transforms2.get(entity).expect("после перезагрузки карты нет двери");
+            assert!((t.position[2] - Z_DOOR).abs() < 0.001,
+                    "после перезагрузки карты клетка ({x},{y}) уехала на слой {}", t.position[2]);
+        }
+    }
+
+    // Дверь обязана рисоваться ПОВЕРХ покупателей, иначе заходящий человек
+    // перекрывает створку. Слой обязан быть строго выше Z_NPC и ниже
+    // Z_CURSOR — иначе дверь перелезет под курсор или уедет на UI-слой.
+    assert!(Z_DOOR > Z_NPC, "дверь должна быть выше NPC");
+    assert!(Z_DOOR < Z_CURSOR, "дверь должна быть под курсором");
+    let transforms = ecs.world.read_storage::<crate::ecs::components::Transform>();
+    for (x, y) in door_cells() {
+        let entity = ecs.map_entities[&(x, y)];
+        let t = transforms.get(entity).expect("нет трансформа у клетки двери");
+        assert!((t.position[0] - x as f32).abs() < 0.01,
+                "клетка двери ({x},{y}) смещена по X");
+        assert!((t.position[2] - Z_DOOR).abs() < 0.001,
+                "клетка двери ({x},{y}) не на слое Z_DOOR, а на {}", t.position[2]);
+    }
 }

@@ -203,4 +203,12 @@ impl super::EcsAdapter {
             sprite.texture_frame = frame;
         }
     }
+
+    // Полная настройка клетки двери: свой кадр атласа 2x2 и слой Z_DOOR
+    // (поверху покупателей). Вызывается везде, где создаются тайлы карты —
+    // и при загрузке, и при восстановлении уровня из кэша.
+    pub fn apply_door_cell(&mut self, entity: specs::Entity, x: i32, y: i32) {
+        self.set_door_cell_frame(entity, door_frame_for_cell(x, y));
+        self.update_transform_z(entity, crate::core::constants::Z_DOOR);
+    }
 }

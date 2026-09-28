@@ -37,10 +37,36 @@ pub fn load_basement_to_ecs(ecs: &mut EcsAdapter) {
     load_map_from_reader(ecs, &bytes[..], true);
 }
 
+/// Создаёт спрайт одного тайла карты и запоминает сущность в map_entities.
+///
+/// Единственная точка создания тайлов карты: её используют и обычная
+/// загрузка (load_map_from_reader), и восстановление уровня из кэша
+/// (GameScene::load_level). Если токен — клетка двери, дополнительно
+/// выставляются её кадр атласа 2x2 и слой Z_DOOR (поверх покупателей).
+/// Держать это в одном месте важно: когда логика двери расходилась по
+/// двум вызовам, после похода в подвал дверь возвращалась на Z_MAP.
+pub fn spawn_map_tile(
+    ecs: &mut EcsAdapter,
+    token: &str,
+    world_x: f32, world_y: f32,
+    grid_x: i32, grid_y: i32,
+) -> specs::Entity {
+    let season = *ecs.world.read_resource::<crate::ecs::components::Season>();
+    let (tex_path, tex_pos, tex_count) = token_to_texture(token, season);
+    let entity = crate::ecs::factory::create_sprite(
+        &mut ecs.world, world_x, world_y, Z_MAP,
+        tex_path, tex_pos, tex_count, 1.0, 1.0,
+    );
+    if is_door_token(token) {
+        ecs.apply_door_cell(entity, grid_x, grid_y);
+    }
+    ecs.map_entities.insert((grid_x, grid_y), entity);
+    entity
+}
+
 /// Читает текстовую карту построчно и превращает каждый токен в спрайт-сущность
 fn load_map_from_reader(ecs: &mut EcsAdapter, reader: impl std::io::Read, _is_basement: bool) {
     let reader = std::io::BufReader::new(reader);
-    let season = *ecs.world.read_resource::<crate::ecs::components::Season>();
 
     // j — номер строки (ось Y), i — позиция в строке (ось X)
     for (j, line) in reader.lines().flatten().enumerate() {
@@ -52,7 +78,6 @@ fn load_map_from_reader(ecs: &mut EcsAdapter, reader: impl std::io::Read, _is_ba
         let mut grid_row: Vec<String> = Vec::new();
         for (i, token) in parts.iter().enumerate() {
             grid_row.push(token.to_string());
-            let (tex_path, tex_pos, tex_count) = token_to_texture(token, season);
 
             let x = i as f32 + WORLD_OFFSET_X;
             let y = -(j as f32) + WORLD_OFFSET_Y;
@@ -75,16 +100,7 @@ fn load_map_from_reader(ecs: &mut EcsAdapter, reader: impl std::io::Read, _is_ba
             }
 
             // Создаём спрайт земли на уровне Z_MAP и запоминаем сущность по клетке
-            let entity = crate::ecs::factory::create_sprite(
-                &mut ecs.world, x, y, Z_MAP,
-                tex_path, tex_pos, tex_count, 1.0, 1.0,
-            );
-            // Дверь — 2x2 атлас, и каждой её клетке нужен свой кадр,
-            // иначе проём соберётся из четырёх одинаковых квадратов.
-            if is_door_token(token) {
-                ecs.set_door_cell_frame(entity, door_frame_for_cell(grid_x, grid_y));
-            }
-            ecs.map_entities.insert((grid_x, grid_y), entity);
+            spawn_map_tile(ecs, token, x, y, grid_x, grid_y);
         }
         ecs.map_grid.push(grid_row);
     }

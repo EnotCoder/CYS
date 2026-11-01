@@ -58,6 +58,12 @@ build_targets = ["aarch64-linux-android", "x86_64-linux-android"]
 [package.metadata.android.application.activity]
 orientation = "landscape"
 
+[package.metadata.android.signing.release]
+path = "release.keystore"
+keystore_password = "123456"
+key_alias = "cys-alias"
+key_password = "123456"
+
 # Полноэкранный режим: прячем системную статус-панель (время/батарея) ещё до
 # запуска android_main, как в обычных мобильных играх (android:theme).
 # Иконка приложения берётся из res/mipmap-* (android:icon).

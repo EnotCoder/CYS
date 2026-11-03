@@ -115,7 +115,7 @@ pub const TEX_INV_BUTTON: &str = "assets/tex/ui/icon_slots/inv.png";
 // === Магазин (покупка доступа к объектам) ===
 // Каталог строится из ALL_OBJECTS; объекты из SHOP_EXEMPT доступны
 // бесплатно, остальные требуют покупки в магазине.
-pub const SHOP_EXEMPT: &[&str] = &["box", "sign", "rack", "cassa"];
+pub const SHOP_EXEMPT: &[&str] = &["box", "sign", "rack", "table", "cassa"];
 pub const TEX_SHOP: &str = "assets/tex/ui/shop.png";
 // Кнопка магазина — правее кнопки инвентаря на хотбаре.
 pub const SHOP_BTN_X: f32 = INV_BTN_X + 1.0;
@@ -196,9 +196,9 @@ pub const INV_TAB_Y: f32 = 2.0;
 // === Замок на некупленных предметах инвентаря/магазина ===
 pub const TEX_LOCK: &str = "assets/tex/ui/mini_icons/lock.png";
 // Размер значка замка и его смещение в правый нижний угол ячейки.
-pub const LOCK_SIZE: f32 = 0.4;
-pub const LOCK_OFFSET_X: f32 = 0.28;
-pub const LOCK_OFFSET_Y: f32 = -0.28;
+pub const LOCK_SIZE: f32 = 0.7;
+pub const LOCK_OFFSET_X: f32 = 0.31;
+pub const LOCK_OFFSET_Y: f32 = -0.31;
 
 // === Режимы взаимодействия ===
 // Сохраняем старые индексы миров: 0 — взаимодействие, 1 —build, 2 — удаление.

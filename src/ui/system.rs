@@ -156,7 +156,7 @@ const SLIDER_THUMB_SIZE: f32 = 0.35;
 const SLIDER_LABEL_Y_OFFSET: f32 = 0.3;
 
 /// X-координата центра ползунка по текущему значению (линейная интерполяция).
-fn slider_thumb_x(slider: &Slider) -> f32 {
+pub(crate) fn slider_thumb_x(slider: &Slider) -> f32 {
     let t = (slider.value - slider.min) / (slider.max - slider.min);
     let start = slider.x - slider.width / 2.0 + SLIDER_THUMB_SIZE / 2.0;
     let end = slider.x + slider.width / 2.0 - SLIDER_THUMB_SIZE / 2.0;

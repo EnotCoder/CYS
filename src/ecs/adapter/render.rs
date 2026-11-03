@@ -26,7 +26,7 @@ use super::SpriteRenderData;
 /// Затухание двустороннее: покупатель гаснет, заходя с юга (с тротуара), и
 /// проявляется, выходя на север (на паркет). Расстояние считается по
 /// Чебышёву — до ближайшей грани прямоугольника, а не до угла.
-fn doorway_fade(pos: [f32; 3]) -> f32 {
+pub(crate) fn doorway_fade(pos: [f32; 3]) -> f32 {
     let half = TILE_HALF;
     let min_x = DOOR_X_MIN as f32 - half;
     let max_x = DOOR_X_MAX as f32 + half;

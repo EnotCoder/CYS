@@ -7,6 +7,14 @@
 //  сюда добавляются тесты по мере развития игры.
 // ========================================================================
 
+mod anim_tests;
+mod data_integrity;
+mod group_tests;
+mod helpers;
+mod input_tests;
+mod npc_tests;
+mod placement_rules;
+
 #[test]
 fn mode_cycle_includes_move_mode() {
     use crate::core::constants::{MODE_BUILD, MODE_DELETE, MODE_INTERACT, MODE_MOVE};

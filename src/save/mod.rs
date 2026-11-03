@@ -87,7 +87,7 @@ pub fn create_world_with_name(desired: &str) -> WorldMeta {
 }
 
 /// Подбирает уникальное имя: если базовое занято, добавляет "(1)", "(2)", ...
-fn unique_world_name(worlds: &[WorldMeta], desired: &str) -> String {
+pub(crate) fn unique_world_name(worlds: &[WorldMeta], desired: &str) -> String {
     let base = desired.trim();
     let base = if base.is_empty() { "Мир" } else { base }.to_string();
     if !worlds.iter().any(|w| w.name == base) {

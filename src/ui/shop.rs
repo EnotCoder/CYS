@@ -48,7 +48,7 @@ pub struct Shop {
 
 pub type ShopItem = (String, String, i32, bool);
 
-fn max_scroll(total: usize) -> f32 {
+pub(crate) fn max_scroll(total: usize) -> f32 {
     if total <= 8 { 0.0 } else { (total - 8) as f32 }
 }
 
@@ -77,7 +77,7 @@ fn build_rows(ecs: &mut EcsAdapter, tr: &mut TextRenderer, device: &wgpu::Device
     }
 }
 
-fn thumb_y(scroll_offset: f32, total: usize) -> f32 {
+pub(crate) fn thumb_y(scroll_offset: f32, total: usize) -> f32 {
     let max = max_scroll(total);
     if max <= 0.0 { return (SCROLLBAR_TOP + SCROLLBAR_BOT) / 2.0; }
     let h = thumb_height(total);
@@ -86,7 +86,7 @@ fn thumb_y(scroll_offset: f32, total: usize) -> f32 {
     (SCROLLBAR_TOP - pad) - t * (SCROLLBAR_H - h)
 }
 
-fn thumb_height(total: usize) -> f32 {
+pub(crate) fn thumb_height(total: usize) -> f32 {
     if total <= 8 { SCROLLBAR_H } else { (8.0 / total as f32 * SCROLLBAR_H).max(0.4) }
 }
 

@@ -15,7 +15,7 @@ use crate::ecs::components::SpriteComponent;
 pub const PANEL_OPEN_DURATION: f64 = 0.28;
 pub const PANEL_CLOSE_DURATION: f64 = 0.22;
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AnimPhase {
     Idle,
     Opening,
@@ -23,7 +23,7 @@ pub enum AnimPhase {
 }
 
 /// Событие завершения тика анимации.
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AnimEvent {
     None,
     Opened,

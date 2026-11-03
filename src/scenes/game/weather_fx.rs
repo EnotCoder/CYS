@@ -19,7 +19,7 @@ const RAIN_COUNT: usize = 80;
 type Bounds = (f32, f32, f32, f32);
 
 #[derive(Clone, Copy, PartialEq, Eq)]
-enum Effect {
+pub(crate) enum Effect {
     Snow,
     Rain,
 }
@@ -43,7 +43,7 @@ pub struct WeatherFx {
 }
 
 impl WeatherFx {
-    fn world_bounds(ecs: &EcsAdapter) -> Option<Bounds> {
+    pub(crate) fn world_bounds(ecs: &EcsAdapter) -> Option<Bounds> {
         let width = ecs.map_grid.iter().map(|row| row.len()).max().unwrap_or(0);
         let height = ecs.map_grid.len();
         if width == 0 || height == 0 {
@@ -69,7 +69,7 @@ impl WeatherFx {
         self.thunder_timer = 0.0;
     }
 
-    fn effect_for(season: Season) -> Option<Effect> {
+    pub(crate) fn effect_for(season: Season) -> Option<Effect> {
         match season {
             Season::Winter => Some(Effect::Snow),
             Season::Autumn => Some(Effect::Rain),
@@ -210,7 +210,7 @@ impl WeatherFx {
 }
 
 // Равномерное число в [0,1): простая замена rand без внешних крейтов.
-fn rand01(seed: &mut u64) -> f32 {
+pub(crate) fn rand01(seed: &mut u64) -> f32 {
     *seed = seed
         .wrapping_mul(6364136223846793005)
         .wrapping_add(1442695040888963407);

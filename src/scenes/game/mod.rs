@@ -21,13 +21,13 @@ use crate::scenes::game::hud::GameHud;
 use crate::scenes::game::shoppers::ShopperManager;
 
 mod camera;
-mod day_night;
+pub(crate) mod day_night;
 mod hud;
 mod inventory_input;
 mod level;
 mod shoppers;
 mod tutorial;
-mod weather_fx;
+pub(crate) mod weather_fx;
 
 pub use level::LevelState;
 

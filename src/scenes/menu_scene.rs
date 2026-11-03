@@ -45,6 +45,9 @@ pub struct MenuScene {
     splash_timer: f64,
     splash_bg: Option<specs::Entity>,
     splash_logo: Option<specs::Entity>,
+    // Логотип главного меню и время для синусоидального покачивания
+    logo: Option<specs::Entity>,
+    logo_time: f32,
     // Сущности кнопок Play и Quit (панель-подложка + текстовая надпись)
     play_bg: Option<Panel>,
     play_label: Option<specs::Entity>,
@@ -91,6 +94,8 @@ impl MenuScene {
             splash_timer: 0.0,
             splash_bg: None,
             splash_logo: None,
+            logo: None,
+            logo_time: 0.0,
             play_bg: None,
             play_label: None,
             quit_bg: None,
@@ -141,7 +146,8 @@ impl MenuScene {
             }
             MenuState::Main => {
                 crate::data::map::load_map_to_ecs(ecs);
-                ecs.add_ui_sized(LOGO_X, LOGO_Y, LOGO_W, LOGO_H, "assets/tex/ui/game_name.png", device, queue);
+                self.logo = Some(ecs.add_ui_sized(LOGO_X, LOGO_Y, LOGO_W, LOGO_H, "assets/tex/ui/game_name.png", device, queue));
+                self.logo_time = 0.0;
                 self.build_main(ecs, text_renderer, device, queue);
             }
             MenuState::Worlds => {
@@ -274,6 +280,7 @@ impl MenuScene {
     fn destroy_content(&mut self, ecs: &mut crate::EcsAdapter) {
         if let Some(e) = self.splash_bg.take() { ecs.delete_entity(e); }
         if let Some(e) = self.splash_logo.take() { ecs.delete_entity(e); }
+        self.logo = None;
         if let Some(mut p) = self.play_bg.take() { destroy_panel(ecs, &mut p); }
         if let Some(mut p) = self.quit_bg.take() { destroy_panel(ecs, &mut p); }
         if let Some(e) = self.play_label.take() { ecs.delete_entity(e); }
@@ -397,7 +404,7 @@ impl Scene for MenuScene {
 
         match self.state {
             MenuState::Splash => self.update_splash(dt, input, ecs, text_renderer, device, queue),
-            MenuState::Main => self.update_main(input, window_size, ecs, text_renderer, device, queue),
+            MenuState::Main => self.update_main(dt, input, window_size, ecs, text_renderer, device, queue),
             MenuState::Worlds => self.update_worlds(input, window_size, ecs, text_renderer, device, queue),
             MenuState::Naming => self.update_naming(dt, input, window_size, ecs, text_renderer, device, queue),
             MenuState::ConfirmDelete(id) => self.update_delete_confirm(id, input, window_size, ecs, text_renderer, device, queue),
@@ -469,7 +476,15 @@ impl MenuScene {
     }
 
     /// Логика главного экрана: подсветка Play/Quit и обработка кликов.
-    fn update_main(&mut self, input: &dyn InputSource, window_size: (f32, f32), ecs: &mut crate::EcsAdapter, text_renderer: &mut crate::ui::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) -> SceneAction {
+    fn update_main(&mut self, dt: f64, input: &dyn InputSource, window_size: (f32, f32), ecs: &mut crate::EcsAdapter, text_renderer: &mut crate::ui::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) -> SceneAction {
+        // Синусоидальное покачивание логотипа по вертикали (dt клампим, чтобы
+        // после фриза/перетаскивания окна логотип не прыгал)
+        self.logo_time += dt.clamp(0.0, 0.1) as f32;
+        let logo_offset = MENU_LOGO_AMPLITUDE * (self.logo_time * MENU_LOGO_SPEED).sin();
+        if let Some(e) = self.logo {
+            ecs.update_transform_position(e, LOGO_X, LOGO_Y + logo_offset);
+        }
+
         // Подсветка кнопки Play при наведении (зелёный текст вместо обычного)
         let h = Self::is_inside(input, window_size, BTN_X, BTN_Y, BTN_W, BTN_H);
         if h != self.play_hover {

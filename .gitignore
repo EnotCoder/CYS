@@ -1,4 +1,5 @@
 /target
 .env
-.env
-.json
+worlds/
+*.json
+!assets/**/*.json

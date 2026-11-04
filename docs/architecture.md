@@ -1,7 +1,5 @@
 # Architecture (CYS)
 
-[Русский](../ru/architecture.md) · English
-
 The source tree follows the Godot convention: `src/` contains exactly
 12 top-level module folders, each with a `mod.rs` that wires submodules
 together. Everything outside `src/` is either an asset or a build artifact.

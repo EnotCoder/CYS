@@ -1,7 +1,5 @@
 # Scripts
 
-[Русский](../ru/scripts.md) · English
-
 `assets/scripts/` holds two Lua files and one development tool:
 
 - `config.lua` — the single source of balance values, read once at startup;

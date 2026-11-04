@@ -1,7 +1,5 @@
 # Assets
 
-[Русский](../ru/assets.md) · English
-
 Everything the game loads at runtime lives in `assets/`. There are 148 PNG
 files and 22 OGG files at the time of writing, all addressed by paths that start
 with `assets/`, for example `assets/tex/decor/regular/rack/rack_0.png`.

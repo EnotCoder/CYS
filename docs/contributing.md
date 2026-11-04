@@ -1,7 +1,5 @@
 # Contributing
 
-[Русский](../ru/contributing.md) · English
-
 ## Before you change code
 
 - Read [architecture.md](architecture.md) — the 12-folder layout is intentional.
@@ -74,19 +72,17 @@ these pages is now wrong:
 
 | Change | Update |
 |---|---|
-| new/removed/renamed `.rs` file | `docs/{ru,en}/source-map.md` |
-| new module or frame step | `docs/{ru,en}/architecture.md` |
-| new layer, pipeline, uniform | `docs/{ru,en}/rendering.md` |
-| new component, resource, group rule | `docs/{ru,en}/ecs.md` |
-| balance, shopper, season, economy | `docs/{ru,en}/gameplay.md` + `scripts.md` |
-| save field, map token, settings field | `docs/{ru,en}/world-format.md` |
-| new asset directory or naming rule | `docs/{ru,en}/assets.md` |
-| build command, target, profile | `docs/{ru,en}/build.md` |
-| new test suite or fixture | `docs/{ru,en}/testing.md` |
+| new/removed/renamed `.rs` file | `docs/source-map.md` |
+| new module or frame step | `docs/architecture.md` |
+| new layer, pipeline, uniform | `docs/rendering.md` |
+| new component, resource, group rule | `docs/ecs.md` |
+| balance, shopper, season, economy | `docs/gameplay.md` + `scripts.md` |
+| save field, map token, settings field | `docs/world-format.md` |
+| new asset directory or naming rule | `docs/assets.md` |
+| build command, target, profile | `docs/build.md` |
+| new test suite or fixture | `docs/testing.md` |
 
-Russian is the source text; English is a translation. Keep prose natural, but
-copy fenced code blocks verbatim — the docs test compares them byte for byte.
-After editing, run:
+Documentation is written in English. After editing, run:
 
 ```sh
 cargo test docs
@@ -107,4 +103,4 @@ cargo test docs
 ## Licensing
 
 The project is GPL-3.0. By contributing you agree to license your changes under
-the same terms. See [LICENSE](../../LICENSE).
+the same terms. See [LICENSE](../LICENSE).

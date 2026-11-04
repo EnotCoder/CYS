@@ -1,14 +1,7 @@
 # Create your Shop (CYS)
 
-[English](README.md) · [Русский](README.ru.md)
-
 > **Beta** — the game is in active beta. Features may change and bugs are
 > expected.
-
-[![license](https://img.shields.io/badge/license-GPL--3.0-blue.svg)](LICENSE)
-![Rust](https://img.shields.io/badge/rust-1.82%2B-blue)
-![wgpu](https://img.shields.io/badge/wgpu-30-orange)
-![platforms](https://img.shields.io/badge/platforms-Linux%20%7C%20Windows%20%7C%20Android-lightgrey)
 
 A 2D shop simulator written in Rust on top of `wgpu`. Build your own shop:
 lay floors, walls and carpets, place racks, registers and decor, stock the
@@ -24,7 +17,7 @@ cargo run --release
 ```
 
 Requires Rust edition 2021 and a GPU with Vulkan (Linux/Android) or Dx12
-(Windows). For Android see [docs/en/build.md](docs/en/build.md).
+(Windows). For Android see [docs/build.md](docs/build.md).
 
 ## Controls
 
@@ -68,26 +61,24 @@ with the world.
 
 ## Documentation
 
-The full developer documentation lives in [`docs/`](docs/README.md). Russian is
-the source language, English mirrors it page by page.
+The full developer documentation lives in [`docs/`](docs/README.md).
 
-| Topic | English | Русский |
-|---|---|---|
-| Start here | [docs/en/architecture.md](docs/en/architecture.md) | [docs/ru/architecture.md](docs/ru/architecture.md) |
-| Source map | [docs/en/source-map.md](docs/en/source-map.md) | [docs/ru/source-map.md](docs/ru/source-map.md) |
-| Rendering | [docs/en/rendering.md](docs/en/rendering.md) | [docs/ru/rendering.md](docs/ru/rendering.md) |
-| ECS | [docs/en/ecs.md](docs/en/ecs.md) | [docs/ru/ecs.md](docs/ru/ecs.md) |
-| Gameplay | [docs/en/gameplay.md](docs/en/gameplay.md) | [docs/ru/gameplay.md](docs/ru/gameplay.md) |
-| Saves & maps | [docs/en/world-format.md](docs/en/world-format.md) | [docs/ru/world-format.md](docs/ru/world-format.md) |
-| Lua scripts | [docs/en/scripts.md](docs/en/scripts.md) | [docs/ru/scripts.md](docs/ru/scripts.md) |
-| Assets | [docs/en/assets.md](docs/en/assets.md) | [docs/ru/assets.md](docs/ru/assets.md) |
-| Build | [docs/en/build.md](docs/en/build.md) | [docs/ru/build.md](docs/ru/build.md) |
-| Tests | [docs/en/testing.md](docs/en/testing.md) | [docs/ru/testing.md](docs/ru/testing.md) |
-| Contributing | [docs/en/contributing.md](docs/en/contributing.md) | [docs/ru/contributing.md](docs/ru/contributing.md) |
+| Topic | Page |
+|---|---|
+| Start here | [docs/architecture.md](docs/architecture.md) |
+| Source map | [docs/source-map.md](docs/source-map.md) |
+| Rendering | [docs/rendering.md](docs/rendering.md) |
+| ECS | [docs/ecs.md](docs/ecs.md) |
+| Gameplay | [docs/gameplay.md](docs/gameplay.md) |
+| Saves & maps | [docs/world-format.md](docs/world-format.md) |
+| Lua scripts | [docs/scripts.md](docs/scripts.md) |
+| Assets | [docs/assets.md](docs/assets.md) |
+| Build | [docs/build.md](docs/build.md) |
+| Tests | [docs/testing.md](docs/testing.md) |
+| Contributing | [docs/contributing.md](docs/contributing.md) |
 
-The docs are checked by `cargo test`: RU/EN pages must pair up, every `.rs`
-file must appear in the source map, code blocks must match between languages,
-and all relative links must resolve.
+The docs are checked by `cargo test`: every `.rs` file must appear in the
+source map, and all relative links must resolve.
 
 ## Architecture
 
@@ -105,11 +96,11 @@ src/
 ├── scripts/  — Lua bridge (config.lua, npc.lua)
 ├── save/     — worlds, manifest, settings.json
 └── tests/    — unit tests (including docs checks)
-```text
+```
 
 Assets live in `assets/`: textures, sounds, Lua scripts, maps and the font.
-See [docs/en/architecture.md](docs/en/architecture.md) for the frame pipeline
-and [docs/en/rendering.md](docs/en/rendering.md) for the layer order.
+See [docs/architecture.md](docs/architecture.md) for the frame pipeline
+and [docs/rendering.md](docs/rendering.md) for the layer order.
 
 ## License
 

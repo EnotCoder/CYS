@@ -1,7 +1,5 @@
 # Gameplay
 
-[Русский](../ru/gameplay.md) · English
-
 The loop is: place a food source and a register, open the shop, keep it stocked,
 pay rent, expand. Everything numeric is in
 `assets/scripts/config.lua`; this page explains what each system does.

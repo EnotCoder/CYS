@@ -1,7 +1,5 @@
 # Build
 
-[Русский](../ru/build.md) · English
-
 ## Requirements
 
 - Rust with edition 2021 support (1.82 or newer is a safe baseline);

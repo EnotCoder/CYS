@@ -1,7 +1,5 @@
 # Testing
 
-[Русский](../ru/testing.md) · English
-
 Tests live in `src/tests/` and are compiled into the library under
 `#[cfg(test)]`. They are fast and do not need a GPU, a window or a sound
 device: rendering and input are represented by plain data and a fake input
@@ -28,7 +26,7 @@ selected by name, for example `cargo test door`.
 | `src/tests/npc_tests.rs` | shopper states, movement, food/candy, registers, routing, fade, door |
 | `src/tests/input_tests.rs` | zoom, UI hit tests, slider, shop scrolling, world name, door fade, weather |
 | `src/tests/anim_tests.rs` | `PanelAnim` open/close/cancel and text sprites |
-| `src/tests/docs.rs` | RU/EN pairings, source map completeness, identical code blocks, live links |
+| `src/tests/docs.rs` | source map completeness and live links |
 
 Total is around 90 tests. They are ordinary `#[test]` functions, not
 `specs` systems, so a failure points at a function name, not at a schedule.
@@ -61,15 +59,11 @@ Rules of thumb:
 
 `src/tests/docs.rs` is part of `cargo test` and enforces the docs contract:
 
-1. every `docs/ru/*.md` has an `docs/en/*.md` twin and vice versa;
-2. every `src/**/*.rs` path appears in both `source-map.md` files, and every
+1. every `src/**/*.rs` path appears in `docs/source-map.md`, and every
    `src/...` path mentioned there exists;
-3. fenced code blocks are identical between the RU and EN versions of a page;
-4. every relative Markdown link and image resolves to an existing file.
+2. every relative Markdown link and image resolves to an existing file.
 
-This is why a new module must be added to the source map in the same change,
-and why code examples in translations are copied verbatim rather than
-reformatted.
+This is why a new module must be added to the source map in the same change.
 
 ## Manual smoke test
 

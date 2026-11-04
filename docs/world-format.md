@@ -1,7 +1,5 @@
 # World and save format
 
-[Русский](../ru/world-format.md) · English
-
 There are three kinds of user data: map files (shipped assets), world saves
 (written by the game) and `settings.json` (written by the settings panel). All
 of them are plain text, so a broken save can be inspected and repaired by hand.

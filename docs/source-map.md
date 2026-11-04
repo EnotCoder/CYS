@@ -1,7 +1,5 @@
 # Source map (`src/`)
 
-[Русский](../ru/source-map.md) · English
-
 Every `.rs` file: what it implements and which role it plays in the game. The
 folder layout follows the Godot convention, see [architecture.md](architecture.md).
 
@@ -264,5 +262,5 @@ is missing from this map.
   tests, slider, shop scrolling, world name, door fade, weather.
 - **`src/tests/anim_tests.rs`** — `PanelAnim`: open, close, cancel, text
   sprites.
-- **`src/tests/docs.rs`** — documentation checks: RU/EN pairs, this map's
-  completeness, identical code blocks, live links and images.
+- **`src/tests/docs.rs`** — documentation checks: this map's completeness, live
+  links and images.

@@ -1,7 +1,5 @@
 # Rendering
 
-[Русский](../ru/rendering.md) · English
-
 CYS renders with `wgpu 30` directly: no engine, no sprite-batch crate. The
 whole renderer is about a thousand lines in `src/core/`, and its shape is
 deliberately boring: one GPU context, two pipelines, three passes.

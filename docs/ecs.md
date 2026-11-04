@@ -1,7 +1,5 @@
 # ECS
 
-[Русский](../ru/ecs.md) · English
-
 CYS uses [`specs`](https://docs.rs/specs) 0.18, but only as a storage: there is
 no `Dispatcher` and no schedule. Gameplay code calls plain functions from
 `GameScene::update`; the ECS just holds entities and lets render code query

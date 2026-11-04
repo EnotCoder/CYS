@@ -17,8 +17,8 @@
 - `src/save/` — worlds, manifest, settings.json
 - `src/tests/` — unit tests (tied in via `#[cfg(test)] mod tests;`) and docs checks
 
-Documentation lives outside `src/`, in `docs/ru/` (source) and `docs/en/`
-(translation). Root `README.md` is English, `README.ru.md` is Russian.
+Documentation lives outside `src/`, in `docs/` (English only). Root `README.md`
+is English.
 
 ## Texture paths
 
@@ -47,13 +47,10 @@ All asset paths start with `assets/`:
 
 ## Documentation
 
-- Russian is the source text, English mirrors it; filenames match across
-  `docs/ru/` and `docs/en/`.
-- A new/renamed/removed `.rs` file must be added to both `source-map.md` files.
-- Fenced code blocks are byte-identical between RU and EN — copy, do not
-  reformat.
-- Run `cargo test docs` after editing docs: it checks pairs, source-map
-  coverage, code blocks and relative links.
+- Documentation is English only and lives in `docs/`.
+- A new/renamed/removed `.rs` file must be added to `docs/source-map.md`.
+- Run `cargo test docs` after editing docs: it checks source-map coverage and
+  relative links.
 - Update the matching page for balance (`gameplay.md`, `scripts.md`), save
   fields (`world-format.md`), assets (`assets.md`) and layers (`rendering.md`).
 

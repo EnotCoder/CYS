@@ -395,7 +395,7 @@ impl Scene for MenuScene {
 
         // Адаптивный масштаб UI
         let aspect = if window_size.1 > 0.0 { window_size.0 / window_size.1 } else { 1.0 };
-        self.ui_scale = crate::core::util::ui_fit_scale(aspect, 3.6);
+        self.ui_scale = crate::core::util::ui_fit_scale(aspect, MENU_UI_HALF_W, MENU_UI_HALF_H);
 
         if !self.ready {
             self.ready = true;

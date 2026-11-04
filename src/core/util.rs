@@ -43,14 +43,21 @@ pub fn ndc_to_world(mx: f32, my: f32, window_size: (f32, f32), map_size: f32, ca
     (wx, wy)
 }
 
-/// Масштаб UI, при котором интерфейс шириной `half_width_world` (в мировых
-/// единицах UI-пространства, отсчитываемых от центра) умещается в `max_ndc`
-/// от края экрана при заданном соотношении сторон. Возвращает значение в
-/// диапазоне [0.3, 1.0] — на узких экранах интерфейс уменьшается, на широких
+/// Масштаб UI, при котором интерфейс с габаритами `half_width_world` ×
+/// `half_height_world` (в мировых единицах UI-пространства от центра)
+/// целиком помещается в экран при заданном соотношении сторон.
+/// Учитываются обе оси: раньше подгонялась только ширина, из-за чего на
+/// планшетах и узких экранах крайние кнопки (настройки, режимы, HUD)
+/// уезжали за границу. Возвращает значение в диапазоне
+/// [UI_MIN_SCALE, 1.0] — на узких экранах интерфейс уменьшается, на широких
 /// и квадратных остаётся номинальным (1.0).
-pub fn ui_fit_scale(aspect: f32, half_width_world: f32) -> f32 {
+pub fn ui_fit_scale(aspect: f32, half_width_world: f32, half_height_world: f32) -> f32 {
     let max_ndc = 0.96;
-    (max_ndc * aspect / (half_width_world * SHADER_SCALE)).clamp(0.30, 1.0)
+    // Видимая полуширина = aspect / (SHADER_SCALE * scale),
+    // видимая полувысота = 1 / (SHADER_SCALE * scale).
+    let fit_width = max_ndc * aspect / (half_width_world * SHADER_SCALE);
+    let fit_height = max_ndc / (half_height_world * SHADER_SCALE);
+    fit_width.min(fit_height).clamp(crate::core::constants::UI_MIN_SCALE, 1.0)
 }
 
 // Индекс предмета в списке текущей вкладки по координатам сетки (row/col).

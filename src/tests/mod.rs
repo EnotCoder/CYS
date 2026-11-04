@@ -527,23 +527,47 @@ fn inventory_index_flips_rows_so_grid_fills_bottom_up() {
 }
 
 #[test]
-fn ui_fit_scale_never_leaves_its_clamp() {
+fn ui_fit_scale_fits_the_whole_ui_box() {
+    use crate::core::constants::{
+        GAME_UI_HALF_H, GAME_UI_HALF_W, MENU_UI_HALF_H, MENU_UI_HALF_W, SHADER_SCALE,
+        UI_MIN_SCALE,
+    };
     use crate::core::util::ui_fit_scale;
 
-    // Реальные значения из сцен: игровой HUD шире меню.
-    for &(aspect, half_width_world) in &[(0.5f32, 6.5f32), (1.0, 6.5), (16.0 / 9.0, 6.5),
-                                        (1.0, 3.6), (4.0, 3.6), (0.25, 3.6), (21.0, 9.0)] {
-        let s = ui_fit_scale(aspect, half_width_world);
-        assert!((0.30..=1.0).contains(&s),
-                "ui_fit_scale({aspect}, {half_width_world}) = {s} вышло за [0.30, 1.0]");
+    // Реальные значения сцен плюс крайние случаи: телефон 20:9, планшет
+    // 16:10, планшет 4:3 и очень узкое окно ПК.
+    let cases = [
+        (20.0 / 9.0f32, GAME_UI_HALF_W, GAME_UI_HALF_H),
+        (16.0 / 9.0, GAME_UI_HALF_W, GAME_UI_HALF_H),
+        (16.0 / 10.0, GAME_UI_HALF_W, GAME_UI_HALF_H),
+        (4.0 / 3.0, GAME_UI_HALF_W, GAME_UI_HALF_H),
+        (0.5, GAME_UI_HALF_W, GAME_UI_HALF_H),
+        (20.0 / 9.0, MENU_UI_HALF_W, MENU_UI_HALF_H),
+        (4.0 / 3.0, MENU_UI_HALF_W, MENU_UI_HALF_H),
+        (0.5, MENU_UI_HALF_W, MENU_UI_HALF_H),
+    ];
+    for &(aspect, half_w, half_h) in &cases {
+        let s = ui_fit_scale(aspect, half_w, half_h);
+        assert!((UI_MIN_SCALE..=1.0).contains(&s),
+                "ui_fit_scale({aspect}, {half_w}, {half_h}) = {s} вышло за [{UI_MIN_SCALE}, 1.0]");
         assert!(s.is_finite(), "ui_fit_scale вернул {s}");
+
+        // Всё, что не упёрлось в нижний предел, обязано помещаться по обеим осям.
+        if s > UI_MIN_SCALE {
+            let visible_w = aspect / (SHADER_SCALE * s);
+            let visible_h = 1.0 / (SHADER_SCALE * s);
+            assert!(visible_w >= half_w - 0.01,
+                    "aspect {aspect}: видимая ширина {visible_w} < {half_w}");
+            assert!(visible_h >= half_h - 0.01,
+                    "aspect {aspect}: видимая высота {visible_h} < {half_h}");
+        }
     }
 
-    // На широком экране интерфейс не растягивается (потолок 1.0), на узком —
-    // ужимается. Монотонность по aspect обязана сохраняться до потолка.
-    assert_eq!(ui_fit_scale(4.0, 6.5), 1.0, "на широком экране нужен номинальный масштаб");
-    assert!(ui_fit_scale(0.5, 6.5) < ui_fit_scale(1.0, 6.5),
-            "узкий экран должен ужимать интерфейс сильнее широкого");
+    // Узкий экран обязан ужимать интерфейс сильнее широкого.
+    assert!(ui_fit_scale(4.0 / 3.0, GAME_UI_HALF_W, GAME_UI_HALF_H)
+            < ui_fit_scale(20.0 / 9.0, GAME_UI_HALF_W, GAME_UI_HALF_H));
+    assert!(ui_fit_scale(4.0 / 3.0, GAME_UI_HALF_W, GAME_UI_HALF_H) < 1.0,
+            "на планшете 4:3 интерфейс должен ужиматься, а не обрезаться");
 }
 
 // ========================================================================

@@ -516,10 +516,15 @@ impl Scene for GameScene {
     }
 
     fn update(&mut self, ecs: &mut crate::EcsAdapter, input: &dyn InputSource, window_size: (f32, f32), text_renderer: &mut crate::ui::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) -> SceneAction {
-        // Адаптивный масштаб UI под соотношение сторон (хотбар + иконки/логотип
-        // справа умещаются в экран даже на портретных/узких дисплеях)
+        // Адаптивный масштаб UI под соотношение сторон: интерфейс целиком
+        // (хотбар и иконки слева/справа, HUD сверху) должен помещаться в экран
+        // на телефонах и планшетах, а не только по ширине.
         let aspect = if window_size.1 > 0.0 { window_size.0 / window_size.1 } else { 1.0 };
-        self.ui_scale = crate::core::util::ui_fit_scale(aspect, 6.5);
+        self.ui_scale = crate::core::util::ui_fit_scale(
+            aspect,
+            crate::core::constants::GAME_UI_HALF_W,
+            crate::core::constants::GAME_UI_HALF_H,
+        );
 
         // Сохранённая настройка VSync применяется сразу при входе в игру
         if let Some(vsync) = self.pending_vsync.take() {

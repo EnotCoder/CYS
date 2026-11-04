@@ -403,13 +403,14 @@ fn inventory_tabs_and_grid_clicks_are_consistent() {
 
 #[test]
 fn ui_fit_scale_stays_in_range() {
+    use crate::core::constants::{GAME_UI_HALF_H, GAME_UI_HALF_W, UI_MIN_SCALE};
     use crate::core::util::ui_fit_scale;
 
-    let wide = ui_fit_scale(2.5, 6.0);
-    assert_eq!(wide, 1.0, "на широком экране UI не должен уменьшаться");
-    let narrow = ui_fit_scale(0.2, 6.0);
-    assert!((0.3..=1.0).contains(&narrow));
-    assert!((narrow - 0.3).abs() < 1e-6);
-    let mid = ui_fit_scale(1.0, 6.0);
-    assert!((0.3..=1.0).contains(&mid));
+    let wide = ui_fit_scale(2.5, GAME_UI_HALF_W, GAME_UI_HALF_H);
+    assert!(wide <= 1.0 && wide > 0.9, "на широком экране UI почти номинальный");
+    let narrow = ui_fit_scale(0.2, GAME_UI_HALF_W, GAME_UI_HALF_H);
+    assert!((UI_MIN_SCALE..=1.0).contains(&narrow));
+    assert!((narrow - UI_MIN_SCALE).abs() < 1e-6);
+    let mid = ui_fit_scale(1.0, GAME_UI_HALF_W, GAME_UI_HALF_H);
+    assert!((UI_MIN_SCALE..=1.0).contains(&mid));
 }

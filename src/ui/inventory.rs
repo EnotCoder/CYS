@@ -11,6 +11,15 @@ use crate::ecs::components::{ShopDenied, ShopOwned};
 //  Inventory — управление инвентарём (сетка, табы, курсор)
 // ========================================================================
 
+/// UI-элемент сетки/таба с базовой позицией: сдвиг к нижнему краю экрана
+/// применяется поверх неё, поэтому анимации и повторные вызовы не «дрейфуют».
+#[derive(Clone, Copy)]
+struct PlacedEntity {
+    ent: Entity,
+    base_x: f32,
+    base_y: f32,
+}
+
 pub struct Inventory {
     // Открыт ли инвентарь и находится ли игра в режиме его использования
     pub open: bool,
@@ -19,11 +28,14 @@ pub struct Inventory {
     pub selected: i32,
     // Текущий таб категории (обычные, ковры, настенный декор, уличное)
     pub tab: i32,
+    // Сдвиг сетки по вертикали: держит её вплотную над хотбаром, когда тот
+    // прижат к нижнему краю экрана.
+    bottom_dy: f32,
     // UI-сущности сетки предметов и закладок табов (нужны для скрытия/показа)
-    grid_entities: Vec<Entity>,
-    tab_entities: Vec<Entity>,
+    grid_entities: Vec<PlacedEntity>,
+    tab_entities: Vec<PlacedEntity>,
     // Замочки на некупленных предметах (значок в углу ячейки)
-    lock_entities: Vec<Entity>,
+    lock_entities: Vec<PlacedEntity>,
     // Анимация открытия: отсчёт времени и активность «попа» появления
     pop_timer: f64,
     popping: bool,
@@ -39,6 +51,7 @@ impl Inventory {
             mode: false,
             selected: INV_NONE,
             tab: 0,
+            bottom_dy: 0.0,
             grid_entities: Vec::new(),
             tab_entities: Vec::new(),
             lock_entities: Vec::new(),
@@ -117,21 +130,21 @@ impl Inventory {
         // Каскад: каждая иконка стартует чуть позже предыдущей.
         let dur = 0.35;
         let mut all_done = true;
-        for (i, ent) in self.grid_entities.iter().enumerate() {
+        for (i, p) in self.grid_entities.iter().enumerate() {
             let t = ((self.pop_timer - i as f64 * 0.02) / dur).clamp(0.0, 1.0) as f32;
             if t < 1.0 {
                 all_done = false;
             }
             let s = 0.6 + 0.4 * crate::core::util::ease_out_back(t);
-            ecs.update_sprite_scale(*ent, s);
+            ecs.update_sprite_scale(p.ent, s);
         }
-        for (i, ent) in self.tab_entities.iter().enumerate() {
+        for (i, p) in self.tab_entities.iter().enumerate() {
             let t = ((self.pop_timer - i as f64 * 0.03) / dur).clamp(0.0, 1.0) as f32;
             if t < 1.0 {
                 all_done = false;
             }
             let s = 0.6 + 0.4 * crate::core::util::ease_out_back(t);
-            ecs.update_sprite_scale(*ent, s);
+            ecs.update_sprite_scale(p.ent, s);
         }
         if all_done {
             self.popping = false;
@@ -145,12 +158,12 @@ impl Inventory {
         let e = t * t;
         let s = 1.0 - 0.3 * e;
         let a = 1.0 - e;
-        for ent in self.grid_entities.iter().chain(self.tab_entities.iter()) {
-            ecs.update_sprite_scale(*ent, s);
-            ecs.update_sprite_alpha(*ent, a);
+        for p in self.grid_entities.iter().chain(self.tab_entities.iter()) {
+            ecs.update_sprite_scale(p.ent, s);
+            ecs.update_sprite_alpha(p.ent, a);
         }
-        for ent in &self.lock_entities {
-            ecs.update_sprite_alpha(*ent, a);
+        for p in &self.lock_entities {
+            ecs.update_sprite_alpha(p.ent, a);
         }
         if t >= 1.0 {
             self.hide_grid(ecs);
@@ -197,9 +210,9 @@ impl Inventory {
         self.hide_grid(ecs);
         self.show_grid(ecs, device, queue);
         // Активный таб — насыщенный, остальные — полупрозрачные
-        for (i, ent) in self.tab_entities.iter().enumerate() {
+        for (i, p) in self.tab_entities.iter().enumerate() {
             let a = if i as i32 == self.tab { 1.0 } else { 0.5 };
-            ecs.update_sprite_alpha(*ent, a);
+            ecs.update_sprite_alpha(p.ent, a);
         }
         self.selected = INV_NONE;
     }
@@ -269,9 +282,9 @@ impl Inventory {
                     format!("{}{}", TEX_UI_ICON_SLOTS_MAP_DIR, "null.png")
                 };
                 let x = SLOT_BAR_X + col as f32;
-                let y = INVENTORY_BASE_Y + row as f32;
+                let y = INVENTORY_BASE_Y + row as f32 + self.bottom_dy;
                 let ent = ecs.add_ui(x, y, &tex);
-                self.grid_entities.push(ent);
+                self.grid_entities.push(PlacedEntity { ent, base_x: SLOT_BAR_X + col as f32, base_y: INVENTORY_BASE_Y + row as f32 });
 
                 // Доступ к такому предмету НЕ открыт (нужна покупка в магазине).
                 if item_idx < items.len() {
@@ -284,18 +297,34 @@ impl Inventory {
                         );
                         // Замок рисуется поверх иконки предмета (следующий под-слой Z_UI).
                         ecs.update_transform_z(lock, Z_UI_TEXT);
-                        self.lock_entities.push(lock);
+                        self.lock_entities.push(PlacedEntity {
+                            ent: lock,
+                            base_x: SLOT_BAR_X + col as f32 + LOCK_OFFSET_X,
+                            base_y: INVENTORY_BASE_Y + row as f32 + LOCK_OFFSET_Y,
+                        });
                     }
                 }
             }
         }
     }
 
+    /// Сдвиг сетки/табов по вертикали (прижатие хотбара к нижнему краю).
+    pub fn set_bottom_offset(&mut self, dy: f32) {
+        self.bottom_dy = dy;
+    }
+
+    /// Переставляет уже созданные элементы сетки/табов по актуальному сдвигу.
+    pub fn apply_layout(&mut self, ecs: &mut EcsAdapter) {
+        for p in self.grid_entities.iter().chain(self.tab_entities.iter()).chain(self.lock_entities.iter()) {
+            ecs.update_transform_position(p.ent, p.base_x, p.base_y + self.bottom_dy);
+        }
+    }
+
     // Убираем все UI-иконки сетки из ECS
     fn hide_grid(&mut self, ecs: &mut EcsAdapter) {
-        let removed: Vec<Entity> = self.grid_entities.drain(..).collect();
+        let removed: Vec<Entity> = self.grid_entities.drain(..).map(|p| p.ent).collect();
         ecs.delete_entities(&removed);
-        let locks: Vec<Entity> = self.lock_entities.drain(..).collect();
+        let locks: Vec<Entity> = self.lock_entities.drain(..).map(|p| p.ent).collect();
         ecs.delete_entities(&locks);
     }
 
@@ -306,16 +335,17 @@ impl Inventory {
     // Создаём закладки категорий; активная подсвечивается полностью
     fn show_tabs(&mut self, ecs: &mut EcsAdapter) {
         for (i, tex) in TAB_TEX.iter().enumerate() {
-            let ent = ecs.add_ui(SLOT_BAR_X + i as f32, INV_TAB_Y, tex);
+            let x = SLOT_BAR_X + i as f32;
+            let ent = ecs.add_ui(x, INV_TAB_Y + self.bottom_dy, tex);
             let a = if i as i32 == self.tab { 1.0 } else { 0.5 };
             ecs.update_sprite_alpha(ent, a);
-            self.tab_entities.push(ent);
+            self.tab_entities.push(PlacedEntity { ent, base_x: x, base_y: INV_TAB_Y });
         }
     }
 
     // Убираем закладки из ECS
     fn hide_tabs(&mut self, ecs: &mut EcsAdapter) {
-        let removed: Vec<Entity> = self.tab_entities.drain(..).collect();
+        let removed: Vec<Entity> = self.tab_entities.drain(..).map(|p| p.ent).collect();
         ecs.delete_entities(&removed);
     }
 }

@@ -40,7 +40,7 @@ impl GameScene {
         // --- Клик по табам ---
         if self.inventory.mode {
             let tcol = (wx - SLOT_BAR_X + TILE_HALF) as i32;
-            if (wy - INV_TAB_Y).abs() < TILE_HALF && tcol >= 0 && tcol < TAB_TEX.len() as i32 {
+            if (wy - (INV_TAB_Y + self.bottom_dy)).abs() < TILE_HALF && tcol >= 0 && tcol < TAB_TEX.len() as i32 {
                 if tcol != self.inventory.tab {
                     self.inventory.switch_tab(tcol, ecs, device, queue);
                     crate::audio::play("click");
@@ -52,7 +52,7 @@ impl GameScene {
         // --- Клик по сетке инвентаря ---
         if self.inventory.mode {
             let col = (wx - SLOT_BAR_X + TILE_HALF) as i32;
-            let row = (wy - INVENTORY_BASE_Y + TILE_HALF) as i32;
+            let row = (wy - (INVENTORY_BASE_Y + self.bottom_dy) + TILE_HALF) as i32;
             if self.inventory.handle_grid_click(col, row) {
                 // Предмет из инвентаря переносится в выбранный слот хотбара
                 self.inventory.transfer_to_slot(ecs, self.act_slot as usize, &mut self.slots, &self.slot_entities);
@@ -63,13 +63,13 @@ impl GameScene {
 
         // --- Клик по слотам хотбара ---
         let col = (wx - HOTBAR_X + TILE_HALF) as i32;
-        if (wy - SLOT_BAR_Y).abs() < TILE_HALF && col >= 0 && col < self.slots.len() as i32 {
+        if (wy - (SLOT_BAR_Y + self.bottom_dy)).abs() < TILE_HALF && col >= 0 && col < self.slots.len() as i32 {
             let target = col;
             if target != self.act_slot {
                 // Двигаем рамку выбора на новый слот
                 if let Some(cursor) = self.icons_slot_cursor {
                     self.act_slot = target;
-                    ecs.update_transform_position(cursor, HOTBAR_X + col as f32, SLOT_BAR_Y);
+                    ecs.update_transform_position(cursor, HOTBAR_X + col as f32, SLOT_BAR_Y + self.bottom_dy);
                 }
                 crate::audio::play("hover");
             }

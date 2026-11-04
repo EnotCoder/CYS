@@ -124,6 +124,9 @@ pub const SLOT_COUNT: usize = 5;
 // === Слот-бар ===
 pub const SLOT_BAR_Y: f32 = -4.0;
 pub const SLOT_BAR_X: f32 = -7.0;
+// Нижняя кромка хотбара: по ней нижняя группа UI прижимается к краю экрана
+// (см. ui_bottom_offset), чтобы на планшетах кнопки не «висели» в центре.
+pub const HOTBAR_BOTTOM: f32 = SLOT_BAR_Y - TILE_HALF;
 // Начало хотбара: кнопка настроек занимает позицию перед 1-м слотом
 pub const HOTBAR_X: f32 = SLOT_BAR_X + 1.0;
 pub const ICON_MODE_X: f32 = 6.2;
@@ -304,6 +307,11 @@ pub const HUD_MONEY_X: f32 = 7.2;
 pub const HUD_MONEY_Y: f32 = 3.0;
 pub const HUD_TIME_X: f32 = 7.2;
 pub const HUD_TIME_Y: f32 = 2.5;
+// Верхняя кромка HUD-панели: по ней верхняя группа UI прижимается к краю
+// экрана (см. ui_top_offset).
+pub const HUD_PANEL_TOP: f32 = HUD_PANEL_Y + HUD_PANEL_H * 0.5;
+// Поле между прижатой группой UI и краем экрана (в UI-единицах).
+pub const UI_EDGE_MARGIN: f32 = 0.10;
 
 // === Рендер ===
 pub const DEPTH_CLEAR: f32 = 1.0;

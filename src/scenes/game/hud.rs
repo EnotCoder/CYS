@@ -38,6 +38,8 @@ pub struct GameHud {
     slot_tooltip_bg: Option<specs::Entity>,
     slot_tooltip_bg_key: Option<u64>,
     info_panel: Option<specs::Entity>,
+    // Сдвиг верхней группы (HUD-панель и счётчики) для прижатия к верху экрана
+    top_dy: f32,
     // Пульс счётчиков денег/еды при изменении значения: таймер пульса
     money_pulse: f64,
     food_pulse: f64,
@@ -74,6 +76,7 @@ impl GameHud {
             slot_tooltip_bg: None,
             slot_tooltip_bg_key: None,
             info_panel: None,
+            top_dy: 0.0,
             money_pulse: 0.0,
             food_pulse: 0.0,
             hover_alpha: 0.0,
@@ -136,9 +139,31 @@ impl GameHud {
 
     /// Создаёт полупрозрачную тёмную панель-подложку (угол экрана)
     pub fn create_info_panel(&mut self, ecs: &mut EcsAdapter, device: &wgpu::Device, queue: &wgpu::Queue) {
-        let panel = ecs.add_ui_sized(HUD_PANEL_X, HUD_PANEL_Y, HUD_PANEL_W, HUD_PANEL_H, "assets/tex/dev_tools/black.png", device, queue);
+        let panel = ecs.add_ui_sized(HUD_PANEL_X, HUD_PANEL_Y + self.top_dy, HUD_PANEL_W, HUD_PANEL_H, "assets/tex/dev_tools/black.png", device, queue);
         ecs.update_sprite_alpha(panel, 0.5);
         self.info_panel = Some(panel);
+    }
+
+    /// Задаёт сдвиг верхней группы HUD (прижатие к верхнему краю экрана).
+    pub fn set_top_offset(&mut self, dy: f32) {
+        self.top_dy = dy;
+    }
+
+    /// Переставляет уже созданные элементы HUD по актуальному сдвигу.
+    pub fn apply_layout(&mut self, ecs: &mut EcsAdapter) {
+        let dy = self.top_dy;
+        if let Some(e) = self.info_panel {
+            ecs.update_transform_position(e, HUD_PANEL_X, HUD_PANEL_Y + dy);
+        }
+        if let Some(e) = self.total_food_text {
+            ecs.update_transform_position(e, HUD_FOOD_X, HUD_FOOD_Y + dy);
+        }
+        if let Some(e) = self.money_text {
+            ecs.update_transform_position(e, HUD_MONEY_X, HUD_MONEY_Y + dy);
+        }
+        if let Some(e) = self.time_text {
+            ecs.update_transform_position(e, HUD_TIME_X, HUD_TIME_Y + dy);
+        }
     }
 
     // ====================================================================
@@ -195,7 +220,7 @@ impl GameHud {
             self.current_total_food = total_food;
             self.food_pulse = UI_PULSE_SECS;
             let text = format!("Food: {}", total_food);
-            let (entity, key) = text_renderer.set_text(ecs, device, queue, self.total_food_text, self.total_food_key, &text, 64.0, HUD_FOOD_X, HUD_FOOD_Y, 1.0, 4.0, WHITE);
+            let (entity, key) = text_renderer.set_text(ecs, device, queue, self.total_food_text, self.total_food_key, &text, 64.0, HUD_FOOD_X, HUD_FOOD_Y + self.top_dy, 1.0, 4.0, WHITE);
             self.total_food_text = entity;
             self.total_food_key = key;
         }
@@ -203,7 +228,7 @@ impl GameHud {
             self.current_money = money;
             self.money_pulse = UI_PULSE_SECS;
             let text = format!("Money: {}", money);
-            let (entity, key) = text_renderer.set_text(ecs, device, queue, self.money_text, self.money_key, &text, 64.0, HUD_MONEY_X, HUD_MONEY_Y, 1.0, 4.0, WHITE);
+            let (entity, key) = text_renderer.set_text(ecs, device, queue, self.money_text, self.money_key, &text, 64.0, HUD_MONEY_X, HUD_MONEY_Y + self.top_dy, 1.0, 4.0, WHITE);
             self.money_text = entity;
             self.money_key = key;
         }
@@ -242,7 +267,7 @@ impl GameHud {
         if time_str != self.current_time_string && self.time_update_timer >= 1.0 {
             self.time_update_timer = 0.0;
             self.current_time_string = time_str.to_string();
-            let (entity, key) = text_renderer.set_text(ecs, device, queue, self.time_text, self.time_key, time_str, 64.0, HUD_TIME_X, HUD_TIME_Y, 1.0, 4.0, WHITE);
+            let (entity, key) = text_renderer.set_text(ecs, device, queue, self.time_text, self.time_key, time_str, 64.0, HUD_TIME_X, HUD_TIME_Y + self.top_dy, 1.0, 4.0, WHITE);
             self.time_text = entity;
             self.time_key = key;
         }

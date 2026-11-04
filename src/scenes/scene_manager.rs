@@ -23,6 +23,9 @@ pub struct SceneManager {
     fps_sprite_key: Option<u64>,
     last_fps: u32,
     last_clear_count: u64,
+    // Последний сдвиг верхней группы UI: при его изменении (ресайз окна)
+    // строку FPS нужно пересоздать, иначе она останется на старом месте.
+    last_top_offset: f32,
 }
 
 impl SceneManager {
@@ -42,6 +45,7 @@ impl SceneManager {
             fps_sprite_key: None,
             last_fps: 0,
             last_clear_count: 0,
+            last_top_offset: 0.0,
         }
     }
 
@@ -71,11 +75,14 @@ impl SceneManager {
         queue: &wgpu::Queue,
     ) {
         let cleared = self.last_clear_count != self.ecs.clear_count;
-        if !cleared && fps == self.last_fps {
+        let top_dy = self.scenes.get(&self.current).map_or(0.0, |s| s.ui_top_offset());
+        let top_moved = (top_dy - self.last_top_offset).abs() > 1e-4;
+        if !cleared && fps == self.last_fps && !top_moved {
             return;
         }
         self.last_clear_count = self.ecs.clear_count;
         self.last_fps = fps;
+        self.last_top_offset = top_dy;
 
         let fps_text = format!("FPS: {}", fps);
 
@@ -89,7 +96,7 @@ impl SceneManager {
 
         let entity = text_renderer.add_text(
             &mut self.ecs, device, queue,
-            &fps_text, 64.0, 7.2, 4.0, 1.0, 4.0, WHITE,
+            &fps_text, 64.0, 7.2, 4.0 + top_dy, 1.0, 4.0, WHITE,
         );
 
         self.fps_entity = Some(entity);

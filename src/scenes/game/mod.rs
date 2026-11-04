@@ -118,6 +118,10 @@ pub struct GameScene {
     prev_mode: i32,
     // Масштаб UI для текущего соотношения сторон (адаптация под экран)
     ui_scale: f32,
+    // Сдвиги групп UI для прижатия к краям: хотбар/кнопки — к низу,
+    // HUD-панель — к верху (пересчитываются при смене масштаба).
+    bottom_dy: f32,
+    top_dy: f32,
     // Погодные частицы (снег зимой, дождь осенью)
     // Погодные частицы (снег зимой, дождь осенью)
     weather_fx: weather_fx::WeatherFx,
@@ -185,6 +189,8 @@ impl GameScene {
             prev_act_slot: 0,
             prev_mode: MODE_MOVE,
             ui_scale: 1.0,
+            bottom_dy: 0.0,
+            top_dy: 0.0,
             weather_fx: weather_fx::WeatherFx::new(),
             tutorial: tutorial::Tutorial::new(),
             tutorial_shown: false,
@@ -213,42 +219,77 @@ impl GameScene {
     fn setup_ui(&mut self, ecs: &mut crate::EcsAdapter, _text_renderer: &mut crate::ui::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) {
         self.slots = crate::data::get_slot_vec();
 
+        let dy = self.bottom_dy;
+
         // Иконки режима игры, активного состояния и кнопки инвентаря
-        let icon_mode = ecs.add_ui(ICON_MODE_X, SLOT_BAR_Y, MODE_ICON_TEX[self.mode as usize]);
-        let active_entity = ecs.add_ui(ACTIVE_X, SLOT_BAR_Y, TEX_ACTIVE);
+        let icon_mode = ecs.add_ui(ICON_MODE_X, SLOT_BAR_Y + dy, MODE_ICON_TEX[self.mode as usize]);
+        let active_entity = ecs.add_ui(ACTIVE_X, SLOT_BAR_Y + dy, TEX_ACTIVE);
         self.active_entity = Some(active_entity);
-        let inv_entity = ecs.add_ui(INV_BTN_X, SLOT_BAR_Y, TEX_INV_BUTTON);
+        let inv_entity = ecs.add_ui(INV_BTN_X, SLOT_BAR_Y + dy, TEX_INV_BUTTON);
         self.inv_entity = Some(inv_entity);
 
         // Кнопка магазина — правее кнопки инвентаря
-        let shop_entity = ecs.add_ui(SHOP_BTN_X, SLOT_BAR_Y, TEX_SHOP);
+        let shop_entity = ecs.add_ui(SHOP_BTN_X, SLOT_BAR_Y + dy, TEX_SHOP);
         self.shop_entity = Some(shop_entity);
 
-        let weather_entity = ecs.add_ui(WEATHER_BTN_X, WEATHER_BTN_Y, TEX_WEATHER);
+        let weather_entity = ecs.add_ui(WEATHER_BTN_X, WEATHER_BTN_Y + dy, TEX_WEATHER);
         self.weather_entity = Some(weather_entity);
 
-        // Кнопка настроек (иконка gear) в верхнем левом углу
-        let settings_entity = ecs.add_ui(SETTINGS_BTN_X, SETTINGS_BTN_Y, TEX_SETTINGS);
+        // Кнопка настроек (иконка gear) в левом нижнем углу, перед хотбаром
+        let settings_entity = ecs.add_ui(SETTINGS_BTN_X, SETTINGS_BTN_Y + dy, TEX_SETTINGS);
         self.settings_entity = Some(settings_entity);
 
         // Иконки всех слотов хотбара (сдвинуты на 1: кнопка настроек перед 1-м слотом)
         for (i, slot) in self.slots.iter().enumerate() {
             let icon_path = crate::core::util::slot_icon_path(slot.obj.name);
             let ent = ecs.add_ui(
-                HOTBAR_X + i as f32, SLOT_BAR_Y,
+                HOTBAR_X + i as f32, SLOT_BAR_Y + dy,
                 &icon_path,
             );
             self.slot_entities.push(ent);
         }
 
         // Рамка выбора активного слота и игровой курсор
-        let icons_slot_cursor = ecs.add_ui(HOTBAR_X, SLOT_BAR_Y, SLOT_CURSOR_TEX);
+        let icons_slot_cursor = ecs.add_ui(HOTBAR_X, SLOT_BAR_Y + dy, SLOT_CURSOR_TEX);
         self.icon_mode = Some(icon_mode);
         self.icons_slot_cursor = Some(icons_slot_cursor);
         self.cursor_entity = Some(ecs.add_cursor(0.0, 0.0, CURSOR_TEX[self.mode as usize]));
 
         self.hud.create_info_panel(ecs, device, queue);
         self.npc_walkable = crate::data::map::load_walkable_cells();
+    }
+
+    /// Переставляет постоянные элементы UI по актуальным сдвигам краёв.
+    /// Вызывается каждый кадр (после пересчёта масштаба), поэтому изменение
+    /// размера окна/ориентации сразу прижимает хотбар и HUD к краям.
+    pub fn apply_ui_layout(&mut self, ecs: &mut crate::EcsAdapter) {
+        let dy = self.bottom_dy;
+        if let Some(e) = self.settings_entity {
+            ecs.update_transform_position(e, SETTINGS_BTN_X, SETTINGS_BTN_Y + dy);
+        }
+        for (i, e) in self.slot_entities.iter().enumerate() {
+            ecs.update_transform_position(*e, HOTBAR_X + i as f32, SLOT_BAR_Y + dy);
+        }
+        if let Some(e) = self.icons_slot_cursor {
+            ecs.update_transform_position(e, HOTBAR_X + self.act_slot as f32, SLOT_BAR_Y + dy);
+        }
+        if let Some(e) = self.icon_mode {
+            ecs.update_transform_position(e, ICON_MODE_X, SLOT_BAR_Y + dy);
+        }
+        if let Some(e) = self.active_entity {
+            ecs.update_transform_position(e, ACTIVE_X, SLOT_BAR_Y + dy);
+        }
+        if let Some(e) = self.inv_entity {
+            ecs.update_transform_position(e, INV_BTN_X, SLOT_BAR_Y + dy);
+        }
+        if let Some(e) = self.shop_entity {
+            ecs.update_transform_position(e, SHOP_BTN_X, SLOT_BAR_Y + dy);
+        }
+        if let Some(e) = self.weather_entity {
+            ecs.update_transform_position(e, WEATHER_BTN_X, WEATHER_BTN_Y + dy);
+        }
+        self.inventory.apply_layout(ecs);
+        self.hud.apply_layout(ecs);
     }
 
     /// Двигает кадры анимации для всех анимированных спрайтов раз в секунду
@@ -525,6 +566,13 @@ impl Scene for GameScene {
             crate::core::constants::GAME_UI_HALF_W,
             crate::core::constants::GAME_UI_HALF_H,
         );
+        // Прижимаем хотбар/кнопки к нижнему краю, а HUD-панель — к верхнему:
+        // иначе на планшетах интерфейс «висит» полосами в центре экрана.
+        self.bottom_dy = crate::core::util::ui_bottom_offset(self.ui_scale);
+        self.top_dy = crate::core::util::ui_top_offset(self.ui_scale);
+        self.inventory.set_bottom_offset(self.bottom_dy);
+        self.hud.set_top_offset(self.top_dy);
+        self.apply_ui_layout(ecs);
 
         // Сохранённая настройка VSync применяется сразу при входе в игру
         if let Some(vsync) = self.pending_vsync.take() {
@@ -674,7 +722,7 @@ impl Scene for GameScene {
                 let (wx, wy) = crate::ui::system::ndc_to_ui(mx, my, window_size);
                 if input.mouse_pressed(winit::event::MouseButton::Left)
                     && (wx - SETTINGS_BTN_X).abs() < TILE_HALF
-                    && (wy - SETTINGS_BTN_Y).abs() < TILE_HALF {
+                    && (wy - (SETTINGS_BTN_Y + self.bottom_dy)).abs() < TILE_HALF {
                     if self.settings.open {
                         self.settings.close(ecs);
                     } else {
@@ -692,7 +740,7 @@ impl Scene for GameScene {
                 let (wx, wy) = crate::ui::system::ndc_to_ui(mx, my, window_size);
                 if input.mouse_pressed(winit::event::MouseButton::Left)
                     && (wx - SHOP_BTN_X).abs() < TILE_HALF
-                    && (wy - SLOT_BAR_Y).abs() < TILE_HALF {
+                    && (wy - (SLOT_BAR_Y + self.bottom_dy)).abs() < TILE_HALF {
                     if self.shop.open {
                         self.shop.close(ecs);
                         crate::audio::play("close");
@@ -715,7 +763,7 @@ impl Scene for GameScene {
                 let (wx, wy) = crate::ui::system::ndc_to_ui(mx, my, window_size);
                 if input.mouse_pressed(winit::event::MouseButton::Left)
                     && (wx - WEATHER_BTN_X).abs() < TILE_HALF
-                    && (wy - WEATHER_BTN_Y).abs() < TILE_HALF {
+                    && (wy - (WEATHER_BTN_Y + self.bottom_dy)).abs() < TILE_HALF {
                     if self.weather.open {
                         self.weather.close(ecs);
                         crate::audio::play("close");
@@ -869,7 +917,7 @@ impl Scene for GameScene {
             let result = crate::input::do_input(
                 input, ecs, &mut self.slots, self.act_slot, self.mode, self.map_size, self.zoom_step,
                 window_size, cursor, icon_mode, icons_slot_cursor, self.inventory.mode,
-                self.camera_offset_x, self.camera_offset_y,
+                self.camera_offset_x, self.camera_offset_y, self.bottom_dy,
             );
             self.act_slot = result.0;
             self.mode = result.1;
@@ -881,7 +929,7 @@ impl Scene for GameScene {
             if input.mouse_pressed(winit::event::MouseButton::Left) {
                 if let Some((mx, my)) = input.cursor() {
                     let (wx, wy) = crate::ui::system::ndc_to_ui(mx, my, window_size);
-                    if (wx - INV_BTN_X).abs() < TILE_HALF && (wy - SLOT_BAR_Y).abs() < TILE_HALF {
+                    if (wx - INV_BTN_X).abs() < TILE_HALF && (wy - (SLOT_BAR_Y + self.bottom_dy)).abs() < TILE_HALF {
                         if self.inventory.open {
                             self.inventory.exit(ecs);
                             crate::audio::play("close");
@@ -898,7 +946,7 @@ impl Scene for GameScene {
                 if let Some((mx, my)) = input.cursor() {
                     let (wx, wy) = crate::ui::system::ndc_to_ui(mx, my, window_size);
                     // Кнопка "открыт/закрыт": переключает доступность магазина для покупателей
-                    if (wx - ACTIVE_X).abs() < TILE_HALF && (wy - SLOT_BAR_Y).abs() < TILE_HALF {
+                    if (wx - ACTIVE_X).abs() < TILE_HALF && (wy - (SLOT_BAR_Y + self.bottom_dy)).abs() < TILE_HALF {
                         self.active = !self.active;
                         let tex = if self.active { TEX_ACTIVE } else { TEX_NO_ACTIVE };
                         if let Some(entity) = self.active_entity {
@@ -908,7 +956,7 @@ impl Scene for GameScene {
                         crate::audio::play("bell");
                     }
                     // --- Клик по mode ---
-                    if (wx - ICON_MODE_X).abs() < TILE_HALF && (wy - SLOT_BAR_Y).abs() < TILE_HALF {
+                    if (wx - ICON_MODE_X).abs() < TILE_HALF && (wy - (SLOT_BAR_Y + self.bottom_dy)).abs() < TILE_HALF {
                         let cursor = self.cursor_entity.unwrap();
                         let icon_mode = self.icon_mode.unwrap();
                         self.mode = crate::input::interact::cycle_mode(self.mode, ecs, cursor, icon_mode);
@@ -927,7 +975,7 @@ impl Scene for GameScene {
 
             // Пасхалка: всплывающая надпись после установки магазина (с cooldown)
             if show_ilm && self.ilm_cooldown <= 0.0 && self.ilm_entity.is_none() {
-                let ent = text_renderer.add_text(ecs, device, queue, "Minecraft", 48.0, 0.0, -3.0, 2.0, 1.0, WHITE);
+                let ent = text_renderer.add_text(ecs, device, queue, "Minecraft", 48.0, 0.0, -3.0 + self.bottom_dy, 2.0, 1.0, WHITE);
                 self.ilm_entity = Some(ent);
                 self.ilm_timer = 2.0;
                 self.ilm_cooldown = 5.0;
@@ -943,7 +991,7 @@ impl Scene for GameScene {
             ecs.world.write_resource::<PlacementError>().0 = None;
             if self.no_money_entity.is_none() {
                 let msg = format!("Not enough money: you have {}, but it costs {}", money, price);
-                let ent = text_renderer.add_text(ecs, device, queue, &msg, 40.0, 0.0, -3.0, 8.0, 1.0, RED);
+                let ent = text_renderer.add_text(ecs, device, queue, &msg, 40.0, 0.0, -3.0 + self.bottom_dy, 8.0, 1.0, RED);
                 self.no_money_entity = Some(ent);
                 self.no_money_timer = 2.0;
             }
@@ -1036,14 +1084,14 @@ impl Scene for GameScene {
             input.cursor().and_then(|(mx, my)| {
                 let (wx, wy) = crate::ui::system::ndc_to_ui(mx, my, window_size);
                 let col = (wx - SLOT_BAR_X + TILE_HALF) as i32;
-                let row = (wy - INVENTORY_BASE_Y + TILE_HALF) as i32;
+                let row = (wy - (INVENTORY_BASE_Y + self.bottom_dy) + TILE_HALF) as i32;
                 if col >= 0 && col < INVENTORY_COLS && row >= 0 && row < INVENTORY_ROWS {
                     let item_idx = crate::core::util::inventory_index(row, col) as usize;
                     let items = self.inventory.items();
                     if item_idx < items.len() {
                         let name = items[item_idx];
                         let price = crate::data::object_price(name, &self.config);
-                        Some((name.to_string(), price, SLOT_BAR_X + col as f32, INVENTORY_BASE_Y + row as f32 - 0.55))
+                        Some((name.to_string(), price, SLOT_BAR_X + col as f32, INVENTORY_BASE_Y + row as f32 - 0.55 + self.bottom_dy))
                     } else {
                         None
                     }
@@ -1116,6 +1164,10 @@ impl Scene for GameScene {
 
     fn ui_size(&self) -> f32 {
         self.ui_scale
+    }
+
+    fn ui_top_offset(&self) -> f32 {
+        self.top_dy
     }
 
     fn camera_offset(&self) -> (f32, f32) {

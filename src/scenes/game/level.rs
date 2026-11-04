@@ -201,26 +201,27 @@ impl GameScene {
 
     /// Пересоздаёт UI-сущности сцены после смены уровня (т.к. мир очищен)
     pub fn rebuild_ui(&mut self, ecs: &mut EcsAdapter, _text_renderer: &mut TextRenderer, device: &Device, queue: &Queue) {
+        let dy = self.bottom_dy;
         self.slot_entities.clear();
         for (i, slot) in self.slots.iter().enumerate() {
             let icon_path = crate::core::util::slot_icon_path(slot.obj.name);
-            let ent = ecs.add_ui(HOTBAR_X + i as f32, SLOT_BAR_Y, &icon_path);
+            let ent = ecs.add_ui(HOTBAR_X + i as f32, SLOT_BAR_Y + dy, &icon_path);
             self.slot_entities.push(ent);
         }
         let cursor_x = HOTBAR_X + self.act_slot as f32;
-        let icons_slot_cursor = ecs.add_ui(cursor_x, SLOT_BAR_Y, SLOT_CURSOR_TEX);
+        let icons_slot_cursor = ecs.add_ui(cursor_x, SLOT_BAR_Y + dy, SLOT_CURSOR_TEX);
         self.icons_slot_cursor = Some(icons_slot_cursor);
-        let icon_mode = ecs.add_ui(ICON_MODE_X, SLOT_BAR_Y, MODE_ICON_TEX[self.mode as usize]);
+        let icon_mode = ecs.add_ui(ICON_MODE_X, SLOT_BAR_Y + dy, MODE_ICON_TEX[self.mode as usize]);
         self.icon_mode = Some(icon_mode);
-        let active_entity = ecs.add_ui(ACTIVE_X, SLOT_BAR_Y, TEX_ACTIVE);
+        let active_entity = ecs.add_ui(ACTIVE_X, SLOT_BAR_Y + dy, TEX_ACTIVE);
         self.active_entity = Some(active_entity);
-        let inv_entity = ecs.add_ui(INV_BTN_X, SLOT_BAR_Y, TEX_INV_BUTTON);
+        let inv_entity = ecs.add_ui(INV_BTN_X, SLOT_BAR_Y + dy, TEX_INV_BUTTON);
         self.inv_entity = Some(inv_entity);
-        let shop_entity = ecs.add_ui(SHOP_BTN_X, SLOT_BAR_Y, TEX_SHOP);
+        let shop_entity = ecs.add_ui(SHOP_BTN_X, SLOT_BAR_Y + dy, TEX_SHOP);
         self.shop_entity = Some(shop_entity);
-        let weather_entity = ecs.add_ui(WEATHER_BTN_X, WEATHER_BTN_Y, TEX_WEATHER);
+        let weather_entity = ecs.add_ui(WEATHER_BTN_X, WEATHER_BTN_Y + dy, TEX_WEATHER);
         self.weather_entity = Some(weather_entity);
-        let settings_entity = ecs.add_ui(SETTINGS_BTN_X, SETTINGS_BTN_Y, TEX_SETTINGS);
+        let settings_entity = ecs.add_ui(SETTINGS_BTN_X, SETTINGS_BTN_Y + dy, TEX_SETTINGS);
         self.settings_entity = Some(settings_entity);
         self.cursor_entity = Some(ecs.add_cursor(0.0, 0.0, CURSOR_TEX[self.mode as usize]));
 

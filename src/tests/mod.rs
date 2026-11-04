@@ -570,6 +570,49 @@ fn ui_fit_scale_fits_the_whole_ui_box() {
             "на планшете 4:3 интерфейс должен ужиматься, а не обрезаться");
 }
 
+#[test]
+fn ui_groups_hug_the_screen_edges() {
+    use crate::core::constants::{
+        GAME_UI_HALF_H, GAME_UI_HALF_W, HUD_PANEL_H, HUD_PANEL_Y, SLOT_BAR_Y, TILE_HALF,
+        UI_EDGE_MARGIN,
+    };
+    use crate::core::util::{ui_bottom_offset, ui_fit_scale, ui_top_offset, ui_visible_half_h};
+
+    // Телефон 20:9, ноутбук 16:9, планшет 16:10, планшет 4:3 и квадрат.
+    for &aspect in &[20.0 / 9.0f32, 16.0 / 9.0, 16.0 / 10.0, 4.0 / 3.0, 1.0] {
+        let s = ui_fit_scale(aspect, GAME_UI_HALF_W, GAME_UI_HALF_H);
+        let half_h = ui_visible_half_h(s);
+        let bottom = ui_bottom_offset(s);
+        let top = ui_top_offset(s);
+
+        // Нижняя кромка хотбара — на UI_EDGE_MARGIN от нижнего края экрана.
+        let hotbar_edge = SLOT_BAR_Y + bottom - TILE_HALF;
+        let expected_bottom = -half_h + UI_EDGE_MARGIN;
+        assert!((hotbar_edge - expected_bottom).abs() < 1e-4,
+                "aspect {aspect}: кромка хотбара {hotbar_edge} != {expected_bottom}");
+
+        // Верхняя кромка HUD-панели — на UI_EDGE_MARGIN от верхнего края.
+        let panel_edge = HUD_PANEL_Y + top + HUD_PANEL_H * 0.5;
+        let expected_top = half_h - UI_EDGE_MARGIN;
+        assert!((panel_edge - expected_top).abs() < 1e-4,
+                "aspect {aspect}: кромка HUD {panel_edge} != {expected_top}");
+
+        // Нижняя группа двигается только вниз, верхняя — только вверх.
+        assert!(bottom < 0.0, "aspect {aspect}: хотбар должен прижиматься вниз, а не вверх");
+        assert!(top > 0.0, "aspect {aspect}: HUD должен прижиматься вверх, а не вниз");
+        assert!(hotbar_edge > -half_h && panel_edge < half_h,
+                "aspect {aspect}: группы не должны уезжать за экран");
+    }
+
+    // Чем уже/ниже экран, тем сильнее разъезжаются группы к краям.
+    let wide = ui_fit_scale(16.0 / 9.0, GAME_UI_HALF_W, GAME_UI_HALF_H);
+    let tablet = ui_fit_scale(4.0 / 3.0, GAME_UI_HALF_W, GAME_UI_HALF_H);
+    assert!(ui_bottom_offset(tablet) < ui_bottom_offset(wide),
+            "на планшете хотбар должен опускаться ниже, чем на 16:9");
+    assert!(ui_top_offset(tablet) > ui_top_offset(wide),
+            "на планшете HUD должен подниматься выше, чем на 16:9");
+}
+
 // ========================================================================
 //  Виртуальные пути «текстура@WxH» (растянутые на несколько клеток)
 // ========================================================================

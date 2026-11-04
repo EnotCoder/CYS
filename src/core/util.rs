@@ -60,6 +60,27 @@ pub fn ui_fit_scale(aspect: f32, half_width_world: f32, half_height_world: f32) 
     fit_width.min(fit_height).clamp(crate::core::constants::UI_MIN_SCALE, 1.0)
 }
 
+/// Видимая полувысота UI-пространства при масштабе `ui_scale`
+/// (половина экрана в UI-единицах от центра).
+pub fn ui_visible_half_h(ui_scale: f32) -> f32 {
+    1.0 / (SHADER_SCALE * ui_scale.max(0.01))
+}
+
+/// Вертикальный сдвиг нижней группы UI (хотбар, кнопки, инвентарь):
+/// прижимает её нижнюю кромку к нижнему краю экрана с полем UI_EDGE_MARGIN.
+/// На узких/планшетных экранах сдвиг отрицательный, на широких — почти ноль.
+pub fn ui_bottom_offset(ui_scale: f32) -> f32 {
+    use crate::core::constants::{HOTBAR_BOTTOM, UI_EDGE_MARGIN};
+    -ui_visible_half_h(ui_scale) + UI_EDGE_MARGIN - HOTBAR_BOTTOM
+}
+
+/// Вертикальный сдвиг верхней группы UI (HUD-панель со счётчиками):
+/// прижимает её верхнюю кромку к верхнему краю экрана с полем UI_EDGE_MARGIN.
+pub fn ui_top_offset(ui_scale: f32) -> f32 {
+    use crate::core::constants::{HUD_PANEL_TOP, UI_EDGE_MARGIN};
+    ui_visible_half_h(ui_scale) - UI_EDGE_MARGIN - HUD_PANEL_TOP
+}
+
 // Индекс предмета в списке текущей вкладки по координатам сетки (row/col).
 // Сетка нумеруется сверху вниз, поэтому строки переворачиваются
 pub fn inventory_index(row: i32, col: i32) -> i32 {

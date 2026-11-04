@@ -34,6 +34,7 @@ pub fn do_input(
     inventory_mode: bool,
     cam_x: f32,
     cam_y: f32,
+    ui_bottom_dy: f32,
 ) -> (i32, i32, f32, bool, i32) {
     // Зум колесом или клавишами K/L (в пределах min..max)
     let new_size = camera::handle_zoom(input, map_size, zoom_step);
@@ -50,11 +51,12 @@ pub fn do_input(
         // вызывать действие в мире — в этом случае ввод пропускается
         let skip = inventory_mode || input.cursor().map_or(false, |(mx, my)| {
             let (wx, wy) = crate::ui::system::ndc_to_ui(mx, my, window_size);
+            let slot_y = SLOT_BAR_Y + ui_bottom_dy;
             let col = (wx - HOTBAR_X + TILE_HALF) as i32;
-            let on_slot = (wy - SLOT_BAR_Y).abs() < TILE_HALF && col >= 0 && col < slots.len() as i32;
-            let on_icons = (wy - SLOT_BAR_Y).abs() < TILE_HALF
+            let on_slot = (wy - slot_y).abs() < TILE_HALF && col >= 0 && col < slots.len() as i32;
+            let on_icons = (wy - slot_y).abs() < TILE_HALF
                 && ((wx - ICON_MODE_X).abs() < TILE_HALF || (wx - ACTIVE_X).abs() < TILE_HALF);
-            let on_inv_btn = (wy - SLOT_BAR_Y).abs() < TILE_HALF && (wx - INV_BTN_X).abs() < TILE_HALF;
+            let on_inv_btn = (wy - slot_y).abs() < TILE_HALF && (wx - INV_BTN_X).abs() < TILE_HALF;
             on_slot || on_icons || on_inv_btn
         });
         if !skip {

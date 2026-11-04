@@ -71,7 +71,7 @@ are never reused, and the list is sorted by `updated` when displayed.
 ```
 
 Names are unique: `create_world_with_name` appends `(1)`, `(2)`… on collision,
-and an empty name becomes `Мир`.
+and an empty name becomes `World`.
 
 ## World save
 

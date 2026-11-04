@@ -266,7 +266,7 @@ fn remove_basement_frees_the_slot() {
 //  remove — пересчёт стен (синтетическая карта)
 // ========================================================================
 
-/// Мир с одной строкой сетки на y = 0: колонки 26/27/28 = gx 0/1/2.
+/// World with one grid row at y = 0: columns 26/27/28 = gx 0/1/2.
 fn synthetic_ecs(cells: &[(i32, &str)], originals: &[(i32, &str)]) -> EcsAdapter {
     let mut ecs = new_ecs();
     let mut grid = vec![vec![".".to_string(); 30]; 15];

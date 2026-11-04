@@ -162,16 +162,16 @@ fn meta(name: &str) -> WorldMeta {
 
 #[test]
 fn unique_world_name_trims_and_resolves_collisions() {
-    assert_eq!(unique_world_name(&[], ""), "Мир");
-    assert_eq!(unique_world_name(&[], "   "), "Мир");
-    assert_eq!(unique_world_name(&[], "  Имя  "), "Имя");
-    assert_eq!(unique_world_name(&[meta("Мир")], ""), "Мир(1)");
-    assert_eq!(unique_world_name(&[meta("Мир")], "Мир"), "Мир(1)");
+    assert_eq!(unique_world_name(&[], ""), "World");
+    assert_eq!(unique_world_name(&[], "   "), "World");
+    assert_eq!(unique_world_name(&[], "  Name  "), "Name");
+    assert_eq!(unique_world_name(&[meta("World")], ""), "World(1)");
+    assert_eq!(unique_world_name(&[meta("World")], "World"), "World(1)");
     assert_eq!(
-        unique_world_name(&[meta("Мир"), meta("Мир(1)")], "Мир"),
-        "Мир(2)"
+        unique_world_name(&[meta("World"), meta("World(1)")], "World"),
+        "World(2)"
     );
-    assert_eq!(unique_world_name(&[meta("Другой")], "Мир"), "Мир");
+    assert_eq!(unique_world_name(&[meta("Other")], "World"), "World");
 }
 
 // ========================================================================

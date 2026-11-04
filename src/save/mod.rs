@@ -68,7 +68,7 @@ pub fn list_worlds() -> Vec<WorldMeta> {
 
 /// Создаёт новый мир с заданным именем: резервирует уникальный id,
 /// подбирает не совпадающее с другими мирами имя (при коллизии добавляет
-/// суффикс "(N)", например "Мир" -> "Мир(1)"), обновляет манифест.
+/// суффикс "(N)", например "World" -> "World(1)"), обновляет манифест.
 /// Файл сохранения появится при первом автосохранении.
 pub fn create_world_with_name(desired: &str) -> WorldMeta {
     let mut m = read_manifest();
@@ -89,7 +89,7 @@ pub fn create_world_with_name(desired: &str) -> WorldMeta {
 /// Подбирает уникальное имя: если базовое занято, добавляет "(1)", "(2)", ...
 pub(crate) fn unique_world_name(worlds: &[WorldMeta], desired: &str) -> String {
     let base = desired.trim();
-    let base = if base.is_empty() { "Мир" } else { base }.to_string();
+    let base = if base.is_empty() { "World" } else { base }.to_string();
     if !worlds.iter().any(|w| w.name == base) {
         return base;
     }

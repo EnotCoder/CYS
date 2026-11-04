@@ -187,7 +187,7 @@ impl App {
         // Обновляем количество источников света в Size uniform
         let light_count = lights.len() as u32;
 
-        // Мировые uniform'ы: карта, камера и освещение для мировых шейдеров
+        // World uniforms: map, camera and lighting for world shaders
         let size_data = Size { 
             map_size: ms, 
             aspect, 

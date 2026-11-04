@@ -52,17 +52,17 @@ impl Settings {
             open: false,
             panel: Panel::new(0.0, 0.0, 9.0, 6.0, 0.85),
             title: None,
-            vsync: Checkbox::new(-1.4, 0.3, "Vertical Sync", true),
+            vsync: Checkbox::new(-1.4, 1.2, "Vertical Sync", true),
             vsync_toggled: false,
-            zoom_speed: Slider::new(-0.1, -0.4, "Zoom Speed", 0.02, 0.3, 0.1),
+            zoom_speed: Slider::new(-0.1, 0.2, "Zoom Speed", 0.02, 0.3, 0.1),
             zoom_speed_changed: false,
-            music: Checkbox::new(-1.4, -1.1, "Music", true),
-            sfx: Checkbox::new(-1.4, -1.8, "Sound Effects", true),
+            music: Checkbox::new(-1.4, -0.9, "Game music", true),
+            sfx: Checkbox::new(-1.4, -1.5, "Sound Effects", true),
             music_toggled: false,
             sfx_toggled: false,
             checkbox_scale: 1.0,
             slider_scale: 1.0,
-            menu_button: Button::new(0.0, -2.55, 3.0, 0.7, "В меню"),
+            menu_button: Button::new(0.0, -2.55, 3.0, 0.7, "Back to menu"),
             menu_requested: false,
             anim: PanelAnim::new(),
         }
@@ -144,7 +144,7 @@ impl Settings {
         create_checkbox(ecs, text_renderer, device, queue, &mut self.music);
         create_checkbox(ecs, text_renderer, device, queue, &mut self.sfx);
         create_button(ecs, text_renderer, device, queue, &mut self.menu_button);
-        let title = text_renderer.add_text(ecs, device, queue, "Settings", 64.0, 0.0, 1.8, 4.0, 2.0, WHITE);
+        let title = text_renderer.add_text(ecs, device, queue, "Settings", 64.0, 0.0, 2.2, 4.0, 2.0, WHITE);
         self.title = Some(title);
 
         let ents = self.collect_entities();

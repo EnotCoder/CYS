@@ -174,7 +174,7 @@ impl TextRenderer {
         &self.tex_cache[&key]
     }
 
-    /// Мировые размеры текста при заданной ширине (высота сохраняет пропорции растров).
+    /// World-space text size for a given width (height keeps bitmap proportions).
     pub fn text_world_size(
         &mut self,
         text: &str,

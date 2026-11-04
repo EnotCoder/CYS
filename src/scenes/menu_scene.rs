@@ -547,7 +547,7 @@ impl MenuScene {
         if let Some(ref nb) = self.new_btn {
             if clicked(input, nb.x, nb.y, nb.w, nb.h) {
                 crate::audio::play("click");
-                self.name_buffer = "Мир".to_string();
+                self.name_buffer = "World".to_string();
                 TEXT_INPUT.request_focus_with_text(&self.name_buffer);
                 self.state = MenuState::Naming;
                 self.setup_content(ecs, text_renderer, device, queue);
@@ -719,7 +719,7 @@ impl MenuScene {
     /// Подтверждает ввод: создаёт мир с уникальным именем и запускает игру.
     fn confirm_naming(&mut self, _ecs: &mut crate::EcsAdapter, _text_renderer: &mut crate::ui::text_renderer::TextRenderer, _device: &wgpu::Device, _queue: &wgpu::Queue, name: &str) -> SceneAction {
         let name = name.trim();
-        let name = if name.is_empty() { "Мир" } else { name };
+        let name = if name.is_empty() { "World" } else { name };
         let meta = create_world_with_name(name);
         TEXT_INPUT.set_active(false);
         *SELECTED_WORLD.lock().unwrap() = WorldSelection::New(meta.id);

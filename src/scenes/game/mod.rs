@@ -650,7 +650,11 @@ impl Scene for GameScene {
             if self.weather.open {
                 self.weather.close(ecs);
             } else if self.shop.open {
-                self.shop.close(ecs);
+                if self.shop.confirming() {
+                    self.shop.close_confirm(ecs);
+                } else {
+                    self.shop.close(ecs);
+                }
             } else if self.settings.open {
                 self.settings.close(ecs);
             } else {
@@ -789,6 +793,36 @@ impl Scene for GameScene {
                 self.refresh_grass_tiles(ecs);
             }
         } else if self.shop.open {
+            // --- Диалог подтверждения покупки: каталог не реагирует, пока он открыт ---
+            if self.shop.confirming() {
+                match self.shop.confirm_action(input, window_size) {
+                    Some(crate::ui::shop::ConfirmAction::Buy) => {
+                        if let Some((name, price)) = self.shop.pending_purchase() {
+                            let money = ecs.world.read_resource::<Money>().0;
+                            if money >= price {
+                                ecs.world.write_resource::<Money>().0 = money - price;
+                                ecs.world.write_resource::<ShopOwned>().0.push(name);
+                                crate::audio::play("buy");
+                                let items = self.shop_items(ecs);
+                                self.shop.refresh(ecs, text_renderer, device, queue, &items);
+                                self.shop.close_confirm(ecs);
+                            } else {
+                                // Денег не хватает: закрываем диалог и показываем
+                                // ту же красную подсказку, что и раньше.
+                                self.shop.close_confirm(ecs);
+                                ecs.world.write_resource::<PlacementError>().0 = Some((money, price));
+                            }
+                        }
+                    }
+                    Some(crate::ui::shop::ConfirmAction::Close) => {
+                        self.shop.close_confirm(ecs);
+                        crate::audio::play("close");
+                    }
+                    None => {}
+                }
+                return SceneAction::None;
+            }
+
             // --- Магазин открыт: скролл + клики по каталогу ---
             let items = self.shop_items(ecs);
             let prev_scroll = self.shop.scroll_offset;
@@ -800,20 +834,11 @@ impl Scene for GameScene {
             if !self.shop.thumb_dragging {
                 if let Some(idx) = self.shop.row_clicked(input, window_size) {
                     if let Some(name) = shop_names.get(idx) {
-                        let name = name.to_string();
-                        let owned = ecs.world.read_resource::<ShopOwned>().0.iter().any(|o| o == &name);
+                        let owned = ecs.world.read_resource::<ShopOwned>().0.iter().any(|o| o == name);
                         if !owned {
-                            let price = crate::data::object_price(&name, &self.config);
-                            let money = ecs.world.read_resource::<Money>().0;
-                            if money >= price {
-                                ecs.world.write_resource::<Money>().0 = money - price;
-                                ecs.world.write_resource::<ShopOwned>().0.push(name.clone());
-                                crate::audio::play("buy");
-                                let items = self.shop_items(ecs);
-                                self.shop.refresh(ecs, text_renderer, device, queue, &items);
-                            } else {
-                                ecs.world.write_resource::<PlacementError>().0 = Some((money, price));
-                            }
+                            let price = crate::data::object_price(name, &self.config);
+                            self.shop.open_confirm(ecs, text_renderer, device, queue, name, price);
+                            crate::audio::play("click");
                         }
                     }
                     return SceneAction::None;

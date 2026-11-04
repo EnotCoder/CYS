@@ -42,6 +42,11 @@ pub const Z_UI_TEXT: f32 = 3.005;
 // а текст тултипа — поверх своего фона.
 pub const Z_UI_TOOLTIP_BG: f32 = 3.01;
 pub const Z_UI_TOOLTIP_TEXT: f32 = 3.02;
+// Модальный диалог магазина (подтверждение покупки): затемнение фона,
+// панель и её текст — поверх обычного UI и тултипов.
+pub const Z_UI_DIALOG_DIM: f32 = 3.03;
+pub const Z_UI_DIALOG: f32 = 3.035;
+pub const Z_UI_DIALOG_TEXT: f32 = 3.04;
 
 // Кнопка «В меню» на экране банкротства (координаты UI, мировые единицы).
 pub const BANKRUPT_BTN_X: f32 = 0.0;

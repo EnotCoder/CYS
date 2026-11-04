@@ -8,7 +8,7 @@ use crate::ui::text_renderer::TextRenderer;
 use crate::core::constants::*;
 use crate::EcsAdapter;
 use crate::input::platform::InputSource;
-use crate::ui::system::is_clicked;
+use crate::ui::system::{is_clicked, is_inside, ndc_to_ui};
 
 const ROW_START_Y: f32 = 1.4;
 const ROW_STEP: f32 = -1.1;
@@ -23,12 +23,43 @@ const SCROLLBAR_TOP: f32 = 2.0;
 const SCROLLBAR_BOT: f32 = -2.5;
 const SCROLLBAR_H: f32 = 4.0;
 
+// Диалог подтверждения покупки: размеры панели и кнопок.
+const CONFIRM_W: f32 = 5.6;
+const CONFIRM_H: f32 = 3.2;
+const CONFIRM_BTN_Y: f32 = -1.0;
+const CONFIRM_BTN_W: f32 = 2.2;
+const CONFIRM_BTN_H: f32 = 0.8;
+const CONFIRM_BUY_X: f32 = -1.35;
+const CONFIRM_CLOSE_X: f32 = 1.35;
+
 struct ShopRow {
     icon: Entity,
     label: Entity,
     item_idx: usize,
     x: f32,
     y: f32,
+}
+
+/// Что выбрал игрок в диалоге подтверждения.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ConfirmAction {
+    Buy,
+    Close,
+}
+
+/// Диалог «купить или закрыть» поверх каталога магазина.
+struct ConfirmDialog {
+    dim: Entity,
+    panel: Entity,
+    title: Entity,
+    name_label: Entity,
+    price_label: Entity,
+    buy_bg: Entity,
+    buy_label: Entity,
+    close_bg: Entity,
+    close_label: Entity,
+    item_name: String,
+    price: i32,
 }
 
 pub struct Shop {
@@ -44,6 +75,7 @@ pub struct Shop {
     thumb_grab_y: f32,
     thumb_grab_offset: f32,
     anim: PanelAnim,
+    confirm: Option<ConfirmDialog>,
 }
 
 pub type ShopItem = (String, String, i32, bool);
@@ -180,6 +212,7 @@ impl Shop {
             thumb_grab_y: 0.0,
             thumb_grab_offset: 0.0,
             anim: PanelAnim::new(),
+            confirm: None,
         }
     }
 
@@ -204,6 +237,7 @@ impl Shop {
 
     // Убирает сущности и обнуляет поля (вызывается по завершении закрытия).
     fn destroy_content(&mut self, ecs: &mut EcsAdapter) {
+        self.close_confirm(ecs);
         destroy_panel(ecs, &mut self.panel);
         clear_rows(ecs, &mut self.rows);
         if let Some(e) = self.track.take() {
@@ -216,6 +250,7 @@ impl Shop {
 
     pub fn open(&mut self, ecs: &mut EcsAdapter, tr: &mut TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue, items: &[ShopItem]) {
         if self.open { return; }
+        self.close_confirm(ecs);
         if self.anim.is_active() {
             self.anim.cancel(ecs);
             self.destroy_content(ecs);
@@ -249,6 +284,7 @@ impl Shop {
     pub fn close(&mut self, ecs: &mut EcsAdapter) {
         if !self.open { return; }
         self.open = false;
+        self.close_confirm(ecs);
         self.thumb_dragging = false;
         self.touch_scroll_start = None;
         let ents = self.collect_entities();
@@ -284,6 +320,99 @@ impl Shop {
         for r in self.rows.iter() {
             if is_clicked(input, window_size, r.x, r.y, COL_HALF_W, ROW_HALF_H) {
                 return Some(r.item_idx);
+            }
+        }
+        None
+    }
+
+    // ====================================================================
+    //  Диалог подтверждения покупки
+    // ====================================================================
+
+    pub fn confirming(&self) -> bool {
+        self.confirm.is_some()
+    }
+
+    /// Предмет, ожидающий подтверждения: (имя, цена).
+    pub fn pending_purchase(&self) -> Option<(String, i32)> {
+        self.confirm.as_ref().map(|c| (c.item_name.clone(), c.price))
+    }
+
+    /// Открывает диалог «купить или закрыть» для выбранного предмета.
+    pub fn open_confirm(&mut self, ecs: &mut EcsAdapter, tr: &mut TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue, name: &str, price: i32) {
+        self.close_confirm(ecs);
+
+        // Затемнение каталога: диалог должен читаться как модальное окно.
+        let dim = ecs.add_ui_sized(0.0, 0.0, 24.0, 16.0, "assets/tex/dev_tools/black.png", device, queue);
+        ecs.update_sprite_alpha(dim, 0.35);
+        ecs.update_transform_z(dim, Z_UI_DIALOG_DIM);
+
+        // Отдельная текстура без заголовка «SHOP» и с пропорциями под диалог.
+        let panel = ecs.add_ui_sized(0.0, 0.0, CONFIRM_W, CONFIRM_H, "assets/tex/ui/confirm_panel.png", device, queue);
+        ecs.update_transform_z(panel, Z_UI_DIALOG);
+
+        let title = tr.add_text(ecs, device, queue, "Buy item?", 48.0, 0.0, 1.05, 4.0, 2.0, GOLD);
+        ecs.update_transform_z(title, Z_UI_DIALOG_TEXT);
+        let mut display_name = name.replace('_', " ");
+        if let Some(c) = display_name.get_mut(0..1) {
+            c.make_ascii_uppercase();
+        }
+        let name_label = tr.add_text(ecs, device, queue, &display_name, 40.0, 0.0, 0.4, 4.8, 1.5, WHITE);
+        ecs.update_transform_z(name_label, Z_UI_DIALOG_TEXT);
+        let price_text = format!("Price: ${}", price);
+        let price_label = tr.add_text(ecs, device, queue, &price_text, 36.0, 0.0, -0.1, 3.0, 1.5, WHITE);
+        ecs.update_transform_z(price_label, Z_UI_DIALOG_TEXT);
+
+        let buy_bg = ecs.add_ui_sized(CONFIRM_BUY_X, CONFIRM_BTN_Y, CONFIRM_BTN_W, CONFIRM_BTN_H, "assets/tex/dev_tools/black.png", device, queue);
+        ecs.update_sprite_alpha(buy_bg, 0.9);
+        ecs.update_transform_z(buy_bg, Z_UI_DIALOG);
+        let buy_label = tr.add_text(ecs, device, queue, "Buy", 44.0, CONFIRM_BUY_X, CONFIRM_BTN_Y, 1.5, 1.5, GREEN);
+        ecs.update_transform_z(buy_label, Z_UI_DIALOG_TEXT);
+
+        let close_bg = ecs.add_ui_sized(CONFIRM_CLOSE_X, CONFIRM_BTN_Y, CONFIRM_BTN_W, CONFIRM_BTN_H, "assets/tex/dev_tools/black.png", device, queue);
+        ecs.update_sprite_alpha(close_bg, 0.9);
+        ecs.update_transform_z(close_bg, Z_UI_DIALOG);
+        let close_label = tr.add_text(ecs, device, queue, "Close", 44.0, CONFIRM_CLOSE_X, CONFIRM_BTN_Y, 1.5, 1.5, WHITE);
+        ecs.update_transform_z(close_label, Z_UI_DIALOG_TEXT);
+
+        self.confirm = Some(ConfirmDialog {
+            dim, panel, title, name_label, price_label,
+            buy_bg, buy_label, close_bg, close_label,
+            item_name: name.to_string(),
+            price,
+        });
+    }
+
+    /// Удаляет сущности диалога; безопасно вызывать без открытого диалога.
+    pub fn close_confirm(&mut self, ecs: &mut EcsAdapter) {
+        let Some(c) = self.confirm.take() else { return };
+        for e in [
+            c.dim, c.panel, c.title, c.name_label, c.price_label,
+            c.buy_bg, c.buy_label, c.close_bg, c.close_label,
+        ] {
+            ecs.delete_entity(e);
+        }
+    }
+
+    /// true, если точка (wx, wy) внутри панели диалога.
+    fn confirm_hit(&self, wx: f32, wy: f32) -> bool {
+        is_inside(wx, wy, 0.0, 0.0, CONFIRM_W / 2.0, CONFIRM_H / 2.0)
+    }
+
+    /// Опрос диалога: Buy / Close (в том числе клик вне панели диалога).
+    pub fn confirm_action(&self, input: &dyn InputSource, window_size: (f32, f32)) -> Option<ConfirmAction> {
+        self.confirm.as_ref()?;
+        if is_clicked(input, window_size, CONFIRM_BUY_X, CONFIRM_BTN_Y, CONFIRM_BTN_W / 2.0, CONFIRM_BTN_H / 2.0) {
+            return Some(ConfirmAction::Buy);
+        }
+        if is_clicked(input, window_size, CONFIRM_CLOSE_X, CONFIRM_BTN_Y, CONFIRM_BTN_W / 2.0, CONFIRM_BTN_H / 2.0) {
+            return Some(ConfirmAction::Close);
+        }
+        if input.mouse_pressed(winit::event::MouseButton::Left) {
+            let Some((mx, my)) = input.cursor() else { return None };
+            let (wx, wy) = ndc_to_ui(mx, my, window_size);
+            if !self.confirm_hit(wx, wy) {
+                return Some(ConfirmAction::Close);
             }
         }
         None

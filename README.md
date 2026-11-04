@@ -16,11 +16,6 @@ shelves, serve shopper NPCs and keep the business afloat.
 
 ![Gameplay](img/prev.png)
 
-| | |
-|---|---|
-| ![Shop](img/1.png) | ![Basement](img/2.png) |
-| ![Building](img/3.png) | ![Inventory](img/icon.png) |
-
 ## Build & run
 
 ```sh

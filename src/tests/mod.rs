@@ -9,6 +9,7 @@
 
 mod anim_tests;
 mod data_integrity;
+mod docs;
 mod group_tests;
 mod helpers;
 mod input_tests;

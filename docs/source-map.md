@@ -167,11 +167,13 @@ is missing from this map.
 - **`src/ui/mod.rs`** — declares `anim`, `components`, `fps`, `inventory`,
   `settings`, `shop`, `system`, `text_input`, `text_renderer`, `weather`;
   re-exports components and system helpers.
-- **`src/ui/components.rs`** — element descriptions: `Panel`, `Button`,
-  `Checkbox` (with `sprite_key`), `Slider` (track, thumb, `dragging`).
+- **`src/ui/components.rs`** — element descriptions: `Panel` (optional
+  texture), `Button`, `Checkbox` (with `sprite_key`, `hover_scale`), `Slider`
+  (track, thumb, `dragging`, `hover_scale`).
 - **`src/ui/system.rs`** — UI creation and deletion: `ndc_to_ui`, `is_inside`,
-  `is_clicked`, factories and destructors, `slider_drag`,
-  `update_slider_thumb`.
+  `is_clicked`, factories and destructors (`TEX_BUTTON` backgrounds),
+  `slider_drag`, `update_slider_thumb`, per-widget hover scaling
+  (`update_checkbox_hover`, `update_slider_hover`).
 - **`src/ui/inventory.rs`** — `Inventory`: grid and tabs, `items`, `switch_tab`,
   grid clicks, move to the hotbar.
 - **`src/ui/settings.rs`** — settings panel: VSync (`vsync_toggled`), zoom

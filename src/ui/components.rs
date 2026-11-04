@@ -17,12 +17,19 @@ pub struct Panel {
     pub w: f32,
     pub h: f32,
     pub alpha: f32,
+    /// Текстура подложки; None — стандартная чёрная заливка.
+    pub texture: Option<&'static str>,
     pub entity: Option<Entity>,
 }
 
 impl Panel {
     pub fn new(x: f32, y: f32, w: f32, h: f32, alpha: f32) -> Self {
-        Self { x, y, w, h, alpha, entity: None }
+        Self { x, y, w, h, alpha, texture: None, entity: None }
+    }
+
+    /// Подложка с собственной текстурой (например, кнопка меню).
+    pub fn textured(x: f32, y: f32, w: f32, h: f32, alpha: f32, texture: &'static str) -> Self {
+        Self { x, y, w, h, alpha, texture: Some(texture), entity: None }
     }
 }
 
@@ -52,6 +59,8 @@ pub struct Checkbox {
     pub label: String,
     pub font_size: f32,
     pub checked: bool,
+    /// Текущий масштаб галочки для hover-анимации.
+    pub hover_scale: f32,
     /// Спрайт-галочка (tex/ui/true.png или tex/ui/false.png)
     pub box_entity: Option<Entity>,
     pub box_sprite_key: Option<u64>,
@@ -62,7 +71,7 @@ pub struct Checkbox {
 
 impl Checkbox {
     pub fn new(x: f32, y: f32, label: &str, checked: bool) -> Self {
-        Self { x, y, label: label.to_string(), font_size: 48.0, checked, box_entity: None, box_sprite_key: None, label_entity: None, label_sprite_key: None }
+        Self { x, y, label: label.to_string(), font_size: 48.0, checked, hover_scale: 1.0, box_entity: None, box_sprite_key: None, label_entity: None, label_sprite_key: None }
     }
 }
 
@@ -78,6 +87,8 @@ pub struct Slider {
     pub label: String,
     pub font_size: f32,
     pub dragging: bool,
+    /// Текущий масштаб ползунка для hover-анимации.
+    pub hover_scale: f32,
     pub track: Option<Entity>,
     pub thumb: Option<Entity>,
     pub label_entity: Option<Entity>,
@@ -92,6 +103,7 @@ impl Slider {
             label: label.to_string(),
             font_size: 50.0,
             dragging: false,
+            hover_scale: 1.0,
             track: None, thumb: None,
             label_entity: None, label_sprite_key: None,
         }

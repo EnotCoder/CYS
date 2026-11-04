@@ -146,6 +146,9 @@ pub const WEATHER_BTN_X: f32 = ICON_MODE_X + 1.0;
 pub const WEATHER_BTN_Y: f32 = SLOT_BAR_Y + 1.0;
 pub const TEX_WEATHER: &str = "assets/tex/ui/weather.png";
 
+// Подложка кнопок (меню, диалоги, панель настроек).
+pub const TEX_BUTTON: &str = "assets/tex/ui/button/main.png";
+
 // === Текст (цвета, размеры) ===
 pub const WHITE: [u8; 3] = [255, 255, 255];
 pub const RED: [u8; 3] = [255, 60, 60];

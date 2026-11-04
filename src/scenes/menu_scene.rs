@@ -191,14 +191,14 @@ impl MenuScene {
         self.cursor_timer = 0.0;
 
         // Кнопка «Создать»
-        let mut cb = Panel::new(0.0, -1.0, 3.2, 0.8, 0.5);
+        let mut cb = Panel::textured(0.0, -1.0, 3.2, 0.8, 1.0, TEX_BUTTON);
         create_panel(ecs, device, queue, &mut cb);
         self.name_create_bg = Some(cb);
         let cl = text_renderer.add_text(ecs, device, queue, "Create", FONT_SIZE_BTN, 0.0, -0.95, 2.4, 1.0, BTN_TEXT_COLOR);
         self.name_create_label = Some(cl);
 
         // Кнопка «Назад»
-        let mut bb = Panel::new(0.0, -2.2, 3.2, 0.8, 0.5);
+        let mut bb = Panel::textured(0.0, -2.2, 3.2, 0.8, 1.0, TEX_BUTTON);
         create_panel(ecs, device, queue, &mut bb);
         self.name_back_bg = Some(bb);
         let bl = text_renderer.add_text(ecs, device, queue, "Back", FONT_SIZE_BTN, 0.0, -2.15, 2.4, 1.0, BTN_TEXT_COLOR);
@@ -206,9 +206,9 @@ impl MenuScene {
     }
 
     fn build_main(&mut self, ecs: &mut crate::EcsAdapter, text_renderer: &mut crate::ui::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) {
-        let mut play_panel = Panel::new(BTN_X, BTN_Y, BTN_W, BTN_H, 0.5);
+        let mut play_panel = Panel::textured(BTN_X, BTN_Y, BTN_W, BTN_H, 1.0, TEX_BUTTON);
         create_panel(ecs, device, queue, &mut play_panel);
-        let mut quit_panel = Panel::new(QUIT_X, QUIT_Y, QUIT_W, QUIT_H, 0.5);
+        let mut quit_panel = Panel::textured(QUIT_X, QUIT_Y, QUIT_W, QUIT_H, 1.0, TEX_BUTTON);
         create_panel(ecs, device, queue, &mut quit_panel);
         let pl = text_renderer.add_text(ecs, device, queue, "Play", FONT_SIZE_BTN, BTN_X, BTN_Y + 0.05, BTN_W * 0.75, 1.0, BTN_TEXT_COLOR);
         let ql = text_renderer.add_text(ecs, device, queue, "Quit", FONT_SIZE_BTN, QUIT_X, QUIT_Y + 0.05, QUIT_W * 0.75, 1.0, BTN_TEXT_COLOR);
@@ -224,7 +224,7 @@ impl MenuScene {
         self.world_misc.push(title);
 
         // Кнопка «Новый мир»
-        let mut nb = Panel::new(0.0, 2.4, 3.2, 0.8, 0.5);
+        let mut nb = Panel::textured(0.0, 2.4, 3.2, 0.8, 1.0, TEX_BUTTON);
         create_panel(ecs, device, queue, &mut nb);
         let nbl = text_renderer.add_text(ecs, device, queue, "New World", FONT_SIZE_BTN, 0.0, 2.45, 2.4, 1.0, BTN_TEXT_COLOR);
         if let Some(e) = nb.entity { self.world_misc.push(e); }
@@ -235,7 +235,7 @@ impl MenuScene {
         let worlds = list_worlds();
         let mut y = 1.2;
         for w in worlds.iter().take(8) {
-            let mut pb = Panel::new(0.0, y, 3.2, 0.8, 0.5);
+            let mut pb = Panel::textured(0.0, y, 3.2, 0.8, 1.0, TEX_BUTTON);
             create_panel(ecs, device, queue, &mut pb);
             let lbl = text_renderer.add_text(ecs, device, queue, &w.name, FONT_SIZE_BTN, 0.0, y + 0.05, 2.8, 1.0, BTN_TEXT_COLOR);
             // Кнопка удаления: чёрная панель (del_bg) с иконкой «минус» поверх
@@ -248,7 +248,7 @@ impl MenuScene {
         }
 
         // Кнопка «Назад»
-        let mut bb = Panel::new(0.0, -3.2, 3.2, 0.8, 0.5);
+        let mut bb = Panel::textured(0.0, -3.2, 3.2, 0.8, 1.0, TEX_BUTTON);
         create_panel(ecs, device, queue, &mut bb);
         let bbl = text_renderer.add_text(ecs, device, queue, "Back", FONT_SIZE_BTN, 0.0, -3.15, 2.4, 1.0, BTN_TEXT_COLOR);
         if let Some(e) = bb.entity { self.world_misc.push(e); }

@@ -85,6 +85,20 @@ fn checkbox_click_and_hover() {
 }
 
 #[test]
+fn checkbox_hover_scales_only_the_hovered_box() {
+    let mut ecs = new_ecs();
+    let mut hovered = Checkbox::new(0.0, 0.0, "Hovered", true);
+    let mut other = Checkbox::new(3.0, 0.0, "Other", true);
+    let input = FakeInput::hold_ui(0.0, 0.0, WINDOW);
+
+    crate::ui::system::update_checkbox_hover(&mut ecs, &mut hovered, &input, WINDOW, 1.0);
+    crate::ui::system::update_checkbox_hover(&mut ecs, &mut other, &input, WINDOW, 1.0);
+
+    assert!(hovered.hover_scale > 1.0, "наведённый чекбокс должен увеличиться");
+    assert_eq!(other.hover_scale, 1.0, "соседний чекбокс не должен масштабироваться");
+}
+
+#[test]
 fn slider_drag_latches_and_releases() {
     let mut slider = Slider::new(0.0, 0.0, "Zoom", 0.0, 1.0, 0.5);
 

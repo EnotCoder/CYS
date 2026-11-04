@@ -8,7 +8,13 @@
 // ========================================================================
 
 use specs::Entity;
-use crate::ui::{Panel, Checkbox, Slider, Button, create_panel, destroy_panel, create_checkbox, destroy_checkbox, refresh_checkbox, checkbox_clicked, checkbox_hovered, create_slider, destroy_slider, slider_drag, slider_hovered, update_slider_thumb, create_button, destroy_button, button_clicked};
+use crate::ui::{
+    Panel, Checkbox, Slider, Button,
+    create_panel, destroy_panel,
+    create_checkbox, destroy_checkbox, refresh_checkbox, checkbox_clicked, update_checkbox_hover,
+    create_slider, destroy_slider, slider_drag, update_slider_thumb, update_slider_hover,
+    create_button, destroy_button, button_clicked,
+};
 use crate::ui::anim::{AnimEvent, PanelAnim};
 use crate::ui::text_renderer::TextRenderer;
 use crate::core::constants::*;
@@ -36,9 +42,6 @@ pub struct Settings {
     /// Флаги, что переключатели звука изменены в этом кадре.
     pub music_toggled: bool,
     pub sfx_toggled: bool,
-    /// Текущий масштаб галочки и ползунка (hover-анимация, ease к 1.0)
-    checkbox_scale: f32,
-    slider_scale: f32,
     /// Кнопка «В меню» (выход из игры в выбор миров)
     menu_button: Button,
     /// Флаг запроса выхода в меню, устанавливается по клику на menu_button
@@ -60,8 +63,6 @@ impl Settings {
             sfx: Checkbox::new(-1.4, -1.5, "Sound Effects", true),
             music_toggled: false,
             sfx_toggled: false,
-            checkbox_scale: 1.0,
-            slider_scale: 1.0,
             menu_button: Button::new(0.0, -2.55, 3.0, 0.7, "Back to menu"),
             menu_requested: false,
             anim: PanelAnim::new(),
@@ -123,8 +124,10 @@ impl Settings {
         if let Some(ent) = self.title.take() {
             ecs.delete_entity(ent);
         }
-        self.checkbox_scale = 1.0;
-        self.slider_scale = 1.0;
+        for cb in [&mut self.vsync, &mut self.music, &mut self.sfx] {
+            cb.hover_scale = 1.0;
+        }
+        self.zoom_speed.hover_scale = 1.0;
         self.music_toggled = false;
         self.sfx_toggled = false;
         self.menu_requested = false;
@@ -176,30 +179,16 @@ impl Settings {
         }
     }
 
-    /// Ежекадровый hover-эффект: галочка и ползунок плавно увеличиваются
-    /// при наведении и возвращаются к обычному размеру вне его.
+    /// Ежекадровый hover-эффект: каждая галочка и ползунок плавно
+    /// увеличиваются только при наведении на них.
     pub fn tick_hover(&mut self, ecs: &mut EcsAdapter, input: &dyn InputSource, window_size: (f32, f32), dt: f64) {
         if !self.open {
             return;
         }
-        // Цели: 1.15 при наведении, 1.0 иначе.
-        let cb_hover = checkbox_hovered(&self.vsync, input, window_size)
-            || checkbox_hovered(&self.music, input, window_size)
-            || checkbox_hovered(&self.sfx, input, window_size);
-        let sl_hover = slider_hovered(&self.zoom_speed, input, window_size);
-        let cb_target = if cb_hover { 1.15 } else { 1.0 };
-        let sl_target = if sl_hover { 1.15 } else { 1.0 };
-        let k = (12.0 * dt as f32).min(1.0);
-        self.checkbox_scale += (cb_target - self.checkbox_scale) * k;
-        self.slider_scale += (sl_target - self.slider_scale) * k;
-        if (cb_target - self.checkbox_scale).abs() < 0.0001 { self.checkbox_scale = cb_target; }
-        if (sl_target - self.slider_scale).abs() < 0.0001 { self.slider_scale = sl_target; }
-        for ent in [self.vsync.box_entity, self.music.box_entity, self.sfx.box_entity].into_iter().flatten() {
-            ecs.update_sprite_scale(ent, self.checkbox_scale);
-        }
-        if let Some(e) = self.zoom_speed.thumb {
-            ecs.update_sprite_scale(e, self.slider_scale);
-        }
+        update_checkbox_hover(ecs, &mut self.vsync, input, window_size, dt);
+        update_checkbox_hover(ecs, &mut self.music, input, window_size, dt);
+        update_checkbox_hover(ecs, &mut self.sfx, input, window_size, dt);
+        update_slider_hover(ecs, &mut self.zoom_speed, input, window_size, dt);
     }
 
     /// Обработка кликов по настройкам.

@@ -1,6 +1,6 @@
 # Assets
 
-Everything the game loads at runtime lives in `assets/`. There are 148 PNG
+Everything the game loads at runtime lives in `assets/`. There are 150 PNG
 files and 22 OGG files at the time of writing, all addressed by paths that start
 with `assets/`, for example `assets/tex/decor/regular/rack/rack_0.png`.
 
@@ -20,6 +20,7 @@ from `std::env` or an absolute location — always go through `core::asset`.
 | `assets/tex/decor/outdoor/` | trees, benches, street fence, flowers |
 | `assets/tex/characters/` | `player/`, `bob/`, `sasha/` — idle + two walk frames each |
 | `assets/tex/ui/` | panels, mode icons, cursor, sliders, checkboxes, shop/weather/settings art |
+| `assets/tex/ui/button/` | shared button background (`main.png`) used by menus and dialogs |
 | `assets/tex/ui/icon_slots/` | inventory icons by category (`regular`, `carpets`, `light`, `walldecor`, `outdoor`) |
 | `assets/tex/ui/mini_icons/` | small HUD icons (food, money, clock) |
 | `assets/tex/ui/time_of_year/` | season buttons |

@@ -47,7 +47,8 @@ pub fn is_clicked(input: &dyn InputSource, window_size: (f32, f32), cx: f32, cy:
 /// Перед созданием старая подложка уничтожается.
 pub fn create_panel(ecs: &mut EcsAdapter, device: &wgpu::Device, queue: &wgpu::Queue, panel: &mut Panel) {
     destroy_panel(ecs, panel);
-    let ent = ecs.add_ui_sized(panel.x, panel.y, panel.w, panel.h, "assets/tex/dev_tools/black.png", device, queue);
+    let tex = panel.texture.unwrap_or("assets/tex/dev_tools/black.png");
+    let ent = ecs.add_ui_sized(panel.x, panel.y, panel.w, panel.h, tex, device, queue);
     ecs.update_sprite_alpha(ent, panel.alpha);
     panel.entity = Some(ent);
 }
@@ -66,7 +67,7 @@ pub fn destroy_panel(ecs: &mut EcsAdapter, panel: &mut Panel) {
 /// Создаёт фон кнопки и текст подписи; старые сущности удаляются.
 pub fn create_button(ecs: &mut EcsAdapter, text_renderer: &mut TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue, btn: &mut Button) {
     destroy_button(ecs, btn);
-    let bg = ecs.add_ui_sized(btn.x, btn.y, btn.w, btn.h, "assets/tex/dev_tools/black.png", device, queue);
+    let bg = ecs.add_ui_sized(btn.x, btn.y, btn.w, btn.h, TEX_BUTTON, device, queue);
     let label = text_renderer.add_text(ecs, device, queue, &btn.label, btn.font_size, btn.x, btn.y, btn.w * 0.7, 1.0, WHITE);
     btn.bg = Some(bg);
     btn.text = Some(label);
@@ -102,6 +103,7 @@ pub fn create_checkbox(ecs: &mut EcsAdapter, text_renderer: &mut TextRenderer, d
     destroy_checkbox(ecs, checkbox);
     let tex = if checkbox.checked { "assets/tex/ui/checkbox/true.png" } else { "assets/tex/ui/checkbox/false.png" };
     let box_ent = ecs.add_ui_sized(checkbox.x, checkbox.y, CHECKBOX_BOX_SIZE, CHECKBOX_BOX_SIZE, tex, device, queue);
+    ecs.update_sprite_scale(box_ent, checkbox.hover_scale);
     let box_key = crate::core::util::sprite_cache_key("ui", tex, [0, 0], [1, 1], 1.0);
     checkbox.box_entity = Some(box_ent);
     checkbox.box_sprite_key = Some(box_key);
@@ -146,6 +148,29 @@ pub fn checkbox_hovered(checkbox: &Checkbox, input: &dyn InputSource, window_siz
     is_inside(wx, wy, checkbox.x, checkbox.y, CHECKBOX_BOX_SIZE / 2.0 + 0.1, CHECKBOX_BOX_SIZE / 2.0 + 0.1)
 }
 
+// Геометрия hover-анимации: целевой масштаб и скорость сглаживания.
+const HOVER_SCALE: f32 = 1.15;
+const HOVER_SPEED: f32 = 12.0;
+
+/// Сглаживает масштаб к цели (1.15 при наведении, 1.0 иначе).
+fn step_hover_scale(scale: &mut f32, hovered: bool, dt: f64) {
+    let target = if hovered { HOVER_SCALE } else { 1.0 };
+    let k = (HOVER_SPEED * dt as f32).min(1.0);
+    *scale += (target - *scale) * k;
+    if (target - *scale).abs() < 0.0001 {
+        *scale = target;
+    }
+}
+
+/// Плавно увеличивает только ту галочку, на которую наведён курсор.
+pub fn update_checkbox_hover(ecs: &mut EcsAdapter, checkbox: &mut Checkbox, input: &dyn InputSource, window_size: (f32, f32), dt: f64) {
+    let hovered = checkbox_hovered(checkbox, input, window_size);
+    step_hover_scale(&mut checkbox.hover_scale, hovered, dt);
+    if let Some(ent) = checkbox.box_entity {
+        ecs.update_sprite_scale(ent, checkbox.hover_scale);
+    }
+}
+
 // ========================================================================
 //  Slider (горизонтальный)
 // ========================================================================
@@ -172,6 +197,7 @@ pub fn create_slider(ecs: &mut EcsAdapter, text_renderer: &mut TextRenderer, dev
 
     let thumb_x = slider_thumb_x(slider);
     let thumb = ecs.add_ui_sized(thumb_x, slider.y, SLIDER_THUMB_SIZE, SLIDER_THUMB_SIZE, "assets/tex/ui/slide/point.png", device, queue);
+    ecs.update_sprite_scale(thumb, slider.hover_scale);
     slider.thumb = Some(thumb);
 
     let ly = slider.y + SLIDER_LABEL_Y_OFFSET;
@@ -225,6 +251,7 @@ pub fn update_slider_thumb(ecs: &mut EcsAdapter, device: &wgpu::Device, queue: &
     }
     let thumb_x = slider_thumb_x(slider);
     let thumb = ecs.add_ui_sized(thumb_x, slider.y, SLIDER_THUMB_SIZE, SLIDER_THUMB_SIZE, "assets/tex/ui/slide/point.png", device, queue);
+    ecs.update_sprite_scale(thumb, slider.hover_scale);
     slider.thumb = Some(thumb);
 }
 
@@ -235,4 +262,13 @@ pub fn slider_hovered(slider: &Slider, input: &dyn InputSource, window_size: (f3
     let half_w = slider.width / 2.0 + 0.2;
     let half_h = SLIDER_THUMB_SIZE / 2.0 + 0.2;
     (wx - slider.x).abs() <= half_w && (wy - slider.y).abs() <= half_h
+}
+
+/// Плавно увеличивает только ползунок наведённого слайдера.
+pub fn update_slider_hover(ecs: &mut EcsAdapter, slider: &mut Slider, input: &dyn InputSource, window_size: (f32, f32), dt: f64) {
+    let hovered = slider_hovered(slider, input, window_size);
+    step_hover_scale(&mut slider.hover_scale, hovered, dt);
+    if let Some(ent) = slider.thumb {
+        ecs.update_sprite_scale(ent, slider.hover_scale);
+    }
 }

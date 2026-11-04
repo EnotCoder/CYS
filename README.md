@@ -3,11 +3,11 @@
 > **Beta** — the game is in active beta. Features may change and bugs are
 > expected.
 
+![Gameplay](img/prev.png)
+
 A 2D shop simulator written in Rust on top of `wgpu`. Build your own shop:
 lay floors, walls and carpets, place racks, registers and decor, stock the
 shelves, serve shopper NPCs and keep the business afloat.
-
-![Gameplay](img/prev.png)
 
 ## Build & run
 

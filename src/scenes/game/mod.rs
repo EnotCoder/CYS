@@ -566,6 +566,8 @@ impl Scene for GameScene {
 
         // --- Мини-туториал: панель «как играть» в пустом магазине ---
         if self.tutorial.is_open() {
+            self.tutorial.sin_panel_move(ecs, dt as f32);
+
             // Закрытие по «Got it!» / клику вне панели / Escape.
             if let Some((mx, my)) = input.cursor() {
                 let (wx, wy) = crate::ui::system::ndc_to_ui(mx, my, window_size);

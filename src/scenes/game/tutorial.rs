@@ -50,6 +50,8 @@ pub struct Tutorial {
     texts: Vec<Entity>,
     button: Option<Entity>,
     button_label: Option<Entity>,
+    sway_time: f32,
+    sway_offset: f32,
 }
 
 impl Tutorial {
@@ -63,6 +65,8 @@ impl Tutorial {
             texts: Vec::new(),
             button: None,
             button_label: None,
+            sway_time: 0.0,
+            sway_offset: 0.0,
         }
     }
 
@@ -72,12 +76,14 @@ impl Tutorial {
 
     /// Попадание в кнопку «Got it!».
     pub fn button_hit(&self, wx: f32, wy: f32) -> bool {
-        (wx - BUTTON_X).abs() <= BUTTON_W / 2.0 && (wy - BUTTON_Y).abs() <= BUTTON_H / 2.0
+        (wx - BUTTON_X).abs() <= BUTTON_W / 2.0
+            && (wy - (BUTTON_Y + self.sway_offset)).abs() <= BUTTON_H / 2.0
     }
 
     /// Попадание внутрь панели.
     pub fn panel_hit(&self, wx: f32, wy: f32) -> bool {
-        (wx - PANEL_X).abs() <= PANEL_W / 2.0 && (wy - PANEL_Y).abs() <= PANEL_H / 2.0
+        (wx - PANEL_X).abs() <= PANEL_W / 2.0
+            && (wy - (PANEL_Y + self.sway_offset)).abs() <= PANEL_H / 2.0
     }
 
     /// Создаёт оверлей обучения поверх игры.
@@ -86,6 +92,8 @@ impl Tutorial {
             return;
         }
         self.open = true;
+        self.sway_time = 0.0;
+        self.sway_offset = 0.0;
 
         // Затемнение всего экрана.
         let overlay = ecs.add_ui_sized(0.0, 0.0, 24.0, 16.0, "assets/tex/dev_tools/black.png", device, queue);
@@ -141,6 +149,34 @@ impl Tutorial {
         }
         if let Some(e) = self.button_label.take() {
             ecs.delete_entity(e);
+        }
+    }
+    
+    /// Синусоидальное покачивание панели по вертикали. Сдвиг считается как
+    /// приращение к текущим позициям, поэтому все элементы панели двигаются
+    /// синхронно и не «разъезжаются» при смене амплитуды.
+    pub fn sin_panel_move(&mut self, ecs: &mut EcsAdapter, dt: f32) {
+        // dt клампим, чтобы после фриза окна панель не прыгала.
+        self.sway_time += dt.clamp(0.0, 0.1);
+        let target = TUTORIAL_SWAY_AMPLITUDE * (self.sway_time * TUTORIAL_SWAY_SPEED).sin();
+        let delta = target - self.sway_offset;
+        self.sway_offset = target;
+        if delta.abs() < f32::EPSILON {
+            return;
+        }
+
+        let mut entities: Vec<Entity> =
+            Vec::with_capacity(4 + self.icons.len() + self.texts.len());
+        entities.extend(self.panel);
+        entities.extend(self.title);
+        entities.extend(self.icons.iter().copied());
+        entities.extend(self.texts.iter().copied());
+        entities.extend(self.button);
+        entities.extend(self.button_label);
+
+        for e in entities {
+            let (x, y) = ecs.get_transform_position(e);
+            ecs.update_transform_position(e, x, y + delta);
         }
     }
 }

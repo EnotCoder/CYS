@@ -259,6 +259,11 @@ pub const LOGO_H: f32 = 2.5;
 pub const MENU_LOGO_AMPLITUDE: f32 = 0.15;
 pub const MENU_LOGO_SPEED: f32 = 2.0;
 
+// Синусоидальное покачивание панели обучения: амплитуда (в мировых
+// единицах UI) и скорость (радианы в секунду).
+pub const TUTORIAL_SWAY_AMPLITUDE: f32 = 0.08;
+pub const TUTORIAL_SWAY_SPEED: f32 = 1.6;
+
 // === Сплэш-экран (логотип при запуске) ===
 // Размер логотипа в мировых единицах UI (квадратная текстура 512x512).
 pub const SPLASH_LOGO_W: f32 = 6.0;

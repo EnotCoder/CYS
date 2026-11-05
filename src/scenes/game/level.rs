@@ -206,10 +206,12 @@ impl GameScene {
         for (i, slot) in self.slots.iter().enumerate() {
             let icon_path = crate::core::util::slot_icon_path(slot.obj.name);
             let ent = ecs.add_ui(HOTBAR_X + i as f32, SLOT_BAR_Y + dy, &icon_path);
+            ecs.update_transform_z(ent, Z_UI_HOTBAR);
             self.slot_entities.push(ent);
         }
         let cursor_x = HOTBAR_X + self.act_slot as f32;
         let icons_slot_cursor = ecs.add_ui(cursor_x, SLOT_BAR_Y + dy, SLOT_CURSOR_TEX);
+        ecs.update_transform_z(icons_slot_cursor, Z_UI_HOTBAR_CURSOR);
         self.icons_slot_cursor = Some(icons_slot_cursor);
         let icon_mode = ecs.add_ui(ICON_MODE_X, SLOT_BAR_Y + dy, MODE_ICON_TEX[self.mode as usize]);
         self.icon_mode = Some(icon_mode);

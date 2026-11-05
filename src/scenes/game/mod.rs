@@ -246,11 +246,13 @@ impl GameScene {
                 HOTBAR_X + i as f32, SLOT_BAR_Y + dy,
                 &icon_path,
             );
+            ecs.update_transform_z(ent, Z_UI_HOTBAR);
             self.slot_entities.push(ent);
         }
 
         // Рамка выбора активного слота и игровой курсор
         let icons_slot_cursor = ecs.add_ui(HOTBAR_X, SLOT_BAR_Y + dy, SLOT_CURSOR_TEX);
+        ecs.update_transform_z(icons_slot_cursor, Z_UI_HOTBAR_CURSOR);
         self.icon_mode = Some(icon_mode);
         self.icons_slot_cursor = Some(icons_slot_cursor);
         self.cursor_entity = Some(ecs.add_cursor(0.0, 0.0, CURSOR_TEX[self.mode as usize]));

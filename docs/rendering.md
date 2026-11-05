@@ -55,7 +55,7 @@ The door lives at `Z_DECOR` (not `Z_MAP`) because its open frame is
 transparent; putting it into the opaque pass would render a black hole. It must
 stay below `Z_NPC` so the leaf never covers a shopper standing in front of it.
 
-UI sub-layers: `Z_UI_TEXT` 3.005, tooltip background 3.01 / text 3.02, dialog
+UI sub-layers: `Z_UI_HOTBAR` 3.002, `Z_UI_HOTBAR_CURSOR` 3.003, `Z_UI_TEXT` 3.005, tooltip background 3.01 / text 3.02, dialog
 dim 3.03 / panel 3.035 / text 3.04.
 
 ## Batching and the sprite cache

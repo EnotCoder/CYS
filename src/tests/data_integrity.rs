@@ -20,7 +20,9 @@ fn render_layers_are_strictly_ordered() {
     assert!(Z_NPC < Z_WEATHER);
     assert!(Z_WEATHER < Z_CURSOR);
     assert!(Z_CURSOR < Z_UI);
-    assert!(Z_UI < Z_UI_TEXT);
+    assert!(Z_UI < Z_UI_HOTBAR);
+    assert!(Z_UI_HOTBAR < Z_UI_HOTBAR_CURSOR);
+    assert!(Z_UI_HOTBAR_CURSOR < Z_UI_TEXT);
     assert!(Z_UI_TEXT < Z_UI_TOOLTIP_BG);
     assert!(Z_UI_TOOLTIP_BG < Z_UI_TOOLTIP_TEXT);
     // Дверь рисуется на слое декора — под покупателями.

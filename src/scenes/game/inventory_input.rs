@@ -37,10 +37,31 @@ impl GameScene {
         let Some((mx, my)) = input.cursor() else { return };
         let (wx, wy) = ndc_to_ui(mx, my, window_size);
 
-        // --- Клик по табам ---
+        // --- Клик по слотам хотбара ---
+        let hotbar_y = SLOT_BAR_Y + self.bottom_dy;
+        let on_bar_y = (wy - hotbar_y).abs() < TILE_HALF;
+        let col = (wx - HOTBAR_X + TILE_HALF).floor() as i32;
+        if on_bar_y && col >= 0 && col < self.slots.len() as i32 {
+            if col != self.act_slot {
+                self.act_slot = col;
+                if let Some(cursor) = self.icons_slot_cursor {
+                    ecs.update_transform_position(cursor, HOTBAR_X + col as f32, hotbar_y);
+                }
+                crate::audio::play("hover");
+            }
+            return;
+        }
+
+        // --- Клик по кнопке инвентаря на хотбаре ---
+        if on_bar_y && (wx - INV_BTN_X).abs() < TILE_HALF {
+            return;
+        }
+
+        // --- Клик по табам инвентаря ---
         if self.inventory.mode {
-            let tcol = (wx - SLOT_BAR_X + TILE_HALF) as i32;
-            if (wy - (INV_TAB_Y + self.bottom_dy)).abs() < TILE_HALF && tcol >= 0 && tcol < TAB_TEX.len() as i32 {
+            let tab_y = INV_TAB_Y + self.bottom_dy;
+            let tcol = (wx - SLOT_BAR_X + TILE_HALF).floor() as i32;
+            if (wy - tab_y).abs() < TILE_HALF && tcol >= 0 && tcol < TAB_TEX.len() as i32 {
                 if tcol != self.inventory.tab {
                     self.inventory.switch_tab(tcol, ecs, device, queue);
                     crate::audio::play("click");
@@ -49,30 +70,22 @@ impl GameScene {
             }
         }
 
-        // --- Клик по сетке инвентаря ---
+        // --- Клик по сетке предметов инвентаря ---
         if self.inventory.mode {
-            let col = (wx - SLOT_BAR_X + TILE_HALF) as i32;
-            let row = (wy - (INVENTORY_BASE_Y + self.bottom_dy) + TILE_HALF) as i32;
-            if self.inventory.handle_grid_click(col, row) {
-                // Предмет из инвентаря переносится в выбранный слот хотбара
-                self.inventory.transfer_to_slot(ecs, self.act_slot as usize, &mut self.slots, &self.slot_entities);
-                crate::audio::play("click");
-            }
-            return;
-        }
+            let col = (wx - SLOT_BAR_X + TILE_HALF).floor() as i32;
+            let row = (wy - (INVENTORY_BASE_Y + self.bottom_dy) + TILE_HALF).floor() as i32;
 
-        // --- Клик по слотам хотбара ---
-        let col = (wx - HOTBAR_X + TILE_HALF) as i32;
-        if (wy - (SLOT_BAR_Y + self.bottom_dy)).abs() < TILE_HALF && col >= 0 && col < self.slots.len() as i32 {
-            let target = col;
-            if target != self.act_slot {
-                // Двигаем рамку выбора на новый слот
-                if let Some(cursor) = self.icons_slot_cursor {
-                    self.act_slot = target;
-                    ecs.update_transform_position(cursor, HOTBAR_X + col as f32, SLOT_BAR_Y + self.bottom_dy);
+            if col >= 0 && col < INVENTORY_COLS && row >= 0 && row < INVENTORY_ROWS {
+                if self.inventory.handle_grid_click(col, row) {
+                    self.inventory.transfer_to_slot(ecs, self.act_slot as usize, &mut self.slots, &self.slot_entities);
+                    crate::audio::play("click");
                 }
-                crate::audio::play("hover");
+                return;
             }
+
+            // Клик в любое другое место (вне слотов, вне табов и вне сетки) закрывает инвентарь
+            self.inventory.exit(ecs);
+            crate::audio::play("close");
         }
     }
 }

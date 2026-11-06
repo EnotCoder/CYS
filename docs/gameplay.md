@@ -99,11 +99,14 @@ night at `night_start_secs`, night until `night_secs`, then dawn over
 `fade_secs`. `factor()` returns 0..1 dimming for the shader; `time_string()`
 shows the in-game clock.
 
-`Season` is a resource. The weather panel changes it, the grass texture follows
-(`summer_grass.png`, `spring_grass.png`, `autumn_grass.png`,
-`winter_grass.png`), and `WeatherFx` adds particles: snow in winter, rain with
-thunder in autumn, nothing in spring and summer. Particles are ordinary sprites
-on `Z_WEATHER`, recycled when they leave the map.
+`Season` is a resource and defaults to winter, so a new game starts with snow.
+The weather panel changes it, the grass texture follows (`summer_grass.png`,
+`spring_grass.png`, `autumn_grass.png`, `winter_grass.png`), and `WeatherFx`
+adds particles: snow in winter, rain with thunder in autumn, nothing in spring
+and summer. Particles are ordinary sprites on `Z_WEATHER`, recycled when they
+leave the map. Each season also swaps the background track (`music_spring`,
+`music_summer`, `music_autumn`, `music_winter`), and winter/autumn additionally
+loop `snow.ogg`/`rain.ogg` as weather ambience.
 
 ## Shop, settings, tutorial
 

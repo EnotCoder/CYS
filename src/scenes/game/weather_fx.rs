@@ -69,6 +69,15 @@ impl WeatherFx {
         self.thunder_timer = 0.0;
     }
 
+    // Возобновляет погодный луп после повторного включения SFX в настройках.
+    pub fn restart_ambient(&self) {
+        match self.effect {
+            Some(Effect::Snow) => crate::audio::play_ambient("snow"),
+            Some(Effect::Rain) => crate::audio::play_ambient("rain"),
+            None => {}
+        }
+    }
+
     pub(crate) fn effect_for(season: Season) -> Option<Effect> {
         match season {
             Season::Winter => Some(Effect::Snow),
@@ -111,11 +120,16 @@ impl WeatherFx {
         if needs_respawn {
             self.teardown(ecs);
             self.effect = want;
-            // Включаем/выключаем звук погоды при смене сезона.
+            // Включаем/выключаем звук погоды при смене сезона. Сначала
+            // останавливаем старый луп, иначе дождь накладывается на снег.
+            crate::audio::stop_ambient();
             match want {
                 Some(Effect::Snow) => crate::audio::play_ambient("snow"),
-                Some(Effect::Rain) => crate::audio::play_ambient("rain"),
-                None => crate::audio::stop_ambient(),
+                Some(Effect::Rain) => {
+                    crate::audio::play_ambient("rain");
+                    self.thunder_timer = 6.0 + rand01(&mut self.seed) * 14.0;
+                }
+                None => {}
             }
             if let (Some(effect), Some(bounds)) = (want, bounds) {
                 self.spawn(effect, ecs, device, queue, bounds);

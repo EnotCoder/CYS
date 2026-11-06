@@ -2,7 +2,8 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright (C) 2026 EnotCoder
 # ========================================================================
-#  Генератор 8-битных звуковых эффектов в стиле текущих sounds/*.ogg
+#  Генератор 8-битных звуковых эффектов и сезонных музыкальных лупов
+#  в стиле текущих sounds/*.ogg.
 #  Синтез чистым Python (stdlib) -> WAV -> ffmpeg -> OGG (как у Kenney).
 #  Запуск: python3 scripts/gen_sounds.py
 # ========================================================================
@@ -177,6 +178,148 @@ def build_thunder():
     return b
 
 
+def midi_freq(note):
+    """Частота ноты MIDI (69 = A4 = 440 Гц)."""
+    return 440.0 * (2.0 ** ((note - 69) / 12.0))
+
+
+def add_pad(buf, start, dur, note, amp):
+    """Мягкий аккордовый пад с плавной атакой и затуханием на краях."""
+    n0 = int(start * SR)
+    n1 = min(int((start + dur) * SR), len(buf))
+    total = n1 - n0
+    if total <= 0:
+        return
+    attack = max(1, int(0.35 * SR))
+    release = max(1, int(min(0.9, dur / 3.0) * SR))
+    f = midi_freq(note)
+    for i in range(n0, n1):
+        p = i - n0
+        t = p / SR
+        env = 1.0
+        if p < attack:
+            env = p / attack
+        if p > total - release:
+            env = min(env, (total - p) / release)
+        v = math.sin(2 * math.pi * f * t)
+        v += 0.28 * math.sin(2 * math.pi * 2 * f * t)
+        v += 0.10 * math.sin(2 * math.pi * 3 * f * t)
+        buf[i] += amp * env * v / 1.38
+
+
+def build_track(bpm, chords, melody, bass, pad_amp=0.10, lead_amp=0.20,
+                lead_decay=2.0, harmonics=((2, 0.30), (3, 0.12)),
+                shaker=False, wind=0.0):
+    """Собирает зацикленную сезонную тему: пад, бас, мелодия и шум."""
+    beat = 60.0 / bpm
+    bars = len(chords)
+    duration = bars * 4 * beat
+    b = synth(duration)
+
+    for bar, chord in enumerate(chords):
+        start = bar * 4 * beat
+        for note in chord:
+            add_pad(b, start, 4 * beat, note, pad_amp)
+        root = chord[0] - 12
+        for step, on in enumerate(bass):
+            if on:
+                add_tone(b, start + step * beat, midi_freq(root),
+                         beat * 0.85, 0.16, decay=1.6,
+                         harmonics=((2, 0.20),))
+
+    for start_beat, note, beats in melody:
+        add_tone(b, start_beat * beat, midi_freq(note), beats * beat,
+                 lead_amp, decay=lead_decay, harmonics=harmonics)
+
+    if shaker:
+        for i in range(int(duration / beat * 2)):
+            add_noise(b, i * beat / 2, 0.05, 0.035, decay=55.0)
+
+    if wind > 0.0:
+        add_steady_noise(b, 0.0, duration, wind, lowpass=0.05, wobble=0.35)
+
+    # Короткий фейд на стыке лупа убирает щелчок при repeat_infinite().
+    fade = int(0.008 * SR)
+    for i in range(fade):
+        g = i / fade
+        b[i] *= g
+        b[-1 - i] *= g
+
+    peak = max(abs(x) for x in b) or 1.0
+    if peak > 0.8:
+        b = [x * (0.8 / peak) for x in b]
+    return b
+
+
+def build_music_spring():
+    chords = [
+        [50, 57, 62], [45, 52, 57], [47, 54, 59], [43, 50, 55],
+        [50, 57, 62], [45, 52, 57], [43, 50, 55], [45, 52, 57],
+    ]
+    melody = [
+        (0, 62, 1), (1, 66, 1), (2, 69, 1), (3, 74, 1.5),
+        (5, 73, 1), (6, 71, 1), (7, 69, 1.5),
+        (9, 66, 1), (10, 69, 1), (11, 74, 1.5),
+        (13, 71, 1), (14, 69, 1), (15, 66, 1.5),
+        (16, 69, 1), (17, 74, 1), (18, 78, 1.5), (20, 76, 1), (21, 74, 1), (22, 69, 1.5),
+        (24, 66, 1), (25, 69, 1), (26, 71, 1.5), (28, 69, 1), (29, 66, 1), (30, 62, 1.5),
+    ]
+    return build_track(96, chords, melody, [1, 0, 0, 1], pad_amp=0.11,
+                       lead_amp=0.22, lead_decay=2.4,
+                       harmonics=((2, 0.35), (3, 0.18)))
+
+
+def build_music_summer():
+    chords = [
+        [48, 55, 60], [43, 50, 55], [45, 52, 57], [41, 48, 53],
+        [48, 55, 60], [43, 50, 55], [41, 48, 53], [43, 50, 55],
+    ]
+    melody = [
+        (0, 72, 1), (1, 76, 1), (2, 79, 1), (3, 81, 1.5),
+        (5, 79, 1), (6, 76, 1), (7, 72, 1.5),
+        (8, 74, 1), (9, 77, 1), (10, 81, 1.5), (12, 79, 1), (13, 77, 1), (14, 74, 1.5),
+        (16, 72, 1), (17, 76, 1), (18, 79, 1.5), (20, 84, 1), (21, 81, 1), (22, 79, 1.5),
+        (24, 77, 1), (25, 74, 1), (26, 72, 1.5), (28, 74, 1), (29, 77, 1), (30, 79, 1.5),
+    ]
+    return build_track(120, chords, melody, [1, 0, 1, 0], pad_amp=0.10,
+                       lead_amp=0.20, lead_decay=2.6,
+                       harmonics=((2, 0.40), (3, 0.20)), shaker=True)
+
+
+def build_music_autumn():
+    chords = [
+        [45, 52, 57], [41, 48, 53], [48, 55, 60], [43, 50, 55],
+        [45, 52, 57], [41, 48, 53], [43, 50, 55], [45, 52, 57],
+    ]
+    melody = [
+        (0, 69, 1.5), (2, 72, 1), (3, 71, 1.5),
+        (5, 69, 1), (6, 67, 1), (7, 64, 1.5),
+        (9, 67, 1), (10, 69, 1), (11, 72, 1.5),
+        (13, 71, 1), (14, 67, 1), (15, 64, 1.5),
+        (16, 69, 1), (17, 72, 1), (18, 74, 1.5), (20, 72, 1), (21, 69, 1), (22, 67, 1.5),
+        (24, 64, 1), (25, 67, 1), (26, 69, 1.5), (28, 67, 1), (29, 64, 1), (30, 62, 1.5),
+    ]
+    return build_track(84, chords, melody, [1, 0, 0, 0], pad_amp=0.13,
+                       lead_amp=0.19, lead_decay=1.8,
+                       harmonics=((2, 0.22), (3, 0.10)), wind=0.025)
+
+
+def build_music_winter():
+    chords = [
+        [40, 47, 52], [36, 43, 48], [43, 50, 55], [38, 45, 50],
+        [40, 47, 52], [36, 43, 48], [38, 45, 50], [40, 47, 52],
+    ]
+    melody = [
+        (0, 76, 2), (2, 79, 2), (4, 83, 2), (6, 81, 2),
+        (8, 79, 2), (10, 76, 2), (12, 74, 2), (14, 71, 2),
+        (16, 76, 1.5), (18, 79, 1.5), (20, 84, 2), (22, 83, 1.5), (24, 81, 2), (26, 79, 1.5),
+        (28, 76, 1.5), (30, 74, 2),
+    ]
+    return build_track(70, chords, melody, [1, 0, 0, 0], pad_amp=0.14,
+                       lead_amp=0.15, lead_decay=1.3,
+                       harmonics=((2, 0.45), (3, 0.22), (5, 0.08)), wind=0.018)
+
+
 def build_buy():
     b = synth(0.35)
     add_tone(b, 0.0, 784.0, 0.22, 0.4, decay=12.0, harmonics=((2, 0.3), (3, 0.15)))
@@ -227,6 +370,10 @@ def main():
         "close": build_close,
         "step": build_step,
         "swish": build_swish,
+        "music_spring": build_music_spring,
+        "music_summer": build_music_summer,
+        "music_autumn": build_music_autumn,
+        "music_winter": build_music_winter,
     }.items():
         render(name, fn())
 

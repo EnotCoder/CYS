@@ -139,7 +139,8 @@ is missing from this map.
   highlight, Space/click to start, Escape to quit.
 - **`src/scenes/game/mod.rs`** — `GameScene`: main loop — input, rent,
   bankruptcy, settings, food regen, pop animations, day/night, shoppers,
-  weather, tutorial, shop, hover/tooltip, autosave, level switching.
+  weather, per-season music, tutorial, shop, hover/tooltip, autosave, level
+  switching.
 - **`src/scenes/game/camera.rs`** — `update_camera`: movement only in `move`
   mode (mouse/finger drag or arrow keys), clamped to the map's visible area.
 - **`src/scenes/game/day_night.rs`** — `DayNightCycle`: `tick`, `factor`
@@ -157,8 +158,9 @@ is missing from this map.
   (spawn timers, limit, despawn, cooldown).
 - **`src/scenes/game/tutorial.rs`** — `Tutorial`: tutorial panel, `open`/`close`,
   button and panel hit tests, gentle sine sway.
-- **`src/scenes/game/weather_fx.rs`** — `WeatherFx`: rain, snow and leaf
-  particles, `Effect`, sprite spawn/teardown, deterministic `rand01`.
+- **`src/scenes/game/weather_fx.rs`** — `WeatherFx`: rain and snow particles,
+  `Effect`, sprite spawn/teardown, snow/rain ambient loops, deterministic
+  `rand01`.
 
 ---
 
@@ -219,7 +221,8 @@ is missing from this map.
 ## `src/audio/`
 
 - **`src/audio/mod.rs`** — rodio `AudioEngine`: `sounds/` cache, singleton via
-  `OnceLock`/`Mutex`; `play`, `play_music`, `play_ambient`, `stop_music`,
+  `OnceLock`/`Mutex`; `play`, replacing/looping `play_music` (season tracks
+  with `music.ogg` fallback), `play_ambient` (snow/rain loops), `stop_music`,
   `set_music_enabled`, `set_sfx_enabled`, `init`.
 
 ---

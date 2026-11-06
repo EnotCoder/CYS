@@ -214,10 +214,20 @@ impl Season {
     pub fn all() -> &'static [Season] {
         &[Season::Spring, Season::Summer, Season::Autumn, Season::Winter]
     }
+
+    /// Имя фонового трека сезона в assets/sounds (без расширения).
+    pub fn music_track(&self) -> &'static str {
+        match self {
+            Season::Spring => "music_spring",
+            Season::Summer => "music_summer",
+            Season::Autumn => "music_autumn",
+            Season::Winter => "music_winter",
+        }
+    }
 }
 
 impl Default for Season {
-    fn default() -> Self { Season::Summer }
+    fn default() -> Self { Season::Winter }
 }
 
 /// Источник света для динамического освещения.

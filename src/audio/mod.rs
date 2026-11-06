@@ -100,15 +100,16 @@ impl AudioEngine {
         player.detach();
     }
 
-    fn play_music_clip(&mut self, name: &str) {
-        let Some(bytes) = self.clips.get(name) else { return };
+    fn play_music_clip(&mut self, name: &str) -> bool {
+        let Some(bytes) = self.clips.get(name) else { return false };
         let Ok(decoder) = Decoder::new(Cursor::new(bytes.clone())) else {
-            return;
+            return false;
         };
         // Музыку зацикливаем и храним в списке, чтобы её можно было остановить.
         let player = Player::connect_new(&self.mixer);
         player.append(decoder.repeat_infinite());
         self.music.push(player);
+        true
     }
 
     fn stop_music(&mut self) {
@@ -172,11 +173,18 @@ pub fn play(name: &str) {
 }
 
 /// Зациклить музыку по имени файла из sounds/ (без расширения).
+/// Новый трек заменяет текущий, чтобы смена сезона не накладывала музыку.
+/// Если сезонного трека нет, играем общий music.ogg.
 pub fn play_music(name: &str) {
     if !MUSIC_ENABLED.load(Ordering::SeqCst) {
         return;
     }
-    with_engine(|engine| engine.play_music_clip(name));
+    with_engine(|engine| {
+        engine.stop_music();
+        if !engine.play_music_clip(name) && name != "music" {
+            engine.play_music_clip("music");
+        }
+    });
 }
 
 // Остановить всю зацикленную музыку.

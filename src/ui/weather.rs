@@ -50,7 +50,7 @@ impl Weather {
             open: false,
             panel: Panel::new(0.0, 0.0, 5.0, 5.5, 0.85),
             buttons: Vec::new(),
-            selected: Season::Summer,
+            selected: Season::Winter,
             season_changed: false,
             anim: PanelAnim::new(),
         }

@@ -123,8 +123,9 @@ pub struct GameScene {
     bottom_dy: f32,
     top_dy: f32,
     // Погодные частицы (снег зимой, дождь осенью)
-    // Погодные частицы (снег зимой, дождь осенью)
     weather_fx: weather_fx::WeatherFx,
+    // Сезон, для которого сейчас играет фоновая музыка
+    music_season: Option<crate::ecs::components::Season>,
     // Мини-туториал: панель «как играть» на новой игре и флаг «уже показан»
     tutorial: tutorial::Tutorial,
     tutorial_shown: bool,
@@ -192,6 +193,7 @@ impl GameScene {
             bottom_dy: 0.0,
             top_dy: 0.0,
             weather_fx: weather_fx::WeatherFx::new(),
+            music_season: None,
             tutorial: tutorial::Tutorial::new(),
             tutorial_shown: false,
             pending_vsync: None,
@@ -538,7 +540,10 @@ impl Scene for GameScene {
         self.tutorial = tutorial::Tutorial::new();
         self.tutorial_shown = false;
         crate::audio::stop_ambient();
-        crate::audio::play_music("music");
+        let season = *ecs.world.read_resource::<crate::ecs::components::Season>();
+        self.weather.selected = season;
+        self.music_season = Some(season);
+        crate::audio::play_music(season.music_track());
     }
 
     /// Автосохранение мира и настроек при выходе из игры (в меню или закрытие приложения).
@@ -818,11 +823,18 @@ impl Scene for GameScene {
             if self.settings.music_toggled {
                 self.settings.music_toggled = false;
                 crate::audio::set_music_enabled(self.settings.music.checked);
+                if self.settings.music.checked {
+                    let season = *ecs.world.read_resource::<crate::ecs::components::Season>();
+                    crate::audio::play_music(season.music_track());
+                }
                 self.persist_settings();
             }
             if self.settings.sfx_toggled {
                 self.settings.sfx_toggled = false;
                 crate::audio::set_sfx_enabled(self.settings.sfx.checked);
+                if self.settings.sfx.checked {
+                    self.weather_fx.restart_ambient();
+                }
                 self.persist_settings();
             }
             if self.settings.menu_requested {
@@ -1022,9 +1034,13 @@ impl Scene for GameScene {
 
         self.update_camera(input, window_size, dt);
 
-        // --- Погодные частицы (снег/дождь) по текущему сезону ---
+        // --- Погодные частицы (снег/дождь) и музыка по текущему сезону ---
         if !paused {
             let season = *ecs.world.read_resource::<crate::ecs::components::Season>();
+            if self.music_season != Some(season) {
+                self.music_season = Some(season);
+                crate::audio::play_music(season.music_track());
+            }
             self.weather_fx.tick(ecs, device, queue, season, dt);
         }
 

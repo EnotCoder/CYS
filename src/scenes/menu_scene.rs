@@ -9,6 +9,9 @@ use crate::input::platform::InputSource;
 use crate::save::{create_world_with_name, delete_world, list_worlds, WorldSelection, SELECTED_WORLD};
 use crate::ui::text_input::TEXT_INPUT;
 
+use crate::scenes::game::weather_fx;
+use specs::WorldExt;
+
 // ========================================================================
 //  MenuScene — главное меню игры
 // ========================================================================
@@ -84,6 +87,8 @@ pub struct MenuScene {
     delete_confirm_panel: Option<Panel>,
     delete_confirm_delete_btn: Option<Button>,
     delete_confirm_cancel_btn: Option<Button>,
+    // Погода
+    weather_fx: weather_fx::WeatherFx,
 }
 
 impl MenuScene {
@@ -125,6 +130,7 @@ impl MenuScene {
             delete_confirm_panel: None,
             delete_confirm_delete_btn: None,
             delete_confirm_cancel_btn: None,
+            weather_fx: weather_fx::WeatherFx::new(),
         }
     }
 
@@ -133,6 +139,7 @@ impl MenuScene {
     fn setup_content(&mut self, ecs: &mut crate::EcsAdapter, text_renderer: &mut crate::ui::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) {
         self.destroy_content(ecs);
         ecs.clear_world();
+        self.weather_fx.reset();
 
         match self.state {
             MenuState::Splash => {
@@ -382,6 +389,7 @@ impl Scene for MenuScene {
         // При самом первом запуске открываем сплэш-экран, дальше сразу в главное меню
         self.state = if self.splash_shown { MenuState::Main } else { MenuState::Splash };
         self.ready = false;
+        self.weather_fx.reset();
         crate::audio::play_music("music");
     }
 
@@ -390,7 +398,9 @@ impl Scene for MenuScene {
         let dt = match self.last_frame {
             Some(t0) => t0.elapsed().as_secs_f64(),
             None => 1.0 / 60.0,
-        };
+        }
+        .min(MAX_FRAME_DT);
+
         self.last_frame = Some(std::time::Instant::now());
 
         // Адаптивный масштаб UI
@@ -401,6 +411,12 @@ impl Scene for MenuScene {
             self.ready = true;
             self.setup_content(ecs, text_renderer, device, queue);
         }
+
+
+        self.weather_fx.restart_ambient();
+
+        let season = *ecs.world.read_resource::<crate::ecs::components::Season>();
+        self.weather_fx.tick(ecs, device, queue, season, dt);
 
         match self.state {
             MenuState::Splash => self.update_splash(dt, input, ecs, text_renderer, device, queue),

@@ -79,8 +79,8 @@ system Back button is treated as `Esc`: close a panel, or open settings/pause.
 ## Runtime configuration
 
 - `assets/scripts/config.lua` — balance, font path, spawn point;
-- `settings.json` — VSync, zoom, music and SFX, created on first change;
-- `worlds/` — user saves, created on demand.
+- `data/settings.json` — VSync, zoom, music and SFX, created on first change;
+- `data/worlds/` — user saves, created on demand.
 
 The font path must point at a file readable through `core::asset`; changing it
 requires a restart because `TextRenderer` caches the font at startup.

@@ -62,15 +62,16 @@ pub fn load_string(path: &str) -> std::io::Result<String> {
     Ok(String::from_utf8_lossy(&load_bytes(path)?).into_owned())
 }
 
-/// Каталог для пользовательских сохранений (save.json).
+/// Каталог для пользовательских сохранений (data/worlds, data/settings.json).
 fn save_dir() -> PathBuf {
     #[cfg(target_os = "android")]
     {
         if let Some(app) = ANDROID_APP.get() {
-            return app.internal_data_path().unwrap_or_else(|| PathBuf::from("."));
+            let base = app.internal_data_path().unwrap_or_else(|| PathBuf::from("."));
+            return base.join("data");
         }
     }
-    PathBuf::from(".")
+    PathBuf::from("data")
 }
 
 /// Сохраняет пользовательские данные (например, save.json) по имени файла.

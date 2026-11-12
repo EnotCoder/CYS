@@ -4,8 +4,8 @@
 // ========================================================================
 //  save — система миров (как в Minecraft)
 // ========================================================================
-//  Каждый мир хранится в отдельном файле worlds/world_{id}.json, а список
-//  миров и их мета-данные — в worlds/manifest.json. Ввод имени мира
+//  Каждый мир хранится в отдельном файле data/worlds/world_{id}.json, а список
+//  миров и их мета-данные — в data/worlds/manifest.json. Ввод имени мира
 //  осуществляется через системную экранную клавиатуру (IME), поэтому
 //  сохранение/загрузка привязаны не к Ctrl+S/Ctrl+L, а к выбору мира в
 //  меню и автосохранению при выходе из игры.
@@ -30,7 +30,7 @@ struct WorldManifest {
 
 const MANIFEST: &str = "worlds/manifest.json";
 
-/// Путь к файлу сохранения мира относительно каталога сохранений
+/// Путь к файлу сохранения мира относительно каталога данных `data/`
 /// (дошивается к save_dir внутри asset::save_data/load_data).
 pub fn world_save_path(id: u32) -> String {
     format!("worlds/world_{}.json", id)
@@ -135,10 +135,10 @@ pub static SELECTED_WORLD: std::sync::Mutex<WorldSelection> =
     std::sync::Mutex::new(WorldSelection::None);
 
 // ========================================================================
-//  Пользовательские настройки (settings.json) — сохраняются между запусками
+//  Пользовательские настройки (data/settings.json) — сохраняются между запусками
 // ========================================================================
 
-/// Настройки приложения, которые пишутся в settings.json.
+/// Настройки приложения, которые пишутся в data/settings.json.
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct GameSettings {
     /// Вертикальная синхронизация (VSync)
@@ -170,7 +170,7 @@ pub fn load_settings() -> GameSettings {
     }
 }
 
-/// Записывает настройки в settings.json (ошибки игнорируем — это не критично).
+/// Записывает настройки в data/settings.json (ошибки игнорируем — это не критично).
 pub fn save_settings(s: &GameSettings) {
     if let Ok(json) = serde_json::to_string_pretty(s) {
         let _ = crate::core::asset::save_data(SETTINGS_FILE, json.as_bytes());

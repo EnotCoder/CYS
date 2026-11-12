@@ -1,5 +1,5 @@
 /target
 .env
-worlds/
+data/
 *.json
 !assets/**/*.json

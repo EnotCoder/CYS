@@ -55,7 +55,7 @@ with the world.
 - **Worlds** — create, name and delete worlds in a Minecraft-style menu;
   autosave on exit, quick save on `Ctrl+S`.
 - **Pause** — settings freeze rent, day/night, shoppers and weather.
-- **Settings** — VSync, zoom speed, music and SFX, persisted in `settings.json`.
+- **Settings** — VSync, zoom speed, music and SFX, persisted in `data/settings.json`.
 - **Balance in Lua** — `assets/scripts/config.lua` and `assets/scripts/npc.lua`
   drive timings, prices and shopper decisions.
 
@@ -94,7 +94,7 @@ src/
 ├── npc/      — ShopperNpc state machine and movement
 ├── audio/    — sound engine (rodio)
 ├── scripts/  — Lua bridge (config.lua, npc.lua)
-├── save/     — worlds, manifest, settings.json
+├── save/     — worlds, manifest, data/settings.json
 └── tests/    — unit tests (including docs checks)
 ```
 

@@ -10,7 +10,7 @@ This folder is the full developer documentation.
 | wgpu pipeline, layers, lighting | [rendering.md](rendering.md) |
 | ECS adapter, components, groups | [ecs.md](ecs.md) |
 | Economy, shoppers, day/night, weather | [gameplay.md](gameplay.md) |
-| Map, saves, `settings.json`, worlds | [world-format.md](world-format.md) |
+| Map, saves, `data/settings.json`, worlds | [world-format.md](world-format.md) |
 | `config.lua`, `npc.lua`, dev scripts | [scripts.md](scripts.md) |
 | Texture and sound paths | [assets.md](assets.md) |
 | Building for desktop and Android | [build.md](build.md) |

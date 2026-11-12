@@ -115,7 +115,7 @@ loop `snow.ogg`/`rain.ogg` as weather ambience.
   `ShopOwned`; the object then becomes placeable in this world.
 - **Settings** (`Esc`, or the gear icon) pauses gameplay: rent, day/night,
   shoppers and weather stop. It holds VSync, zoom speed, music and SFX, and
-  writes `settings.json` immediately.
+  writes `data/settings.json` immediately.
 - **Tutorial** opens once per session when the shop is still empty, and can be
   closed with `Esc` or its button. It sways slightly with a sine wave, which is
   the only purely decorative animation in the UI.

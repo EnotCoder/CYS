@@ -91,7 +91,7 @@ cargo test docs
 ## PR checklist
 
 - [ ] `cargo test` passes;
-- [ ] no `target/`, `worlds/` or local `settings.json` changes in the diff;
+- [ ] no `target/` or local `data/` changes in the diff;
 - [ ] new files have SPDX headers;
 - [ ] new paths start with `assets/`;
 - [ ] docs updated per the table above;

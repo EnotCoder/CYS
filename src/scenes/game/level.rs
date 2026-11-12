@@ -300,7 +300,7 @@ impl GameScene {
         }
     }
 
-    /// Загружает игру из файла мира worlds/world_{world_id}.json.
+    /// Загружает игру из файла мира data/worlds/world_{world_id}.json.
     /// Возвращает true, если загрузка прошла успешно (файл есть и валиден).
     pub fn load_from_disk(
         &mut self,

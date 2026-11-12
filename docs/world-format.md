@@ -1,24 +1,26 @@
 # World and save format
 
 There are three kinds of user data: map files (shipped assets), world saves
-(written by the game) and `settings.json` (written by the settings panel). All
-of them are plain text, so a broken save can be inspected and repaired by hand.
+(written by the game) and `data/settings.json` (written by the settings panel).
+All of them are plain text, so a broken save can be inspected and repaired by
+hand.
 
 ## Where files live
 
 | File | Desktop | Android |
 |---|---|---|
 | `assets/map.txt`, `assets/basement.txt` | project / next to the binary | packed into the APK |
-| `worlds/manifest.json` | `./worlds/` relative to the working directory | internal app data |
-| `worlds/world_{id}.json` | `./worlds/` | internal app data |
-| `settings.json` | `./settings.json` | internal app data |
+| `data/worlds/manifest.json` | `./data/worlds/` relative to the working directory | internal app data |
+| `data/worlds/world_{id}.json` | `./data/worlds/` | internal app data |
+| `data/settings.json` | `./data/settings.json` | internal app data |
 
 `core::asset` hides the difference: `load_bytes` reads project assets (on
 Android through `AAssetManager`, stripping the `assets/` prefix), while
-`save_data` / `load_data` / `delete_data` always target the user data directory.
+`save_data` / `load_data` / `delete_data` always target the user data directory
+(`data/` on desktop, `internal_data/data/` on Android).
 
-`worlds/` and `*.json` are in `.gitignore`; `settings.json` is tracked as a
-repository default but is still overwritten at runtime.
+The whole `data/` directory is in `.gitignore`: worlds, the manifest and
+`settings.json` are created locally and never land in a commit.
 
 ## Map files
 
@@ -53,7 +55,7 @@ tokens; a wall token is not walkable, floor and door are.
 
 ## World manifest
 
-`worlds/manifest.json` is the Minecraft-style index. `next_id` only grows, ids
+`data/worlds/manifest.json` is the Minecraft-style index. `next_id` only grows, ids
 are never reused, and the list is sorted by `updated` when displayed.
 
 ```json
@@ -75,7 +77,7 @@ and an empty name becomes `World`.
 
 ## World save
 
-`worlds/world_{id}.json` is written by `GameScene::save_to_disk`, on exit, on
+`data/worlds/world_{id}.json` is written by `GameScene::save_to_disk`, on exit, on
 `Ctrl+S` and when leaving to the menu. It is a full snapshot, not a diff.
 
 ```json
@@ -124,7 +126,7 @@ by `serde`, and missing optional fields fall back to defaults where declared.
 
 ## Settings
 
-`settings.json` is separate from worlds: it applies to the application, not to a
+`data/settings.json` is separate from worlds: it applies to the application, not to a
 save.
 
 ```json
@@ -152,7 +154,7 @@ unparsable file silently falls back to `GameSettings::default()`.
   required field breaks them. Prefer defaults.
 - `map_grid` stores tokens, not editor objects: if a token is removed from
   `token_to_texture`, old saves render it as default floor.
-- `worlds/manifest.json` is the source of truth for the world list. Deleting a
+- `data/worlds/manifest.json` is the source of truth for the world list. Deleting a
   `world_{id}.json` manually leaves a menu entry that loads as a new world.
 - `next_id` is never derived from existing files, so restoring an old manifest
   can produce duplicate ids. Keep the manifest with the world files.

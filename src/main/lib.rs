@@ -72,7 +72,7 @@ impl App {
     // снаружи (DesktopInput для ПК, TouchInput для мобильных).
     pub fn new(input: Box<dyn InputSource>) -> Self {
         crate::audio::init();
-        // Применяем сохранённые в settings.json настройки звука: музыка в меню
+        // Применяем сохранённые в data/settings.json настройки звука: музыка в меню
         // и эффекты в игре должны уважать выбор пользователя с самого старта.
         {
             let s = crate::save::load_settings();

@@ -14,7 +14,7 @@
 - `src/ui/` — components, fps, inventory, settings, shop, weather, anim, text_input, system, text_renderer
 - `src/audio/` — sound (rodio)
 - `src/scripts/` — Lua bridge (config, npc)
-- `src/save/` — worlds, manifest, settings.json
+- `src/save/` — worlds, manifest, data/settings.json
 - `src/tests/` — unit tests (tied in via `#[cfg(test)] mod tests;`) and docs checks
 
 Documentation lives outside `src/`, in `docs/` (English only). Root `README.md`

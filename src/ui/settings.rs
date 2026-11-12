@@ -162,7 +162,7 @@ impl Settings {
         self.anim.start_close(ecs, ents);
     }
 
-    /// Переносит сохранённые настройки (settings.json) в элементы панели.
+    /// Переносит сохранённые настройки (data/settings.json) в элементы панели.
     /// Вызывается при входе в игру до открытия окна: галочки и ползунок
     /// создаются уже с нужными значениями.
     pub fn apply_saved(&mut self, s: &crate::save::GameSettings) {

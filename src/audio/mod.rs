@@ -15,7 +15,7 @@ use rodio::{Decoder, DeviceSinkBuilder, MixerDeviceSink, Player, Source};
 
 pub const SOUND_DIR: &str = "assets/sounds";
 
-// Переключатели звука из настроек (settings.json): применяются глобально,
+// Переключатели звука из настроек (data/settings.json): применяются глобально,
 // чтобы музыка в меню и эффекты в игре уважали выбор пользователя.
 static MUSIC_ENABLED: AtomicBool = AtomicBool::new(true);
 static SFX_ENABLED: AtomicBool = AtomicBool::new(true);

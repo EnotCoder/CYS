@@ -152,7 +152,7 @@ is missing from this map.
   grid, category tabs, grid clicks, move to the active slot, hotbar selection.
 - **`src/scenes/game/level.rs`** — levels: `save_current_level` into
   `LevelState`, `load_level` (shop ↔ basement from cache), `rebuild_ui`,
-  `save_to_disk`/`load_from_disk` (`worlds/world_{id}.json`), basement exit.
+  `save_to_disk`/`load_from_disk` (`data/worlds/world_{id}.json`), basement exit.
 - **`src/scenes/game/shoppers.rs`** — `ShopperManager`: `spawn_shopper`
   (random rack/register/candy target, three texture sets), `set_active`, `tick`
   (spawn timers, limit, despawn, cooldown).

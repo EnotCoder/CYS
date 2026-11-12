@@ -104,9 +104,9 @@ platform-agnostic. Keyboard/IME events are accumulated per frame; `step()` and
 
 `save/` owns the Minecraft-style world list:
 
-- `worlds/manifest.json` — next id + metadata (`WorldMeta`);
-- `worlds/world_{id}.json` — a full level snapshot;
-- `settings.json` — VSync, zoom speed, music and SFX toggles.
+- `data/worlds/manifest.json` — next id + metadata (`WorldMeta`);
+- `data/worlds/world_{id}.json` — a full level snapshot;
+- `data/settings.json` — VSync, zoom speed, music and SFX toggles.
 
 `save::SELECTED_WORLD` is a static because `SceneAction` cannot carry
 parameters; the menu writes it before `Switch("game")`. On Android the same

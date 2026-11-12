@@ -468,7 +468,7 @@ impl GameScene {
     }
 
     /// Записывает текущие настройки из панели в глобальную копию и файл
-    /// settings.json (VSync, зум, музыка, звуки).
+    /// data/settings.json (VSync, зум, музыка, звуки).
     fn persist_settings(&self) {
         let s = crate::save::GameSettings {
             vsync: self.settings.vsync.checked,

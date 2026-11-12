@@ -650,6 +650,45 @@ fn sized_path_parsing_splits_base_and_footprint() {
 }
 
 // ========================================================================
+//  Отсечение видимой области (меню рисует столько же, сколько игра)
+// ========================================================================
+
+#[test]
+fn menu_drops_off_screen_map_tiles_like_the_game_does() {
+    use crate::core::constants::{MENU_MAP_SIZE, SHADER_SCALE};
+    use crate::scenes::scene_trait::Scene;
+
+    // Меню показывает тот же магазин, что и игра, но камера в нём неподвижна
+    // (смещение 0). Отсечение обязано применяться и здесь: без него каждый
+    // кадр рисовались все ~1500 тайлов карты и меню просаживалось ниже 60 FPS.
+    let mut ecs = crate::EcsAdapter::new();
+    crate::data::map::load_map_to_ecs(&mut ecs);
+    let scene = crate::scenes::MenuScene::new();
+
+    let aspect = 1280.0 / 720.0;
+    let vis_w = 2.0 * aspect / (SHADER_SCALE * MENU_MAP_SIZE);
+    let vis_h = 2.0 / (SHADER_SCALE * MENU_MAP_SIZE);
+    let bounds = (0.0 - vis_w / 2.0, 0.0 + vis_w / 2.0, 0.0 - vis_h / 2.0, 0.0 + vis_h / 2.0);
+
+    let all = scene.sprites(&ecs, None);
+    let visible = scene.sprites(&ecs, Some(bounds));
+
+    assert!(!all.0.is_empty(), "карта меню не загрузилась");
+    assert!(visible.0.len() * 2 < all.0.len(),
+            "в кадре {} тайлов из {} — отсечение по видимой области не работает",
+            visible.0.len(), all.0.len());
+    // Всё, что попало в кадр, обязано быть внутри видимой области с запасом
+    // (margin в get_sprites_by_layer + размер тайла).
+    let margin = 2.0;
+    for sprite in &visible.0 {
+        let (x, y) = (sprite.position[0], sprite.position[1]);
+        assert!(x + 1.0 + margin >= bounds.0 && x - margin <= bounds.1
+                && y + 1.0 + margin >= bounds.2 && y - margin <= bounds.3,
+                "тайл ({x},{y}) вне видимой области (не должен рисоваться)");
+    }
+}
+
+// ========================================================================
 //  Токены карты -> текстура и кадр атласа
 // ========================================================================
 

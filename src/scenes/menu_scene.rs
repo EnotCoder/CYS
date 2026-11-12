@@ -427,8 +427,12 @@ impl Scene for MenuScene {
         }
     }
 
-    fn sprites(&self, ecs: &crate::EcsAdapter, _visible_bounds: Option<(f32, f32, f32, f32)>) -> (Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>) {
-        ecs.get_sprites_by_layer(None)
+    fn sprites(&self, ecs: &crate::EcsAdapter, visible_bounds: Option<(f32, f32, f32, f32)>) -> (Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>) {
+        // Камера меню неподвижна, поэтому отсечение по видимой области так же
+        // безопасно, как в игре: за кадром остаются только невидимые тайлы.
+        // Без него каждый кадр рисовались все ~1500 тайлов карты, и меню
+        // просаживалось ниже 60 FPS.
+        ecs.get_sprites_by_layer(visible_bounds)
     }
 
     fn map_size(&self) -> f32 { self.ui_scale }

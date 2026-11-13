@@ -49,16 +49,18 @@ is missing from this map.
   PNG/JPEG bytes, from disk (`from_path`, falls back to `null.png`), from raw
   RGBA (`from_rgba`, text and UI).
 - **`src/core/util.rs`** — `sprite_cache_key`, `ndc_to_world`, `inventory_index`,
-  `slot_icon_path`, `ui_fit_scale`, `ui_top_offset`/`ui_bottom_offset`,
-  `ease_out_back`.
+  `slot_icon_path`, `slot_icon_size`, `ui_fit_scale`,
+  `ui_top_offset`/`ui_bottom_offset`, `ease_out_back`.
 
 ---
 
 ## `src/data/` — data, map, placement
 
-- **`src/data/mod.rs`** — `Slot`/`Object`, the static `ALL_OBJECTS` catalogue,
-  `make_slot`, `get_slot_vec`, `object_price`, `shop_item_names`; re-exports
-  placement rules; declares `door`, `map`, `placement`.
+- **`src/data/mod.rs`** — `Slot`/`Object`, `ItemMeta`, `ItemCatalog`,
+  `ALL_OBJECTS`/`catalog` loaded from `assets/scripts/items.lua` with a built-in
+  Rust fallback, `make_slot`, `get_slot_vec`, `object_price`, `shop_item_names`,
+  `inventory_tab_names`; re-exports placement rules; declares `door`, `map`,
+  `placement`.
 - **`src/data/placement.rs`** — `add`/`remove` rules: cell categories, wall
   recomputation (`refresh_walls_around`, `recompute_wall_token`,
   `revert_to_grass`), economy (price and half refund), `FoodStorage`,
@@ -149,7 +151,8 @@ is missing from this map.
   Food/Money counters, clock (at most once per second), item tooltip, info
   panel; text is recreated only when it changes.
 - **`src/scenes/game/inventory_input.rs`** — inventory input: `E` toggles the
-  grid, category tabs, grid clicks, move to the active slot, hotbar selection.
+  grid, `←`/`→` cycle category tabs, grid clicks, move to the active slot,
+  hotbar selection.
 - **`src/scenes/game/level.rs`** — levels: `save_current_level` into
   `LevelState`, `load_level` (shop ↔ basement from cache), `rebuild_ui`,
   `save_to_disk`/`load_from_disk` (`data/worlds/world_{id}.json`), basement exit.
@@ -177,7 +180,7 @@ is missing from this map.
   `slider_drag`, `update_slider_thumb`, per-widget hover scaling
   (`update_checkbox_hover`, `update_slider_hover`).
 - **`src/ui/inventory.rs`** — `Inventory`: grid and tabs, `items`, `switch_tab`,
-  grid clicks, move to the hotbar.
+  `tab_after`, grid clicks, move to the hotbar.
 - **`src/ui/settings.rs`** — settings panel: VSync (`vsync_toggled`), zoom
   speed slider (`zoom_speed_changed`), music/SFX, `open`/`close`,
   `handle_input`, `apply_saved`.
@@ -229,10 +232,14 @@ is missing from this map.
 
 ## `src/scripts/` — Lua bridge
 
-- **`src/scripts/mod.rs`** — declares `config` and `npc`.
+- **`src/scripts/mod.rs`** — declares `config`, `items` and `npc`.
 - **`src/scripts/config.rs`** — `BalanceConfig`: reads
   `assets/scripts/config.lua` through mlua, falls back to defaults on error;
   timings, prices, capacities, economy; `publish_to_lua`.
+- **`src/scripts/items.rs`** — `ItemDef`/`load`: reads
+  `assets/scripts/items.lua` through mlua (size, texture, inventory icon and
+  icon size, price, atlas frame, animation frames, tab); returns `None` so
+  `data::ItemCatalog` can use `BUILTIN_OBJECTS` when the file is missing or broken.
 - **`src/scripts/npc.rs`** — `NpcScript`: calls `npc.lua` from Rust, packs NPC
   state into a Lua table, exposes primitives (`walk`, `take_food`, `start_path`,
   `busy`, `add_money`, `find_any_cassa`), copies `state`/`timer` back, falls

@@ -1,7 +1,7 @@
 # Assets
 
-Everything the game loads at runtime lives in `assets/`. There are 150 PNG
-files and 22 OGG files at the time of writing, all addressed by paths that start
+Everything the game loads at runtime lives in `assets/`. There are 152 PNG
+files and 26 OGG files at the time of writing, all addressed by paths that start
 with `assets/`, for example `assets/tex/decor/regular/rack/rack_0.png`.
 
 On Android these paths are packed into the APK; `core::asset::load_bytes`
@@ -18,15 +18,16 @@ from `std::env` or an absolute location — always go through `core::asset`.
 | `assets/tex/decor/light/` | `lamp.png`, `big_lamp.png` |
 | `assets/tex/decor/walldecor/` | wall posters, clock, welcome sign |
 | `assets/tex/decor/outdoor/` | trees, benches, street fence, flowers |
+| `assets/tex/decor/new_year/` | New Year decoration atlas (`new_year_tree.png`) |
 | `assets/tex/characters/` | `player/`, `bob/`, `sasha/` — idle + two walk frames each |
 | `assets/tex/ui/` | panels, mode icons, cursor, sliders, checkboxes, shop/weather/settings art |
 | `assets/tex/ui/button/` | shared button background (`main.png`) used by menus and dialogs |
-| `assets/tex/ui/icon_slots/` | inventory icons by category (`regular`, `carpets`, `light`, `walldecor`, `outdoor`) |
+| `assets/tex/ui/icon_slots/` | inventory icons by category (`regular`, `carpets`, `light`, `walldecor`, `outdoor`, `new_year`) |
 | `assets/tex/ui/mini_icons/` | small HUD icons (food, money, clock) |
 | `assets/tex/ui/time_of_year/` | season buttons |
 | `assets/tex/dev_tools/` | `null.png` (missing-texture fallback), `black.png` (dim overlays) |
 | `assets/sounds/` | 26 `.ogg` effects and music (menu + four seasonal tracks) |
-| `assets/scripts/` | `config.lua`, `npc.lua`, `gen_sounds.py` |
+| `assets/scripts/` | `config.lua`, `items.lua`, `npc.lua`, `gen_sounds.py` |
 | `assets/font.otf` | the only font; path comes from `config.lua` |
 | `assets/map.txt`, `assets/basement.txt` | level maps |
 | `assets/icon.png` | application icon source |

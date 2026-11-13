@@ -90,6 +90,9 @@ pub fn inventory_index(row: i32, col: i32) -> i32 {
 // Путь к иконке предмета в хотбаре: ищем имя в категориях, чтобы выбрать подкаталог
 pub fn slot_icon_path(name: &str) -> String {
     use crate::core::constants::*;
+    if let Some(meta) = crate::data::item_meta(name) {
+        return meta.icon.to_string();
+    }
     let subdir = if INV_REGULAR.contains(&name) { "regular" }
         else if INV_CARPETS.contains(&name) { "carpets" }
         else if INV_WALLDECOR.contains(&name) { "walldecor" }
@@ -98,4 +101,11 @@ pub fn slot_icon_path(name: &str) -> String {
         // Незнакомое имя — берём иконку напрямую из каталога предметов
         else { return format!("{}{}.png", TEX_UI_ICON_SLOTS_MAP_DIR, name) };
     format!("{}{}/{}.png", TEX_UI_ICON_SLOTS_OBJECT_DIR, subdir, name)
+}
+
+/// Размер иконки предмета внутри ячейки инвентаря (1.0 — вся ячейка).
+pub fn slot_icon_size(name: &str) -> [f32; 2] {
+    crate::data::item_meta(name)
+        .map(|meta| meta.icon_size)
+        .unwrap_or([1.0, 1.0])
 }

@@ -26,6 +26,7 @@ Requires Rust edition 2021 and a GPU with Vulkan (Linux/Android) or Dx12
 | Place / remove / interact | `LMB` or `F` |
 | Cycle mode (move/interact/build/delete) | `Tab` or the mode icon |
 | Open / close inventory | `E` |
+| Change inventory tab | `←` / `→` or a tab icon |
 | Select hotbar slot | Click the slot |
 | Toggle shop open/closed | Click the active icon |
 | Zoom | `Scroll`, `K` / `L`, pinch |
@@ -56,8 +57,9 @@ with the world.
   autosave on exit, quick save on `Ctrl+S`.
 - **Pause** — settings freeze rent, day/night, shoppers and weather.
 - **Settings** — VSync, zoom speed, music and SFX, persisted in `data/settings.json`.
-- **Balance in Lua** — `assets/scripts/config.lua` and `assets/scripts/npc.lua`
-  drive timings, prices and shopper decisions.
+- **Balance and items in Lua** — `assets/scripts/config.lua`,
+  `assets/scripts/items.lua` and `assets/scripts/npc.lua` drive timings, prices,
+  the inventory catalogue and shopper decisions.
 
 ## Documentation
 
@@ -93,7 +95,7 @@ src/
 ├── input/    — camera, cursor, interaction, desktop/touch abstraction
 ├── npc/      — ShopperNpc state machine and movement
 ├── audio/    — sound engine (rodio)
-├── scripts/  — Lua bridge (config.lua, npc.lua)
+├── scripts/  — Lua bridge (config.lua, items.lua, npc.lua)
 ├── save/     — worlds, manifest, data/settings.json
 └── tests/    — unit tests (including docs checks)
 ```

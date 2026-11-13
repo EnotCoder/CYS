@@ -55,7 +55,8 @@ fn mode_tables_match_mode_count_and_textures_exist() {
 
 #[test]
 fn inventory_tabs_have_textures_and_fit_the_grid() {
-    assert_eq!(TAB_TEX.len(), 5);
+    assert_eq!(TAB_TEX.len(), 6);
+    assert_eq!(TAB_TEX.len(), crate::scripts::items::TAB_NAMES.len());
     for path in TAB_TEX {
         assert!(crate::core::asset::load_bytes(path).is_ok(), "нет иконки таба: {path}");
     }
@@ -67,10 +68,20 @@ fn inventory_tabs_have_textures_and_fit_the_grid() {
             list.len()
         );
     }
+    // Новогодняя вкладка живёт только в items.lua, поэтому её длину
+    // проверяем через каталог.
+    assert!(crate::data::inventory_tab_names(5).len() <= capacity);
     // INV_NONE — это валидная нижняя левая ячейка сетки (ряд 4, колонка 0),
     // а не «пустая» координата. Тест фиксирует это, чтобы будущая проверка
     // `selected == INV_NONE` не сломала выбор первого предмета.
     assert_eq!(INV_NONE, (INVENTORY_ROWS - 1) * INVENTORY_COLS);
+}
+
+#[test]
+fn items_lua_catalogue_loads() {
+    let defs = crate::scripts::items::load()
+        .expect("assets/scripts/items.lua должен загружаться и содержать ITEMS");
+    assert!(!defs.is_empty(), "items.lua не должен быть пустым");
 }
 
 #[test]
@@ -373,12 +384,14 @@ fn inventory_tabs_and_grid_clicks_are_consistent() {
     use crate::ui::inventory::Inventory;
 
     let mut inv = Inventory::new();
-    let expected: [&[&str]; 5] = [
+    let new_year: &[&str] = &["new_year_tree"];
+    let expected: [&[&str]; 6] = [
         INV_REGULAR,
         INV_CARPETS,
         INV_WALLDECOR,
         INV_OUTDOOR,
         INV_LIGHT,
+        new_year,
     ];
     for (tab, list) in expected.iter().enumerate() {
         inv.tab = tab as i32;
@@ -387,6 +400,12 @@ fn inventory_tabs_and_grid_clicks_are_consistent() {
     // Неизвестный таб трактуется как вкладка света (текущее поведение).
     inv.tab = 99;
     assert_eq!(inv.items(), INV_LIGHT);
+
+    // Стрелки листают вкладки по кругу: после новогодней снова обычная.
+    assert_eq!(Inventory::tab_after(5, 1), 0);
+    assert_eq!(Inventory::tab_after(0, -1), 5);
+    assert_eq!(Inventory::tab_after(2, 3), 5);
+    assert_eq!(Inventory::tab_after(1, 9), 4);
 
     inv.tab = 0;
     assert!(!inv.handle_grid_click(-1, 0));

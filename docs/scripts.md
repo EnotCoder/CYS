@@ -1,15 +1,16 @@
 # Scripts
 
-`assets/scripts/` holds two Lua files and one development tool:
+`assets/scripts/` holds three Lua files and one development tool:
 
 - `config.lua` — the single source of balance values, read once at startup;
+- `items.lua` — the inventory catalogue: sizes, textures, icons and prices;
 - `npc.lua` — shopper decision logic, called every tick;
 - `gen_sounds.py` — a Python generator for the `.ogg` sound effects.
 
 There is no Lua game loop. `config.lua` runs once inside
-`BalanceConfig::load`; `npc.lua` is called function-by-function from
-`ShopperNpc::update`. If a file is missing or fails, Rust defaults take over and
-the game keeps working.
+`BalanceConfig::load`; `items.lua` runs once inside `data::catalog`;
+`npc.lua` is called function-by-function from `ShopperNpc::update`. If a file is
+missing or fails, Rust defaults take over and the game keeps working.
 
 ## config.lua
 
@@ -44,6 +45,50 @@ Consistency matters: the `balance_config_defaults_are_internally_consistent`
 test checks the order of day/night phases, box thresholds and candy
 capacities. Broken values in `config.lua` produce a readable test failure
 instead of a visual glitch.
+
+## items.lua
+
+Loaded by `src/scripts/items.rs::load` into `data::ItemCatalog`, which builds
+`ALL_OBJECTS`, the inventory tab lists and per-item icon metadata. The Rust
+`BUILTIN_OBJECTS` list in `src/data/mod.rs` is only the fallback when this file
+is missing, broken or empty.
+
+```lua
+ITEMS = {
+    {
+        name = "box",
+        tab = "regular",
+        width = 1, height = 1,
+        texture = "assets/tex/decor/regular/box/box_0.png",
+        icon = "assets/tex/ui/icon_slots/icon_slots_object/regular/box.png",
+        icon_width = 1.0, icon_height = 1.0,
+        price = 30,
+        frame = {0, 0}, atlas = {1, 1},
+        animated = false, frames = {},
+    },
+}
+```
+
+| Field | Role |
+|---|---|
+| `name` | internal id; used by saves, `config.lua` price overrides and shop unlocks |
+| `tab` | inventory tab: `regular`, `carpets`, `walldecor`, `outdoor`, `light`, `new_year` |
+| `width`, `height` | footprint in map cells |
+| `texture` | atlas texture used in the world |
+| `icon` | inventory and hotbar icon |
+| `icon_width`, `icon_height` | icon size inside one inventory cell (`1.0` = full cell) |
+| `price` | default price; `CONFIG.object_prices` can override it |
+| `frame`, `atlas` | atlas frame `{x, y}` and grid size `{cols, rows}` |
+| `animated`, `frames` | animation flag and frame files (at least two when animated) |
+| `flower` | optional; allows placement on grass |
+
+The catalogue order is the shop order, and each `tab` list is drawn as-is in
+the 5×5 inventory grid. Tabs are listed in `TAB_NAMES` (`src/scripts/items.rs`)
+and mirrored by `TAB_TEX` (`src/core/constants.rs`); with the inventory open,
+`←`/`→` cycle them in Minecraft-like fashion. Adding, removing or renaming an
+item here updates both the inventory and the placement helpers in
+`src/data/placement.rs`, which read the same `tab`/`flower` fields; `SHOP_EXEMPT`
+and the starting hotbar remain in Rust.
 
 ## npc.lua
 
@@ -116,6 +161,8 @@ the game build: the game only reads the resulting `.ogg` files through
 
 - A syntax error in `npc.lua` disables the script and silently enables the Rust
   fallback; `NpcScript::loaded` returns `false` in that case.
+- A broken `items.lua` prints `[items] ...` and falls back to `BUILTIN_OBJECTS`;
+  check the tab name spelling and atlas frame bounds.
 - `CONFIG` is only published if `config.lua` ran; a missing file means defaults,
   not an error.
 - Use `npc:log("...")` inside the script to print from Lua.

@@ -135,7 +135,8 @@ whether the player has built the entrance, so it survives a reload.
 |---|---|---|
 | place / use / delete | LMB or `F` | tap |
 | change mode | `Tab` or mode icon | mode icon |
-| inventory | `E` | bag icon |
+| inventory | `E` |
+| inventory tab | `←` / `→` or a tab icon | bag icon |
 | camera | drag in `move`, arrows | one-finger drag in `move` |
 | zoom | wheel, `K`/`L`, pinch | two-finger pinch |
 | settings / pause | `Esc` | gear icon, Back button |

@@ -79,6 +79,7 @@ system Back button is treated as `Esc`: close a panel, or open settings/pause.
 ## Runtime configuration
 
 - `assets/scripts/config.lua` — balance, font path, spawn point;
+- `assets/scripts/items.lua` — inventory catalogue (sizes, textures, icons);
 - `data/settings.json` — VSync, zoom, music and SFX, created on first change;
 - `data/worlds/` — user saves, created on demand.
 

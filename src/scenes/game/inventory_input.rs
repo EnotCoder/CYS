@@ -11,6 +11,7 @@
 use winit::keyboard::KeyCode;
 use crate::core::constants::*;
 use crate::EcsAdapter;
+use crate::ui::inventory::Inventory;
 use crate::ui::system::ndc_to_ui;
 use crate::input::platform::InputSource;
 use super::GameScene;
@@ -26,6 +27,24 @@ impl GameScene {
             } else {
                 self.inventory.enter(ecs, device, queue);
                 crate::audio::play("open");
+            }
+        }
+
+        // --- Переключение вкладок стрелками влево/вправо (по кругу) ---
+        if self.inventory.mode {
+            let delta = if input.key_pressed(KeyCode::ArrowRight) {
+                1
+            } else if input.key_pressed(KeyCode::ArrowLeft) {
+                -1
+            } else {
+                0
+            };
+            if delta != 0 {
+                let next = Inventory::tab_after(self.inventory.tab, delta);
+                if next != self.inventory.tab {
+                    self.inventory.switch_tab(next, ecs, device, queue);
+                    crate::audio::play("click");
+                }
             }
         }
 

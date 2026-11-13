@@ -179,13 +179,7 @@ impl Inventory {
 
     // Список имён предметов для активной вкладки
     pub fn items(&self) -> &'static [&'static str] {
-        match self.tab {
-            0 => INV_REGULAR,
-            1 => INV_CARPETS,
-            2 => INV_WALLDECOR,
-            3 => INV_OUTDOOR,
-            _ => INV_LIGHT,
-        }
+        crate::data::inventory_tab_names(self.tab)
     }
 
     // ================================================================
@@ -215,6 +209,15 @@ impl Inventory {
             ecs.update_sprite_alpha(p.ent, a);
         }
         self.selected = INV_NONE;
+    }
+
+    /// Вкладка после шага `delta` по кругу (стрелки влево/вправо).
+    pub fn tab_after(current: i32, delta: i32) -> i32 {
+        let count = crate::scripts::items::TAB_NAMES.len() as i32;
+        if count <= 0 {
+            return 0;
+        }
+        (current + delta).rem_euclid(count)
     }
 
     // ================================================================
@@ -276,14 +279,27 @@ impl Inventory {
         for row in (0..INVENTORY_ROWS).rev() {
             for col in 0..INVENTORY_COLS {
                 let item_idx = crate::core::util::inventory_index(row, col) as usize;
-                let tex = if item_idx < items.len() {
-                    crate::core::util::slot_icon_path(items[item_idx])
+                let (tex, icon_size) = if item_idx < items.len() {
+                    let name = items[item_idx];
+                    (
+                        crate::core::util::slot_icon_path(name),
+                        crate::core::util::slot_icon_size(name),
+                    )
                 } else {
-                    format!("{}{}", TEX_UI_ICON_SLOTS_MAP_DIR, "null.png")
+                    (
+                        format!("{}{}", TEX_UI_ICON_SLOTS_MAP_DIR, "null.png"),
+                        [1.0, 1.0],
+                    )
                 };
                 let x = SLOT_BAR_X + col as f32;
                 let y = INVENTORY_BASE_Y + row as f32 + self.bottom_dy;
-                let ent = ecs.add_ui(x, y, &tex);
+                let ent = if (icon_size[0] - 1.0).abs() < f32::EPSILON
+                    && (icon_size[1] - 1.0).abs() < f32::EPSILON
+                {
+                    ecs.add_ui(x, y, &tex)
+                } else {
+                    ecs.add_ui_sized(x, y, icon_size[0], icon_size[1], &tex, device, queue)
+                };
                 self.grid_entities.push(PlacedEntity { ent, base_x: SLOT_BAR_X + col as f32, base_y: INVENTORY_BASE_Y + row as f32 });
 
                 // Доступ к такому предмету НЕ открыт (нужна покупка в магазине).

@@ -840,7 +840,7 @@ fn every_catalog_object_has_a_resolvable_icon() {
     // Иконка — это первое, что игрок видит у предмета; битый путь даёт
     // пустую клетку без диагностики. Путь строит slot_icon_path по
     // категории, поэтому проверяем именно его вывод.
-    for obj in crate::data::ALL_OBJECTS {
+    for obj in crate::data::ALL_OBJECTS.iter() {
         let icon = slot_icon_path(obj.name);
         assert!(icon.ends_with(".png"), "иконка {name} собралась в не-PNG: {icon}", name = obj.name);
         assert!(crate::core::asset::load_bytes(&icon).is_ok(),

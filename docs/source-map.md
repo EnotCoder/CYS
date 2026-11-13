@@ -151,8 +151,8 @@ is missing from this map.
   Food/Money counters, clock (at most once per second), item tooltip, info
   panel; text is recreated only when it changes.
 - **`src/scenes/game/inventory_input.rs`** — inventory input: `E` toggles the
-  grid, `←`/`→` cycle category tabs, grid clicks, move to the active slot,
-  hotbar selection.
+  grid, `←`/`→` cycle category tabs, page-arrow clicks page the tab row, grid
+  clicks, move to the active slot, hotbar selection.
 - **`src/scenes/game/level.rs`** — levels: `save_current_level` into
   `LevelState`, `load_level` (shop ↔ basement from cache), `rebuild_ui`,
   `save_to_disk`/`load_from_disk` (`data/worlds/world_{id}.json`), basement exit.
@@ -179,7 +179,8 @@ is missing from this map.
   `is_clicked`, factories and destructors (`TEX_BUTTON` backgrounds),
   `slider_drag`, `update_slider_thumb`, per-widget hover scaling
   (`update_checkbox_hover`, `update_slider_hover`).
-- **`src/ui/inventory.rs`** — `Inventory`: grid and tabs, `items`, `switch_tab`,
+- **`src/ui/inventory.rs`** — `Inventory`: grid and paginated tabs (`TAB_PAGE_SIZE`,
+  `switch_page`, `tab_page_of`, `visible_tab_count`), `items`, `switch_tab`,
   `tab_after`, grid clicks, move to the hotbar.
 - **`src/ui/settings.rs`** — settings panel: VSync (`vsync_toggled`), zoom
   speed slider (`zoom_speed_changed`), music/SFX, `open`/`close`,

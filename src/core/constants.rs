@@ -207,6 +207,12 @@ pub const INVENTORY_ROWS: i32 = 5;
 pub const INVENTORY_COLS: i32 = 5;
 pub const INV_NONE: i32 = INVENTORY_ROWS * (INVENTORY_COLS - 1);
 pub const TAB_TEX: [&str; 6] = ["assets/tex/ui/icon_slots/icon_slots_object/regular/box.png", "assets/tex/ui/icon_slots/icon_slots_object/carpets/blue_carpet.png", "assets/tex/ui/icon_slots/icon_slots_object/walldecor/welcome.png", "assets/tex/ui/icon_slots/icon_slots_object/outdoor/tree.png", "assets/tex/ui/icon_slots/icon_slots_object/light/lamp.png", "assets/tex/ui/icon_slots/icon_slots_object/new_year/new_year_tree.png"];
+// Вкладки листаются страницами по 5 иконок; крайние кнопки-стрелки
+// стоят слева от первой и справа от последней вкладки страницы.
+pub const TAB_PAGE_SIZE: usize = 5;
+pub const TAB_ARROW_LEFT_TEX: &str = "assets/tex/ui/icon_slots/arrow_left.png";
+pub const TAB_ARROW_RIGHT_TEX: &str = "assets/tex/ui/icon_slots/arrow_right.png";
+pub const TAB_ARROW_DISABLED_ALPHA: f32 = 0.25;
 pub const SLOT_CURSOR_TEX: &str = "assets/tex/ui/icon_slots/cursor.png";
 pub const INV_REGULAR: &[&str] = &["box", "sign", "rack", "table", "cassa", "ice_cream", "arcade_machine", "candies", "fence", "basement"];
 pub const INV_LIGHT: &[&str] = &["lamp", "big_lamp"];

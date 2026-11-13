@@ -76,16 +76,36 @@ impl GameScene {
             return;
         }
 
-        // --- Клик по табам инвентаря ---
+        // --- Клик по табам инвентаря и стрелкам страниц ---
         if self.inventory.mode {
             let tab_y = INV_TAB_Y + self.bottom_dy;
-            let tcol = (wx - SLOT_BAR_X + TILE_HALF).floor() as i32;
-            if (wy - tab_y).abs() < TILE_HALF && tcol >= 0 && tcol < TAB_TEX.len() as i32 {
-                if tcol != self.inventory.tab {
-                    self.inventory.switch_tab(tcol, ecs, device, queue);
-                    crate::audio::play("click");
+            if (wy - tab_y).abs() < TILE_HALF {
+                if Inventory::tab_page_count() > 1 {
+                    let visible = self.inventory.visible_tab_count() as f32;
+                    let left_x = SLOT_BAR_X - 1.0;
+                    let right_x = SLOT_BAR_X + visible;
+                    if (wx - left_x).abs() < TILE_HALF {
+                        if self.inventory.switch_page(-1, ecs, device, queue) {
+                            crate::audio::play("click");
+                        }
+                        return;
+                    }
+                    if (wx - right_x).abs() < TILE_HALF {
+                        if self.inventory.switch_page(1, ecs, device, queue) {
+                            crate::audio::play("click");
+                        }
+                        return;
+                    }
                 }
-                return;
+                let tcol = (wx - SLOT_BAR_X + TILE_HALF).floor() as i32;
+                if tcol >= 0 && (tcol as usize) < self.inventory.visible_tab_count() {
+                    let tab = self.inventory.tab_page * TAB_PAGE_SIZE as i32 + tcol;
+                    if tab != self.inventory.tab {
+                        self.inventory.switch_tab(tab, ecs, device, queue);
+                        crate::audio::play("click");
+                    }
+                    return;
+                }
             }
         }
 

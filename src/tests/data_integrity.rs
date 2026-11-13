@@ -60,6 +60,9 @@ fn inventory_tabs_have_textures_and_fit_the_grid() {
     for path in TAB_TEX {
         assert!(crate::core::asset::load_bytes(path).is_ok(), "нет иконки таба: {path}");
     }
+    for path in [TAB_ARROW_LEFT_TEX, TAB_ARROW_RIGHT_TEX] {
+        assert!(crate::core::asset::load_bytes(path).is_ok(), "нет стрелки страниц: {path}");
+    }
     let capacity = (INVENTORY_ROWS * INVENTORY_COLS) as usize;
     for list in [INV_REGULAR, INV_CARPETS, INV_WALLDECOR, INV_OUTDOOR, INV_LIGHT] {
         assert!(
@@ -384,7 +387,7 @@ fn inventory_tabs_and_grid_clicks_are_consistent() {
     use crate::ui::inventory::Inventory;
 
     let mut inv = Inventory::new();
-    let new_year: &[&str] = &["new_year_tree"];
+    let new_year: &[&str] = &["ny_tree"];
     let expected: [&[&str]; 6] = [
         INV_REGULAR,
         INV_CARPETS,
@@ -406,6 +409,19 @@ fn inventory_tabs_and_grid_clicks_are_consistent() {
     assert_eq!(Inventory::tab_after(0, -1), 5);
     assert_eq!(Inventory::tab_after(2, 3), 5);
     assert_eq!(Inventory::tab_after(1, 9), 4);
+
+    // Вкладки разбиты на страницы по TAB_PAGE_SIZE: 6 вкладок = 2 страницы,
+    // на второй видна только новогодняя.
+    assert_eq!(TAB_PAGE_SIZE, 5);
+    assert_eq!(Inventory::tab_page_count(), 2);
+    assert_eq!(Inventory::tab_page_of(0), 0);
+    assert_eq!(Inventory::tab_page_of(4), 0);
+    assert_eq!(Inventory::tab_page_of(5), 1);
+    inv.tab_page = 0;
+    assert_eq!(inv.visible_tab_count(), 5);
+    inv.tab_page = 1;
+    assert_eq!(inv.visible_tab_count(), 1);
+    inv.tab_page = 0;
 
     inv.tab = 0;
     assert!(!inv.handle_grid_click(-1, 0));

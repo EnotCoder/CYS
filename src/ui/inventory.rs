@@ -28,12 +28,16 @@ pub struct Inventory {
     pub selected: i32,
     // Текущий таб категории (обычные, ковры, настенный декор, уличное)
     pub tab: i32,
+    // Текущая страница вкладок: по TAB_PAGE_SIZE иконок на страницу
+    pub tab_page: i32,
     // Сдвиг сетки по вертикали: держит её вплотную над хотбаром, когда тот
     // прижат к нижнему краю экрана.
     bottom_dy: f32,
     // UI-сущности сетки предметов и закладок табов (нужны для скрытия/показа)
     grid_entities: Vec<PlacedEntity>,
     tab_entities: Vec<PlacedEntity>,
+    // Кнопки листания страниц вкладок (слева и справа от ряда табов)
+    page_entities: Vec<PlacedEntity>,
     // Замочки на некупленных предметах (значок в углу ячейки)
     lock_entities: Vec<PlacedEntity>,
     // Анимация открытия: отсчёт времени и активность «попа» появления
@@ -51,9 +55,11 @@ impl Inventory {
             mode: false,
             selected: INV_NONE,
             tab: 0,
+            tab_page: 0,
             bottom_dy: 0.0,
             grid_entities: Vec::new(),
             tab_entities: Vec::new(),
+            page_entities: Vec::new(),
             lock_entities: Vec::new(),
             pop_timer: 0.0,
             popping: false,
@@ -68,8 +74,10 @@ impl Inventory {
         self.mode = false;
         self.selected = INV_NONE;
         self.tab = 0;
+        self.tab_page = 0;
         self.grid_entities.clear();
         self.tab_entities.clear();
+        self.page_entities.clear();
         self.lock_entities.clear();
         self.pop_timer = 0.0;
         self.popping = false;
@@ -90,6 +98,7 @@ impl Inventory {
             self.closing = false;
         }
         self.tab = 0;
+        self.tab_page = 0;
         self.selected = INV_NONE;
         self.show_grid(ecs, device, queue);
         self.show_tabs(ecs);
@@ -138,7 +147,7 @@ impl Inventory {
             let s = 0.6 + 0.4 * crate::core::util::ease_out_back(t);
             ecs.update_sprite_scale(p.ent, s);
         }
-        for (i, p) in self.tab_entities.iter().enumerate() {
+        for (i, p) in self.tab_entities.iter().chain(self.page_entities.iter()).enumerate() {
             let t = ((self.pop_timer - i as f64 * 0.03) / dur).clamp(0.0, 1.0) as f32;
             if t < 1.0 {
                 all_done = false;
@@ -158,7 +167,10 @@ impl Inventory {
         let e = t * t;
         let s = 1.0 - 0.3 * e;
         let a = 1.0 - e;
-        for p in self.grid_entities.iter().chain(self.tab_entities.iter()) {
+        for p in self.grid_entities.iter()
+            .chain(self.tab_entities.iter())
+            .chain(self.page_entities.iter())
+        {
             ecs.update_sprite_scale(p.ent, s);
             ecs.update_sprite_alpha(p.ent, a);
         }
@@ -198,17 +210,52 @@ impl Inventory {
     //  Переключение вкладки
     // ================================================================
 
-    // Переключить таб: перерисовать сетку, подсветить активный таб, сбросить выбор
+    // Переключить таб: перерисовать страницу вкладок, сетку и сбросить выбор
     pub fn switch_tab(&mut self, new_tab: i32, ecs: &mut EcsAdapter, device: &wgpu::Device, queue: &wgpu::Queue) {
-        self.tab = new_tab;
+        let last = crate::scripts::items::TAB_NAMES.len() as i32 - 1;
+        self.tab = new_tab.clamp(0, last.max(0));
+        self.tab_page = Self::tab_page_of(self.tab);
         self.hide_grid(ecs);
         self.show_grid(ecs, device, queue);
-        // Активный таб — насыщенный, остальные — полупрозрачные
-        for (i, p) in self.tab_entities.iter().enumerate() {
-            let a = if i as i32 == self.tab { 1.0 } else { 0.5 };
-            ecs.update_sprite_alpha(p.ent, a);
-        }
+        // Страница могла смениться — пересобираем видимые табы и стрелки.
+        self.hide_tabs(ecs);
+        self.show_tabs(ecs);
         self.selected = INV_NONE;
+    }
+
+    /// Количество страниц вкладок (по TAB_PAGE_SIZE иконок на странице).
+    pub fn tab_page_count() -> i32 {
+        let total = crate::scripts::items::TAB_NAMES.len();
+        total.div_ceil(TAB_PAGE_SIZE).max(1) as i32
+    }
+
+    /// Страница, на которой находится вкладка `tab`.
+    pub fn tab_page_of(tab: i32) -> i32 {
+        (tab / TAB_PAGE_SIZE as i32).clamp(0, Self::tab_page_count() - 1)
+    }
+
+    /// Сколько вкладок реально видно на текущей странице.
+    pub fn visible_tab_count(&self) -> usize {
+        let total = crate::scripts::items::TAB_NAMES.len();
+        let start = self.tab_page.max(0) as usize * TAB_PAGE_SIZE;
+        total.saturating_sub(start).min(TAB_PAGE_SIZE)
+    }
+
+    /// Сдвинуть страницу вкладок; true — страница действительно сменилась.
+    pub fn switch_page(
+        &mut self,
+        delta: i32,
+        ecs: &mut EcsAdapter,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+    ) -> bool {
+        let next = (self.tab_page + delta).clamp(0, Self::tab_page_count() - 1);
+        if next == self.tab_page {
+            return false;
+        }
+        let first = next * TAB_PAGE_SIZE as i32;
+        self.switch_tab(first, ecs, device, queue);
+        true
     }
 
     /// Вкладка после шага `delta` по кругу (стрелки влево/вправо).
@@ -331,7 +378,11 @@ impl Inventory {
 
     /// Переставляет уже созданные элементы сетки/табов по актуальному сдвигу.
     pub fn apply_layout(&mut self, ecs: &mut EcsAdapter) {
-        for p in self.grid_entities.iter().chain(self.tab_entities.iter()).chain(self.lock_entities.iter()) {
+        for p in self.grid_entities.iter()
+            .chain(self.tab_entities.iter())
+            .chain(self.page_entities.iter())
+            .chain(self.lock_entities.iter())
+        {
             ecs.update_transform_position(p.ent, p.base_x, p.base_y + self.bottom_dy);
         }
     }
@@ -348,20 +399,44 @@ impl Inventory {
     //  Рендер табов
     // ================================================================
 
-    // Создаём закладки категорий; активная подсвечивается полностью
+    // Создаём закладки текущей страницы и кнопки-стрелки по краям.
+    // Активная вкладка — насыщенная, остальные — полупрозрачные.
     fn show_tabs(&mut self, ecs: &mut EcsAdapter) {
-        for (i, tex) in TAB_TEX.iter().enumerate() {
-            let x = SLOT_BAR_X + i as f32;
-            let ent = ecs.add_ui(x, INV_TAB_Y + self.bottom_dy, tex);
-            let a = if i as i32 == self.tab { 1.0 } else { 0.5 };
+        let start = self.tab_page.max(0) * TAB_PAGE_SIZE as i32;
+        let visible = self.visible_tab_count();
+        for slot in 0..visible {
+            let tab = start + slot as i32;
+            let x = SLOT_BAR_X + slot as f32;
+            let ent = ecs.add_ui(x, INV_TAB_Y + self.bottom_dy, TAB_TEX[tab as usize]);
+            let a = if tab == self.tab { 1.0 } else { 0.5 };
             ecs.update_sprite_alpha(ent, a);
             self.tab_entities.push(PlacedEntity { ent, base_x: x, base_y: INV_TAB_Y });
         }
+        if Self::tab_page_count() <= 1 {
+            return;
+        }
+
+        // Левая стрелка — слева от первой вкладки, правая — после последней.
+        let left_x = SLOT_BAR_X - 1.0;
+        let right_x = SLOT_BAR_X + visible as f32;
+        let left = ecs.add_ui(left_x, INV_TAB_Y + self.bottom_dy, TAB_ARROW_LEFT_TEX);
+        let right = ecs.add_ui(right_x, INV_TAB_Y + self.bottom_dy, TAB_ARROW_RIGHT_TEX);
+        let left_alpha = if self.tab_page > 0 { 1.0 } else { TAB_ARROW_DISABLED_ALPHA };
+        let right_alpha = if self.tab_page + 1 < Self::tab_page_count() { 1.0 } else { TAB_ARROW_DISABLED_ALPHA };
+        ecs.update_sprite_alpha(left, left_alpha);
+        ecs.update_sprite_alpha(right, right_alpha);
+        self.page_entities.push(PlacedEntity { ent: left, base_x: left_x, base_y: INV_TAB_Y });
+        self.page_entities.push(PlacedEntity { ent: right, base_x: right_x, base_y: INV_TAB_Y });
     }
 
-    // Убираем закладки из ECS
+    // Убираем закладки и кнопки страниц из ECS
     fn hide_tabs(&mut self, ecs: &mut EcsAdapter) {
-        let removed: Vec<Entity> = self.tab_entities.drain(..).map(|p| p.ent).collect();
+        let removed: Vec<Entity> = self
+            .tab_entities
+            .drain(..)
+            .chain(self.page_entities.drain(..))
+            .map(|p| p.ent)
+            .collect();
         ecs.delete_entities(&removed);
     }
 }

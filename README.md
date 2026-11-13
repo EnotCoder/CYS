@@ -27,6 +27,7 @@ Requires Rust edition 2021 and a GPU with Vulkan (Linux/Android) or Dx12
 | Cycle mode (move/interact/build/delete) | `Tab` or the mode icon |
 | Open / close inventory | `E` |
 | Change inventory tab | `←` / `→` or a tab icon |
+| Change tab page | arrows beside the tab row |
 | Select hotbar slot | Click the slot |
 | Toggle shop open/closed | Click the active icon |
 | Zoom | `Scroll`, `K` / `L`, pinch |

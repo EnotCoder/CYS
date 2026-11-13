@@ -84,11 +84,13 @@ ITEMS = {
 
 The catalogue order is the shop order, and each `tab` list is drawn as-is in
 the 5×5 inventory grid. Tabs are listed in `TAB_NAMES` (`src/scripts/items.rs`)
-and mirrored by `TAB_TEX` (`src/core/constants.rs`); with the inventory open,
-`←`/`→` cycle them in Minecraft-like fashion. Adding, removing or renaming an
-item here updates both the inventory and the placement helpers in
-`src/data/placement.rs`, which read the same `tab`/`flower` fields; `SHOP_EXEMPT`
-and the starting hotbar remain in Rust.
+and mirrored by `TAB_TEX` (`src/core/constants.rs`); the row is paginated five
+icons per page, with arrow buttons to the left of the first icon and to the
+right of the last. With the inventory open, `←`/`→` cycle tabs and the page
+follows the active tab. Adding, removing or renaming an item here updates both
+the inventory and the placement helpers in `src/data/placement.rs`, which read
+the same `tab`/`flower` fields; `SHOP_EXEMPT` and the starting hotbar remain in
+Rust.
 
 ## npc.lua
 

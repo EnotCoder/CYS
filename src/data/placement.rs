@@ -15,18 +15,18 @@ use crate::ecs::components::{BasementPlaced, Money, PlacementError, ShopOwned, S
 // (пол, стены, улица, клумбы) — проверки живут в EcsAdapter.
 
 pub fn is_carpet_name(name: &str) -> bool {
-    crate::data::item_tab(name)
-        .map_or_else(|| crate::core::constants::CARPET_NAMES.contains(&name), |tab| tab == "carpets")
+    crate::data::item_kind(name)
+        .map_or_else(|| crate::core::constants::CARPET_NAMES.contains(&name), |kind| kind == crate::data::ItemKind::Carpet)
 }
 
 pub fn is_wall_decor_name(name: &str) -> bool {
-    crate::data::item_tab(name)
-        .map_or_else(|| crate::core::constants::INV_WALLDECOR.contains(&name), |tab| tab == "walldecor")
+    crate::data::item_kind(name)
+        .map_or_else(|| crate::core::constants::INV_WALLDECOR.contains(&name), |kind| kind == crate::data::ItemKind::Walldecor)
 }
 
 pub fn is_outdoor_name(name: &str) -> bool {
-    crate::data::item_tab(name)
-        .map_or_else(|| crate::core::constants::OUTDOOR_NAMES.contains(&name), |tab| tab == "outdoor")
+    crate::data::item_kind(name)
+        .map_or_else(|| crate::core::constants::OUTDOOR_NAMES.contains(&name), |kind| kind == crate::data::ItemKind::Outdoor)
 }
 
 pub fn is_flower_name(name: &str) -> bool {
@@ -35,8 +35,8 @@ pub fn is_flower_name(name: &str) -> bool {
 }
 
 pub fn is_light_name(name: &str) -> bool {
-    crate::data::item_tab(name)
-        .map_or_else(|| crate::core::constants::INV_LIGHT.contains(&name), |tab| tab == "light")
+    crate::data::item_kind(name)
+        .map_or_else(|| crate::core::constants::INV_LIGHT.contains(&name), |kind| kind == crate::data::ItemKind::Light)
 }
 
 pub fn requires_shop(name: &str) -> bool {

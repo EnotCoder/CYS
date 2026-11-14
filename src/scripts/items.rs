@@ -19,6 +19,9 @@ pub const TAB_NAMES: [&str; 6] = ["regular", "carpets", "walldecor", "outdoor", 
 pub struct ItemDef {
     pub name: String,
     pub tab: String,
+    /// Placement category (regular, carpet, walldecor, outdoor, light).
+    /// Empty when the field is absent; the caller derives it from `tab`.
+    pub category: String,
     pub width: i32,
     pub height: i32,
     pub texture: String,
@@ -71,6 +74,7 @@ pub fn load() -> Option<Vec<ItemDef>> {
         defs.push(ItemDef {
             name,
             tab,
+            category: get_string(&entry, "category").unwrap_or_default(),
             width: get_i64(&entry, "width", 1) as i32,
             height: get_i64(&entry, "height", 1) as i32,
             texture: get_string(&entry, "texture").unwrap_or_default(),

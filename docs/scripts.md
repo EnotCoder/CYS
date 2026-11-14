@@ -73,6 +73,7 @@ ITEMS = {
 |---|---|
 | `name` | internal id; used by saves, `config.lua` price overrides and shop unlocks |
 | `tab` | inventory tab: `regular`, `carpets`, `walldecor`, `outdoor`, `light`, `new_year` |
+| `category` | placement category: `regular`, `carpet`, `walldecor`, `outdoor`, `light`; defaults to the tab when omitted |
 | `width`, `height` | footprint in map cells |
 | `texture` | atlas texture used in the world |
 | `icon` | inventory and hotbar icon |
@@ -83,14 +84,16 @@ ITEMS = {
 | `flower` | optional; allows placement on grass |
 
 The catalogue order is the shop order, and each `tab` list is drawn as-is in
-the 5×5 inventory grid. Tabs are listed in `TAB_NAMES` (`src/scripts/items.rs`)
-and mirrored by `TAB_TEX` (`src/core/constants.rs`); the row is paginated five
-icons per page, with arrow buttons to the left of the first icon and to the
-right of the last. With the inventory open, `←`/`→` cycle tabs and the page
-follows the active tab. Adding, removing or renaming an item here updates both
-the inventory and the placement helpers in `src/data/placement.rs`, which read
-the same `tab`/`flower` fields; `SHOP_EXEMPT` and the starting hotbar remain in
-Rust.
+the 5×5 inventory grid. `tab` only selects the inventory tab; `category`
+controls placement and the z-layer, so an item can live in `tab = "new_year"`
+and still place like a carpet (`category = "carpet"`). A missing `category` is
+derived from `tab` for old catalogues. Tabs are listed in `TAB_NAMES`
+(`src/scripts/items.rs`) and mirrored by `TAB_TEX` (`src/core/constants.rs`);
+the row is paginated five icons per page, with arrow buttons to the left of the
+first icon and to the right of the last. With the inventory open, `←`/`→` cycle
+tabs and the page follows the active tab. Adding, removing or renaming an item
+here updates both the inventory and the placement helpers in
+`src/data/placement.rs`; `SHOP_EXEMPT` and the starting hotbar remain in Rust.
 
 ## npc.lua
 

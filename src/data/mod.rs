@@ -268,12 +268,48 @@ const BUILTIN_OBJECTS: &[Object] = &[
 //  Каталог предметов: items.lua + встроенный fallback
 // ========================================================================
 
+/// Категория размещения предмета. Определяет поведение объекта в мире
+/// (слой отрисовки и допустимые клетки) независимо от вкладки инвентаря.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ItemKind {
+    Regular,
+    Carpet,
+    Walldecor,
+    Outdoor,
+    Light,
+}
+
+impl ItemKind {
+    /// Разобрать значение `category` из items.lua.
+    pub fn from_category(value: &str) -> Option<Self> {
+        match value {
+            "regular" => Some(Self::Regular),
+            "carpet" => Some(Self::Carpet),
+            "walldecor" => Some(Self::Walldecor),
+            "outdoor" => Some(Self::Outdoor),
+            "light" => Some(Self::Light),
+            _ => None,
+        }
+    }
+
+    /// Категория по вкладке — совместимость со старым items.lua без `category`.
+    pub fn from_tab(tab: &str) -> Self {
+        match tab {
+            "carpets" => Self::Carpet,
+            "walldecor" => Self::Walldecor,
+            "outdoor" => Self::Outdoor,
+            "light" => Self::Light,
+            _ => Self::Regular,
+        }
+    }
+}
+
 /// Метаданные предмета, которые нужны интерфейсу, но не логике размещения.
 pub struct ItemMeta {
     pub icon: &'static str,
     pub icon_size: [f32; 2],
-    pub tab: &'static str,
     pub flower: bool,
+    pub kind: ItemKind,
 }
 
 /// Загруженный каталог: объекты, их иконки и состав вкладок инвентаря.
@@ -299,14 +335,14 @@ pub fn all_objects() -> &'static [Object] {
     catalog().objects.as_slice()
 }
 
-/// Метаданные предмета по имени (иконка, размер иконки, вкладка).
+/// Метаданные предмета по имени (иконка, размер иконки, категория).
 pub fn item_meta(name: &str) -> Option<&'static ItemMeta> {
     catalog().meta.get(name)
 }
 
-/// Имя вкладки предмета: regular, carpets, walldecor, outdoor или light.
-pub fn item_tab(name: &str) -> Option<&'static str> {
-    item_meta(name).map(|m| m.tab)
+/// Категория размещения предмета (независима от вкладки инвентаря).
+pub fn item_kind(name: &str) -> Option<ItemKind> {
+    item_meta(name).map(|m| m.kind)
 }
 
 /// Список предметов вкладки инвентаря по индексу (0..=5).
@@ -350,6 +386,8 @@ fn build_from_defs(defs: Vec<crate::scripts::items::ItemDef>) -> ItemCatalog {
             .position(|t| *t == def.tab)
             .unwrap_or(0);
         let tab = crate::scripts::items::TAB_NAMES[tab_idx];
+        let kind = ItemKind::from_category(&def.category)
+            .unwrap_or_else(|| ItemKind::from_tab(tab));
 
         let width = if def.width > 0 { def.width } else { builtin.map_or(1, |o| o.width) };
         let height = if def.height > 0 { def.height } else { builtin.map_or(1, |o| o.height) };
@@ -382,7 +420,7 @@ fn build_from_defs(defs: Vec<crate::scripts::items::ItemDef>) -> ItemCatalog {
         tabs[tab_idx].push(name);
         meta.insert(
             name.to_string(),
-            ItemMeta { icon, icon_size, tab, flower: def.flower },
+            ItemMeta { icon, icon_size, flower: def.flower, kind },
         );
         objects.push(Object {
             width,
@@ -413,8 +451,8 @@ fn build_builtin_catalog() -> ItemCatalog {
             ItemMeta {
                 icon: leak(default_icon(tab, obj.name)),
                 icon_size: [1.0, 1.0],
-                tab,
                 flower: FLOWER_NAMES.contains(&obj.name),
+                kind: ItemKind::from_tab(tab),
             },
         );
     }

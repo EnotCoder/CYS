@@ -6,7 +6,11 @@
 --
 --  Every entry describes one inventory item:
 --    name        internal id (also used by saves and Lua price overrides)
---    tab         inventory tab: regular, carpets, walldecor, outdoor, light
+--    tab         inventory tab: regular, carpets, walldecor, outdoor, light,
+--                new_year (only controls where the item is shown)
+--    category    placement category: regular, carpet, walldecor, outdoor,
+--                light (controls z-layer and allowed cells; defaults to the
+--                tab when omitted)
 --    width       occupied width in map cells
 --    height      occupied height in map cells
 --    texture     world texture (atlas)
@@ -26,6 +30,7 @@ ITEMS = {
     {
         name = "box",
         tab = "regular",
+        category = "regular",
         width = 1, height = 1,
         texture = "assets/tex/decor/regular/box/box_0.png",
         icon = "assets/tex/ui/icon_slots/icon_slots_object/regular/box.png",
@@ -37,6 +42,7 @@ ITEMS = {
     {
         name = "sign",
         tab = "regular",
+        category = "regular",
         width = 1, height = 1,
         texture = "assets/tex/decor/regular/sign.png",
         icon = "assets/tex/ui/icon_slots/icon_slots_object/regular/sign.png",
@@ -48,6 +54,7 @@ ITEMS = {
     {
         name = "rack",
         tab = "regular",
+        category = "regular",
         width = 1, height = 2,
         texture = "assets/tex/decor/regular/rack/rack_0.png",
         icon = "assets/tex/ui/icon_slots/icon_slots_object/regular/rack.png",
@@ -59,6 +66,7 @@ ITEMS = {
     {
         name = "table",
         tab = "regular",
+        category = "regular",
         width = 2, height = 1,
         texture = "assets/tex/decor/regular/table.png",
         icon = "assets/tex/ui/icon_slots/icon_slots_object/regular/table.png",
@@ -70,6 +78,7 @@ ITEMS = {
     {
         name = "cassa",
         tab = "regular",
+        category = "regular",
         width = 2, height = 2,
         texture = "assets/tex/decor/regular/cassa.png",
         icon = "assets/tex/ui/icon_slots/icon_slots_object/regular/cassa.png",
@@ -81,6 +90,7 @@ ITEMS = {
     {
         name = "ice_cream",
         tab = "regular",
+        category = "regular",
         width = 2, height = 1,
         texture = "assets/tex/decor/regular/ice_cream.png",
         icon = "assets/tex/ui/icon_slots/icon_slots_object/regular/ice_cream.png",
@@ -92,6 +102,7 @@ ITEMS = {
     {
         name = "arcade_machine",
         tab = "regular",
+        category = "regular",
         width = 1, height = 2,
         texture = "assets/tex/decor/regular/arcade_machine/a_m_1.png",
         icon = "assets/tex/ui/icon_slots/icon_slots_object/regular/arcade_machine.png",
@@ -107,6 +118,7 @@ ITEMS = {
     {
         name = "candies",
         tab = "regular",
+        category = "regular",
         width = 1, height = 2,
         texture = "assets/tex/decor/regular/candies.png",
         icon = "assets/tex/ui/icon_slots/icon_slots_object/regular/candies.png",
@@ -118,6 +130,7 @@ ITEMS = {
     {
         name = "fence",
         tab = "regular",
+        category = "regular",
         width = 1, height = 1,
         texture = "assets/tex/decor/regular/fence/fence_0_0_0_0.png",
         icon = "assets/tex/ui/icon_slots/icon_slots_object/regular/fence.png",
@@ -129,6 +142,7 @@ ITEMS = {
     {
         name = "basement",
         tab = "regular",
+        category = "regular",
         width = 1, height = 2,
         texture = "assets/tex/decor/regular/basement.png",
         icon = "assets/tex/ui/icon_slots/icon_slots_object/regular/basement.png",
@@ -142,6 +156,7 @@ ITEMS = {
     {
         name = "lamp",
         tab = "light",
+        category = "light",
         width = 1, height = 1,
         texture = "assets/tex/decor/light/lamp.png",
         icon = "assets/tex/ui/icon_slots/icon_slots_object/light/lamp.png",
@@ -153,6 +168,7 @@ ITEMS = {
     {
         name = "big_lamp",
         tab = "light",
+        category = "light",
         width = 1, height = 2,
         texture = "assets/tex/decor/light/big_lamp.png",
         icon = "assets/tex/ui/icon_slots/icon_slots_object/light/big_lamp.png",
@@ -166,6 +182,7 @@ ITEMS = {
     {
         name = "blue_carpet",
         tab = "carpets",
+        category = "carpet",
         width = 1, height = 1,
         texture = "assets/tex/decor/carpets/carpet.png",
         icon = "assets/tex/ui/icon_slots/icon_slots_object/carpets/blue_carpet.png",
@@ -177,6 +194,7 @@ ITEMS = {
     {
         name = "red_carpet",
         tab = "carpets",
+        category = "carpet",
         width = 1, height = 1,
         texture = "assets/tex/decor/carpets/carpet.png",
         icon = "assets/tex/ui/icon_slots/icon_slots_object/carpets/red_carpet.png",
@@ -188,6 +206,7 @@ ITEMS = {
     {
         name = "green_carpet",
         tab = "carpets",
+        category = "carpet",
         width = 1, height = 1,
         texture = "assets/tex/decor/carpets/carpet.png",
         icon = "assets/tex/ui/icon_slots/icon_slots_object/carpets/green_carpet.png",
@@ -199,6 +218,7 @@ ITEMS = {
     {
         name = "white_carpet",
         tab = "carpets",
+        category = "carpet",
         width = 1, height = 1,
         texture = "assets/tex/decor/carpets/carpet.png",
         icon = "assets/tex/ui/icon_slots/icon_slots_object/carpets/white_carpet.png",
@@ -210,6 +230,7 @@ ITEMS = {
     {
         name = "black_carpet",
         tab = "carpets",
+        category = "carpet",
         width = 1, height = 1,
         texture = "assets/tex/decor/carpets/carpet.png",
         icon = "assets/tex/ui/icon_slots/icon_slots_object/carpets/black_carpet.png",
@@ -221,6 +242,7 @@ ITEMS = {
     {
         name = "iron_panel",
         tab = "carpets",
+        category = "carpet",
         width = 1, height = 1,
         texture = "assets/tex/decor/carpets/carpet.png",
         icon = "assets/tex/ui/icon_slots/icon_slots_object/carpets/iron_panel.png",
@@ -232,6 +254,7 @@ ITEMS = {
     {
         name = "gold_panel",
         tab = "carpets",
+        category = "carpet",
         width = 1, height = 1,
         texture = "assets/tex/decor/carpets/carpet.png",
         icon = "assets/tex/ui/icon_slots/icon_slots_object/carpets/gold_panel.png",
@@ -243,6 +266,7 @@ ITEMS = {
     {
         name = "diamond_panel",
         tab = "carpets",
+        category = "carpet",
         width = 1, height = 1,
         texture = "assets/tex/decor/carpets/carpet.png",
         icon = "assets/tex/ui/icon_slots/icon_slots_object/carpets/diamond_panel.png",
@@ -256,6 +280,7 @@ ITEMS = {
     {
         name = "welcome",
         tab = "walldecor",
+        category = "walldecor",
         width = 2, height = 2,
         texture = "assets/tex/decor/walldecor/welcome/welcome_0.png",
         icon = "assets/tex/ui/icon_slots/icon_slots_object/walldecor/welcome.png",
@@ -271,6 +296,7 @@ ITEMS = {
     {
         name = "fnaf",
         tab = "walldecor",
+        category = "walldecor",
         width = 1, height = 2,
         texture = "assets/tex/decor/walldecor/fnaf.png",
         icon = "assets/tex/ui/icon_slots/icon_slots_object/walldecor/fnaf.png",
@@ -282,6 +308,7 @@ ITEMS = {
     {
         name = "watch",
         tab = "walldecor",
+        category = "walldecor",
         width = 1, height = 1,
         texture = "assets/tex/decor/walldecor/watch.png",
         icon = "assets/tex/ui/icon_slots/icon_slots_object/walldecor/watch.png",
@@ -295,6 +322,7 @@ ITEMS = {
     {
         name = "street_fence",
         tab = "outdoor",
+        category = "outdoor",
         width = 1, height = 1,
         texture = "assets/tex/decor/outdoor/street_fence/street_fence_0_0_0_0.png",
         icon = "assets/tex/ui/icon_slots/icon_slots_object/outdoor/street_fence.png",
@@ -306,6 +334,7 @@ ITEMS = {
     {
         name = "tree",
         tab = "outdoor",
+        category = "outdoor",
         width = 1, height = 2,
         texture = "assets/tex/decor/outdoor/tree.png",
         icon = "assets/tex/ui/icon_slots/icon_slots_object/outdoor/tree.png",
@@ -317,6 +346,7 @@ ITEMS = {
     {
         name = "pink_flower",
         tab = "outdoor",
+        category = "outdoor",
         width = 1, height = 1,
         texture = "assets/tex/decor/outdoor/pink_flower.png",
         icon = "assets/tex/ui/icon_slots/icon_slots_object/outdoor/pink_flower.png",
@@ -328,6 +358,7 @@ ITEMS = {
     {
         name = "blue_flower",
         tab = "outdoor",
+        category = "outdoor",
         width = 1, height = 1,
         texture = "assets/tex/decor/outdoor/blue_flower.png",
         icon = "assets/tex/ui/icon_slots/icon_slots_object/outdoor/blue_flower.png",
@@ -339,6 +370,7 @@ ITEMS = {
     {
         name = "yellow_flower",
         tab = "outdoor",
+        category = "outdoor",
         width = 1, height = 1,
         texture = "assets/tex/decor/outdoor/yellow_flower.png",
         icon = "assets/tex/ui/icon_slots/icon_slots_object/outdoor/yellow_flower.png",
@@ -350,6 +382,7 @@ ITEMS = {
     {
         name = "red_flower",
         tab = "outdoor",
+        category = "outdoor",
         width = 1, height = 1,
         texture = "assets/tex/decor/outdoor/red_flower.png",
         icon = "assets/tex/ui/icon_slots/icon_slots_object/outdoor/red_flower.png",
@@ -361,6 +394,7 @@ ITEMS = {
     {
         name = "white_flower",
         tab = "outdoor",
+        category = "outdoor",
         width = 1, height = 1,
         texture = "assets/tex/decor/outdoor/white_flower.png",
         icon = "assets/tex/ui/icon_slots/icon_slots_object/outdoor/white_flower.png",
@@ -372,6 +406,7 @@ ITEMS = {
     {
         name = "street_ice_cream",
         tab = "outdoor",
+        category = "outdoor",
         width = 3, height = 2,
         texture = "assets/tex/decor/outdoor/street_ice_cream.png",
         icon = "assets/tex/ui/icon_slots/icon_slots_object/outdoor/street_ice_cream.png",
@@ -383,6 +418,7 @@ ITEMS = {
     {
         name = "trashcan",
         tab = "outdoor",
+        category = "outdoor",
         width = 1, height = 1,
         texture = "assets/tex/decor/outdoor/trashcan.png",
         icon = "assets/tex/ui/icon_slots/icon_slots_object/outdoor/trashcan.png",
@@ -394,6 +430,7 @@ ITEMS = {
     {
         name = "bench",
         tab = "outdoor",
+        category = "outdoor",
         width = 2, height = 1,
         texture = "assets/tex/decor/outdoor/bench.png",
         icon = "assets/tex/ui/icon_slots/icon_slots_object/outdoor/bench.png",
@@ -407,6 +444,7 @@ ITEMS = {
     {
         name = "ny_tree",
         tab = "new_year",
+        category = "regular",
         width = 1, height = 1,
         texture = "assets/tex/decor/new_year/new_year_tree.png",
         icon = "assets/tex/ui/icon_slots/icon_slots_object/new_year/new_year_tree.png",
@@ -418,6 +456,7 @@ ITEMS = {
     {
         name = "gifts",
         tab = "new_year",
+        category = "regular",
         width = 1, height = 1,
         texture = "assets/tex/decor/new_year/gifts.png",
         icon = "assets/tex/ui/icon_slots/icon_slots_object/new_year/gifts.png",
@@ -427,22 +466,24 @@ ITEMS = {
         animated = false, frames = {},
     },
     {
-        name = "rgw_carpet",
+        name = "ny_carpet",
         tab = "new_year",
+        category = "carpet",
         width = 1, height = 1,
         texture = "assets/tex/decor/new_year/carpet.png",
-        icon = "assets/tex/ui/icon_slots/icon_slots_object/new_year/gifts.png",
+        icon = "assets/tex/ui/icon_slots/icon_slots_object/new_year/ny_carpet.png",
         icon_width = 1.0, icon_height = 1.0,
         price = 10,
         frame = {0, 0}, atlas = {2, 2},
         animated = false, frames = {},
     },
     {
-        name = "snow",
+        name = "snow_carpet",
         tab = "new_year",
+        category = "carpet",
         width = 1, height = 1,
         texture = "assets/tex/decor/new_year/carpet.png",
-        icon = "assets/tex/ui/icon_slots/icon_slots_object/new_year/gifts.png",
+        icon = "assets/tex/ui/icon_slots/icon_slots_object/new_year/snow_carpet.png",
         icon_width = 1.0, icon_height = 1.0,
         price = 10,
         frame = {1, 0}, atlas = {2, 2},

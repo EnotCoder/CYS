@@ -56,11 +56,11 @@ is missing from this map.
 
 ## `src/data/` — data, map, placement
 
-- **`src/data/mod.rs`** — `Slot`/`Object`, `ItemMeta`, `ItemCatalog`,
+- **`src/data/mod.rs`** — `Slot`/`Object`, `ItemMeta`/`ItemKind`, `ItemCatalog`,
   `ALL_OBJECTS`/`catalog` loaded from `assets/scripts/items.lua` with a built-in
   Rust fallback, `make_slot`, `get_slot_vec`, `object_price`, `shop_item_names`,
-  `inventory_tab_names`; re-exports placement rules; declares `door`, `map`,
-  `placement`.
+  `inventory_tab_names`, `item_kind`; re-exports placement rules;
+  declares `door`, `map`, `placement`.
 - **`src/data/placement.rs`** — `add`/`remove` rules: cell categories, wall
   recomputation (`refresh_walls_around`, `recompute_wall_token`,
   `revert_to_grass`), economy (price and half refund), `FoodStorage`,
@@ -239,8 +239,9 @@ is missing from this map.
   timings, prices, capacities, economy; `publish_to_lua`.
 - **`src/scripts/items.rs`** — `ItemDef`/`load`: reads
   `assets/scripts/items.lua` through mlua (size, texture, inventory icon and
-  icon size, price, atlas frame, animation frames, tab); returns `None` so
-  `data::ItemCatalog` can use `BUILTIN_OBJECTS` when the file is missing or broken.
+  icon size, price, atlas frame, animation frames, tab, category); returns
+  `None` so `data::ItemCatalog` can use `BUILTIN_OBJECTS` when the file is
+  missing or broken.
 - **`src/scripts/npc.rs`** — `NpcScript`: calls `npc.lua` from Rust, packs NPC
   state into a Lua table, exposes primitives (`walk`, `take_food`, `start_path`,
   `busy`, `add_money`, `find_any_cassa`), copies `state`/`timer` back, falls

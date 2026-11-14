@@ -85,6 +85,27 @@ fn items_lua_catalogue_loads() {
     let defs = crate::scripts::items::load()
         .expect("assets/scripts/items.lua должен загружаться и содержать ITEMS");
     assert!(!defs.is_empty(), "items.lua не должен быть пустым");
+
+    // Категория размещения задаётся явно у каждого предмета и не путается
+    // с вкладкой инвентаря.
+    for def in &defs {
+        assert!(!def.category.is_empty(), "{}: не указан category", def.name);
+        assert!(
+            crate::data::ItemKind::from_category(&def.category).is_some(),
+            "{}: неизвестный category {:?}",
+            def.name,
+            def.category
+        );
+    }
+
+    // Новогодний ковёр лежит во вкладке new_year, но размещается как ковёр.
+    let carpet = defs.iter()
+        .find(|def| def.name == "ny_carpet")
+        .expect("в items.lua нет ny_carpet");
+    assert_eq!(carpet.tab, "new_year");
+    assert_eq!(carpet.category, "carpet");
+    assert_eq!(crate::data::item_kind("ny_carpet"), Some(crate::data::ItemKind::Carpet));
+    assert!(crate::data::is_carpet_name("ny_carpet"));
 }
 
 #[test]
@@ -153,18 +174,16 @@ fn inventory_lists_only_reference_catalog_objects() {
 
 #[test]
 fn slot_icon_paths_for_inventory_tabs_exist() {
-    for name in INV_REGULAR
-        .iter()
-        .chain(INV_CARPETS.iter())
-        .chain(INV_WALLDECOR.iter())
-        .chain(INV_OUTDOOR.iter())
-        .chain(INV_LIGHT.iter())
-    {
-        let path = crate::core::util::slot_icon_path(name);
-        assert!(
-            crate::core::asset::load_bytes(&path).is_ok(),
-            "{name}: нет иконки {path}"
-        );
+    for tab in 0..crate::scripts::items::TAB_NAMES.len() {
+        for &name in crate::data::inventory_tab_names(tab as i32) {
+            let path = crate::data::item_meta(name)
+                .map(|meta| meta.icon.to_string())
+                .unwrap_or_else(|| crate::core::util::slot_icon_path(name));
+            assert!(
+                crate::core::asset::load_bytes(&path).is_ok(),
+                "{name}: нет иконки {path}"
+            );
+        }
     }
 }
 
@@ -387,7 +406,7 @@ fn inventory_tabs_and_grid_clicks_are_consistent() {
     use crate::ui::inventory::Inventory;
 
     let mut inv = Inventory::new();
-    let new_year: &[&str] = &["ny_tree"];
+    let new_year: &[&str] = &["ny_tree", "gifts", "ny_carpet", "snow"];
     let expected: [&[&str]; 6] = [
         INV_REGULAR,
         INV_CARPETS,

@@ -19,6 +19,11 @@ cargo run --release
 Requires Rust edition 2021 and a GPU with Vulkan (Linux/Android) or Dx12
 (Windows). For Android see [docs/build.md](docs/build.md).
 
+<p align="center">
+  <img src="img/2.png" alt="Gameplay" width="49%">
+  <img src="img/3.png" alt="Gameplay" width="49%">
+</p>
+
 ## Controls
 
 | Action | Input |

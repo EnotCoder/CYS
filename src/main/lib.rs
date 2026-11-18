@@ -22,17 +22,17 @@ mod ecs;
 mod input;
 #[path = "../npc/mod.rs"]
 mod npc;
-#[path = "../scenes/mod.rs"]
-mod scenes;
 #[path = "../save/mod.rs"]
 mod save;
+#[path = "../scenes/mod.rs"]
+mod scenes;
 #[path = "../scripts/mod.rs"]
 mod scripts;
-#[path = "../ui/mod.rs"]
-mod ui;
 #[path = "../tests/mod.rs"]
 #[cfg(test)]
 mod tests;
+#[path = "../ui/mod.rs"]
+mod ui;
 
 // Реэкспорты, к которым остальной код обращается как crate::* (EcsAdapter, Vertex, ...)
 use crate::core::constants::*;
@@ -42,10 +42,10 @@ use crate::input::platform::{DesktopInput, InputSource};
 use crate::ui::fps::FpsCounter;
 
 use winit::application::ApplicationHandler;
+use winit::dpi::PhysicalSize;
 use winit::event::{DeviceEvent, DeviceId, StartCause, WindowEvent};
 use winit::event_loop::{ActiveEventLoop, EventLoop};
 use winit::window::{Window, WindowId};
-use winit::dpi::PhysicalSize;
 
 struct App {
     // Окно используется в течение всей жизни приложения (leak в 'static)
@@ -101,7 +101,9 @@ impl App {
     // Один кадр: обновить сцену -> применить действие сцены -> отрисовать
     fn render(&mut self) {
         let Some(surface) = &self.surface else { return };
-        let Some(ref window) = self.window else { return };
+        let Some(ref window) = self.window else {
+            return;
+        };
 
         let window_size = (
             window.inner_size().width as f32,
@@ -113,9 +115,15 @@ impl App {
 
         // Шаг 1: update сцены — временно берём wgpu_app immutably
         // (внутри обрабатываются ввод, логика игры и возвращается действие сцены)
-            let action = {
-            let Some(ref wgpu_app) = self.wgpu_app else { return };
-            let scene = self.scene_manager.scenes.get_mut(&self.scene_manager.current).unwrap();
+        let action = {
+            let Some(ref wgpu_app) = self.wgpu_app else {
+                return;
+            };
+            let scene = self
+                .scene_manager
+                .scenes
+                .get_mut(&self.scene_manager.current)
+                .unwrap();
             scene.update(
                 &mut self.scene_manager.ecs,
                 &*self.input,
@@ -133,7 +141,11 @@ impl App {
                 self.scene_manager.switch_to(&name, &mut self.text_renderer);
             }
             crate::scenes::SceneAction::Quit => {
-                if let Some(scene) = self.scene_manager.scenes.get_mut(&self.scene_manager.current) {
+                if let Some(scene) = self
+                    .scene_manager
+                    .scenes
+                    .get_mut(&self.scene_manager.current)
+                {
                     scene.on_exit(&mut self.scene_manager.ecs, &mut self.text_renderer);
                 }
                 self.quit_requested = true;
@@ -142,7 +154,11 @@ impl App {
                 // Переключение вертикальной синхронизации на лету
                 if let Some(ref mut wgpu_app) = self.wgpu_app {
                     if let Some(ref surface) = self.surface {
-                        let desired = if enabled { wgpu::PresentMode::Fifo } else { wgpu::PresentMode::Mailbox };
+                        let desired = if enabled {
+                            wgpu::PresentMode::Fifo
+                        } else {
+                            wgpu::PresentMode::Mailbox
+                        };
                         let mode = if wgpu_app.surface_caps.present_modes.contains(&desired) {
                             desired
                         } else {
@@ -174,35 +190,74 @@ impl App {
         crate::android::sync_text_input(ime_wanted, focus_requested);
 
         // Шаг 3: рендер — снова берём wgpu_app immutably
-        let Some(ref wgpu_app) = self.wgpu_app else { return };
+        let Some(ref wgpu_app) = self.wgpu_app else {
+            return;
+        };
 
         let fps = self.fps_counter.tick();
-        self.scene_manager.update_fps(fps, &mut self.text_renderer, &wgpu_app.device, &wgpu_app.queue);
+        self.scene_manager.update_fps(
+            fps,
+            &mut self.text_renderer,
+            &wgpu_app.device,
+            &wgpu_app.queue,
+        );
 
-        let ms = self.scene_manager.scenes.get(&self.scene_manager.current).unwrap().map_size();
-        let (cam_x, cam_y) = self.scene_manager.scenes.get(&self.scene_manager.current).unwrap().camera_offset();
-        let nf = self.scene_manager.scenes.get(&self.scene_manager.current).unwrap().night_factor();
+        let ms = self
+            .scene_manager
+            .scenes
+            .get(&self.scene_manager.current)
+            .unwrap()
+            .map_size();
+        let (cam_x, cam_y) = self
+            .scene_manager
+            .scenes
+            .get(&self.scene_manager.current)
+            .unwrap()
+            .camera_offset();
+        let nf = self
+            .scene_manager
+            .scenes
+            .get(&self.scene_manager.current)
+            .unwrap()
+            .night_factor();
         let aspect = window_size.0 / window_size.1;
 
         // Видимая область мира (для culling спрайтов за кадром)
         let vis_w = 2.0 * aspect / (SHADER_SCALE * ms);
         let vis_h = 2.0 / (SHADER_SCALE * ms);
-        let bounds = Some((cam_x - vis_w/2.0, cam_x + vis_w/2.0, cam_y - vis_h/2.0, cam_y + vis_h/2.0));
+        let bounds = Some((
+            cam_x - vis_w / 2.0,
+            cam_x + vis_w / 2.0,
+            cam_y - vis_h / 2.0,
+            cam_y + vis_h / 2.0,
+        ));
         // Сбор спрайтов по слоям (z-order: карта, ковры, декорации, персонажи, курсор, UI)
-        let scene = self.scene_manager.scenes.get(&self.scene_manager.current).unwrap();
-        let (map_sprites, carpet_sprites, light_sprites, decor_sprites, npc_sprites, weather_sprites, cursor_sprites, ui_sprites) =
-            scene.sprites(&self.scene_manager.ecs, bounds);
+        let scene = self
+            .scene_manager
+            .scenes
+            .get(&self.scene_manager.current)
+            .unwrap();
+        let (
+            map_sprites,
+            carpet_sprites,
+            light_sprites,
+            decor_sprites,
+            npc_sprites,
+            weather_sprites,
+            cursor_sprites,
+            ui_sprites,
+        ) = scene.sprites(&self.scene_manager.ecs, bounds);
         let lights = scene.lights(&self.scene_manager.ecs);
 
         // Обновляем количество источников света в Size uniform
         let light_count = lights.len() as u32;
 
         // World uniforms: map, camera and lighting for world shaders
-        let size_data = Size { 
-            map_size: ms, 
-            aspect, 
-            offset_x: cam_x, 
-            offset_y: cam_y, 
+        let size_data = Size {
+            map_size: ms,
+            aspect,
+            offset_x: cam_x,
+            offset_y: cam_y,
             night_factor: nf,
             light_count,
             _padding: [0.0; 2],
@@ -212,19 +267,23 @@ impl App {
             .write_buffer(&wgpu_app.size_buffer, 0, bytemuck::cast_slice(&[size_data]));
 
         // Uniform'ы для UI-слоя (UI рендерится без камеры/ночи)
-        let ui_data = UiUniforms { 
+        let ui_data = UiUniforms {
             size: scene.ui_size(),
-            aspect, 
+            aspect,
             _padding1: [0.0; 2],
             night_factor: 0.0,
             light_count: 0,
             _padding2: [0.0; 2],
         };
         // Зеркалим в глобальную переменную для хит-тестов UI (ndc_to_ui)
-        unsafe { crate::core::init::UI_UNIFORMS = ui_data; }
-        wgpu_app
-            .queue
-            .write_buffer(&wgpu_app.ui_uniform_buffer, 0, bytemuck::cast_slice(&[ui_data]));
+        unsafe {
+            crate::core::init::UI_UNIFORMS = ui_data;
+        }
+        wgpu_app.queue.write_buffer(
+            &wgpu_app.ui_uniform_buffer,
+            0,
+            bytemuck::cast_slice(&[ui_data]),
+        );
 
         render(
             surface,
@@ -281,7 +340,10 @@ impl ApplicationHandler for App {
         let wgpu_app = self.wgpu_app.as_mut().unwrap();
 
         // Поверхность привязана к нативному окну и пересоздаётся при каждом resume.
-        let surface = wgpu_app.instance.create_surface(window).expect("Failed to create surface");
+        let surface = wgpu_app
+            .instance
+            .create_surface(window)
+            .expect("Failed to create surface");
         let size = window.inner_size();
         wgpu_app.config.width = size.width;
         wgpu_app.config.height = size.height;
@@ -301,7 +363,12 @@ impl ApplicationHandler for App {
     }
 
     // Оконные события: передаём их в накопитель ввода
-    fn window_event(&mut self, _event_loop: &ActiveEventLoop, _window_id: WindowId, event: WindowEvent) {
+    fn window_event(
+        &mut self,
+        _event_loop: &ActiveEventLoop,
+        _window_id: WindowId,
+        event: WindowEvent,
+    ) {
         self.input.process_window_event(&event);
 
         match &event {
@@ -325,7 +392,12 @@ impl ApplicationHandler for App {
     }
 
     // События клавиатуры на уровне устройства (например, переключение раскладки)
-    fn device_event(&mut self, _event_loop: &ActiveEventLoop, _device_id: DeviceId, event: DeviceEvent) {
+    fn device_event(
+        &mut self,
+        _event_loop: &ActiveEventLoop,
+        _device_id: DeviceId,
+        event: DeviceEvent,
+    ) {
         self.input.process_device_event(&event);
     }
 

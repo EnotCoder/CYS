@@ -10,7 +10,7 @@
 //  сохранение/загрузка привязаны не к Ctrl+S/Ctrl+L, а к выбору мира в
 //  меню и автосохранению при выходе из игры.
 
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 /// Мета-данные одного мира (для отображения в меню выбора).
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -159,7 +159,14 @@ pub struct GameSettings {
 
 impl Default for GameSettings {
     fn default() -> Self {
-        Self { vsync: true, zoom_speed: 0.1, music: true, sfx: true, texture_pack: None, shader: None }
+        Self {
+            vsync: true,
+            zoom_speed: 0.1,
+            music: true,
+            sfx: true,
+            texture_pack: None,
+            shader: None,
+        }
     }
 }
 

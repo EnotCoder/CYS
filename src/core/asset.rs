@@ -15,9 +15,9 @@ use std::io::Read;
 use std::path::PathBuf;
 
 #[cfg(target_os = "android")]
-use std::sync::OnceLock;
-#[cfg(target_os = "android")]
 use android_activity::AndroidApp;
+#[cfg(target_os = "android")]
+use std::sync::OnceLock;
 
 /// Глобальная ссылка на AndroidApp, устанавливается в android_main.
 #[cfg(target_os = "android")]
@@ -67,7 +67,9 @@ fn save_dir() -> PathBuf {
     #[cfg(target_os = "android")]
     {
         if let Some(app) = ANDROID_APP.get() {
-            let base = app.internal_data_path().unwrap_or_else(|| PathBuf::from("."));
+            let base = app
+                .internal_data_path()
+                .unwrap_or_else(|| PathBuf::from("."));
             return base.join("data");
         }
     }
@@ -116,7 +118,9 @@ pub fn list_dir(dir: &str) -> Vec<String> {
                 Err(_) => return Vec::new(),
             };
             if let Some(asset_dir) = app.asset_manager().open_dir(&cdir) {
-                return asset_dir.map(|cstr| cstr.to_string_lossy().into_owned()).collect();
+                return asset_dir
+                    .map(|cstr| cstr.to_string_lossy().into_owned())
+                    .collect();
             }
             return Vec::new();
         }

@@ -58,13 +58,25 @@ fn inventory_tabs_have_textures_and_fit_the_grid() {
     assert_eq!(TAB_TEX.len(), 6);
     assert_eq!(TAB_TEX.len(), crate::scripts::items::TAB_NAMES.len());
     for path in TAB_TEX {
-        assert!(crate::core::asset::load_bytes(path).is_ok(), "нет иконки таба: {path}");
+        assert!(
+            crate::core::asset::load_bytes(path).is_ok(),
+            "нет иконки таба: {path}"
+        );
     }
     for path in [TAB_ARROW_LEFT_TEX, TAB_ARROW_RIGHT_TEX] {
-        assert!(crate::core::asset::load_bytes(path).is_ok(), "нет стрелки страниц: {path}");
+        assert!(
+            crate::core::asset::load_bytes(path).is_ok(),
+            "нет стрелки страниц: {path}"
+        );
     }
     let capacity = (INVENTORY_ROWS * INVENTORY_COLS) as usize;
-    for list in [INV_REGULAR, INV_CARPETS, INV_WALLDECOR, INV_OUTDOOR, INV_LIGHT] {
+    for list in [
+        INV_REGULAR,
+        INV_CARPETS,
+        INV_WALLDECOR,
+        INV_OUTDOOR,
+        INV_LIGHT,
+    ] {
         assert!(
             list.len() <= capacity,
             "вкладка не помещается в сетку: {} > {capacity}",
@@ -99,12 +111,16 @@ fn items_lua_catalogue_loads() {
     }
 
     // Новогодний ковёр лежит во вкладке new_year, но размещается как ковёр.
-    let carpet = defs.iter()
+    let carpet = defs
+        .iter()
         .find(|def| def.name == "ny_carpet")
         .expect("в items.lua нет ny_carpet");
     assert_eq!(carpet.tab, "new_year");
     assert_eq!(carpet.category, "carpet");
-    assert_eq!(crate::data::item_kind("ny_carpet"), Some(crate::data::ItemKind::Carpet));
+    assert_eq!(
+        crate::data::item_kind("ny_carpet"),
+        Some(crate::data::ItemKind::Carpet)
+    );
     assert!(crate::data::is_carpet_name("ny_carpet"));
 }
 
@@ -116,7 +132,11 @@ fn all_objects_are_valid_and_assets_exist() {
         assert!(obj.width > 0, "{}: width <= 0", obj.name);
         assert!(obj.height > 0, "{}: height <= 0", obj.name);
         assert!(obj.price > 0, "{}: price <= 0", obj.name);
-        assert!(obj.texture_count[0] > 0 && obj.texture_count[1] > 0, "{}: пустой атлас", obj.name);
+        assert!(
+            obj.texture_count[0] > 0 && obj.texture_count[1] > 0,
+            "{}: пустой атлас",
+            obj.name
+        );
         assert!(
             obj.texture_frame[0] >= 0 && obj.texture_frame[0] < obj.texture_count[0],
             "{}: кадр X вне атласа",
@@ -243,7 +263,12 @@ fn day_night_factor_is_bounded_and_continuous() {
 
     // На границах фаз нет скачков.
     let eps = 1e-6;
-    for boundary in [cfg.day_secs, cfg.night_start_secs, cfg.night_secs, cfg.day_cycle_secs] {
+    for boundary in [
+        cfg.day_secs,
+        cfg.night_start_secs,
+        cfg.night_secs,
+        cfg.day_cycle_secs,
+    ] {
         let before = at(boundary - eps);
         let after = at(boundary + eps);
         assert!(
@@ -314,35 +339,92 @@ fn balance_config_publishes_every_field_to_lua() {
     cfg.publish_to_lua(&lua).expect("publish_to_lua");
     let t: Table = lua.globals().get("CONFIG").expect("CONFIG");
 
-    assert_eq!(t.get::<f64>("shopper_spawn_interval").unwrap(), cfg.shopper_spawn_interval);
-    assert_eq!(t.get::<f64>("shopper_spawn_cooldown").unwrap(), cfg.shopper_spawn_cooldown);
-    assert_eq!(t.get::<i64>("max_shoppers").unwrap(), cfg.max_shoppers as i64);
-    assert_eq!(t.get::<f64>("food_regen_tick").unwrap(), cfg.food_regen_tick);
-    assert_eq!(t.get::<i64>("food_regen_amount").unwrap(), cfg.food_regen_amount as i64);
+    assert_eq!(
+        t.get::<f64>("shopper_spawn_interval").unwrap(),
+        cfg.shopper_spawn_interval
+    );
+    assert_eq!(
+        t.get::<f64>("shopper_spawn_cooldown").unwrap(),
+        cfg.shopper_spawn_cooldown
+    );
+    assert_eq!(
+        t.get::<i64>("max_shoppers").unwrap(),
+        cfg.max_shoppers as i64
+    );
+    assert_eq!(
+        t.get::<f64>("food_regen_tick").unwrap(),
+        cfg.food_regen_tick
+    );
+    assert_eq!(
+        t.get::<i64>("food_regen_amount").unwrap(),
+        cfg.food_regen_amount as i64
+    );
     assert_eq!(t.get::<f64>("day_cycle_secs").unwrap(), cfg.day_cycle_secs);
     assert_eq!(t.get::<f64>("day_secs").unwrap(), cfg.day_secs);
-    assert_eq!(t.get::<f64>("night_start_secs").unwrap(), cfg.night_start_secs);
+    assert_eq!(
+        t.get::<f64>("night_start_secs").unwrap(),
+        cfg.night_start_secs
+    );
     assert_eq!(t.get::<f64>("night_secs").unwrap(), cfg.night_secs);
     assert_eq!(t.get::<f64>("fade_secs").unwrap(), cfg.fade_secs);
     assert_eq!(t.get::<f64>("npc_speed").unwrap(), cfg.npc_speed as f64);
-    assert_eq!(t.get::<f64>("walk_anim_interval").unwrap(), cfg.walk_anim_interval);
-    assert_eq!(t.get::<f64>("npc_fade_speed").unwrap(), cfg.npc_fade_speed as f64);
+    assert_eq!(
+        t.get::<f64>("walk_anim_interval").unwrap(),
+        cfg.walk_anim_interval
+    );
+    assert_eq!(
+        t.get::<f64>("npc_fade_speed").unwrap(),
+        cfg.npc_fade_speed as f64
+    );
     assert_eq!(t.get::<i64>("spawn_x").unwrap(), cfg.spawn_x as i64);
     assert_eq!(t.get::<i64>("spawn_y").unwrap(), cfg.spawn_y as i64);
-    assert_eq!(t.get::<f64>("cassa_wait_secs").unwrap(), cfg.cassa_wait_secs);
-    assert_eq!(t.get::<f64>("candy_wait_secs").unwrap(), cfg.candy_wait_secs);
-    assert_eq!(t.get::<i64>("money_at_cassa").unwrap(), cfg.money_at_cassa as i64);
-    assert_eq!(t.get::<i64>("money_at_candy").unwrap(), cfg.money_at_candy as i64);
+    assert_eq!(
+        t.get::<f64>("cassa_wait_secs").unwrap(),
+        cfg.cassa_wait_secs
+    );
+    assert_eq!(
+        t.get::<f64>("candy_wait_secs").unwrap(),
+        cfg.candy_wait_secs
+    );
+    assert_eq!(
+        t.get::<i64>("money_at_cassa").unwrap(),
+        cfg.money_at_cassa as i64
+    );
+    assert_eq!(
+        t.get::<i64>("money_at_candy").unwrap(),
+        cfg.money_at_candy as i64
+    );
     assert_eq!(t.get::<f64>("candy_chance").unwrap(), cfg.candy_chance);
-    assert_eq!(t.get::<i64>("max_food_box").unwrap(), cfg.max_food_box as i64);
-    assert_eq!(t.get::<i64>("max_food_rack").unwrap(), cfg.max_food_rack as i64);
-    assert_eq!(t.get::<i64>("max_food_candies").unwrap(), cfg.max_food_candies as i64);
-    assert_eq!(t.get::<i64>("candies_start_food").unwrap(), cfg.candies_start_food as i64);
-    assert_eq!(t.get::<i64>("box_tex_threshold_1").unwrap(), cfg.box_tex_threshold_1 as i64);
-    assert_eq!(t.get::<i64>("box_tex_threshold_2").unwrap(), cfg.box_tex_threshold_2 as i64);
+    assert_eq!(
+        t.get::<i64>("max_food_box").unwrap(),
+        cfg.max_food_box as i64
+    );
+    assert_eq!(
+        t.get::<i64>("max_food_rack").unwrap(),
+        cfg.max_food_rack as i64
+    );
+    assert_eq!(
+        t.get::<i64>("max_food_candies").unwrap(),
+        cfg.max_food_candies as i64
+    );
+    assert_eq!(
+        t.get::<i64>("candies_start_food").unwrap(),
+        cfg.candies_start_food as i64
+    );
+    assert_eq!(
+        t.get::<i64>("box_tex_threshold_1").unwrap(),
+        cfg.box_tex_threshold_1 as i64
+    );
+    assert_eq!(
+        t.get::<i64>("box_tex_threshold_2").unwrap(),
+        cfg.box_tex_threshold_2 as i64
+    );
     assert_eq!(t.get::<i64>("start_money").unwrap(), cfg.start_money as i64);
     assert_eq!(t.get::<i64>("rent_amount").unwrap(), cfg.rent_amount as i64);
-    assert_eq!(t.get::<f64>("rent_interval_secs").unwrap(), cfg.rent_interval_secs);
+    assert_eq!(
+        t.get::<f64>("rent_interval_secs").unwrap(),
+        cfg.rent_interval_secs
+    );
     assert_eq!(t.get::<String>("font_path").unwrap(), cfg.font_path);
 
     let prices: Table = t.get("object_prices").unwrap();
@@ -371,9 +453,8 @@ fn game_settings_serde_roundtrip_preserves_all_fields() {
     assert_eq!(back.shader.as_deref(), Some("crt"));
 
     // Старый settings.json без texture_pack и shader читается как ваниль.
-    let legacy: GameSettings = serde_json::from_str(
-        r#"{"vsync":true,"zoom_speed":0.2,"music":true,"sfx":true}"#,
-    ).unwrap();
+    let legacy: GameSettings =
+        serde_json::from_str(r#"{"vsync":true,"zoom_speed":0.2,"music":true,"sfx":true}"#).unwrap();
     assert_eq!(legacy.texture_pack, None);
     assert_eq!(legacy.shader, None);
 
@@ -480,7 +561,10 @@ fn ui_fit_scale_stays_in_range() {
     use crate::core::util::ui_fit_scale;
 
     let wide = ui_fit_scale(2.5, GAME_UI_HALF_W, GAME_UI_HALF_H);
-    assert!(wide <= 1.0 && wide > 0.9, "на широком экране UI почти номинальный");
+    assert!(
+        wide <= 1.0 && wide > 0.9,
+        "на широком экране UI почти номинальный"
+    );
     let narrow = ui_fit_scale(0.2, GAME_UI_HALF_W, GAME_UI_HALF_H);
     assert!((UI_MIN_SCALE..=1.0).contains(&narrow));
     assert!((narrow - UI_MIN_SCALE).abs() < 1e-6);

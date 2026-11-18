@@ -8,17 +8,24 @@
 //  клики по сетке предметов (перенос в хотбар) и выбор активного слота.
 // ========================================================================
 
-use winit::keyboard::KeyCode;
+use super::GameScene;
 use crate::core::constants::*;
-use crate::EcsAdapter;
+use crate::input::platform::InputSource;
 use crate::ui::inventory::Inventory;
 use crate::ui::system::ndc_to_ui;
-use crate::input::platform::InputSource;
-use super::GameScene;
+use crate::EcsAdapter;
+use winit::keyboard::KeyCode;
 
 impl GameScene {
     /// Обработка кликов по инвентарю: таб, сетка предметов, слоты хотбара
-    pub fn handle_inventory_input(&mut self, ecs: &mut EcsAdapter, input: &dyn InputSource, window_size: (f32, f32), device: &wgpu::Device, queue: &wgpu::Queue) {
+    pub fn handle_inventory_input(
+        &mut self,
+        ecs: &mut EcsAdapter,
+        input: &dyn InputSource,
+        window_size: (f32, f32),
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+    ) {
         // Клавиша E — открыть/закрыть инвентарь
         if input.key_pressed(KeyCode::KeyE) {
             if self.inventory.open {
@@ -53,7 +60,9 @@ impl GameScene {
             return;
         }
 
-        let Some((mx, my)) = input.cursor() else { return };
+        let Some((mx, my)) = input.cursor() else {
+            return;
+        };
         let (wx, wy) = ndc_to_ui(mx, my, window_size);
 
         // --- Клик по слотам хотбара ---
@@ -116,7 +125,12 @@ impl GameScene {
 
             if col >= 0 && col < INVENTORY_COLS && row >= 0 && row < INVENTORY_ROWS {
                 if self.inventory.handle_grid_click(col, row) {
-                    self.inventory.transfer_to_slot(ecs, self.act_slot as usize, &mut self.slots, &self.slot_entities);
+                    self.inventory.transfer_to_slot(
+                        ecs,
+                        self.act_slot as usize,
+                        &mut self.slots,
+                        &self.slot_entities,
+                    );
                     crate::audio::play("click");
                 }
                 return;

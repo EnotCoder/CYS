@@ -7,10 +7,10 @@
 //  сжатие и затухание всех сущностей панели с последующим удалением.
 // ========================================================================
 
+use crate::ecs::components::SpriteComponent;
+use crate::EcsAdapter;
 use specs::Entity;
 use specs::WorldExt;
-use crate::EcsAdapter;
-use crate::ecs::components::SpriteComponent;
 
 pub const PANEL_OPEN_DURATION: f64 = 0.28;
 pub const PANEL_CLOSE_DURATION: f64 = 0.22;
@@ -167,7 +167,8 @@ impl PanelAnim {
         for &ent in &self.entities {
             let sp = sprites.get(ent);
             self.base_alphas.push(sp.map_or(1.0, |s| s.alpha));
-            self.is_text.push(sp.is_some_and(|s| s.texture_path.starts_with("__text__")));
+            self.is_text
+                .push(sp.is_some_and(|s| s.texture_path.starts_with("__text__")));
         }
     }
 

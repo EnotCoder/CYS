@@ -7,16 +7,16 @@
 //  object_price; реэкспорт правил размещения (add, remove, предикаты).
 // ========================================================================
 
-pub mod placement;
-pub mod map;
 pub mod door;
+pub mod map;
+pub mod placement;
 
 use std::collections::HashMap;
 use std::sync::{LazyLock, OnceLock};
 
 use crate::core::constants::{
-    FLOWER_NAMES, INV_CARPETS, INV_LIGHT, INV_OUTDOOR, INV_WALLDECOR,
-    SLOT_COUNT, TEX_UI_ICON_SLOTS_OBJECT_DIR,
+    FLOWER_NAMES, INV_CARPETS, INV_LIGHT, INV_OUTDOOR, INV_WALLDECOR, SLOT_COUNT,
+    TEX_UI_ICON_SLOTS_OBJECT_DIR,
 };
 
 // ========================================================================
@@ -56,211 +56,380 @@ pub struct Object {
 const BUILTIN_OBJECTS: &[Object] = &[
     //def object
     Object {
-        width: 1, height: 1, name: "box",         path: "assets/tex/decor/regular/box/box_0.png",
+        width: 1,
+        height: 1,
+        name: "box",
+        path: "assets/tex/decor/regular/box/box_0.png",
         price: 30,
-        texture_frame: [0, 0], texture_count: [1, 1],
-        animated: false, frame_paths: &[],
+        texture_frame: [0, 0],
+        texture_count: [1, 1],
+        animated: false,
+        frame_paths: &[],
     },
     Object {
-        width: 1, height: 1, name: "sign",         path: "assets/tex/decor/regular/sign.png",
+        width: 1,
+        height: 1,
+        name: "sign",
+        path: "assets/tex/decor/regular/sign.png",
         price: 5,
-        texture_frame: [0, 0], texture_count: [1, 1],
-        animated: false, frame_paths: &[],
+        texture_frame: [0, 0],
+        texture_count: [1, 1],
+        animated: false,
+        frame_paths: &[],
     },
     Object {
-        width: 1, height: 2, name: "rack",         path: "assets/tex/decor/regular/rack/rack_0.png",
+        width: 1,
+        height: 2,
+        name: "rack",
+        path: "assets/tex/decor/regular/rack/rack_0.png",
         price: 40,
-        texture_frame: [0, 1], texture_count: [1, 2],
-        animated: false, frame_paths: &[],
+        texture_frame: [0, 1],
+        texture_count: [1, 2],
+        animated: false,
+        frame_paths: &[],
     },
     Object {
-        width: 2, height: 1, name: "table",         path: "assets/tex/decor/regular/table.png",
+        width: 2,
+        height: 1,
+        name: "table",
+        path: "assets/tex/decor/regular/table.png",
         price: 15,
-        texture_frame: [0, 0], texture_count: [2, 1],
-        animated: false, frame_paths: &[],
+        texture_frame: [0, 0],
+        texture_count: [2, 1],
+        animated: false,
+        frame_paths: &[],
     },
     Object {
-        width: 2, height: 2, name: "cassa",         path: "assets/tex/decor/regular/cassa.png",
+        width: 2,
+        height: 2,
+        name: "cassa",
+        path: "assets/tex/decor/regular/cassa.png",
         price: 60,
-        texture_frame: [0, 1], texture_count: [2, 2],
-        animated: false, frame_paths: &[],
+        texture_frame: [0, 1],
+        texture_count: [2, 2],
+        animated: false,
+        frame_paths: &[],
     },
     Object {
-        width: 2, height: 1, name: "ice_cream",         path: "assets/tex/decor/regular/ice_cream.png",
+        width: 2,
+        height: 1,
+        name: "ice_cream",
+        path: "assets/tex/decor/regular/ice_cream.png",
         price: 20,
-        texture_frame: [0, 0], texture_count: [2, 1],
-        animated: false, frame_paths: &[],
+        texture_frame: [0, 0],
+        texture_count: [2, 1],
+        animated: false,
+        frame_paths: &[],
     },
     Object {
-        width: 1, height: 2, name: "candies",         path: "assets/tex/decor/regular/candies.png",
+        width: 1,
+        height: 2,
+        name: "candies",
+        path: "assets/tex/decor/regular/candies.png",
         price: 35,
-        texture_frame: [0, 1], texture_count: [1, 2],
-        animated: false, frame_paths: &[],
+        texture_frame: [0, 1],
+        texture_count: [1, 2],
+        animated: false,
+        frame_paths: &[],
     },
     Object {
-        width: 1, height: 2, name: "arcade_machine",
+        width: 1,
+        height: 2,
+        name: "arcade_machine",
         path: "assets/tex/decor/regular/arcade_machine/a_m_1.png",
         price: 80,
-        texture_frame: [0, 1], texture_count: [1, 2],
+        texture_frame: [0, 1],
+        texture_count: [1, 2],
         animated: true,
-        frame_paths: &["assets/tex/decor/regular/arcade_machine/a_m_1.png", "assets/tex/decor/regular/arcade_machine/a_m_2.png"],
+        frame_paths: &[
+            "assets/tex/decor/regular/arcade_machine/a_m_1.png",
+            "assets/tex/decor/regular/arcade_machine/a_m_2.png",
+        ],
     },
     //light — лампы (источники света)
     Object {
-        width: 1, height: 1, name: "lamp",         path: "assets/tex/decor/light/lamp.png",
+        width: 1,
+        height: 1,
+        name: "lamp",
+        path: "assets/tex/decor/light/lamp.png",
         price: 20,
-        texture_frame: [0, 0], texture_count: [1, 1],
-        animated: false, frame_paths: &[],
+        texture_frame: [0, 0],
+        texture_count: [1, 1],
+        animated: false,
+        frame_paths: &[],
     },
     //light — большая напольная лампа (1×2 клетки). Одна текстура
     //(texture_count [1,1]) растягивается на 2 клетки через ветку в
     //add_group_object (path@WxH).
     Object {
-        width: 1, height: 2, name: "big_lamp",     path: "assets/tex/decor/light/big_lamp.png",
+        width: 1,
+        height: 2,
+        name: "big_lamp",
+        path: "assets/tex/decor/light/big_lamp.png",
         price: 35,
-        texture_frame: [0, 0], texture_count: [1, 1],
-        animated: false, frame_paths: &[],
+        texture_frame: [0, 0],
+        texture_count: [1, 1],
+        animated: false,
+        frame_paths: &[],
     },
     //carpets — ковры и панели пола: все используют один атлас carpet.png,
     // но разные кадры (texture_frame) задают конкретный вид.
     Object {
-        width: 1, height: 1, name: "blue_carpet", path: "assets/tex/decor/carpets/carpet.png",
+        width: 1,
+        height: 1,
+        name: "blue_carpet",
+        path: "assets/tex/decor/carpets/carpet.png",
         price: 5,
-        texture_frame: [0, 0], texture_count: [4, 4],
-        animated: false, frame_paths: &[],
+        texture_frame: [0, 0],
+        texture_count: [4, 4],
+        animated: false,
+        frame_paths: &[],
     },
     Object {
-        width: 1, height: 1, name: "red_carpet", path: "assets/tex/decor/carpets/carpet.png",
+        width: 1,
+        height: 1,
+        name: "red_carpet",
+        path: "assets/tex/decor/carpets/carpet.png",
         price: 5,
-        texture_frame: [1, 0], texture_count: [4, 4],
-        animated: false, frame_paths: &[],
+        texture_frame: [1, 0],
+        texture_count: [4, 4],
+        animated: false,
+        frame_paths: &[],
     },
     Object {
-        width: 1, height: 1, name: "green_carpet", path: "assets/tex/decor/carpets/carpet.png",
+        width: 1,
+        height: 1,
+        name: "green_carpet",
+        path: "assets/tex/decor/carpets/carpet.png",
         price: 5,
-        texture_frame: [0, 1], texture_count: [4, 4],
-        animated: false, frame_paths: &[],
+        texture_frame: [0, 1],
+        texture_count: [4, 4],
+        animated: false,
+        frame_paths: &[],
     },
     Object {
-        width: 1, height: 1, name: "white_carpet", path: "assets/tex/decor/carpets/carpet.png",
+        width: 1,
+        height: 1,
+        name: "white_carpet",
+        path: "assets/tex/decor/carpets/carpet.png",
         price: 5,
-        texture_frame: [1, 1], texture_count: [4, 4],
-        animated: false, frame_paths: &[],
+        texture_frame: [1, 1],
+        texture_count: [4, 4],
+        animated: false,
+        frame_paths: &[],
     },
     Object {
-        width: 1, height: 1, name: "black_carpet", path: "assets/tex/decor/carpets/carpet.png",
+        width: 1,
+        height: 1,
+        name: "black_carpet",
+        path: "assets/tex/decor/carpets/carpet.png",
         price: 5,
-        texture_frame: [2, 0], texture_count: [4, 4],
-        animated: false, frame_paths: &[],
+        texture_frame: [2, 0],
+        texture_count: [4, 4],
+        animated: false,
+        frame_paths: &[],
     },
     Object {
-        width: 1, height: 1, name: "iron_panel", path: "assets/tex/decor/carpets/carpet.png",
+        width: 1,
+        height: 1,
+        name: "iron_panel",
+        path: "assets/tex/decor/carpets/carpet.png",
         price: 8,
-        texture_frame: [0, 2], texture_count: [4, 4],
-        animated: false, frame_paths: &[],
+        texture_frame: [0, 2],
+        texture_count: [4, 4],
+        animated: false,
+        frame_paths: &[],
     },
     Object {
-        width: 1, height: 1, name: "gold_panel", path: "assets/tex/decor/carpets/carpet.png",
+        width: 1,
+        height: 1,
+        name: "gold_panel",
+        path: "assets/tex/decor/carpets/carpet.png",
         price: 15,
-        texture_frame: [1, 2], texture_count: [4, 4],
-        animated: false, frame_paths: &[],
+        texture_frame: [1, 2],
+        texture_count: [4, 4],
+        animated: false,
+        frame_paths: &[],
     },
     Object {
-        width: 1, height: 1, name: "diamond_panel", path: "assets/tex/decor/carpets/carpet.png",
+        width: 1,
+        height: 1,
+        name: "diamond_panel",
+        path: "assets/tex/decor/carpets/carpet.png",
         price: 20,
-        texture_frame: [2, 2], texture_count: [4, 4],
-        animated: false, frame_paths: &[],
+        texture_frame: [2, 2],
+        texture_count: [4, 4],
+        animated: false,
+        frame_paths: &[],
     },
     Object {
-        width: 2, height: 2, name: "welcome", path: "assets/tex/decor/walldecor/welcome/welcome_0.png",
+        width: 2,
+        height: 2,
+        name: "welcome",
+        path: "assets/tex/decor/walldecor/welcome/welcome_0.png",
         price: 25,
-        texture_frame: [0, 1], texture_count: [2, 2],
-        animated: true, frame_paths: &["assets/tex/decor/walldecor/welcome/welcome_0.png", "assets/tex/decor/walldecor/welcome/welcome_1.png"],
+        texture_frame: [0, 1],
+        texture_count: [2, 2],
+        animated: true,
+        frame_paths: &[
+            "assets/tex/decor/walldecor/welcome/welcome_0.png",
+            "assets/tex/decor/walldecor/welcome/welcome_1.png",
+        ],
     },
     Object {
-        width: 1, height: 2, name: "fnaf", path: "assets/tex/decor/walldecor/fnaf.png",
+        width: 1,
+        height: 2,
+        name: "fnaf",
+        path: "assets/tex/decor/walldecor/fnaf.png",
         price: 30,
-        texture_frame: [0, 1], texture_count: [1, 2],
-        animated: false, frame_paths: &[],
+        texture_frame: [0, 1],
+        texture_count: [1, 2],
+        animated: false,
+        frame_paths: &[],
     },
     Object {
-        width: 1, height: 1, name: "watch", path: "assets/tex/decor/walldecor/watch.png",
+        width: 1,
+        height: 1,
+        name: "watch",
+        path: "assets/tex/decor/walldecor/watch.png",
         price: 10,
-        texture_frame: [0, 0], texture_count: [1, 1],
-        animated: false, frame_paths: &[],
+        texture_frame: [0, 0],
+        texture_count: [1, 1],
+        animated: false,
+        frame_paths: &[],
     },
     Object {
-        width: 1, height: 1, name: "fence", path: "assets/tex/decor/regular/fence/fence_0_0_0_0.png",
+        width: 1,
+        height: 1,
+        name: "fence",
+        path: "assets/tex/decor/regular/fence/fence_0_0_0_0.png",
         price: 5,
-        texture_frame: [0, 0], texture_count: [1, 1],
-        animated: false, frame_paths: &[],
+        texture_frame: [0, 0],
+        texture_count: [1, 1],
+        animated: false,
+        frame_paths: &[],
     },
     Object {
-        width: 1, height: 1, name: "street_fence", path: "assets/tex/decor/outdoor/street_fence/street_fence_0_0_0_0.png",
+        width: 1,
+        height: 1,
+        name: "street_fence",
+        path: "assets/tex/decor/outdoor/street_fence/street_fence_0_0_0_0.png",
         price: 8,
-        texture_frame: [0, 0], texture_count: [1, 1],
-        animated: false, frame_paths: &[],
+        texture_frame: [0, 0],
+        texture_count: [1, 1],
+        animated: false,
+        frame_paths: &[],
     },
     Object {
-        width: 1, height: 2, name: "tree", path: "assets/tex/decor/outdoor/tree.png",
+        width: 1,
+        height: 2,
+        name: "tree",
+        path: "assets/tex/decor/outdoor/tree.png",
         price: 20,
-        texture_frame: [0, 1], texture_count: [1, 2],
-        animated: false, frame_paths: &[],
+        texture_frame: [0, 1],
+        texture_count: [1, 2],
+        animated: false,
+        frame_paths: &[],
     },
     Object {
-        width: 1, height: 1, name: "pink_flower", path: "assets/tex/decor/outdoor/pink_flower.png",
+        width: 1,
+        height: 1,
+        name: "pink_flower",
+        path: "assets/tex/decor/outdoor/pink_flower.png",
         price: 3,
-        texture_frame: [0, 0], texture_count: [1, 1],
-        animated: false, frame_paths: &[],
+        texture_frame: [0, 0],
+        texture_count: [1, 1],
+        animated: false,
+        frame_paths: &[],
     },
     Object {
-        width: 1, height: 1, name: "blue_flower", path: "assets/tex/decor/outdoor/blue_flower.png",
+        width: 1,
+        height: 1,
+        name: "blue_flower",
+        path: "assets/tex/decor/outdoor/blue_flower.png",
         price: 3,
-        texture_frame: [0, 0], texture_count: [1, 1],
-        animated: false, frame_paths: &[],
+        texture_frame: [0, 0],
+        texture_count: [1, 1],
+        animated: false,
+        frame_paths: &[],
     },
     Object {
-        width: 1, height: 1, name: "yellow_flower", path: "assets/tex/decor/outdoor/yellow_flower.png",
+        width: 1,
+        height: 1,
+        name: "yellow_flower",
+        path: "assets/tex/decor/outdoor/yellow_flower.png",
         price: 3,
-        texture_frame: [0, 0], texture_count: [1, 1],
-        animated: false, frame_paths: &[],
+        texture_frame: [0, 0],
+        texture_count: [1, 1],
+        animated: false,
+        frame_paths: &[],
     },
     Object {
-        width: 1, height: 1, name: "red_flower", path: "assets/tex/decor/outdoor/red_flower.png",
+        width: 1,
+        height: 1,
+        name: "red_flower",
+        path: "assets/tex/decor/outdoor/red_flower.png",
         price: 3,
-        texture_frame: [0, 0], texture_count: [1, 1],
-        animated: false, frame_paths: &[],
+        texture_frame: [0, 0],
+        texture_count: [1, 1],
+        animated: false,
+        frame_paths: &[],
     },
     Object {
-        width: 1, height: 1, name: "white_flower", path: "assets/tex/decor/outdoor/white_flower.png",
+        width: 1,
+        height: 1,
+        name: "white_flower",
+        path: "assets/tex/decor/outdoor/white_flower.png",
         price: 3,
-        texture_frame: [0, 0], texture_count: [1, 1],
-        animated: false, frame_paths: &[],
+        texture_frame: [0, 0],
+        texture_count: [1, 1],
+        animated: false,
+        frame_paths: &[],
     },
     Object {
-        width: 3, height: 2, name: "street_ice_cream", path: "assets/tex/decor/outdoor/street_ice_cream.png",
+        width: 3,
+        height: 2,
+        name: "street_ice_cream",
+        path: "assets/tex/decor/outdoor/street_ice_cream.png",
         price: 25,
-        texture_frame: [0, 1], texture_count: [3, 2],
-        animated: false, frame_paths: &[],
+        texture_frame: [0, 1],
+        texture_count: [3, 2],
+        animated: false,
+        frame_paths: &[],
     },
     Object {
-        width: 1, height: 1, name: "trashcan", path: "assets/tex/decor/outdoor/trashcan.png",
+        width: 1,
+        height: 1,
+        name: "trashcan",
+        path: "assets/tex/decor/outdoor/trashcan.png",
         price: 5,
-        texture_frame: [0, 0], texture_count: [1, 1],
-        animated: false, frame_paths: &[],
+        texture_frame: [0, 0],
+        texture_count: [1, 1],
+        animated: false,
+        frame_paths: &[],
     },
     Object {
-        width: 2, height: 1, name: "bench", path: "assets/tex/decor/outdoor/bench.png",
+        width: 2,
+        height: 1,
+        name: "bench",
+        path: "assets/tex/decor/outdoor/bench.png",
         price: 12,
-        texture_frame: [0, 0], texture_count: [2, 1],
-        animated: false, frame_paths: &[],
+        texture_frame: [0, 0],
+        texture_count: [2, 1],
+        animated: false,
+        frame_paths: &[],
     },
     //basement — лестница в подвал (ставится только одна на магазин).
     Object {
-        width: 1, height: 2, name: "basement", path: "assets/tex/decor/regular/basement.png",
+        width: 1,
+        height: 2,
+        name: "basement",
+        path: "assets/tex/decor/regular/basement.png",
         price: 100,
-        texture_frame: [0, 1], texture_count: [1, 2],
-        animated: false, frame_paths: &[],
+        texture_frame: [0, 1],
+        texture_count: [1, 2],
+        animated: false,
+        frame_paths: &[],
     },
 ];
 
@@ -386,17 +555,29 @@ fn build_from_defs(defs: Vec<crate::scripts::items::ItemDef>) -> ItemCatalog {
             .position(|t| *t == def.tab)
             .unwrap_or(0);
         let tab = crate::scripts::items::TAB_NAMES[tab_idx];
-        let kind = ItemKind::from_category(&def.category)
-            .unwrap_or_else(|| ItemKind::from_tab(tab));
+        let kind =
+            ItemKind::from_category(&def.category).unwrap_or_else(|| ItemKind::from_tab(tab));
 
-        let width = if def.width > 0 { def.width } else { builtin.map_or(1, |o| o.width) };
-        let height = if def.height > 0 { def.height } else { builtin.map_or(1, |o| o.height) };
+        let width = if def.width > 0 {
+            def.width
+        } else {
+            builtin.map_or(1, |o| o.width)
+        };
+        let height = if def.height > 0 {
+            def.height
+        } else {
+            builtin.map_or(1, |o| o.height)
+        };
         let path = if def.texture.is_empty() {
             builtin.map_or("", |o| o.path)
         } else {
             leak(def.texture)
         };
-        let price = if def.price > 0 { def.price } else { builtin.map_or(1, |o| o.price) };
+        let price = if def.price > 0 {
+            def.price
+        } else {
+            builtin.map_or(1, |o| o.price)
+        };
         let texture_count = if def.atlas[0] > 0 && def.atlas[1] > 0 {
             def.atlas
         } else {
@@ -412,15 +593,17 @@ fn build_from_defs(defs: Vec<crate::scripts::items::ItemDef>) -> ItemCatalog {
         } else {
             leak(def.icon)
         };
-        let icon_size = [
-            clamp_icon(def.icon_size[0]),
-            clamp_icon(def.icon_size[1]),
-        ];
+        let icon_size = [clamp_icon(def.icon_size[0]), clamp_icon(def.icon_size[1])];
 
         tabs[tab_idx].push(name);
         meta.insert(
             name.to_string(),
-            ItemMeta { icon, icon_size, flower: def.flower, kind },
+            ItemMeta {
+                icon,
+                icon_size,
+                flower: def.flower,
+                kind,
+            },
         );
         objects.push(Object {
             width,
@@ -435,7 +618,11 @@ fn build_from_defs(defs: Vec<crate::scripts::items::ItemDef>) -> ItemCatalog {
         });
     }
 
-    ItemCatalog { objects, meta, tabs }
+    ItemCatalog {
+        objects,
+        meta,
+        tabs,
+    }
 }
 
 fn build_builtin_catalog() -> ItemCatalog {
@@ -457,7 +644,11 @@ fn build_builtin_catalog() -> ItemCatalog {
         );
     }
 
-    ItemCatalog { objects: BUILTIN_OBJECTS.to_vec(), meta, tabs }
+    ItemCatalog {
+        objects: BUILTIN_OBJECTS.to_vec(),
+        meta,
+        tabs,
+    }
 }
 
 fn builtin_tab(name: &str) -> usize {
@@ -479,7 +670,11 @@ fn default_icon(tab: &str, name: &str) -> String {
 }
 
 fn clamp_icon(value: f32) -> f32 {
-    if value > 0.0 { value.clamp(0.05, 2.0) } else { 1.0 }
+    if value > 0.0 {
+        value.clamp(0.05, 2.0)
+    } else {
+        1.0
+    }
 }
 
 fn leak(s: String) -> &'static str {
@@ -504,7 +699,8 @@ const INITIAL_SLOTS: [&str; SLOT_COUNT] = ["box", "sign", "rack", "table", "cass
 // Создать слот по имени объекта; если имени нет — берём первый объект списка.
 pub fn make_slot(name: &str) -> Slot {
     let objects = all_objects();
-    let obj = objects.iter()
+    let obj = objects
+        .iter()
         .find(|o| o.name == name)
         .unwrap_or(&objects[0]);
     Slot {
@@ -515,26 +711,36 @@ pub fn make_slot(name: &str) -> Slot {
 // Стартовая панель инструментов.
 pub fn get_slot_vec() -> Vec<Slot> {
     let objects = all_objects();
-    INITIAL_SLOTS.iter().map(|name| {
-        let obj = objects.iter().find(|o| o.name == *name).unwrap();
-        Slot {
-            obj: Object { ..*obj },
-        }
-    }).collect()
+    INITIAL_SLOTS
+        .iter()
+        .map(|name| {
+            let obj = objects.iter().find(|o| o.name == *name).unwrap();
+            Slot {
+                obj: Object { ..*obj },
+            }
+        })
+        .collect()
 }
 
 // Цена установки объекта: переопределение из config.lua (cfg.object_prices)
 // или дефолт из данных объекта.
 pub fn object_price(name: &str, cfg: &crate::scripts::config::BalanceConfig) -> i32 {
-    cfg.object_prices.get(name).copied().unwrap_or_else(|| make_slot(name).obj.price)
+    cfg.object_prices
+        .get(name)
+        .copied()
+        .unwrap_or_else(|| make_slot(name).obj.price)
 }
 
 // Имена объектов, доступных в магазине (все кроме SHOP_EXEMPT).
 pub fn shop_item_names() -> Vec<&'static str> {
-    all_objects().iter()
+    all_objects()
+        .iter()
         .filter(|o| !crate::core::constants::SHOP_EXEMPT.contains(&o.name))
         .map(|o| o.name)
         .collect()
 }
 
-pub use placement::{add, attach_point_light, is_carpet_name, is_flower_name, is_grass_token, is_light_name, is_outdoor_name, is_wall_decor_name, remove};
+pub use placement::{
+    add, attach_point_light, is_carpet_name, is_flower_name, is_grass_token, is_light_name,
+    is_outdoor_name, is_wall_decor_name, remove,
+};

@@ -10,8 +10,8 @@ use crate::core::constants::{TILE_HALF, WORLD_OFFSET_X, WORLD_OFFSET_Y, Z_WEATHE
 use crate::core::util;
 use crate::ecs::components::{Season, Transform};
 use crate::ecs::factory::create_sprite;
-use specs::WorldExt;
 use crate::EcsAdapter;
+use specs::WorldExt;
 
 const SNOW_COUNT: usize = 90;
 const RAIN_COUNT: usize = 80;
@@ -59,7 +59,12 @@ impl WeatherFx {
     }
 
     pub fn new() -> Self {
-        Self { effect: None, particles: Vec::new(), thunder_timer: 0.0, seed: 0x2545_4914_F6CD_DD1D }
+        Self {
+            effect: None,
+            particles: Vec::new(),
+            thunder_timer: 0.0,
+            seed: 0x2545_4914_F6CD_DD1D,
+        }
     }
 
     // Сброс при входе в сцену: мир и кэши уже очищены снаружи.
@@ -94,7 +99,13 @@ impl WeatherFx {
     }
 
     fn sprite_key(effect: Effect) -> u64 {
-        util::sprite_cache_key("transparent", Self::sprite_path(effect), [0, 0], [1, 1], 1.0)
+        util::sprite_cache_key(
+            "transparent",
+            Self::sprite_path(effect),
+            [0, 0],
+            [1, 1],
+            1.0,
+        )
     }
 
     // Ежекадровое обновление погоды: применяет смену сезона, двигает частицы
@@ -113,10 +124,14 @@ impl WeatherFx {
             return;
         }
         let alive = self.particles.iter().all(|p| {
-            ecs.world.read_storage::<Transform>().get(p.entity).is_some()
+            ecs.world
+                .read_storage::<Transform>()
+                .get(p.entity)
+                .is_some()
         });
         // Пересоздаём поле, если сезон сменился или сущности исчезли (смена уровня).
-        let needs_respawn = want != self.effect || (want.is_some() && (!alive || self.particles.is_empty()));
+        let needs_respawn =
+            want != self.effect || (want.is_some() && (!alive || self.particles.is_empty()));
         if needs_respawn {
             self.teardown(ecs);
             self.effect = want;
@@ -190,8 +205,12 @@ impl WeatherFx {
     ) {
         let (l, r, b, t) = bounds;
         let (world_w, world_h, count, alpha, min_speed, max_speed, drift) = match effect {
-            Effect::Snow => (0.10f32, 0.10f32, SNOW_COUNT, 0.9f32, 0.6f32, 1.4f32, 0.06f32),
-            Effect::Rain => (0.05f32, 0.30f32, RAIN_COUNT, 0.75f32, 3.2f32, 4.8f32, 0.0f32),
+            Effect::Snow => (
+                0.10f32, 0.10f32, SNOW_COUNT, 0.9f32, 0.6f32, 1.4f32, 0.06f32,
+            ),
+            Effect::Rain => (
+                0.05f32, 0.30f32, RAIN_COUNT, 0.75f32, 3.2f32, 4.8f32, 0.0f32,
+            ),
         };
         let path = Self::sprite_path(effect);
 
@@ -205,7 +224,15 @@ impl WeatherFx {
                 (2, 16, rgba)
             }
         };
-        let tex = crate::Texture::from_rgba(device, queue, &rgba, tw, th, "weather_particle", wgpu::FilterMode::Linear);
+        let tex = crate::Texture::from_rgba(
+            device,
+            queue,
+            &rgba,
+            tw,
+            th,
+            "weather_particle",
+            wgpu::FilterMode::Linear,
+        );
         let sprite = crate::Sprite::from_texture(device, &tex, path, world_w, world_h);
         ecs.sprite_cache.insert(Self::sprite_key(effect), sprite);
 
@@ -215,10 +242,23 @@ impl WeatherFx {
             let speed = min_speed + (max_speed - min_speed) * rand01(&mut self.seed);
             let drift = drift * (rand01(&mut self.seed) - 0.5) * 2.0;
             let entity = create_sprite(
-                &mut ecs.world, x, y, Z_WEATHER,
-                path, [0, 0], [1, 1], 1.0, alpha,
+                &mut ecs.world,
+                x,
+                y,
+                Z_WEATHER,
+                path,
+                [0, 0],
+                [1, 1],
+                1.0,
+                alpha,
             );
-            self.particles.push(Particle { entity, x, y, speed, drift });
+            self.particles.push(Particle {
+                entity,
+                x,
+                y,
+                speed,
+                drift,
+            });
         }
     }
 }

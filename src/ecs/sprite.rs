@@ -8,10 +8,10 @@
 //  единый layout текстуры+сэмплера через OnceLock.
 // ========================================================================
 
-use std::sync::OnceLock;
-use wgpu::util::DeviceExt;
 use crate::texture::Texture;
 use crate::Vertex;
+use std::sync::OnceLock;
+use wgpu::util::DeviceExt;
 
 // Описание расположения спрайтовой текстуры и сэмплера в шейдере.
 // Layout один на всё приложение (OnceLock не создаёт повторные bind group layout).
@@ -67,10 +67,12 @@ impl Sprite {
                 let size = &path[idx + 1..];
                 let mut it = size.split('x');
                 match (it.next(), it.next()) {
-                    (Some(w), Some(h)) => match (w.trim().parse::<f32>(), h.trim().parse::<f32>()) {
-                        (Ok(w), Ok(h)) if w > 0.0 && h > 0.0 => (base, Some((w, h))),
-                        _ => (base, None),
-                    },
+                    (Some(w), Some(h)) => {
+                        match (w.trim().parse::<f32>(), h.trim().parse::<f32>()) {
+                            (Ok(w), Ok(h)) if w > 0.0 && h > 0.0 => (base, Some((w, h))),
+                            _ => (base, None),
+                        }
+                    }
                     _ => (base, None),
                 }
             }
@@ -97,17 +99,17 @@ impl Sprite {
 
         let atlas_width = texture_count[0] as f32;
         let atlas_height = texture_count[1] as f32;
-        
+
         // Размер одного кадра в нормированных UV-координатах.
         let tile_w = 1.0 / atlas_width;
         let tile_h = 1.0 / atlas_height;
-        
+
         // Небольшой отступ (TEXEL_EPSILON) внутрь кадра, чтобы соседние
         // кадры атласа не "протекали" через билинейную фильтрацию.
         let eps = crate::core::constants::TEXEL_EPSILON;
-        let left   = sprite_x as f32 * tile_w + eps;
-        let right  = (sprite_x as f32 + 1.0) * tile_w - eps;
-        let top    = sprite_y as f32 * tile_h + eps;
+        let left = sprite_x as f32 * tile_w + eps;
+        let right = (sprite_x as f32 + 1.0) * tile_w - eps;
+        let top = sprite_y as f32 * tile_h + eps;
         let bottom = (sprite_y as f32 + 1.0) * tile_h - eps;
 
         // Полу-ширина/высота: прямоугольные «@WxH» спрайты масштабируются
@@ -117,10 +119,22 @@ impl Sprite {
             None => (scale * 0.5, scale * 0.5),
         };
         let vertices: Vec<Vertex> = vec![
-            Vertex { position: [-hx, hy, 0.0], tex_coord: [left, top] },
-            Vertex { position: [-hx, -hy, 0.0], tex_coord: [left, bottom] },
-            Vertex { position: [hx, -hy, 0.0], tex_coord: [right, bottom] },
-            Vertex { position: [hx, hy, 0.0], tex_coord: [right, top] }
+            Vertex {
+                position: [-hx, hy, 0.0],
+                tex_coord: [left, top],
+            },
+            Vertex {
+                position: [-hx, -hy, 0.0],
+                tex_coord: [left, bottom],
+            },
+            Vertex {
+                position: [hx, -hy, 0.0],
+                tex_coord: [right, bottom],
+            },
+            Vertex {
+                position: [hx, hy, 0.0],
+                tex_coord: [right, top],
+            },
         ];
         let indices: Vec<u16> = crate::core::constants::QUAD_INDICES.to_vec();
         let index_count = indices.len() as u32;
@@ -140,13 +154,13 @@ impl Sprite {
                 },
             ],
         });
-        
+
         let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some(&format!("Vertex Buffer: {}", texture_path)),
             contents: bytemuck::cast_slice(&vertices),
             usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
         });
-        
+
         let index_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some(&format!("Index Buffer: {}", texture_path)),
             contents: bytemuck::cast_slice(&indices),
@@ -178,10 +192,22 @@ impl Sprite {
         let eps = crate::core::constants::TEXEL_EPSILON;
         let inv_eps = 1.0 - eps;
         let vertices: Vec<Vertex> = vec![
-            Vertex { position: [-hw, hh, 0.0], tex_coord: [eps, eps] },
-            Vertex { position: [-hw, -hh, 0.0], tex_coord: [eps, inv_eps] },
-            Vertex { position: [hw, -hh, 0.0], tex_coord: [inv_eps, inv_eps] },
-            Vertex { position: [hw, hh, 0.0], tex_coord: [inv_eps, eps] },
+            Vertex {
+                position: [-hw, hh, 0.0],
+                tex_coord: [eps, eps],
+            },
+            Vertex {
+                position: [-hw, -hh, 0.0],
+                tex_coord: [eps, inv_eps],
+            },
+            Vertex {
+                position: [hw, -hh, 0.0],
+                tex_coord: [inv_eps, inv_eps],
+            },
+            Vertex {
+                position: [hw, hh, 0.0],
+                tex_coord: [inv_eps, eps],
+            },
         ];
         let indices: Vec<u16> = crate::core::constants::QUAD_INDICES.to_vec();
         let index_count = indices.len() as u32;

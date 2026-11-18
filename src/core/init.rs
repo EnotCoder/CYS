@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Copyright (C) 2026 EnotCoder
 
-use winit::window::Window;
-use wgpu::*;
-use wgpu::util::DeviceExt;
-use crate::DepthBuffer;
 use crate::core::pipeline::{create_render_pipeline, create_transparent_pipeline};
+use crate::DepthBuffer;
+use wgpu::util::DeviceExt;
+use wgpu::*;
+use winit::window::Window;
 
 // ========================================================================
 //  init: создание WgpuApp — вершины всего wgpu-пайплайна.
@@ -97,7 +97,8 @@ impl WgpuApp {
             backend_options: wgpu::BackendOptions::default(),
             display: None,
         });
-        let surface = instance.create_surface(window)
+        let surface = instance
+            .create_surface(window)
             .expect("Failed to create surface");
 
         // pollster::block_on — превращает async wgpu API в синхронный вызов.
@@ -112,7 +113,8 @@ impl WgpuApp {
 
         // Uniform (Size) для карты — постоянный буфер, обновляется извне.
         let size_buffer = Self::create_size_buffer(&device);
-        let size_bind_group_layout = Self::create_single_bind_group_layout(&device, "Size Bind Group Layout");
+        let size_bind_group_layout =
+            Self::create_single_bind_group_layout(&device, "Size Bind Group Layout");
 
         // Uniform (UiUniforms) для UI-слоя.
         let ui_uniform_buffer = Self::create_ui_buffer(&device);
@@ -120,13 +122,26 @@ impl WgpuApp {
         // Буфер для хранения данных об освещении.
         let light_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("Light Storage Buffer"),
-            size: (std::mem::size_of::<crate::core::buffers::LightData>() * crate::core::constants::MAX_LIGHTS) as u64,
+            size: (std::mem::size_of::<crate::core::buffers::LightData>()
+                * crate::core::constants::MAX_LIGHTS) as u64,
             usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
         });
 
-        let size_bind_group = Self::create_bind_group_with_lights(&device, &size_bind_group_layout, &size_buffer, &light_buffer, "Size Bind Group");
-        let ui_bind_group = Self::create_bind_group_with_lights(&device, &size_bind_group_layout, &ui_uniform_buffer, &light_buffer, "UI Bind Group");
+        let size_bind_group = Self::create_bind_group_with_lights(
+            &device,
+            &size_bind_group_layout,
+            &size_buffer,
+            &light_buffer,
+            "Size Bind Group",
+        );
+        let ui_bind_group = Self::create_bind_group_with_lights(
+            &device,
+            &size_bind_group_layout,
+            &ui_uniform_buffer,
+            &light_buffer,
+            "UI Bind Group",
+        );
 
         // Dynamic storage buffer — 1 write_buffer вместо N per-sprite
 
@@ -193,7 +208,8 @@ impl WgpuApp {
                     &buffers.depth_stencil,
                     &buffers.transparent_depth_stencil,
                     None,
-                ).expect("vanilla shader must always compile")
+                )
+                .expect("vanilla shader must always compile")
             }
         };
 
@@ -227,11 +243,17 @@ impl WgpuApp {
     // --- Приватные helper'ы ---
 
     // Находит совместимый с поверхностью GPU-адаптер (графическую карту).
-    async fn request_adapter(instance: &wgpu::Instance, surface: &wgpu::Surface<'_>) -> wgpu::Adapter {
-        let adapter = instance.request_adapter(&RequestAdapterOptions {
-            compatible_surface: Some(surface),
-            ..Default::default()
-        }).await.unwrap();
+    async fn request_adapter(
+        instance: &wgpu::Instance,
+        surface: &wgpu::Surface<'_>,
+    ) -> wgpu::Adapter {
+        let adapter = instance
+            .request_adapter(&RequestAdapterOptions {
+                compatible_surface: Some(surface),
+                ..Default::default()
+            })
+            .await
+            .unwrap();
         println!("{}", adapter.get_info().name);
         adapter
     }
@@ -239,17 +261,15 @@ impl WgpuApp {
     // Запрашивает устройство (логический объект GPU) и очередь команд.
     async fn request_device(adapter: &wgpu::Adapter) -> (wgpu::Device, wgpu::Queue) {
         adapter
-            .request_device(
-                &wgpu::DeviceDescriptor {
-                    label: None,
-                    required_features: wgpu::Features::empty(),
-                    // Стандартные лимиты: не требуем редких расширений.
-                    required_limits: wgpu::Limits::default(),
-                    memory_hints: wgpu::MemoryHints::Performance,
-                    experimental_features: wgpu::ExperimentalFeatures::default(),
-                    trace: wgpu::Trace::Off,
-                },
-            )
+            .request_device(&wgpu::DeviceDescriptor {
+                label: None,
+                required_features: wgpu::Features::empty(),
+                // Стандартные лимиты: не требуем редких расширений.
+                required_limits: wgpu::Limits::default(),
+                memory_hints: wgpu::MemoryHints::Performance,
+                experimental_features: wgpu::ExperimentalFeatures::default(),
+                trace: wgpu::Trace::Off,
+            })
             .await
             .unwrap()
     }
@@ -276,9 +296,8 @@ impl WgpuApp {
             source: ShaderSource::Wgsl(code.into()),
         });
         let render = create_render_pipeline(device, layout, &module, format, depth_stencil);
-        let transparent = create_transparent_pipeline(
-            device, layout, &module, format, transparent_depth_stencil,
-        );
+        let transparent =
+            create_transparent_pipeline(device, layout, &module, format, transparent_depth_stencil);
         match pollster::block_on(scope.pop()) {
             Some(error) => Err(error.to_string()),
             None => Ok((render, transparent)),
@@ -312,7 +331,8 @@ impl WgpuApp {
                     &self.depth_stencil,
                     &self.transparent_depth_stencil,
                     None,
-                ).expect("vanilla shader must always compile");
+                )
+                .expect("vanilla shader must always compile");
                 self.render_pipeline = render;
                 self.transparent_pipeline = transparent;
                 Err(error)
@@ -322,7 +342,10 @@ impl WgpuApp {
 
     // Общий layout для постоянного (non-dynamic) uniform-буфера:
     // один unbind binding без динамических offset.
-    fn create_single_bind_group_layout(device: &wgpu::Device, label: &str) -> wgpu::BindGroupLayout {
+    fn create_single_bind_group_layout(
+        device: &wgpu::Device,
+        label: &str,
+    ) -> wgpu::BindGroupLayout {
         device.create_bind_group_layout(&BindGroupLayoutDescriptor {
             label: Some(label),
             entries: &[
@@ -376,7 +399,15 @@ impl WgpuApp {
 
     // Создаёт буфер с дефолтными uniform'ами карты (заполняется позже из кода).
     fn create_size_buffer(device: &wgpu::Device) -> wgpu::Buffer {
-        let size = Size { map_size: 1.0, aspect: 1.0, offset_x: 0.0, offset_y: 0.0, night_factor: 0.0, light_count: 0, _padding: [0.0; 2] };
+        let size = Size {
+            map_size: 1.0,
+            aspect: 1.0,
+            offset_x: 0.0,
+            offset_y: 0.0,
+            night_factor: 0.0,
+            light_count: 0,
+            _padding: [0.0; 2],
+        };
         device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Size Buffer"),
             contents: bytemuck::bytes_of(&size),
@@ -401,7 +432,11 @@ impl WgpuApp {
 
 // Конфигурация поверхности (размер, формат, порядок кадров Fifo).
 // Используется и на старте, и при изменении размера окна.
-pub fn surface_config(format: wgpu::TextureFormat, width: u32, height: u32) -> wgpu::SurfaceConfiguration {
+pub fn surface_config(
+    format: wgpu::TextureFormat,
+    width: u32,
+    height: u32,
+) -> wgpu::SurfaceConfiguration {
     wgpu::SurfaceConfiguration {
         usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
         format,
@@ -411,7 +446,7 @@ pub fn surface_config(format: wgpu::TextureFormat, width: u32, height: u32) -> w
         present_mode: wgpu::PresentMode::Fifo,
         alpha_mode: wgpu::CompositeAlphaMode::Auto,
         view_formats: vec![],
-            color_space: wgpu::SurfaceColorSpace::Srgb,
+        color_space: wgpu::SurfaceColorSpace::Srgb,
         desired_maximum_frame_latency: crate::core::constants::DESIRED_FRAME_LATENCY,
     }
 }

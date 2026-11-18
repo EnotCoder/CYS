@@ -1,13 +1,15 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Copyright (C) 2026 EnotCoder
 
-use std::io::{BufRead, BufReader};
-use crate::scenes::scene_trait::{Scene, SceneAction};
 use crate::core::constants::*;
-use crate::ui::{Button, Panel, create_button, create_panel, destroy_button, destroy_panel};
 use crate::input::platform::InputSource;
-use crate::save::{create_world_with_name, delete_world, list_worlds, WorldSelection, SELECTED_WORLD};
+use crate::save::{
+    create_world_with_name, delete_world, list_worlds, WorldSelection, SELECTED_WORLD,
+};
+use crate::scenes::scene_trait::{Scene, SceneAction};
 use crate::ui::text_input::TEXT_INPUT;
+use crate::ui::{create_button, create_panel, destroy_button, destroy_panel, Button, Panel};
+use std::io::{BufRead, BufReader};
 
 use crate::scenes::game::weather_fx;
 use specs::WorldExt;
@@ -136,7 +138,13 @@ impl MenuScene {
 
     /// Строит содержимое меню в зависимости от состояния (Main/Worlds).
     /// Сначала разрушает старое, чтобы пересоздание было идемпотентным.
-    fn setup_content(&mut self, ecs: &mut crate::EcsAdapter, text_renderer: &mut crate::ui::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) {
+    fn setup_content(
+        &mut self,
+        ecs: &mut crate::EcsAdapter,
+        text_renderer: &mut crate::ui::text_renderer::TextRenderer,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+    ) {
         self.destroy_content(ecs);
         ecs.clear_world();
         self.weather_fx.reset();
@@ -144,16 +152,40 @@ impl MenuScene {
         match self.state {
             MenuState::Splash => {
                 // Чёрный фон на весь экран для контраста логотипа
-                let bg = ecs.add_ui_sized(0.0, 0.0, 400.0, 400.0, "assets/tex/dev_tools/black.png", device, queue);
+                let bg = ecs.add_ui_sized(
+                    0.0,
+                    0.0,
+                    400.0,
+                    400.0,
+                    "assets/tex/dev_tools/black.png",
+                    device,
+                    queue,
+                );
                 self.splash_bg = Some(bg);
                 // Логотип пользователя (иконка приложения)
-                let logo = ecs.add_ui_sized(0.0, 0.0, SPLASH_LOGO_W, SPLASH_LOGO_H, "assets/icon.png", device, queue);
+                let logo = ecs.add_ui_sized(
+                    0.0,
+                    0.0,
+                    SPLASH_LOGO_W,
+                    SPLASH_LOGO_H,
+                    "assets/icon.png",
+                    device,
+                    queue,
+                );
                 self.splash_logo = Some(logo);
                 self.splash_timer = 0.0;
             }
             MenuState::Main => {
                 crate::data::map::load_map_to_ecs(ecs);
-                self.logo = Some(ecs.add_ui_sized(LOGO_X, LOGO_Y, LOGO_W, LOGO_H, "assets/tex/ui/game_name.png", device, queue));
+                self.logo = Some(ecs.add_ui_sized(
+                    LOGO_X,
+                    LOGO_Y,
+                    LOGO_W,
+                    LOGO_H,
+                    "assets/tex/ui/game_name.png",
+                    device,
+                    queue,
+                ));
                 self.logo_time = 0.0;
                 self.build_main(ecs, text_renderer, device, queue);
             }
@@ -162,7 +194,15 @@ impl MenuScene {
                 // затемняющим оверлеем, чтобы список миров был читаемым.
                 crate::data::map::load_map_to_ecs(ecs);
                 Self::place_decor(ecs);
-                let overlay = ecs.add_ui_sized(0.0, 0.0, 100.0, 100.0, "assets/tex/dev_tools/black.png", device, queue);
+                let overlay = ecs.add_ui_sized(
+                    0.0,
+                    0.0,
+                    100.0,
+                    100.0,
+                    "assets/tex/dev_tools/black.png",
+                    device,
+                    queue,
+                );
                 ecs.update_sprite_alpha(overlay, 0.6);
                 self.build_worlds(ecs, text_renderer, device, queue);
             }
@@ -170,14 +210,30 @@ impl MenuScene {
                 // Тот же затемнённый фон, что и в выборе миров.
                 crate::data::map::load_map_to_ecs(ecs);
                 Self::place_decor(ecs);
-                let overlay = ecs.add_ui_sized(0.0, 0.0, 100.0, 100.0, "assets/tex/dev_tools/black.png", device, queue);
+                let overlay = ecs.add_ui_sized(
+                    0.0,
+                    0.0,
+                    100.0,
+                    100.0,
+                    "assets/tex/dev_tools/black.png",
+                    device,
+                    queue,
+                );
                 ecs.update_sprite_alpha(overlay, 0.6);
                 self.build_naming(ecs, text_renderer, device, queue);
             }
             MenuState::ConfirmDelete(_) => {
                 crate::data::map::load_map_to_ecs(ecs);
                 Self::place_decor(ecs);
-                let overlay = ecs.add_ui_sized(0.0, 0.0, 100.0, 100.0, "assets/tex/dev_tools/black.png", device, queue);
+                let overlay = ecs.add_ui_sized(
+                    0.0,
+                    0.0,
+                    100.0,
+                    100.0,
+                    "assets/tex/dev_tools/black.png",
+                    device,
+                    queue,
+                );
                 ecs.update_sprite_alpha(overlay, 0.6);
                 self.build_worlds(ecs, text_renderer, device, queue);
                 self.build_delete_confirm(ecs, text_renderer, device, queue);
@@ -185,15 +241,43 @@ impl MenuScene {
         }
     }
 
-    fn build_naming(&mut self, ecs: &mut crate::EcsAdapter, text_renderer: &mut crate::ui::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) {
-        let title = text_renderer.add_text(ecs, device, queue, "World Name", FONT_SIZE_LOGO, 0.0, 3.7, 7.0, 1.0, WHITE);
+    fn build_naming(
+        &mut self,
+        ecs: &mut crate::EcsAdapter,
+        text_renderer: &mut crate::ui::text_renderer::TextRenderer,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+    ) {
+        let title = text_renderer.add_text(
+            ecs,
+            device,
+            queue,
+            "World Name",
+            FONT_SIZE_LOGO,
+            0.0,
+            3.7,
+            7.0,
+            1.0,
+            WHITE,
+        );
         self.naming_title = Some(title);
 
         // Поле ввода (чёрная панель) с текущим названием поверх
         let mut np = Panel::new(0.0, 0.6, 6.0, 1.0, 0.5);
         create_panel(ecs, device, queue, &mut np);
         self.name_panel = Some(np);
-        let nt = text_renderer.add_text(ecs, device, queue, &self.name_buffer, FONT_SIZE_BTN, 0.0, 0.65, 5.6, 1.0, WHITE);
+        let nt = text_renderer.add_text(
+            ecs,
+            device,
+            queue,
+            &self.name_buffer,
+            FONT_SIZE_BTN,
+            0.0,
+            0.65,
+            5.6,
+            1.0,
+            WHITE,
+        );
         self.name_text = Some(nt);
         self.cursor_timer = 0.0;
 
@@ -201,24 +285,74 @@ impl MenuScene {
         let mut cb = Panel::textured(0.0, -1.0, 3.2, 0.8, 1.0, TEX_BUTTON);
         create_panel(ecs, device, queue, &mut cb);
         self.name_create_bg = Some(cb);
-        let cl = text_renderer.add_text(ecs, device, queue, "Create", FONT_SIZE_BTN, 0.0, -0.95, 2.4, 1.0, BTN_TEXT_COLOR);
+        let cl = text_renderer.add_text(
+            ecs,
+            device,
+            queue,
+            "Create",
+            FONT_SIZE_BTN,
+            0.0,
+            -0.95,
+            2.4,
+            1.0,
+            BTN_TEXT_COLOR,
+        );
         self.name_create_label = Some(cl);
 
         // Кнопка «Назад»
         let mut bb = Panel::textured(0.0, -2.2, 3.2, 0.8, 1.0, TEX_BUTTON);
         create_panel(ecs, device, queue, &mut bb);
         self.name_back_bg = Some(bb);
-        let bl = text_renderer.add_text(ecs, device, queue, "Back", FONT_SIZE_BTN, 0.0, -2.15, 2.4, 1.0, BTN_TEXT_COLOR);
+        let bl = text_renderer.add_text(
+            ecs,
+            device,
+            queue,
+            "Back",
+            FONT_SIZE_BTN,
+            0.0,
+            -2.15,
+            2.4,
+            1.0,
+            BTN_TEXT_COLOR,
+        );
         self.name_back_label = Some(bl);
     }
 
-    fn build_main(&mut self, ecs: &mut crate::EcsAdapter, text_renderer: &mut crate::ui::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) {
+    fn build_main(
+        &mut self,
+        ecs: &mut crate::EcsAdapter,
+        text_renderer: &mut crate::ui::text_renderer::TextRenderer,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+    ) {
         let mut play_panel = Panel::textured(BTN_X, BTN_Y, BTN_W, BTN_H, 1.0, TEX_BUTTON);
         create_panel(ecs, device, queue, &mut play_panel);
         let mut quit_panel = Panel::textured(QUIT_X, QUIT_Y, QUIT_W, QUIT_H, 1.0, TEX_BUTTON);
         create_panel(ecs, device, queue, &mut quit_panel);
-        let pl = text_renderer.add_text(ecs, device, queue, "Play", FONT_SIZE_BTN, BTN_X, BTN_Y + 0.05, BTN_W * 0.75, 1.0, BTN_TEXT_COLOR);
-        let ql = text_renderer.add_text(ecs, device, queue, "Quit", FONT_SIZE_BTN, QUIT_X, QUIT_Y + 0.05, QUIT_W * 0.75, 1.0, BTN_TEXT_COLOR);
+        let pl = text_renderer.add_text(
+            ecs,
+            device,
+            queue,
+            "Play",
+            FONT_SIZE_BTN,
+            BTN_X,
+            BTN_Y + 0.05,
+            BTN_W * 0.75,
+            1.0,
+            BTN_TEXT_COLOR,
+        );
+        let ql = text_renderer.add_text(
+            ecs,
+            device,
+            queue,
+            "Quit",
+            FONT_SIZE_BTN,
+            QUIT_X,
+            QUIT_Y + 0.05,
+            QUIT_W * 0.75,
+            1.0,
+            BTN_TEXT_COLOR,
+        );
         self.play_bg = Some(play_panel);
         self.play_label = Some(pl);
         self.quit_bg = Some(quit_panel);
@@ -226,15 +360,45 @@ impl MenuScene {
         Self::place_decor(ecs);
     }
 
-    fn build_worlds(&mut self, ecs: &mut crate::EcsAdapter, text_renderer: &mut crate::ui::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) {
-        let title = text_renderer.add_text(ecs, device, queue, "Select World", FONT_SIZE_LOGO, 0.0, 3.7, 7.0, 1.0, WHITE);
+    fn build_worlds(
+        &mut self,
+        ecs: &mut crate::EcsAdapter,
+        text_renderer: &mut crate::ui::text_renderer::TextRenderer,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+    ) {
+        let title = text_renderer.add_text(
+            ecs,
+            device,
+            queue,
+            "Select World",
+            FONT_SIZE_LOGO,
+            0.0,
+            3.7,
+            7.0,
+            1.0,
+            WHITE,
+        );
         self.world_misc.push(title);
 
         // Кнопка «Новый мир»
         let mut nb = Panel::textured(0.0, 2.4, 3.2, 0.8, 1.0, TEX_BUTTON);
         create_panel(ecs, device, queue, &mut nb);
-        let nbl = text_renderer.add_text(ecs, device, queue, "New World", FONT_SIZE_BTN, 0.0, 2.45, 2.4, 1.0, BTN_TEXT_COLOR);
-        if let Some(e) = nb.entity { self.world_misc.push(e); }
+        let nbl = text_renderer.add_text(
+            ecs,
+            device,
+            queue,
+            "New World",
+            FONT_SIZE_BTN,
+            0.0,
+            2.45,
+            2.4,
+            1.0,
+            BTN_TEXT_COLOR,
+        );
+        if let Some(e) = nb.entity {
+            self.world_misc.push(e);
+        }
         self.world_misc.push(nbl);
         self.new_btn = Some(nb);
 
@@ -244,27 +408,79 @@ impl MenuScene {
         for w in worlds.iter().take(8) {
             let mut pb = Panel::textured(0.0, y, 3.2, 0.8, 1.0, TEX_BUTTON);
             create_panel(ecs, device, queue, &mut pb);
-            let lbl = text_renderer.add_text(ecs, device, queue, &w.name, FONT_SIZE_BTN, 0.0, y + 0.05, 2.8, 1.0, BTN_TEXT_COLOR);
+            let lbl = text_renderer.add_text(
+                ecs,
+                device,
+                queue,
+                &w.name,
+                FONT_SIZE_BTN,
+                0.0,
+                y + 0.05,
+                2.8,
+                1.0,
+                BTN_TEXT_COLOR,
+            );
             // Кнопка удаления: чёрная панель (del_bg) с иконкой «минус» поверх
             let dx = pb.x + pb.w / 2.0 + 0.55;
             let mut db = Panel::new(dx, y, 0.7, 0.7, 0.5);
             create_panel(ecs, device, queue, &mut db);
-            let di = ecs.add_ui_sized(dx, y, 0.45, 0.45, "assets/tex/ui/mini_icons/minus.png", device, queue);
-            self.world_entries.push(WorldEntry { id: w.id, bg: pb, label: Some(lbl), del_bg: db, del_icon: Some(di) });
+            let di = ecs.add_ui_sized(
+                dx,
+                y,
+                0.45,
+                0.45,
+                "assets/tex/ui/mini_icons/minus.png",
+                device,
+                queue,
+            );
+            self.world_entries.push(WorldEntry {
+                id: w.id,
+                bg: pb,
+                label: Some(lbl),
+                del_bg: db,
+                del_icon: Some(di),
+            });
             y -= 1.0;
         }
 
         // Кнопка «Назад»
         let mut bb = Panel::textured(0.0, -3.2, 3.2, 0.8, 1.0, TEX_BUTTON);
         create_panel(ecs, device, queue, &mut bb);
-        let bbl = text_renderer.add_text(ecs, device, queue, "Back", FONT_SIZE_BTN, 0.0, -3.15, 2.4, 1.0, BTN_TEXT_COLOR);
-        if let Some(e) = bb.entity { self.world_misc.push(e); }
+        let bbl = text_renderer.add_text(
+            ecs,
+            device,
+            queue,
+            "Back",
+            FONT_SIZE_BTN,
+            0.0,
+            -3.15,
+            2.4,
+            1.0,
+            BTN_TEXT_COLOR,
+        );
+        if let Some(e) = bb.entity {
+            self.world_misc.push(e);
+        }
         self.world_misc.push(bbl);
         self.back_btn = Some(bb);
     }
 
-    fn build_delete_confirm(&mut self, ecs: &mut crate::EcsAdapter, text_renderer: &mut crate::ui::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) {
-        let overlay = ecs.add_ui_sized(0.0, 0.0, 100.0, 100.0, "assets/tex/dev_tools/black.png", device, queue);
+    fn build_delete_confirm(
+        &mut self,
+        ecs: &mut crate::EcsAdapter,
+        text_renderer: &mut crate::ui::text_renderer::TextRenderer,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+    ) {
+        let overlay = ecs.add_ui_sized(
+            0.0,
+            0.0,
+            100.0,
+            100.0,
+            "assets/tex/dev_tools/black.png",
+            device,
+            queue,
+        );
         ecs.update_sprite_alpha(overlay, 0.55);
         self.world_misc.push(overlay);
 
@@ -272,7 +488,18 @@ impl MenuScene {
         create_panel(ecs, device, queue, &mut panel);
         self.delete_confirm_panel = Some(panel);
 
-        let message = text_renderer.add_text(ecs, device, queue, "Are you sure?", FONT_SIZE_BTN, 0.0, 0.65, 5.2, 1.0, WHITE);
+        let message = text_renderer.add_text(
+            ecs,
+            device,
+            queue,
+            "Are you sure?",
+            FONT_SIZE_BTN,
+            0.0,
+            0.65,
+            5.2,
+            1.0,
+            WHITE,
+        );
         self.world_misc.push(message);
 
         let mut delete = Button::new(-1.2, -0.8, 2.0, 0.8, "Delete");
@@ -285,31 +512,69 @@ impl MenuScene {
     }
 
     fn destroy_content(&mut self, ecs: &mut crate::EcsAdapter) {
-        if let Some(e) = self.splash_bg.take() { ecs.delete_entity(e); }
-        if let Some(e) = self.splash_logo.take() { ecs.delete_entity(e); }
+        if let Some(e) = self.splash_bg.take() {
+            ecs.delete_entity(e);
+        }
+        if let Some(e) = self.splash_logo.take() {
+            ecs.delete_entity(e);
+        }
         self.logo = None;
-        if let Some(mut p) = self.play_bg.take() { destroy_panel(ecs, &mut p); }
-        if let Some(mut p) = self.quit_bg.take() { destroy_panel(ecs, &mut p); }
-        if let Some(e) = self.play_label.take() { ecs.delete_entity(e); }
-        if let Some(e) = self.quit_label.take() { ecs.delete_entity(e); }
-        for e in self.world_misc.drain(..) { ecs.delete_entity(e); }
+        if let Some(mut p) = self.play_bg.take() {
+            destroy_panel(ecs, &mut p);
+        }
+        if let Some(mut p) = self.quit_bg.take() {
+            destroy_panel(ecs, &mut p);
+        }
+        if let Some(e) = self.play_label.take() {
+            ecs.delete_entity(e);
+        }
+        if let Some(e) = self.quit_label.take() {
+            ecs.delete_entity(e);
+        }
+        for e in self.world_misc.drain(..) {
+            ecs.delete_entity(e);
+        }
         for mut we in self.world_entries.drain(..) {
             destroy_panel(ecs, &mut we.bg);
-            if let Some(l) = we.label.take() { ecs.delete_entity(l); }
+            if let Some(l) = we.label.take() {
+                ecs.delete_entity(l);
+            }
             destroy_panel(ecs, &mut we.del_bg);
-            if let Some(l) = we.del_icon.take() { ecs.delete_entity(l); }
+            if let Some(l) = we.del_icon.take() {
+                ecs.delete_entity(l);
+            }
         }
-        if let Some(e) = self.naming_title.take() { ecs.delete_entity(e); }
-        if let Some(mut p) = self.name_panel.take() { destroy_panel(ecs, &mut p); }
-        if let Some(e) = self.name_text.take() { ecs.delete_entity(e); }
+        if let Some(e) = self.naming_title.take() {
+            ecs.delete_entity(e);
+        }
+        if let Some(mut p) = self.name_panel.take() {
+            destroy_panel(ecs, &mut p);
+        }
+        if let Some(e) = self.name_text.take() {
+            ecs.delete_entity(e);
+        }
         self.name_text_key = None;
-        if let Some(mut p) = self.name_create_bg.take() { destroy_panel(ecs, &mut p); }
-        if let Some(e) = self.name_create_label.take() { ecs.delete_entity(e); }
-        if let Some(mut p) = self.name_back_bg.take() { destroy_panel(ecs, &mut p); }
-        if let Some(e) = self.name_back_label.take() { ecs.delete_entity(e); }
-        if let Some(mut p) = self.delete_confirm_panel.take() { destroy_panel(ecs, &mut p); }
-        if let Some(mut b) = self.delete_confirm_delete_btn.take() { destroy_button(ecs, &mut b); }
-        if let Some(mut b) = self.delete_confirm_cancel_btn.take() { destroy_button(ecs, &mut b); }
+        if let Some(mut p) = self.name_create_bg.take() {
+            destroy_panel(ecs, &mut p);
+        }
+        if let Some(e) = self.name_create_label.take() {
+            ecs.delete_entity(e);
+        }
+        if let Some(mut p) = self.name_back_bg.take() {
+            destroy_panel(ecs, &mut p);
+        }
+        if let Some(e) = self.name_back_label.take() {
+            ecs.delete_entity(e);
+        }
+        if let Some(mut p) = self.delete_confirm_panel.take() {
+            destroy_panel(ecs, &mut p);
+        }
+        if let Some(mut b) = self.delete_confirm_delete_btn.take() {
+            destroy_button(ecs, &mut b);
+        }
+        if let Some(mut b) = self.delete_confirm_cancel_btn.take() {
+            destroy_button(ecs, &mut b);
+        }
         self.new_btn = None;
         self.back_btn = None;
     }
@@ -317,11 +582,14 @@ impl MenuScene {
     /// Расставляет декоративные объекты магазина по файлу menu_shop.txt.
     /// Каждый токен-буква соответствует предмету (b — box, r — rack, c — cassa и т.д.).
     fn place_decor(ecs: &mut crate::EcsAdapter) {
-        let bytes = crate::core::asset::load_bytes("assets/menu_shop.txt").expect("menu_shop.txt not found!");
+        let bytes = crate::core::asset::load_bytes("assets/menu_shop.txt")
+            .expect("menu_shop.txt not found!");
         let reader = BufReader::new(&bytes[..]);
         for (j, line) in reader.lines().flatten().enumerate() {
             let parts: Vec<&str> = line.split_whitespace().collect();
-            if parts.is_empty() { continue; }
+            if parts.is_empty() {
+                continue;
+            }
             for (i, token) in parts.iter().enumerate() {
                 // Токен "." — пустая клетка, пропускаем её
                 let name = match *token {
@@ -351,8 +619,10 @@ impl MenuScene {
                 let slot = crate::data::make_slot(name);
                 // Добавляем объект как группу, чтобы проработал размер и текстуры
                 ecs.add_group_object(
-                    x as i32, y as i32,
-                    slot.obj.width, slot.obj.height,
+                    x as i32,
+                    y as i32,
+                    slot.obj.width,
+                    slot.obj.height,
                     name,
                     slot.obj.path,
                     slot.obj.texture_frame,
@@ -368,14 +638,34 @@ impl MenuScene {
     }
 
     /// Проверка, находится ли курсор мыши над прямоугольником кнопки
-    fn is_inside(input: &dyn InputSource, window_size: (f32, f32), bx: f32, by: f32, bw: f32, bh: f32) -> bool {
-        let Some((mx, my)) = input.cursor() else { return false };
+    fn is_inside(
+        input: &dyn InputSource,
+        window_size: (f32, f32),
+        bx: f32,
+        by: f32,
+        bw: f32,
+        bh: f32,
+    ) -> bool {
+        let Some((mx, my)) = input.cursor() else {
+            return false;
+        };
         let (wx, wy) = crate::ui::system::ndc_to_ui(mx, my, window_size);
-        wx >= bx - bw / 2.0 && wx <= bx + bw / 2.0
-            && wy >= by - bh / 2.0 && wy <= by + bh / 2.0
+        wx >= bx - bw / 2.0 && wx <= bx + bw / 2.0 && wy >= by - bh / 2.0 && wy <= by + bh / 2.0
     }
 
-    fn set_label_texture(ecs: &mut crate::EcsAdapter, label: Option<specs::Entity>, text_renderer: &mut crate::ui::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue, text: &str, x: f32, y: f32, w: f32, h: f32, color: [u8; 3]) -> Option<specs::Entity> {
+    fn set_label_texture(
+        ecs: &mut crate::EcsAdapter,
+        label: Option<specs::Entity>,
+        text_renderer: &mut crate::ui::text_renderer::TextRenderer,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        text: &str,
+        x: f32,
+        y: f32,
+        w: f32,
+        h: f32,
+        color: [u8; 3],
+    ) -> Option<specs::Entity> {
         // Удаляем старую надпись и создаём новую с другим цветом
         if let Some(old) = label {
             ecs.delete_entity(old);
@@ -385,15 +675,31 @@ impl MenuScene {
 }
 
 impl Scene for MenuScene {
-    fn on_enter(&mut self, _ecs: &mut crate::EcsAdapter, _text_renderer: &mut crate::ui::text_renderer::TextRenderer) {
+    fn on_enter(
+        &mut self,
+        _ecs: &mut crate::EcsAdapter,
+        _text_renderer: &mut crate::ui::text_renderer::TextRenderer,
+    ) {
         // При самом первом запуске открываем сплэш-экран, дальше сразу в главное меню
-        self.state = if self.splash_shown { MenuState::Main } else { MenuState::Splash };
+        self.state = if self.splash_shown {
+            MenuState::Main
+        } else {
+            MenuState::Splash
+        };
         self.ready = false;
         self.weather_fx.reset();
         crate::audio::play_music("music");
     }
 
-    fn update(&mut self, ecs: &mut crate::EcsAdapter, input: &dyn InputSource, window_size: (f32, f32), text_renderer: &mut crate::ui::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) -> SceneAction {
+    fn update(
+        &mut self,
+        ecs: &mut crate::EcsAdapter,
+        input: &dyn InputSource,
+        window_size: (f32, f32),
+        text_renderer: &mut crate::ui::text_renderer::TextRenderer,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+    ) -> SceneAction {
         // Замер dt кадра (используется для hover-анимации в update_main)
         let dt = match self.last_frame {
             Some(t0) => t0.elapsed().as_secs_f64(),
@@ -404,14 +710,17 @@ impl Scene for MenuScene {
         self.last_frame = Some(std::time::Instant::now());
 
         // Адаптивный масштаб UI
-        let aspect = if window_size.1 > 0.0 { window_size.0 / window_size.1 } else { 1.0 };
+        let aspect = if window_size.1 > 0.0 {
+            window_size.0 / window_size.1
+        } else {
+            1.0
+        };
         self.ui_scale = crate::core::util::ui_fit_scale(aspect, MENU_UI_HALF_W, MENU_UI_HALF_H);
 
         if !self.ready {
             self.ready = true;
             self.setup_content(ecs, text_renderer, device, queue);
         }
-
 
         self.weather_fx.restart_ambient();
 
@@ -420,14 +729,41 @@ impl Scene for MenuScene {
 
         match self.state {
             MenuState::Splash => self.update_splash(dt, input, ecs, text_renderer, device, queue),
-            MenuState::Main => self.update_main(dt, input, window_size, ecs, text_renderer, device, queue),
-            MenuState::Worlds => self.update_worlds(input, window_size, ecs, text_renderer, device, queue),
-            MenuState::Naming => self.update_naming(dt, input, window_size, ecs, text_renderer, device, queue),
-            MenuState::ConfirmDelete(id) => self.update_delete_confirm(id, input, window_size, ecs, text_renderer, device, queue),
+            MenuState::Main => {
+                self.update_main(dt, input, window_size, ecs, text_renderer, device, queue)
+            }
+            MenuState::Worlds => {
+                self.update_worlds(input, window_size, ecs, text_renderer, device, queue)
+            }
+            MenuState::Naming => {
+                self.update_naming(dt, input, window_size, ecs, text_renderer, device, queue)
+            }
+            MenuState::ConfirmDelete(id) => self.update_delete_confirm(
+                id,
+                input,
+                window_size,
+                ecs,
+                text_renderer,
+                device,
+                queue,
+            ),
         }
     }
 
-    fn sprites(&self, ecs: &crate::EcsAdapter, visible_bounds: Option<(f32, f32, f32, f32)>) -> (Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>) {
+    fn sprites(
+        &self,
+        ecs: &crate::EcsAdapter,
+        visible_bounds: Option<(f32, f32, f32, f32)>,
+    ) -> (
+        Vec<crate::SpriteRenderData>,
+        Vec<crate::SpriteRenderData>,
+        Vec<crate::SpriteRenderData>,
+        Vec<crate::SpriteRenderData>,
+        Vec<crate::SpriteRenderData>,
+        Vec<crate::SpriteRenderData>,
+        Vec<crate::SpriteRenderData>,
+        Vec<crate::SpriteRenderData>,
+    ) {
         // Камера меню неподвижна, поэтому отсечение по видимой области так же
         // безопасно, как в игре: за кадром остаются только невидимые тайлы.
         // Без него каждый кадр рисовались все ~1500 тайлов карты, и меню
@@ -435,23 +771,38 @@ impl Scene for MenuScene {
         ecs.get_sprites_by_layer(visible_bounds)
     }
 
-    fn map_size(&self) -> f32 { self.ui_scale }
-    fn ui_size(&self) -> f32 { self.ui_scale }
-    fn camera_offset(&self) -> (f32, f32) { (0.0, 0.0) }
+    fn map_size(&self) -> f32 {
+        self.ui_scale
+    }
+    fn ui_size(&self) -> f32 {
+        self.ui_scale
+    }
+    fn camera_offset(&self) -> (f32, f32) {
+        (0.0, 0.0)
+    }
 }
 
 impl MenuScene {
     /// Сплэш-экран: лого показывается «попом» (fade-in + scale upward),
     /// затем мягко «дышит» (медленная пульсация масштаба на удержании),
     /// потом затухает — и переходим в главное меню. Клик/клавиша скипают.
-    fn update_splash(&mut self, dt: f64, input: &dyn InputSource, ecs: &mut crate::EcsAdapter, text_renderer: &mut crate::ui::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) -> SceneAction {
+    fn update_splash(
+        &mut self,
+        dt: f64,
+        input: &dyn InputSource,
+        ecs: &mut crate::EcsAdapter,
+        text_renderer: &mut crate::ui::text_renderer::TextRenderer,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+    ) -> SceneAction {
         self.splash_timer += dt;
 
         // Пропуск сплэша любым кликом или клавишей действия
         if input.mouse_pressed(winit::event::MouseButton::Left)
             || input.key_pressed(winit::keyboard::KeyCode::Space)
             || input.key_pressed(winit::keyboard::KeyCode::Enter)
-            || input.key_pressed(winit::keyboard::KeyCode::Escape) {
+            || input.key_pressed(winit::keyboard::KeyCode::Escape)
+        {
             self.finish_splash(ecs, text_renderer, device, queue);
             return SceneAction::None;
         }
@@ -489,14 +840,29 @@ impl MenuScene {
     }
 
     /// Завершает сплэш и переходит в главное меню (один раз за запуск).
-    fn finish_splash(&mut self, ecs: &mut crate::EcsAdapter, text_renderer: &mut crate::ui::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) {
+    fn finish_splash(
+        &mut self,
+        ecs: &mut crate::EcsAdapter,
+        text_renderer: &mut crate::ui::text_renderer::TextRenderer,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+    ) {
         self.splash_shown = true;
         self.state = MenuState::Main;
         self.setup_content(ecs, text_renderer, device, queue);
     }
 
     /// Логика главного экрана: подсветка Play/Quit и обработка кликов.
-    fn update_main(&mut self, dt: f64, input: &dyn InputSource, window_size: (f32, f32), ecs: &mut crate::EcsAdapter, text_renderer: &mut crate::ui::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) -> SceneAction {
+    fn update_main(
+        &mut self,
+        dt: f64,
+        input: &dyn InputSource,
+        window_size: (f32, f32),
+        ecs: &mut crate::EcsAdapter,
+        text_renderer: &mut crate::ui::text_renderer::TextRenderer,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+    ) -> SceneAction {
         // Синусоидальное покачивание логотипа по вертикали (dt клампим, чтобы
         // после фриза/перетаскивания окна логотип не прыгал)
         self.logo_time += dt.clamp(0.0, 0.1) as f32;
@@ -509,18 +875,46 @@ impl MenuScene {
         let h = Self::is_inside(input, window_size, BTN_X, BTN_Y, BTN_W, BTN_H);
         if h != self.play_hover {
             self.play_hover = h;
-            if h { crate::audio::play("hover"); }
+            if h {
+                crate::audio::play("hover");
+            }
             let color = if h { GREEN } else { BTN_TEXT_COLOR };
-            self.play_label = Self::set_label_texture(ecs, self.play_label, text_renderer, device, queue, "Play", BTN_X, BTN_Y + 0.05, BTN_W * 0.75, 1.0, color);
+            self.play_label = Self::set_label_texture(
+                ecs,
+                self.play_label,
+                text_renderer,
+                device,
+                queue,
+                "Play",
+                BTN_X,
+                BTN_Y + 0.05,
+                BTN_W * 0.75,
+                1.0,
+                color,
+            );
         }
 
         // Подсветка кнопки Quit при наведении
         let h = Self::is_inside(input, window_size, QUIT_X, QUIT_Y, QUIT_W, QUIT_H);
         if h != self.quit_hover {
             self.quit_hover = h;
-            if h { crate::audio::play("hover"); }
+            if h {
+                crate::audio::play("hover");
+            }
             let color = if h { GREEN } else { BTN_TEXT_COLOR };
-            self.quit_label = Self::set_label_texture(ecs, self.quit_label, text_renderer, device, queue, "Quit", QUIT_X, QUIT_Y + 0.05, QUIT_W * 0.75, 1.0, color);
+            self.quit_label = Self::set_label_texture(
+                ecs,
+                self.quit_label,
+                text_renderer,
+                device,
+                queue,
+                "Quit",
+                QUIT_X,
+                QUIT_Y + 0.05,
+                QUIT_W * 0.75,
+                1.0,
+                color,
+            );
         }
 
         // Hover-масштаб кнопок: плавно нарастает/возвращается (~за 5 кадров)
@@ -529,28 +923,41 @@ impl MenuScene {
         let quit_target = if self.quit_hover { 1.12 } else { 1.0 };
         self.play_scale += (play_target - self.play_scale) * k;
         self.quit_scale += (quit_target - self.quit_scale) * k;
-        if (play_target - self.play_scale).abs() < 0.0001 { self.play_scale = play_target; }
-        if (quit_target - self.quit_scale).abs() < 0.0001 { self.quit_scale = quit_target; }
+        if (play_target - self.play_scale).abs() < 0.0001 {
+            self.play_scale = play_target;
+        }
+        if (quit_target - self.quit_scale).abs() < 0.0001 {
+            self.quit_scale = quit_target;
+        }
         if let Some(bg) = &self.play_bg {
-            if let Some(e) = bg.entity { ecs.update_sprite_scale(e, self.play_scale); }
+            if let Some(e) = bg.entity {
+                ecs.update_sprite_scale(e, self.play_scale);
+            }
         }
         if let Some(bg) = &self.quit_bg {
-            if let Some(e) = bg.entity { ecs.update_sprite_scale(e, self.quit_scale); }
+            if let Some(e) = bg.entity {
+                ecs.update_sprite_scale(e, self.quit_scale);
+            }
         }
 
         let clicked = |input: &dyn InputSource, bx: f32, by: f32, bw: f32, bh: f32| -> bool {
-            input.mouse_pressed(winit::event::MouseButton::Left) && Self::is_inside(input, window_size, bx, by, bw, bh)
+            input.mouse_pressed(winit::event::MouseButton::Left)
+                && Self::is_inside(input, window_size, bx, by, bw, bh)
         };
 
         // Запуск игры по пробелу или клику на Play
-        if input.key_pressed(winit::keyboard::KeyCode::Space) || clicked(input, BTN_X, BTN_Y, BTN_W, BTN_H) {
+        if input.key_pressed(winit::keyboard::KeyCode::Space)
+            || clicked(input, BTN_X, BTN_Y, BTN_W, BTN_H)
+        {
             crate::audio::play("click");
             self.state = MenuState::Worlds;
             self.setup_content(ecs, text_renderer, device, queue);
             return SceneAction::None;
         }
         // Выход по Escape или клику на Quit
-        if input.key_pressed(winit::keyboard::KeyCode::Escape) || clicked(input, QUIT_X, QUIT_Y, QUIT_W, QUIT_H) {
+        if input.key_pressed(winit::keyboard::KeyCode::Escape)
+            || clicked(input, QUIT_X, QUIT_Y, QUIT_W, QUIT_H)
+        {
             crate::audio::play("click");
             return SceneAction::Quit;
         }
@@ -558,9 +965,18 @@ impl MenuScene {
     }
 
     /// Логика выбора миров: «Новый мир», список миров, «Назад».
-    fn update_worlds(&mut self, input: &dyn InputSource, window_size: (f32, f32), ecs: &mut crate::EcsAdapter, text_renderer: &mut crate::ui::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) -> SceneAction {
+    fn update_worlds(
+        &mut self,
+        input: &dyn InputSource,
+        window_size: (f32, f32),
+        ecs: &mut crate::EcsAdapter,
+        text_renderer: &mut crate::ui::text_renderer::TextRenderer,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+    ) -> SceneAction {
         let clicked = |input: &dyn InputSource, bx: f32, by: f32, bw: f32, bh: f32| -> bool {
-            input.mouse_pressed(winit::event::MouseButton::Left) && Self::is_inside(input, window_size, bx, by, bw, bh)
+            input.mouse_pressed(winit::event::MouseButton::Left)
+                && Self::is_inside(input, window_size, bx, by, bw, bh)
         };
 
         // Новый мир — переходим в состояние ввода названия
@@ -605,7 +1021,16 @@ impl MenuScene {
         SceneAction::None
     }
 
-    fn update_delete_confirm(&mut self, id: u32, input: &dyn InputSource, window_size: (f32, f32), ecs: &mut crate::EcsAdapter, text_renderer: &mut crate::ui::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) -> SceneAction {
+    fn update_delete_confirm(
+        &mut self,
+        id: u32,
+        input: &dyn InputSource,
+        window_size: (f32, f32),
+        ecs: &mut crate::EcsAdapter,
+        text_renderer: &mut crate::ui::text_renderer::TextRenderer,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+    ) -> SceneAction {
         if input.key_pressed(winit::keyboard::KeyCode::Escape)
             || input.key_pressed(winit::keyboard::KeyCode::BrowserBack)
         {
@@ -640,9 +1065,19 @@ impl MenuScene {
 
     /// Логика ввода названия: захват символов из TEXT_INPUT, отрисовка поля,
     /// кнопки «Создать» (подтверждение) и «Назад».
-    fn update_naming(&mut self, dt: f64, input: &dyn InputSource, window_size: (f32, f32), ecs: &mut crate::EcsAdapter, text_renderer: &mut crate::ui::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) -> SceneAction {
+    fn update_naming(
+        &mut self,
+        dt: f64,
+        input: &dyn InputSource,
+        window_size: (f32, f32),
+        ecs: &mut crate::EcsAdapter,
+        text_renderer: &mut crate::ui::text_renderer::TextRenderer,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+    ) -> SceneAction {
         let clicked = |input: &dyn InputSource, bx: f32, by: f32, bw: f32, bh: f32| -> bool {
-            input.mouse_pressed(winit::event::MouseButton::Left) && Self::is_inside(input, window_size, bx, by, bw, bh)
+            input.mouse_pressed(winit::event::MouseButton::Left)
+                && Self::is_inside(input, window_size, bx, by, bw, bh)
         };
 
         // Забираем накопленный ввод: обычные символы, Backspace ('\u{8}'),
@@ -653,7 +1088,11 @@ impl MenuScene {
         #[cfg(target_os = "android")]
         if let Some((text, native_enter)) = crate::android::text_input_value() {
             let original_len = text.chars().count();
-            self.name_buffer = text.chars().filter(|ch| !ch.is_control()).take(20).collect();
+            self.name_buffer = text
+                .chars()
+                .filter(|ch| !ch.is_control())
+                .take(20)
+                .collect();
             if original_len > 20 {
                 crate::android::set_text_input_value(&self.name_buffer);
             }
@@ -663,8 +1102,12 @@ impl MenuScene {
         }
         for ch in typed.chars() {
             match ch {
-                '\u{8}' => { self.name_buffer.pop(); }
-                '\n' => { enter = true; }
+                '\u{8}' => {
+                    self.name_buffer.pop();
+                }
+                '\n' => {
+                    enter = true;
+                }
                 c if !c.is_control() => {
                     if self.name_buffer.chars().count() < 20 {
                         self.name_buffer.push(c);
@@ -686,7 +1129,20 @@ impl MenuScene {
         };
 
         // Отражаем текущее название в поле (текстура меняется только при изменении)
-        let (e, k) = text_renderer.set_text(ecs, device, queue, self.name_text, self.name_text_key, &display_with_cursor, FONT_SIZE_BTN, 0.0, 0.65, 5.6, 1.0, WHITE);
+        let (e, k) = text_renderer.set_text(
+            ecs,
+            device,
+            queue,
+            self.name_text,
+            self.name_text_key,
+            &display_with_cursor,
+            FONT_SIZE_BTN,
+            0.0,
+            0.65,
+            5.6,
+            1.0,
+            WHITE,
+        );
         self.name_text = e;
         self.name_text_key = k;
 
@@ -723,9 +1179,13 @@ impl MenuScene {
         }
 
         if input.mouse_pressed(winit::event::MouseButton::Left) {
-            let in_name_field = self.name_panel.as_ref().map(|panel| {
-                Self::is_inside(input, window_size, panel.x, panel.y, panel.w, panel.h)
-            }).unwrap_or(false);
+            let in_name_field = self
+                .name_panel
+                .as_ref()
+                .map(|panel| {
+                    Self::is_inside(input, window_size, panel.x, panel.y, panel.w, panel.h)
+                })
+                .unwrap_or(false);
             if in_name_field {
                 self.cursor_timer = 0.0;
                 TEXT_INPUT.request_focus_with_text(&self.name_buffer);
@@ -737,7 +1197,14 @@ impl MenuScene {
     }
 
     /// Подтверждает ввод: создаёт мир с уникальным именем и запускает игру.
-    fn confirm_naming(&mut self, _ecs: &mut crate::EcsAdapter, _text_renderer: &mut crate::ui::text_renderer::TextRenderer, _device: &wgpu::Device, _queue: &wgpu::Queue, name: &str) -> SceneAction {
+    fn confirm_naming(
+        &mut self,
+        _ecs: &mut crate::EcsAdapter,
+        _text_renderer: &mut crate::ui::text_renderer::TextRenderer,
+        _device: &wgpu::Device,
+        _queue: &wgpu::Queue,
+        name: &str,
+    ) -> SceneAction {
         let name = name.trim();
         let name = if name.is_empty() { "World" } else { name };
         let meta = create_world_with_name(name);

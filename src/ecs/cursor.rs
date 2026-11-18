@@ -7,16 +7,23 @@
 //  с кадрами атласа и маркерами ошибки), clear_cursor_preview.
 // ========================================================================
 
-use specs::Entity;
-use crate::ecs::adapter::EcsAdapter;
 use crate::core::constants::Z_CURSOR;
+use crate::ecs::adapter::EcsAdapter;
+use specs::Entity;
 
 impl EcsAdapter {
     // Создаёт спрайт курсора мыши на слое Z_CURSOR (поверх игровых слоёв).
     pub fn add_cursor(&mut self, x: f32, y: f32, texture_path: &str) -> Entity {
         crate::ecs::factory::create_sprite(
-            &mut self.world, x, y, Z_CURSOR,
-            texture_path, [0, 0], [1, 1], 1.0, 1.0,
+            &mut self.world,
+            x,
+            y,
+            Z_CURSOR,
+            texture_path,
+            [0, 0],
+            [1, 1],
+            1.0,
+            1.0,
         )
     }
 
@@ -25,8 +32,10 @@ impl EcsAdapter {
     // а отдельный маркер обозначает заполненность/ошибку (зависит от `valid`).
     pub fn update_cursor_preview(
         &mut self,
-        cursor_x: f32, cursor_y: f32,
-        width: i32, height: i32,
+        cursor_x: f32,
+        cursor_y: f32,
+        width: i32,
+        height: i32,
         valid: bool,
         tex_path: &str,
         base_frame: [i32; 2],
@@ -34,7 +43,11 @@ impl EcsAdapter {
     ) {
         self.clear_cursor_preview();
         // Цвет и прозрачность призрака зависят от допустимости позиции.
-        let cur_tex = if valid { crate::core::constants::CURSOR_TEX[1] } else { crate::core::constants::CURSOR_ERR_TEX };
+        let cur_tex = if valid {
+            crate::core::constants::CURSOR_TEX[1]
+        } else {
+            crate::core::constants::CURSOR_ERR_TEX
+        };
         let ghost_alpha = if valid { 0.5 } else { 0.3 };
 
         // Если объект многоклеточный и с одной текстурой (как big_lamp),
@@ -47,8 +60,14 @@ impl EcsAdapter {
                 if i != 0 || j != 0 {
                     let entity = crate::ecs::factory::create_sprite(
                         &mut self.world,
-                        cursor_x + i as f32, cursor_y + j as f32, Z_CURSOR,
-                        cur_tex, [0, 0], [1, 1], 1.0, 1.0,
+                        cursor_x + i as f32,
+                        cursor_y + j as f32,
+                        Z_CURSOR,
+                        cur_tex,
+                        [0, 0],
+                        [1, 1],
+                        1.0,
+                        1.0,
                     );
                     self.cursor_preview.push(entity);
                 }
@@ -61,8 +80,15 @@ impl EcsAdapter {
             let cy = cursor_y + (height as f32 - 1.0) / 2.0;
             let render_path = format!("{}@{}x{}", tex_path, width, height);
             let entity = crate::ecs::factory::create_sprite(
-                &mut self.world, cx, cy, Z_CURSOR,
-                &render_path, [0, 0], [1, 1], 1.0, ghost_alpha,
+                &mut self.world,
+                cx,
+                cy,
+                Z_CURSOR,
+                &render_path,
+                [0, 0],
+                [1, 1],
+                1.0,
+                ghost_alpha,
             );
             self.cursor_preview.push(entity);
         } else {
@@ -70,14 +96,17 @@ impl EcsAdapter {
                 for j in 0..height {
                     let entity = crate::ecs::factory::create_sprite(
                         &mut self.world,
-                        cursor_x + i as f32, cursor_y + j as f32, Z_CURSOR,
+                        cursor_x + i as f32,
+                        cursor_y + j as f32,
+                        Z_CURSOR,
                         tex_path,
                         [
                             (base_frame[0] + i) % tex_count[0],
                             (base_frame[1] + j) % tex_count[1],
                         ],
                         tex_count,
-                        1.0, ghost_alpha,
+                        1.0,
+                        ghost_alpha,
                     );
                     self.cursor_preview.push(entity);
                 }

@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Copyright (C) 2026 EnotCoder
 
-use std::collections::{BinaryHeap, HashMap, HashSet};
 use std::cmp::Ordering;
+use std::collections::{BinaryHeap, HashMap, HashSet};
 
 // ========================================================================
 //  Поиск пути для NPC (алгоритм A*)
@@ -73,11 +73,7 @@ impl PartialOrd for State {
 
 /// Ищет кратчайший путь от start до goal по проходимым клеткам.
 /// Возвращает None, если старт или цель недостижимы.
-pub fn find_path(
-    walkable: &HashSet<Node>,
-    start: Node,
-    goal: Node,
-) -> Option<Vec<Node>> {
+pub fn find_path(walkable: &HashSet<Node>, start: Node, goal: Node) -> Option<Vec<Node>> {
     // Если старт/цель за пределами проходимой области — пути нет
     if !walkable.contains(&start) || !walkable.contains(&goal) {
         return None;
@@ -92,7 +88,10 @@ pub fn find_path(
     let h = start.manhattan(goal);
     g_score.insert(start, 0);
     f_score.insert(start, h);
-    open.push(State { cost: h, node: start });
+    open.push(State {
+        cost: h,
+        node: start,
+    });
 
     while let Some(current) = open.pop() {
         // Дошли до цели — восстанавливаем маршрут из came_from и разворачиваем его
@@ -124,7 +123,10 @@ pub fn find_path(
                 g_score.insert(neighbor, tentative);
                 let f = tentative + neighbor.manhattan(goal);
                 f_score.insert(neighbor, f);
-                open.push(State { cost: f, node: neighbor });
+                open.push(State {
+                    cost: f,
+                    node: neighbor,
+                });
             }
         }
     }

@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Copyright (C) 2026 EnotCoder
 
+use crate::core::util;
+use crate::ecs::SpriteRenderData;
 use crate::Sprite;
 use crate::Texture;
-use crate::ecs::SpriteRenderData;
 use crate::Uniforms;
-use crate::core::util;
 use std::collections::HashMap;
 
 // ========================================================================
@@ -54,7 +54,9 @@ pub fn render(
         wgpu::CurrentSurfaceTexture::Suboptimal(surface_texture) => surface_texture,
         _ => return,
     };
-    let view = frame.texture.create_view(&wgpu::TextureViewDescriptor::default());
+    let view = frame
+        .texture
+        .create_view(&wgpu::TextureViewDescriptor::default());
 
     // CommandEncoder накапливает все команды кадра, которые потом
     // одним куском отправляются в очередь (queue.submit).
@@ -67,14 +69,34 @@ pub fn render(
     let mut buf_offset: u64 = 0;
 
     // Слой карты: первый проход, чистит экран и depth buffer (clear=true).
-    render_group(device, queue, render_pipeline, map_sprites, depth_view, sprite_cache,
-        texture_cache, &mut encoder, &view, size_bind_group, "map", true,
-        dynamic_uniform_buffer, dynamic_bind_group, dynamic_alignment, &mut buf_offset);
+    render_group(
+        device,
+        queue,
+        render_pipeline,
+        map_sprites,
+        depth_view,
+        sprite_cache,
+        texture_cache,
+        &mut encoder,
+        &view,
+        size_bind_group,
+        "map",
+        true,
+        dynamic_uniform_buffer,
+        dynamic_bind_group,
+        dynamic_alignment,
+        &mut buf_offset,
+    );
 
     // Прозрачные слои (carpet/light/decor/npc/weather/cursor) объединяем в один массив
     // (порядок = z-порядок), чтобы рисовать их одним проходом и одним батчем
     // записи uniform'ов.
-    let transparent_count = carpet_sprites.len() + light_sprites.len() + decor_sprites.len() + npc_sprites.len() + weather_sprites.len() + cursor_sprites.len();
+    let transparent_count = carpet_sprites.len()
+        + light_sprites.len()
+        + decor_sprites.len()
+        + npc_sprites.len()
+        + weather_sprites.len()
+        + cursor_sprites.len();
     if transparent_count > 0 {
         let mut transparent = Vec::with_capacity(transparent_count);
         transparent.extend_from_slice(carpet_sprites);
@@ -83,9 +105,24 @@ pub fn render(
         transparent.extend_from_slice(npc_sprites);
         transparent.extend_from_slice(weather_sprites);
         transparent.extend_from_slice(cursor_sprites);
-        render_group(device, queue, transparent_pipeline, &transparent, depth_view, sprite_cache,
-            texture_cache, &mut encoder, &view, size_bind_group, "transparent", false,
-            dynamic_uniform_buffer, dynamic_bind_group, dynamic_alignment, &mut buf_offset);
+        render_group(
+            device,
+            queue,
+            transparent_pipeline,
+            &transparent,
+            depth_view,
+            sprite_cache,
+            texture_cache,
+            &mut encoder,
+            &view,
+            size_bind_group,
+            "transparent",
+            false,
+            dynamic_uniform_buffer,
+            dynamic_bind_group,
+            dynamic_alignment,
+            &mut buf_offset,
+        );
     }
 
     // UI рисуется последним поверх всего (z=3.0), со своим bind group.
@@ -95,11 +132,28 @@ pub fn render(
     // не перекрывали его полупрозрачным чёрным.
     let mut ui_sorted = ui_sprites.to_vec();
     ui_sorted.sort_by(|a, b| {
-        a.position[2].partial_cmp(&b.position[2]).unwrap_or(std::cmp::Ordering::Equal)
+        a.position[2]
+            .partial_cmp(&b.position[2])
+            .unwrap_or(std::cmp::Ordering::Equal)
     });
-    render_group(device, queue, transparent_pipeline, &ui_sorted, depth_view, sprite_cache,
-        texture_cache, &mut encoder, &view, ui_bind_group, "ui", false,
-        dynamic_uniform_buffer, dynamic_bind_group, dynamic_alignment, &mut buf_offset);
+    render_group(
+        device,
+        queue,
+        transparent_pipeline,
+        &ui_sorted,
+        depth_view,
+        sprite_cache,
+        texture_cache,
+        &mut encoder,
+        &view,
+        ui_bind_group,
+        "ui",
+        false,
+        dynamic_uniform_buffer,
+        dynamic_bind_group,
+        dynamic_alignment,
+        &mut buf_offset,
+    );
 
     // Отправляем все команды кадра в очередь и показываем результат на экране.
     queue.submit(std::iter::once(encoder.finish()));
@@ -137,7 +191,8 @@ fn render_group(
     // Защита от переполнения dynamic storage buffer: не рисуем больше слотов,
     // чем вмещает буфер (иначе wgpu паникует / роняет GPU-устройство при
     // resize + сильном отдалении, когда видимых спрайтов становится слишком много).
-    let remaining_slots = (dynamic_uniform_buffer.size().saturating_sub(*buf_offset) / dynamic_alignment) as usize;
+    let remaining_slots =
+        (dynamic_uniform_buffer.size().saturating_sub(*buf_offset) / dynamic_alignment) as usize;
     let sprites = &sprites[..sprites.len().min(remaining_slots)];
     if sprites.is_empty() {
         return;
@@ -146,7 +201,12 @@ fn render_group(
     // Первый проход (карта) очищает и цвет и глубину,
     // остальные — дописывают поверх уже нарисованного (Load).
     let color_load = if clear_color {
-        wgpu::LoadOp::Clear(wgpu::Color { r: 0.0, g: 0.0, b: 0.0, a: 1.0 })
+        wgpu::LoadOp::Clear(wgpu::Color {
+            r: 0.0,
+            g: 0.0,
+            b: 0.0,
+            a: 1.0,
+        })
     } else {
         wgpu::LoadOp::Load
     };
@@ -163,11 +223,17 @@ fn render_group(
             view,
             depth_slice: None,
             resolve_target: None,
-            ops: wgpu::Operations { load: color_load, store: wgpu::StoreOp::Store },
+            ops: wgpu::Operations {
+                load: color_load,
+                store: wgpu::StoreOp::Store,
+            },
         })],
         depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
             view: depth_view,
-            depth_ops: Some(wgpu::Operations { load: depth_load, store: wgpu::StoreOp::Store }),
+            depth_ops: Some(wgpu::Operations {
+                load: depth_load,
+                store: wgpu::StoreOp::Store,
+            }),
             stencil_ops: None,
         }),
         occlusion_query_set: None,
@@ -199,8 +265,14 @@ fn render_group(
                 texture_cache.insert(base_owned.clone(), tex);
             }
             let texture = &texture_cache[&base_owned];
-            let new_sprite = Sprite::new(device, texture, &data.texture_path,
-                data.texture_frame, data.texture_count, data.scale);
+            let new_sprite = Sprite::new(
+                device,
+                texture,
+                &data.texture_path,
+                data.texture_frame,
+                data.texture_count,
+                data.scale,
+            );
             sprite_cache.insert(key, new_sprite);
         }
         keys.push(key);
@@ -214,11 +286,18 @@ fn render_group(
     let write_offset = *buf_offset;
     let mut uniforms_raw: Vec<u8> = Vec::with_capacity(sprites.len() * dynamic_alignment as usize);
     for (i, (data, key)) in sprites.iter().zip(keys.iter()).enumerate() {
-        let sprite = sprite_cache.get_mut(key).expect("Sprite must exist in cache");
+        let sprite = sprite_cache
+            .get_mut(key)
+            .expect("Sprite must exist in cache");
 
         let uniforms = Uniforms {
             // translation.w несёт альфу (прозрачность) спрайта.
-            translation: [data.position[0], data.position[1], data.position[2], data.alpha],
+            translation: [
+                data.position[0],
+                data.position[1],
+                data.position[2],
+                data.alpha,
+            ],
             // rotation.w — резервный флаг, остаётся 1.0.
             rotation: [data.rotation[0], data.rotation[1], data.rotation[2], 1.0],
         };

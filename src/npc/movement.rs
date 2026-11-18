@@ -9,12 +9,12 @@
 //  и финальный шаг к выходу без навигации.
 // ========================================================================
 
-use specs::WorldExt;
-use crate::data::map::pathfinding::{Node, find_path};
-use crate::core::constants::*;
-use crate::EcsAdapter;
-use crate::scripts::config::BalanceConfig;
 use super::ShopperNpc;
+use crate::core::constants::*;
+use crate::data::map::pathfinding::{find_path, Node};
+use crate::scripts::config::BalanceConfig;
+use crate::EcsAdapter;
+use specs::WorldExt;
 
 pub(crate) fn spawn_path_node(ecs: &EcsAdapter) -> Node {
     let cfg = ecs.world.read_resource::<BalanceConfig>();
@@ -27,7 +27,11 @@ impl ShopperNpc {
     }
 
     pub(crate) fn set_idle(&self, ecs: &mut EcsAdapter) {
-        if let Some(path) = self.tex_idle.get(self.idle_frame).or_else(|| self.tex_idle.first()) {
+        if let Some(path) = self
+            .tex_idle
+            .get(self.idle_frame)
+            .or_else(|| self.tex_idle.first())
+        {
             self.set_texture(ecs, path);
         }
     }
@@ -39,7 +43,12 @@ impl ShopperNpc {
         }
     }
 
-    pub(crate) fn start_path(&mut self, ecs: &EcsAdapter, walkable: &std::collections::HashSet<Node>, to: Node) -> bool {
+    pub(crate) fn start_path(
+        &mut self,
+        ecs: &EcsAdapter,
+        walkable: &std::collections::HashSet<Node>,
+        to: Node,
+    ) -> bool {
         let from = Node::from_world(self.pos.0, self.pos.1);
         if let Some(path) = find_path(walkable, from, to) {
             self.path = path;
@@ -62,7 +71,9 @@ impl ShopperNpc {
         let (anim_interval, speed) = {
             let cfg = ecs.world.read_resource::<BalanceConfig>();
             (
-                self.fps_override.map(|fps| 1.0 / fps as f64).unwrap_or(cfg.walk_anim_interval),
+                self.fps_override
+                    .map(|fps| 1.0 / fps as f64)
+                    .unwrap_or(cfg.walk_anim_interval),
                 cfg.npc_speed,
             )
         };
@@ -94,7 +105,11 @@ impl ShopperNpc {
 
         if dx.abs() > 0.01 {
             let facing = if dx > 0.0 { 0.0 } else { std::f32::consts::PI };
-            if let Some(rot) = ecs.world.write_storage::<crate::Rotation>().get_mut(self.entity) {
+            if let Some(rot) = ecs
+                .world
+                .write_storage::<crate::Rotation>()
+                .get_mut(self.entity)
+            {
                 rot.rotation = [0.0, facing, 0.0];
             }
         }

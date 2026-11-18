@@ -51,7 +51,11 @@ fn state() -> &'static Mutex<ShaderState> {
 
 /// Корень папки шейдеров: на Android они лежат внутри APK-assets.
 pub fn shaders_root() -> &'static str {
-    if cfg!(target_os = "android") { "assets/shaders" } else { "shaders" }
+    if cfg!(target_os = "android") {
+        "assets/shaders"
+    } else {
+        "shaders"
+    }
 }
 
 fn shader_root(id: &str) -> String {
@@ -68,13 +72,17 @@ fn read_manifest(id: &str) -> Result<ShaderManifest, String> {
 }
 
 fn manifest_name(id: &str, manifest: &ShaderManifest) -> String {
-    manifest.name.clone()
+    manifest
+        .name
+        .clone()
         .filter(|name| !name.trim().is_empty())
         .unwrap_or_else(|| id.to_string())
 }
 
 fn read_source(id: &str, manifest: &ShaderManifest) -> Result<String, String> {
-    let file = manifest.file.as_deref()
+    let file = manifest
+        .file
+        .as_deref()
         .filter(|file| !file.is_empty())
         .unwrap_or(DEFAULT_FILE);
     let path = crate::core::texture_pack::safe_join(&shader_root(id), file)
@@ -99,7 +107,10 @@ pub fn rescan() {
             continue;
         }
         let manifest = read_manifest(&id).unwrap_or_default();
-        available.push(ShaderInfo { name: manifest_name(&id, &manifest), id });
+        available.push(ShaderInfo {
+            name: manifest_name(&id, &manifest),
+            id,
+        });
     }
     available.sort_by(|a, b| a.id.cmp(&b.id));
 
@@ -120,7 +131,14 @@ pub fn set_active(id: Option<&str>) {
     rescan();
     let valid = id
         .filter(|id| !id.is_empty())
-        .filter(|id| state().lock().unwrap().available.iter().any(|shader| shader.id == *id))
+        .filter(|id| {
+            state()
+                .lock()
+                .unwrap()
+                .available
+                .iter()
+                .any(|shader| shader.id == *id)
+        })
         .map(str::to_owned);
 
     let mut st = state().lock().unwrap();
@@ -191,9 +209,8 @@ mod tests {
 
     #[test]
     fn manifest_defaults_to_shader_wgsl() {
-        let manifest: ShaderManifest = serde_json::from_str(
-            r#"{"name":"CRT","author":"someone","version":"1.0.0"}"#,
-        ).unwrap();
+        let manifest: ShaderManifest =
+            serde_json::from_str(r#"{"name":"CRT","author":"someone","version":"1.0.0"}"#).unwrap();
         assert_eq!(manifest.name.as_deref(), Some("CRT"));
         assert_eq!(manifest.file, None);
         assert_eq!(manifest.author.as_deref(), Some("someone"));

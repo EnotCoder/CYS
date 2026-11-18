@@ -7,19 +7,18 @@
 //  закрытии, чтобы не занимать сущности/спрайты в ECS.
 // ========================================================================
 
-use specs::Entity;
-use crate::ui::{
-    Panel, Checkbox, Slider, Button,
-    create_panel, destroy_panel,
-    create_checkbox, destroy_checkbox, refresh_checkbox, checkbox_clicked, update_checkbox_hover,
-    create_slider, destroy_slider, slider_drag, update_slider_thumb, update_slider_hover,
-    create_button, destroy_button, button_clicked,
-};
+use crate::core::constants::*;
+use crate::input::platform::InputSource;
 use crate::ui::anim::{AnimEvent, PanelAnim};
 use crate::ui::text_renderer::TextRenderer;
-use crate::core::constants::*;
+use crate::ui::{
+    button_clicked, checkbox_clicked, create_button, create_checkbox, create_panel, create_slider,
+    destroy_button, destroy_checkbox, destroy_panel, destroy_slider, refresh_checkbox, slider_drag,
+    update_button_hover, update_checkbox_hover, update_slider_hover, update_slider_thumb, Button,
+    Checkbox, Panel, Slider,
+};
 use crate::EcsAdapter;
-use crate::input::platform::InputSource;
+use specs::Entity;
 
 /// Состояние окна настроек и его UI-элементы.
 pub struct Settings {
@@ -42,9 +41,10 @@ pub struct Settings {
     /// Флаги, что переключатели звука изменены в этом кадре.
     pub music_toggled: bool,
     pub sfx_toggled: bool,
-    /// Выбор текстур-пака стрелками: две кнопки, подпись и текущее значение.
+    /// Выбор текстур-пака: стрелки, подложка значения, подпись и текущее значение.
     pack_prev: Button,
     pack_next: Button,
+    pack_value_bg: Panel,
     pack_label: Option<Entity>,
     pack_label_key: Option<u64>,
     pack_value: Option<Entity>,
@@ -54,9 +54,10 @@ pub struct Settings {
     pack_index: usize,
     /// Флаг смены пака в этом кадре.
     pub texture_pack_changed: bool,
-    /// Выбор шейдера стрелками: две кнопки, подпись и текущее значение.
+    /// Выбор шейдера: стрелки, подложка значения, подпись и текущее значение.
     shader_prev: Button,
     shader_next: Button,
+    shader_value_bg: Panel,
     shader_label: Option<Entity>,
     shader_label_key: Option<u64>,
     shader_value: Option<Entity>,
@@ -73,6 +74,15 @@ pub struct Settings {
 }
 
 impl Settings {
+    const SELECTOR_VALUE_X: f32 = 2.10;
+    const SELECTOR_VALUE_W: f32 = 2.20;
+    const SELECTOR_VALUE_H: f32 = 0.50;
+    const SELECTOR_ARROW_SIZE: f32 = 0.45;
+    const SELECTOR_LEFT_X: f32 = 0.70;
+    const SELECTOR_RIGHT_X: f32 = 3.50;
+    const PACK_ROW_Y: f32 = 0.10;
+    const SHADER_ROW_Y: f32 = -0.60;
+
     pub fn new() -> Self {
         Self {
             open: false,
@@ -82,8 +92,29 @@ impl Settings {
             vsync_toggled: false,
             zoom_speed: Slider::new(-0.1, 0.8, "Zoom Speed", 0.02, 0.3, 0.1),
             zoom_speed_changed: false,
-            pack_prev: Button { font_size: 64.0, ..Button::new(2.9, 0.0, 0.6, 0.6, "<") },
-            pack_next: Button { font_size: 64.0, ..Button::new(3.8, 0.0, 0.6, 0.6, ">") },
+            pack_prev: Button::textured(
+                Self::SELECTOR_LEFT_X,
+                Self::PACK_ROW_Y,
+                Self::SELECTOR_ARROW_SIZE,
+                Self::SELECTOR_ARROW_SIZE,
+                "",
+                "assets/tex/ui/icon_slots/arrow_left.png",
+            ),
+            pack_next: Button::textured(
+                Self::SELECTOR_RIGHT_X,
+                Self::PACK_ROW_Y,
+                Self::SELECTOR_ARROW_SIZE,
+                Self::SELECTOR_ARROW_SIZE,
+                "",
+                "assets/tex/ui/icon_slots/arrow_right.png",
+            ),
+            pack_value_bg: Panel::new(
+                Self::SELECTOR_VALUE_X,
+                Self::PACK_ROW_Y,
+                Self::SELECTOR_VALUE_W,
+                Self::SELECTOR_VALUE_H,
+                0.45,
+            ),
             pack_label: None,
             pack_label_key: None,
             pack_value: None,
@@ -91,8 +122,29 @@ impl Settings {
             pack_list: crate::core::texture_pack::list(),
             pack_index: 0,
             texture_pack_changed: false,
-            shader_prev: Button { font_size: 56.0, ..Button::new(2.9, -0.45, 0.5, 0.5, "<") },
-            shader_next: Button { font_size: 56.0, ..Button::new(3.8, -0.45, 0.5, 0.5, ">") },
+            shader_prev: Button::textured(
+                Self::SELECTOR_LEFT_X,
+                Self::SHADER_ROW_Y,
+                Self::SELECTOR_ARROW_SIZE,
+                Self::SELECTOR_ARROW_SIZE,
+                "",
+                "assets/tex/ui/icon_slots/arrow_left.png",
+            ),
+            shader_next: Button::textured(
+                Self::SELECTOR_RIGHT_X,
+                Self::SHADER_ROW_Y,
+                Self::SELECTOR_ARROW_SIZE,
+                Self::SELECTOR_ARROW_SIZE,
+                "",
+                "assets/tex/ui/icon_slots/arrow_right.png",
+            ),
+            shader_value_bg: Panel::new(
+                Self::SELECTOR_VALUE_X,
+                Self::SHADER_ROW_Y,
+                Self::SELECTOR_VALUE_W,
+                Self::SELECTOR_VALUE_H,
+                0.45,
+            ),
             shader_label: None,
             shader_label_key: None,
             shader_value: None,
@@ -100,8 +152,8 @@ impl Settings {
             shader_list: crate::core::shader_pack::list(),
             shader_index: 0,
             shader_changed: false,
-            music: Checkbox::new(-1.4, -1.15, "Game music", true),
-            sfx: Checkbox::new(-1.4, -1.75, "Sound Effects", true),
+            music: Checkbox::new(-1.4, -1.30, "Game music", true),
+            sfx: Checkbox::new(-1.4, -1.90, "Sound Effects", true),
             music_toggled: false,
             sfx_toggled: false,
             menu_button: Button::new(0.0, -2.55, 3.0, 0.7, "Back to menu"),
@@ -122,7 +174,9 @@ impl Settings {
     fn refresh_pack_list(&mut self, saved: Option<&str>) {
         crate::core::texture_pack::rescan();
         self.pack_list = crate::core::texture_pack::list();
-        let current = saved.map(str::to_owned).or_else(crate::core::texture_pack::active_id);
+        let current = saved
+            .map(str::to_owned)
+            .or_else(crate::core::texture_pack::active_id);
         self.pack_index = current
             .as_deref()
             .and_then(|id| self.pack_list.iter().position(|p| p.id == id))
@@ -145,8 +199,18 @@ impl Settings {
         queue: &wgpu::Queue,
     ) {
         let (entity, key) = text_renderer.set_text(
-            ecs, device, queue, self.pack_value, self.pack_value_key,
-            &self.pack_name(), 50.0, 0.4, 0.0, 4.2, 2.0, WHITE,
+            ecs,
+            device,
+            queue,
+            self.pack_value,
+            self.pack_value_key,
+            &self.pack_name(),
+            46.0,
+            Self::SELECTOR_VALUE_X,
+            Self::PACK_ROW_Y,
+            1.95,
+            1.4,
+            WHITE,
         );
         self.pack_value = entity;
         self.pack_value_key = key;
@@ -160,7 +224,9 @@ impl Settings {
         device: &wgpu::Device,
         queue: &wgpu::Queue,
     ) {
-        if self.pack_list.len() < 2 { return; }
+        if self.pack_list.len() < 2 {
+            return;
+        }
         let n = self.pack_list.len() as i32;
         self.pack_index = (self.pack_index as i32 + delta).rem_euclid(n) as usize;
         self.update_pack_value(ecs, text_renderer, device, queue);
@@ -179,7 +245,9 @@ impl Settings {
     fn refresh_shader_list(&mut self, saved: Option<&str>) {
         crate::core::shader_pack::rescan();
         self.shader_list = crate::core::shader_pack::list();
-        let current = saved.map(str::to_owned).or_else(crate::core::shader_pack::active_id);
+        let current = saved
+            .map(str::to_owned)
+            .or_else(crate::core::shader_pack::active_id);
         self.shader_index = current
             .as_deref()
             .and_then(|id| self.shader_list.iter().position(|shader| shader.id == id))
@@ -197,7 +265,8 @@ impl Settings {
             };
             return (text, RED);
         }
-        let name = self.shader_list
+        let name = self
+            .shader_list
             .get(self.shader_index)
             .map(|shader| shader.name.clone())
             .unwrap_or_else(|| "Vanilla".to_string());
@@ -213,8 +282,18 @@ impl Settings {
     ) {
         let (text, color) = self.shader_value();
         let (entity, key) = text_renderer.set_text(
-            ecs, device, queue, self.shader_value, self.shader_value_key,
-            &text, 44.0, 0.4, -0.45, 4.2, 1.2, color,
+            ecs,
+            device,
+            queue,
+            self.shader_value,
+            self.shader_value_key,
+            &text,
+            44.0,
+            Self::SELECTOR_VALUE_X,
+            Self::SHADER_ROW_Y,
+            1.95,
+            1.2,
+            color,
         );
         self.shader_value = entity;
         self.shader_value_key = key;
@@ -228,7 +307,9 @@ impl Settings {
         device: &wgpu::Device,
         queue: &wgpu::Queue,
     ) {
-        if self.shader_list.len() < 2 { return; }
+        if self.shader_list.len() < 2 {
+            return;
+        }
         let n = self.shader_list.len() as i32;
         self.shader_index = (self.shader_index as i32 + delta).rem_euclid(n) as usize;
         self.update_shader_value(ecs, text_renderer, device, queue);
@@ -283,6 +364,9 @@ impl Settings {
         if let Some(e) = self.pack_next.text {
             v.push(e);
         }
+        if let Some(e) = self.pack_value_bg.entity {
+            v.push(e);
+        }
         if let Some(e) = self.pack_label {
             v.push(e);
         }
@@ -299,6 +383,9 @@ impl Settings {
             v.push(e);
         }
         if let Some(e) = self.shader_next.text {
+            v.push(e);
+        }
+        if let Some(e) = self.shader_value_bg.entity {
             v.push(e);
         }
         if let Some(e) = self.shader_label {
@@ -325,8 +412,10 @@ impl Settings {
         destroy_checkbox(ecs, &mut self.sfx);
         destroy_button(ecs, &mut self.pack_prev);
         destroy_button(ecs, &mut self.pack_next);
+        destroy_panel(ecs, &mut self.pack_value_bg);
         destroy_button(ecs, &mut self.shader_prev);
         destroy_button(ecs, &mut self.shader_next);
+        destroy_panel(ecs, &mut self.shader_value_bg);
         destroy_button(ecs, &mut self.menu_button);
         if let Some(ent) = self.pack_label.take() {
             ecs.delete_entity(ent);
@@ -367,8 +456,16 @@ impl Settings {
     }
 
     /// Открывает окно: создаёт подложку, элементы управления и заголовок.
-    pub fn open(&mut self, ecs: &mut EcsAdapter, text_renderer: &mut TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) {
-        if self.open { return; }
+    pub fn open(
+        &mut self,
+        ecs: &mut EcsAdapter,
+        text_renderer: &mut TextRenderer,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+    ) {
+        if self.open {
+            return;
+        }
         if self.anim.is_active() {
             self.anim.cancel(ecs);
             self.destroy_content(ecs);
@@ -383,9 +480,20 @@ impl Settings {
         self.refresh_pack_list(saved.as_deref());
         create_button(ecs, text_renderer, device, queue, &mut self.pack_prev);
         create_button(ecs, text_renderer, device, queue, &mut self.pack_next);
+        create_panel(ecs, device, queue, &mut self.pack_value_bg);
         let (label, key) = text_renderer.set_text(
-            ecs, device, queue, None, None, "Texture Pack", 44.0,
-            -2.6, 0.0, 3.0, 2.0, WHITE,
+            ecs,
+            device,
+            queue,
+            None,
+            None,
+            "Texture Pack",
+            44.0,
+            -2.35,
+            Self::PACK_ROW_Y,
+            2.8,
+            1.2,
+            WHITE,
         );
         self.pack_label = label;
         self.pack_label_key = key;
@@ -394,15 +502,28 @@ impl Settings {
         self.refresh_shader_list(saved_shader.as_deref());
         create_button(ecs, text_renderer, device, queue, &mut self.shader_prev);
         create_button(ecs, text_renderer, device, queue, &mut self.shader_next);
+        create_panel(ecs, device, queue, &mut self.shader_value_bg);
         let (label, key) = text_renderer.set_text(
-            ecs, device, queue, None, None, "Shader", 44.0,
-            -2.6, -0.45, 3.0, 1.2, WHITE,
+            ecs,
+            device,
+            queue,
+            None,
+            None,
+            "Shader",
+            44.0,
+            -2.35,
+            Self::SHADER_ROW_Y,
+            2.8,
+            1.2,
+            WHITE,
         );
         self.shader_label = label;
         self.shader_label_key = key;
         self.update_shader_value(ecs, text_renderer, device, queue);
         create_button(ecs, text_renderer, device, queue, &mut self.menu_button);
-        let title = text_renderer.add_text(ecs, device, queue, "Settings", 64.0, 0.0, 2.4, 4.0, 2.0, WHITE);
+        let title = text_renderer.add_text(
+            ecs, device, queue, "Settings", 64.0, 0.0, 2.4, 4.0, 2.0, WHITE,
+        );
         self.title = Some(title);
 
         let ents = self.collect_entities();
@@ -411,7 +532,9 @@ impl Settings {
 
     /// Закрывает окно: запускает анимацию ухода, сущности удаляются в tick().
     pub fn close(&mut self, ecs: &mut EcsAdapter) {
-        if !self.open { return; }
+        if !self.open {
+            return;
+        }
         self.open = false;
         let ents = self.collect_entities();
         self.anim.start_close(ecs, ents);
@@ -436,9 +559,14 @@ impl Settings {
         }
     }
 
-    /// Ежекадровый hover-эффект: каждая галочка и ползунок плавно
-    /// увеличиваются только при наведении на них.
-    pub fn tick_hover(&mut self, ecs: &mut EcsAdapter, input: &dyn InputSource, window_size: (f32, f32), dt: f64) {
+    /// Ежекадровый hover-эффект: элементы плавно увеличиваются при наведении.
+    pub fn tick_hover(
+        &mut self,
+        ecs: &mut EcsAdapter,
+        input: &dyn InputSource,
+        window_size: (f32, f32),
+        dt: f64,
+    ) {
         if !self.open {
             return;
         }
@@ -446,12 +574,26 @@ impl Settings {
         update_checkbox_hover(ecs, &mut self.music, input, window_size, dt);
         update_checkbox_hover(ecs, &mut self.sfx, input, window_size, dt);
         update_slider_hover(ecs, &mut self.zoom_speed, input, window_size, dt);
+        update_button_hover(ecs, &mut self.pack_prev, input, window_size, dt);
+        update_button_hover(ecs, &mut self.pack_next, input, window_size, dt);
+        update_button_hover(ecs, &mut self.shader_prev, input, window_size, dt);
+        update_button_hover(ecs, &mut self.shader_next, input, window_size, dt);
     }
 
     /// Обработка кликов по настройкам.
     /// Возвращает true, если клик был обработан (настройки перехватили ввод).
-    pub fn handle_input(&mut self, ecs: &mut EcsAdapter, text_renderer: &mut TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue, input: &dyn InputSource, window_size: (f32, f32)) -> bool {
-        if !self.open { return false; }
+    pub fn handle_input(
+        &mut self,
+        ecs: &mut EcsAdapter,
+        text_renderer: &mut TextRenderer,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        input: &dyn InputSource,
+        window_size: (f32, f32),
+    ) -> bool {
+        if !self.open {
+            return false;
+        }
 
         // Ошибка компиляции шейдера появляется после обработки действия сцены,
         // поэтому подпись обновляется на следующем кадре.
@@ -488,10 +630,15 @@ impl Settings {
 
         // Перетаскивание слайдера — вычисляем значение по позиции курсора.
         if slider_drag(&mut self.zoom_speed, input, window_size) {
-            let Some((mx, _)) = input.cursor() else { return false };
+            let Some((mx, _)) = input.cursor() else {
+                return false;
+            };
             let (wx, _) = crate::ui::system::ndc_to_ui(mx, 0.0, window_size);
-            let t = ((wx - (self.zoom_speed.x - self.zoom_speed.width / 2.0)) / self.zoom_speed.width).clamp(0.0, 1.0);
-            self.zoom_speed.value = self.zoom_speed.min + t * (self.zoom_speed.max - self.zoom_speed.min);
+            let t = ((wx - (self.zoom_speed.x - self.zoom_speed.width / 2.0))
+                / self.zoom_speed.width)
+                .clamp(0.0, 1.0);
+            self.zoom_speed.value =
+                self.zoom_speed.min + t * (self.zoom_speed.max - self.zoom_speed.min);
             update_slider_thumb(ecs, device, queue, &mut self.zoom_speed);
             self.zoom_speed_changed = true;
             return true;

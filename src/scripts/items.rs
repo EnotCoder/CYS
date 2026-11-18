@@ -12,7 +12,14 @@ use mlua::{Lua, Table, Value};
 const ITEMS_PATH: &str = "assets/scripts/items.lua";
 
 /// Порядок вкладок инвентаря. Совпадает с индексами Inventory::tab.
-pub const TAB_NAMES: [&str; 6] = ["regular", "carpets", "walldecor", "outdoor", "light", "new_year"];
+pub const TAB_NAMES: [&str; 6] = [
+    "regular",
+    "carpets",
+    "walldecor",
+    "outdoor",
+    "light",
+    "new_year",
+];
 
 /// Один предмет, прочитанный из items.lua.
 #[derive(Debug, Clone)]
@@ -135,7 +142,9 @@ fn get_string(t: &Table, key: &str) -> Option<String> {
 }
 
 fn get_pair(t: &Table, key: &str, default: [i32; 2]) -> [i32; 2] {
-    let Ok(pair) = t.get::<Table>(key) else { return default };
+    let Ok(pair) = t.get::<Table>(key) else {
+        return default;
+    };
     [
         pair.get::<i64>(1).unwrap_or(default[0] as i64) as i32,
         pair.get::<i64>(2).unwrap_or(default[1] as i64) as i32,
@@ -143,6 +152,10 @@ fn get_pair(t: &Table, key: &str, default: [i32; 2]) -> [i32; 2] {
 }
 
 fn get_strings(t: &Table, key: &str) -> Vec<String> {
-    let Ok(list) = t.get::<Table>(key) else { return Vec::new() };
-    list.sequence_values::<String>().filter_map(Result::ok).collect()
+    let Ok(list) = t.get::<Table>(key) else {
+        return Vec::new();
+    };
+    list.sequence_values::<String>()
+        .filter_map(Result::ok)
+        .collect()
 }

@@ -10,7 +10,8 @@ use specs::WorldExt;
 
 use crate::data::{add, get_slot_vec, make_slot, object_price, remove};
 use crate::ecs::components::{
-    BasementPlaced, FoodStorage, Money, ObjectTag, PlacementError, PointLight, ShopDenied, ShopOwned,
+    BasementPlaced, FoodStorage, Money, ObjectTag, PlacementError, PointLight, ShopDenied,
+    ShopOwned,
 };
 use crate::ecs::EcsAdapter;
 use crate::scripts::config::BalanceConfig;
@@ -152,7 +153,10 @@ fn add_rejects_unowned_shop_item() {
 
     // После покупки доступ разрешён, и объект создаётся.
     ecs.world.write_resource::<ShopDenied>().0 = false;
-    ecs.world.write_resource::<ShopOwned>().0.push("candies".to_string());
+    ecs.world
+        .write_resource::<ShopOwned>()
+        .0
+        .push("candies".to_string());
     place(&mut ecs, "candies", 0, 0);
     assert!(!ecs.world.read_resource::<ShopDenied>().0);
     assert_eq!(group_count(&ecs), 1);
@@ -161,7 +165,10 @@ fn add_rejects_unowned_shop_item() {
 #[test]
 fn add_allows_only_one_basement() {
     let mut ecs = ecs_with_map();
-    ecs.world.write_resource::<ShopOwned>().0.push("basement".to_string());
+    ecs.world
+        .write_resource::<ShopOwned>()
+        .0
+        .push("basement".to_string());
 
     place(&mut ecs, "basement", 0, 0);
     assert!(ecs.world.read_resource::<BasementPlaced>().0);
@@ -176,13 +183,24 @@ fn add_rejects_cassa_rack_and_basement_in_the_basement() {
     for name in ["cassa", "rack", "basement"] {
         let mut ecs = ecs_with_map();
         ecs.current_level = -1;
-        ecs.world.write_resource::<ShopOwned>().0.push(name.to_string());
+        ecs.world
+            .write_resource::<ShopOwned>()
+            .0
+            .push(name.to_string());
         let before = ecs.world.read_resource::<Money>().0;
 
         place(&mut ecs, name, 0, 0);
 
-        assert_eq!(group_count(&ecs), 0, "{name}: объект не должен ставиться в подвале");
-        assert_eq!(ecs.world.read_resource::<Money>().0, before, "{name}: деньги списаны");
+        assert_eq!(
+            group_count(&ecs),
+            0,
+            "{name}: объект не должен ставиться в подвале"
+        );
+        assert_eq!(
+            ecs.world.read_resource::<Money>().0,
+            before,
+            "{name}: деньги списаны"
+        );
     }
 
     // box в подвале ставить можно.
@@ -195,11 +213,22 @@ fn add_rejects_cassa_rack_and_basement_in_the_basement() {
 #[test]
 fn add_initializes_food_and_lights() {
     let mut ecs = ecs_with_map();
-    ecs.world.write_resource::<ShopOwned>().0.push("candies".to_string());
-    ecs.world.write_resource::<ShopOwned>().0.push("lamp".to_string());
+    ecs.world
+        .write_resource::<ShopOwned>()
+        .0
+        .push("candies".to_string());
+    ecs.world
+        .write_resource::<ShopOwned>()
+        .0
+        .push("lamp".to_string());
     let cfg_food = {
         let cfg = ecs.world.read_resource::<BalanceConfig>();
-        (cfg.max_food_box, cfg.max_food_rack, cfg.max_food_candies, cfg.candies_start_food)
+        (
+            cfg.max_food_box,
+            cfg.max_food_rack,
+            cfg.max_food_candies,
+            cfg.candies_start_food,
+        )
     };
 
     place(&mut ecs, "box", 0, 0);
@@ -220,14 +249,21 @@ fn add_initializes_food_and_lights() {
     let candy_food = food_of(&ecs, candy_entity).unwrap();
     assert_eq!(candy_food, (cfg_food.3, cfg_food.2));
     assert!(
-        ecs.world.read_storage::<PointLight>().get(candy_entity).is_some(),
+        ecs.world
+            .read_storage::<PointLight>()
+            .get(candy_entity)
+            .is_some(),
         "у конфет должен быть PointLight"
     );
 
     place(&mut ecs, "lamp", 0, 1);
     let lamp_gid = ecs.find_group_at_position(0, 1).unwrap();
     let lamp_entity = first_entity(&ecs, lamp_gid);
-    assert!(ecs.world.read_storage::<PointLight>().get(lamp_entity).is_some());
+    assert!(ecs
+        .world
+        .read_storage::<PointLight>()
+        .get(lamp_entity)
+        .is_some());
 }
 
 #[test]
@@ -250,7 +286,10 @@ fn remove_refunds_half_price_and_deletes_group() {
 #[test]
 fn remove_basement_frees_the_slot() {
     let mut ecs = ecs_with_map();
-    ecs.world.write_resource::<ShopOwned>().0.push("basement".to_string());
+    ecs.world
+        .write_resource::<ShopOwned>()
+        .0
+        .push("basement".to_string());
     place(&mut ecs, "basement", 0, 0);
     assert!(ecs.world.read_resource::<BasementPlaced>().0);
     let price = price_of(&ecs, "basement");
@@ -288,15 +327,15 @@ fn synthetic_ecs(cells: &[(i32, &str)], originals: &[(i32, &str)]) -> EcsAdapter
 #[test]
 fn remove_floor_refreshes_generated_walls_to_grass() {
     // (0,0) — пол, (1,0) — сгенерированная стена "&"; исходно обе — трава.
-    let mut ecs = synthetic_ecs(
-        &[(0, "0"), (1, "&")],
-        &[(0, "."), (1, ".")],
-    );
+    let mut ecs = synthetic_ecs(&[(0, "0"), (1, "&")], &[(0, "."), (1, ".")]);
 
     assert!(remove(&mut ecs, 0, 0));
 
     assert_eq!(ecs.map_grid[14][26], ".", "пол должен вернуться в траву");
-    assert_eq!(ecs.map_grid[14][27], ".", "стена без пола рядом должна исчезнуть");
+    assert_eq!(
+        ecs.map_grid[14][27], ".",
+        "стена без пола рядом должна исчезнуть"
+    );
     assert!(!ecs.floor_positions.contains(&(0, 0)));
     assert!(ecs.outdoor_positions.contains(&(0, 0)));
 }
@@ -312,8 +351,14 @@ fn remove_floor_keeps_static_walls_and_door() {
     assert!(remove(&mut ecs, 0, 0));
 
     assert_eq!(ecs.map_grid[14][26], ".");
-    assert_eq!(ecs.map_grid[14][27], "W", "статическая стена не должна меняться");
-    assert_eq!(ecs.map_grid[14][28], "E", "дверной проём не должен меняться");
+    assert_eq!(
+        ecs.map_grid[14][27], "W",
+        "статическая стена не должна меняться"
+    );
+    assert_eq!(
+        ecs.map_grid[14][28], "E",
+        "дверной проём не должен меняться"
+    );
 
     // Статическую стену нельзя «снести» как траву.
     assert!(!remove(&mut ecs, 1, 0));

@@ -7,11 +7,11 @@
 //  do_interact (клик в зависимости от режима).
 // ========================================================================
 
-use specs::{Entity, WorldExt};
-use crate::{EcsAdapter, data::Slot};
-use crate::data::{add, remove};
 use crate::core::constants::*;
+use crate::data::{add, remove};
 use crate::ecs::components::{FoodStorage, ObjectTag, TotalFood};
+use crate::{data::Slot, EcsAdapter};
+use specs::{Entity, WorldExt};
 
 // Взаимодействие с объектом в клетке (gx, gy): коробка, стеллаж, подвал и аркады
 // Возврат: 2 — запрос смены уровня, 1 — показать подсветку, 0 — ничего
@@ -20,7 +20,10 @@ pub fn try_interact(ecs: &mut EcsAdapter, gx: i32, gy: i32) -> i32 {
         // Берём первый объект группы — все объекты группы считаются одним «составным» объектом
         let first_entity = {
             let groups = ecs.world.read_resource::<crate::GroupInfoResource>();
-            groups.groups.get(&gid).and_then(|g| g.entities.first().copied())
+            groups
+                .groups
+                .get(&gid)
+                .and_then(|g| g.entities.first().copied())
         };
         if let Some(entity) = first_entity {
             // Читаем имя объекта и данные о еде (для продажи/пополнения)
@@ -41,9 +44,12 @@ pub fn try_interact(ecs: &mut EcsAdapter, gx: i32, gy: i32) -> i32 {
                 if name == "box" {
                     if let Some((count, _)) = food_storage {
                         if count > 0 {
-                            ecs.world.write_storage::<FoodStorage>().get_mut(entity).map(|s| {
-                                s.food_count = 0;
-                            });
+                            ecs.world
+                                .write_storage::<FoodStorage>()
+                                .get_mut(entity)
+                                .map(|s| {
+                                    s.food_count = 0;
+                                });
                             ecs.world.write_resource::<TotalFood>().0 += count;
                             ecs.update_object_textures();
                             crate::audio::play("sell");
@@ -62,9 +68,12 @@ pub fn try_interact(ecs: &mut EcsAdapter, gx: i32, gy: i32) -> i32 {
                                 take
                             };
                             if take > 0 {
-                                ecs.world.write_storage::<FoodStorage>().get_mut(entity).map(|s| {
-                                    s.food_count += take;
-                                });
+                                ecs.world
+                                    .write_storage::<FoodStorage>()
+                                    .get_mut(entity)
+                                    .map(|s| {
+                                        s.food_count += take;
+                                    });
                                 ecs.update_object_textures();
                                 crate::audio::play("coin");
                                 ecs.pending_food_adds.push(gid);
@@ -119,11 +128,15 @@ pub fn do_interact(
     let mut result = 0;
     match mode {
         // Режим просмотра: обычное взаимодействие с объектами
-        MODE_INTERACT => { result = try_interact(ecs, gx, gy); }
+        MODE_INTERACT => {
+            result = try_interact(ecs, gx, gy);
+        }
         // Режим расстановки: разместить выбранный предмет
         MODE_BUILD => add(ecs, slots, act_slot, gx, gy),
         // Режим удаления: убрать объект с клетки
-        MODE_DELETE => { remove(ecs, gx, gy); }
+        MODE_DELETE => {
+            remove(ecs, gx, gy);
+        }
         // В режиме перемещения клики обрабатываются камерой.
         MODE_MOVE => {}
         _ => {}

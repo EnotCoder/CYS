@@ -8,13 +8,13 @@
 //  записывается обратно в состояние NPC.
 // ========================================================================
 
-use std::cell::RefCell;
+use crate::data::map::pathfinding::Node;
+use crate::ecs::components::{BusyCassas, Money};
+use crate::npc::ShopperNpc;
+use crate::EcsAdapter;
 use mlua::{Lua, Table, Value};
 use specs::WorldExt;
-use crate::EcsAdapter;
-use crate::npc::ShopperNpc;
-use crate::ecs::components::{BusyCassas, Money};
-use crate::data::map::pathfinding::Node;
+use std::cell::RefCell;
 
 /// Путь к скрипту NPC; при его отсутствии используется Rust-автомат.
 const SCRIPT_PATH: &str = "assets/scripts/npc.lua";
@@ -46,7 +46,10 @@ impl NpcScript {
         } else {
             eprintln!("[npc] скрипт {SCRIPT_PATH} не найден — fallback на Rust-автомат");
         }
-        NpcScript { lua, available: path_exists }
+        NpcScript {
+            lua,
+            available: path_exists,
+        }
     }
 
     /// Выполняет один тик скрипта для конкретного NPC.
@@ -241,7 +244,9 @@ impl NpcScript {
                 move |_, (): ()| -> mlua::Result<Value> {
                     let ecs_borrow = ecs.borrow();
                     match ShopperNpc::find_any_cassa(&*ecs_borrow) {
-                        Some(n) => Ok(Value::Table(lua.create_table_from([("x", n.x), ("y", n.y)])?)),
+                        Some(n) => Ok(Value::Table(
+                            lua.create_table_from([("x", n.x), ("y", n.y)])?,
+                        )),
                         None => Ok(Value::Nil),
                     }
                 }
@@ -279,7 +284,11 @@ impl NpcScript {
                 let ecs = ecs_cell_ref;
                 move |_, (x, y): (i32, i32)| -> mlua::Result<()> {
                     let ecs_borrow = ecs.borrow_mut();
-                    ecs_borrow.world.write_resource::<BusyCassas>().0.insert((x, y));
+                    ecs_borrow
+                        .world
+                        .write_resource::<BusyCassas>()
+                        .0
+                        .insert((x, y));
                     Ok(())
                 }
             })?;
@@ -289,7 +298,11 @@ impl NpcScript {
                 let ecs = ecs_cell_ref;
                 move |_, (x, y): (i32, i32)| -> mlua::Result<()> {
                     let ecs_borrow = ecs.borrow_mut();
-                    ecs_borrow.world.write_resource::<BusyCassas>().0.remove(&(x, y));
+                    ecs_borrow
+                        .world
+                        .write_resource::<BusyCassas>()
+                        .0
+                        .remove(&(x, y));
                     Ok(())
                 }
             })?;

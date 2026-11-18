@@ -24,12 +24,28 @@ pub struct Panel {
 
 impl Panel {
     pub fn new(x: f32, y: f32, w: f32, h: f32, alpha: f32) -> Self {
-        Self { x, y, w, h, alpha, texture: None, entity: None }
+        Self {
+            x,
+            y,
+            w,
+            h,
+            alpha,
+            texture: None,
+            entity: None,
+        }
     }
 
     /// Подложка с собственной текстурой (например, кнопка меню).
     pub fn textured(x: f32, y: f32, w: f32, h: f32, alpha: f32, texture: &'static str) -> Self {
-        Self { x, y, w, h, alpha, texture: Some(texture), entity: None }
+        Self {
+            x,
+            y,
+            w,
+            h,
+            alpha,
+            texture: Some(texture),
+            entity: None,
+        }
     }
 }
 
@@ -41,13 +57,36 @@ pub struct Button {
     pub h: f32,
     pub label: String,
     pub font_size: f32,
+    /// Текстура фона; None — стандартная кнопка `TEX_BUTTON`.
+    pub texture: Option<&'static str>,
+    /// Текущий масштаб для hover-анимации.
+    pub hover_scale: f32,
     pub bg: Option<Entity>,
     pub text: Option<Entity>,
 }
 
 impl Button {
     pub fn new(x: f32, y: f32, w: f32, h: f32, label: &str) -> Self {
-        Self { x, y, w, h, label: label.to_string(), font_size: 48.0, bg: None, text: None }
+        Self {
+            x,
+            y,
+            w,
+            h,
+            label: label.to_string(),
+            font_size: 48.0,
+            texture: None,
+            hover_scale: 1.0,
+            bg: None,
+            text: None,
+        }
+    }
+
+    /// Кнопка с собственной текстурой фона (например, иконка-стрелка).
+    pub fn textured(x: f32, y: f32, w: f32, h: f32, label: &str, texture: &'static str) -> Self {
+        Self {
+            texture: Some(texture),
+            ..Self::new(x, y, w, h, label)
+        }
     }
 }
 
@@ -71,7 +110,18 @@ pub struct Checkbox {
 
 impl Checkbox {
     pub fn new(x: f32, y: f32, label: &str, checked: bool) -> Self {
-        Self { x, y, label: label.to_string(), font_size: 48.0, checked, hover_scale: 1.0, box_entity: None, box_sprite_key: None, label_entity: None, label_sprite_key: None }
+        Self {
+            x,
+            y,
+            label: label.to_string(),
+            font_size: 48.0,
+            checked,
+            hover_scale: 1.0,
+            box_entity: None,
+            box_sprite_key: None,
+            label_entity: None,
+            label_sprite_key: None,
+        }
     }
 }
 
@@ -98,14 +148,20 @@ pub struct Slider {
 impl Slider {
     pub fn new(x: f32, y: f32, label: &str, min: f32, max: f32, value: f32) -> Self {
         Self {
-            x, y, width: 3.0,
-            min, max, value,
+            x,
+            y,
+            width: 3.0,
+            min,
+            max,
+            value,
             label: label.to_string(),
             font_size: 50.0,
             dragging: false,
             hover_scale: 1.0,
-            track: None, thumb: None,
-            label_entity: None, label_sprite_key: None,
+            track: None,
+            thumb: None,
+            label_entity: None,
+            label_sprite_key: None,
         }
     }
 }

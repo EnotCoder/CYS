@@ -7,11 +7,11 @@
 //  один объект (стол, ковёр, касса) = несколько сущностей с общим group_id.
 // ========================================================================
 
-use specs::{WorldExt, Builder};
-use std::sync::Arc;
 use crate::ecs::adapter::EcsAdapter;
-use crate::ecs::components::{Transform, SpriteComponent};
-use crate::{GroupComponent, GroupInfoResource, GroupInfo};
+use crate::ecs::components::{SpriteComponent, Transform};
+use crate::{GroupComponent, GroupInfo, GroupInfoResource};
+use specs::{Builder, WorldExt};
+use std::sync::Arc;
 
 impl EcsAdapter {
     // ====================================================================
@@ -21,8 +21,10 @@ impl EcsAdapter {
     // ====================================================================
     pub fn add_group_object(
         &mut self,
-        x: i32, y: i32,
-        width: i32, height: i32,
+        x: i32,
+        y: i32,
+        width: i32,
+        height: i32,
         name: &str,
         texture_path: &str,
         base_frame: [i32; 2],
@@ -44,7 +46,11 @@ impl EcsAdapter {
         };
         let base_frame = pack::object_frame(name, base_frame);
         let tex_count = pack::object_atlas(name, tex_count);
-        let animated = if stateful { false } else { pack::object_animated(name, animated) };
+        let animated = if stateful {
+            false
+        } else {
+            pack::object_animated(name, animated)
+        };
         let frames = pack::object_frames(name, frame_paths);
         let anim_fps = pack::object_fps(name);
         let anim_loop = pack::object_loop(name);
@@ -74,7 +80,9 @@ impl EcsAdapter {
             let entity = self
                 .world
                 .create_entity()
-                .with(Transform { position: [cx, cy, z] })
+                .with(Transform {
+                    position: [cx, cy, z],
+                })
                 .with(SpriteComponent {
                     texture_path: Arc::from(render_path.as_str()),
                     texture_frame: [0, 0],

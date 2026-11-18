@@ -58,7 +58,9 @@ fn open_output_sink() -> Option<MixerDeviceSink> {
 
     let devices = cpal::default_host().output_devices().ok()?;
     for device in devices {
-        let Ok(description) = device.description() else { continue };
+        let Ok(description) = device.description() else {
+            continue;
+        };
         if !description.driver().is_some_and(|driver| driver != "null") {
             continue;
         }
@@ -139,7 +141,9 @@ impl AudioEngine {
     }
 
     fn play_clip(&self, name: &str) {
-        let Some(bytes) = self.clips.get(name) else { return };
+        let Some(bytes) = self.clips.get(name) else {
+            return;
+        };
         // Байты клонируются, потому что rodio требует источник со временем жизни
         // 'static, а наши закэшированные данные живут внутри движка.
         let Ok(player) = rodio::play(&self.mixer, Cursor::new(bytes.clone())) else {
@@ -150,7 +154,9 @@ impl AudioEngine {
     }
 
     fn play_music_clip(&mut self, name: &str) -> bool {
-        let Some(bytes) = self.clips.get(name) else { return false };
+        let Some(bytes) = self.clips.get(name) else {
+            return false;
+        };
         let Ok(decoder) = Decoder::new(Cursor::new(bytes.clone())) else {
             return false;
         };
@@ -170,7 +176,9 @@ impl AudioEngine {
 
     // Зацикленный фоновый луп (погода): тише музыки, чтобы не перебивать её.
     fn play_ambient_clip(&mut self, name: &str) {
-        let Some(bytes) = self.clips.get(name) else { return };
+        let Some(bytes) = self.clips.get(name) else {
+            return;
+        };
         let Ok(decoder) = Decoder::new(Cursor::new(bytes.clone())) else {
             return;
         };

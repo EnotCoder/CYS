@@ -53,8 +53,6 @@ pub struct DepthBuffer {
     pub view: wgpu::TextureView,
 }
 
-
-
 impl DepthBuffer {
     // Создаёт текстуру-прикрепление глубины размером точно под текущее окно.
     pub fn new(device: &wgpu::Device, size: winit::dpi::PhysicalSize<u32>) -> Self {
@@ -74,12 +72,15 @@ impl DepthBuffer {
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
             view_formats: &[],
         });
-        
+
         let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
-        
-        Self { _texture: texture, view }
+
+        Self {
+            _texture: texture,
+            view,
+        }
     }
-    
+
     // При изменении размера окна старая текстура не подходит —
     // целиком пересоздаём новую и подменяем ссылки.
     pub fn resize(&mut self, device: &wgpu::Device, new_size: PhysicalSize<u32>) {
@@ -91,7 +92,7 @@ impl DepthBuffer {
 
 // Набор "общего" состояния, которое создаётся один раз и используется
 // сразу всеми пайплайнами (обычным и прозрачным), а также при рендере.
-pub struct Buffers{
+pub struct Buffers {
     // Layout для dynamic storage buffer (group 0): один слот на спрайт.
     pub dynamic_bind_group_layout: wgpu::BindGroupLayout,
     // Текстура-прикрепление глубины на весь кадр.
@@ -106,17 +107,14 @@ pub struct Buffers{
 
 // Собирает все общие bind group layout и depth-стешиль-состояния в одну
 // структуру-Buffers. Нужно вызывать ОДИН раз при старте до создания пайплайнов.
-pub fn init_buffers(
-    window_size: PhysicalSize<u32>,
-    device: &wgpu::Device,
-) -> Buffers{
+pub fn init_buffers(window_size: PhysicalSize<u32>, device: &wgpu::Device) -> Buffers {
     // Layout для dynamic storage buffer (group 0).
     // Storage вместо Uniform из-за лимита GPU-устройства:
     // max_uniform_buffer_binding_size = 65536 (AMD RADV).
-    let dynamic_bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-        label: Some("Dynamic Bind Group Layout"),
-        entries: &[
-            wgpu::BindGroupLayoutEntry {
+    let dynamic_bind_group_layout =
+        device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            label: Some("Dynamic Bind Group Layout"),
+            entries: &[wgpu::BindGroupLayoutEntry {
                 binding: 0,
                 // uniform'ы спрайтов читаются в шейдерах обеих стадий.
                 visibility: wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
@@ -128,9 +126,8 @@ pub fn init_buffers(
                     min_binding_size: wgpu::BufferSize::new(std::mem::size_of::<Uniforms>() as u64),
                 },
                 count: None,
-            },
-        ],
-    });
+            }],
+        });
 
     // Создаём depth texture
     let depth_buffer = DepthBuffer::new(&device, window_size);
@@ -157,30 +154,31 @@ pub fn init_buffers(
     };
 
     // Layout для пары "текстура + сэмплер" (group 1) — спрайтовые текстуры.
-    let texture_bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-        label: Some("Texture Bind Group Layout"),
-        entries: &[
-            wgpu::BindGroupLayoutEntry {
-                binding: 0,
-                // Текстура нужна только во фрагментном шейдере (семплирование).
-                visibility: wgpu::ShaderStages::FRAGMENT,
-                ty: wgpu::BindingType::Texture {
-                    multisampled: false,
-                    view_dimension: wgpu::TextureViewDimension::D2,
-                    // Float { filterable } — фильтрация маг/мин (Nearest/Linear).
-                    sample_type: wgpu::TextureSampleType::Float { filterable: true },
+    let texture_bind_group_layout =
+        device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            label: Some("Texture Bind Group Layout"),
+            entries: &[
+                wgpu::BindGroupLayoutEntry {
+                    binding: 0,
+                    // Текстура нужна только во фрагментном шейдере (семплирование).
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Texture {
+                        multisampled: false,
+                        view_dimension: wgpu::TextureViewDimension::D2,
+                        // Float { filterable } — фильтрация маг/мин (Nearest/Linear).
+                        sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                    },
+                    count: None,
                 },
-                count: None,
-            },
-            wgpu::BindGroupLayoutEntry {
-                binding: 1,
-                // Сэмплер сглаживания, используется фрагментным шейдером.
-                visibility: wgpu::ShaderStages::FRAGMENT,
-                ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
-                count: None,
-            },
-        ],
-    });
+                wgpu::BindGroupLayoutEntry {
+                    binding: 1,
+                    // Сэмплер сглаживания, используется фрагментным шейдером.
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                    count: None,
+                },
+            ],
+        });
 
     // Собираем всё в одну структуру для передачи в пайплайны и рендер.
     Buffers {

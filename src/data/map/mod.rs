@@ -13,27 +13,28 @@ pub mod pathfinding;
 //  ставить предметы, "^" / "[" / "]" и др. — декоративные стены и окна.
 //  Здесь же происходит разбор файла и создание ECS-сущностей земли.
 
-use std::collections::HashSet;
-use std::io::BufRead;
-use specs::WorldExt;
-use crate::ecs::EcsAdapter;
 use crate::core::constants::{
-    WORLD_OFFSET_X, WORLD_OFFSET_Y, Z_MAP,
-    DOOR_TOKEN, DOOR_X_MIN, DOOR_X_MAX, DOOR_Y_MIN, DOOR_Y_MAX,
-    DOOR_TEX_CLOSED, DOOR_TEX_OPEN, DOOR_TEX_OPEN_1, DOOR_TEX_OPEN_2, DOOR_TEX_OPEN_3,
-    SIDEWALK_Y, SHOPPER_SPAWN_X,
+    DOOR_TEX_CLOSED, DOOR_TEX_OPEN, DOOR_TEX_OPEN_1, DOOR_TEX_OPEN_2, DOOR_TEX_OPEN_3, DOOR_TOKEN,
+    DOOR_X_MAX, DOOR_X_MIN, DOOR_Y_MAX, DOOR_Y_MIN, SHOPPER_SPAWN_X, SIDEWALK_Y, WORLD_OFFSET_X,
+    WORLD_OFFSET_Y, Z_MAP,
 };
 use crate::data::map::pathfinding::Node;
+use crate::ecs::EcsAdapter;
+use specs::WorldExt;
+use std::collections::HashSet;
+use std::io::BufRead;
 
 /// Загружает карту из файла и создаёт для каждой клетки ECS-сущность
 pub fn load_map_to_ecs(ecs: &mut EcsAdapter) {
-    let bytes = crate::core::asset::load_bytes(crate::core::constants::MAP_FILE).expect("map.txt not found!");
+    let bytes = crate::core::asset::load_bytes(crate::core::constants::MAP_FILE)
+        .expect("map.txt not found!");
     load_map_from_reader(ecs, &bytes[..], false);
 }
 
 /// Загружает карту подвала из отдельного файла
 pub fn load_basement_to_ecs(ecs: &mut EcsAdapter) {
-    let bytes = crate::core::asset::load_bytes(crate::core::constants::BASEMENT_FILE).expect("basement.txt not found!");
+    let bytes = crate::core::asset::load_bytes(crate::core::constants::BASEMENT_FILE)
+        .expect("basement.txt not found!");
     load_map_from_reader(ecs, &bytes[..], true);
 }
 
@@ -48,14 +49,23 @@ pub fn load_basement_to_ecs(ecs: &mut EcsAdapter) {
 pub fn spawn_map_tile(
     ecs: &mut EcsAdapter,
     token: &str,
-    world_x: f32, world_y: f32,
-    grid_x: i32, grid_y: i32,
+    world_x: f32,
+    world_y: f32,
+    grid_x: i32,
+    grid_y: i32,
 ) -> specs::Entity {
     let season = *ecs.world.read_resource::<crate::ecs::components::Season>();
     let (tex_path, tex_pos, tex_count) = token_to_texture(token, season);
     let entity = crate::ecs::factory::create_sprite(
-        &mut ecs.world, world_x, world_y, Z_MAP,
-        tex_path, tex_pos, tex_count, 1.0, 1.0,
+        &mut ecs.world,
+        world_x,
+        world_y,
+        Z_MAP,
+        tex_path,
+        tex_pos,
+        tex_count,
+        1.0,
+        1.0,
     );
     if is_door_token(token) {
         ecs.apply_door_cell(entity, grid_x, grid_y);
@@ -85,7 +95,8 @@ fn load_map_from_reader(ecs: &mut EcsAdapter, reader: impl std::io::Read, _is_ba
             let grid_y = (y + 0.5).floor() as i32;
 
             // Сохраняем исходный токен клетки, чтобы уметь восстанавливать уровень
-            ecs.original_tokens.insert((grid_x, grid_y), token.to_string());
+            ecs.original_tokens
+                .insert((grid_x, grid_y), token.to_string());
 
             // Токены травы/улицы — помечаем клетки как outdoor и пригодные к посадке цветов
             let is_grass = crate::data::is_grass_token(token);
@@ -208,7 +219,10 @@ pub fn shopper_spawn_point() -> Node {
         if wy.round() as i32 != SIDEWALK_Y {
             continue;
         }
-        let line = include_str!("../../../assets/map.txt").lines().nth(j).unwrap_or("");
+        let line = include_str!("../../../assets/map.txt")
+            .lines()
+            .nth(j)
+            .unwrap_or("");
         for (i, _) in line.split_whitespace().enumerate() {
             let node = Node::new(i as i32 + WORLD_OFFSET_X as i32, SIDEWALK_Y);
             if !walkable.contains(&node) {
@@ -231,7 +245,10 @@ pub fn shopper_spawn_point() -> Node {
 
 /// Сопоставляет токен карты с текстурой земли и кадром атласа.
 /// Возвращает (путь к текстуре, позиция кадра в атласе, число кадров).
-pub fn token_to_texture(token: &str, season: crate::ecs::components::Season) -> (&str, [i32; 2], [i32; 2]) {
+pub fn token_to_texture(
+    token: &str,
+    season: crate::ecs::components::Season,
+) -> (&str, [i32; 2], [i32; 2]) {
     let grass = season.grass_texture();
     match token {
         //grass
@@ -252,7 +269,7 @@ pub fn token_to_texture(token: &str, season: crate::ecs::components::Season) -> 
         "4" => (grass, [1, 0], [4, 6]),
         "5" => (grass, [2, 0], [4, 6]),
         "6" => (grass, [3, 0], [4, 6]),
-        
+
         //floor
         "P" => ("assets/tex/map/floor.png", [0, 0], [3, 3]),
         "Q" => ("assets/tex/map/floor.png", [2, 0], [3, 3]),
@@ -280,7 +297,7 @@ pub fn token_to_texture(token: &str, season: crate::ecs::components::Season) -> 
         "{" => (grass, [2, 5], [4, 6]),
         ")" => (grass, [3, 4], [4, 6]),
         "}" => (grass, [3, 5], [4, 6]),
-        
+
         //window
         "[" => ("assets/tex/map/wall.png", [2, 0], [5, 5]),
         "]" => ("assets/tex/map/wall.png", [4, 0], [5, 5]),
@@ -293,12 +310,16 @@ pub fn token_to_texture(token: &str, season: crate::ecs::components::Season) -> 
         //каждая из четырёх клеток проёма берёт свой кадр атласа и вместе
         //собирает цельный проём. Состояние (открыта/закрыта) переключает
         //update_door_textures, подменяя путь к текстуре.
-        "E" => ("assets/tex/decor/regular/shop_door/shop_door.png", [0, 0], [2, 2]),
+        "E" => (
+            "assets/tex/decor/regular/shop_door/shop_door.png",
+            [0, 0],
+            [2, 2],
+        ),
         "q" => ("assets/tex/map/wall.png", [2, 3], [5, 5]),
         "p" => ("assets/tex/map/wall.png", [3, 3], [5, 5]),
         "i" => ("assets/tex/map/wall.png", [4, 3], [5, 5]),
 
         //default
-        _    => ("assets/tex/map/floor.png", [0, 0], [2, 2]),
+        _ => ("assets/tex/map/floor.png", [0, 0], [2, 2]),
     }
 }

@@ -8,8 +8,8 @@
 //  а также описание расположения атрибутов вершин (VertexBufferLayout).
 // ========================================================================
 
-use wgpu::*;
 use crate::Vertex;
+use wgpu::*;
 
 // Layout атрибутов вершин: position = location 0 (vec3),
 // tex_coord = location 1 (vec2). Должен совпадать с buffers::Vertex.

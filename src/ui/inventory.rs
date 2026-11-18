@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Copyright (C) 2026 EnotCoder
 
-use specs::Entity;
-use specs::WorldExt;
-use crate::EcsAdapter;
 use crate::core::constants::*;
 use crate::ecs::components::{ShopDenied, ShopOwned};
+use crate::EcsAdapter;
+use specs::Entity;
+use specs::WorldExt;
 
 // ========================================================================
 //  Inventory — управление инвентарём (сетка, табы, курсор)
@@ -109,7 +109,9 @@ impl Inventory {
 
     // Закрыть: запустить анимацию сжатия; сущности удаляются в tick()
     pub fn exit(&mut self, _ecs: &mut EcsAdapter) {
-        if !self.open { return; }
+        if !self.open {
+            return;
+        }
         self.open = false;
         self.mode = false;
         self.popping = false;
@@ -147,7 +149,12 @@ impl Inventory {
             let s = 0.6 + 0.4 * crate::core::util::ease_out_back(t);
             ecs.update_sprite_scale(p.ent, s);
         }
-        for (i, p) in self.tab_entities.iter().chain(self.page_entities.iter()).enumerate() {
+        for (i, p) in self
+            .tab_entities
+            .iter()
+            .chain(self.page_entities.iter())
+            .enumerate()
+        {
             let t = ((self.pop_timer - i as f64 * 0.03) / dur).clamp(0.0, 1.0) as f32;
             if t < 1.0 {
                 all_done = false;
@@ -167,7 +174,9 @@ impl Inventory {
         let e = t * t;
         let s = 1.0 - 0.3 * e;
         let a = 1.0 - e;
-        for p in self.grid_entities.iter()
+        for p in self
+            .grid_entities
+            .iter()
             .chain(self.tab_entities.iter())
             .chain(self.page_entities.iter())
         {
@@ -211,7 +220,13 @@ impl Inventory {
     // ================================================================
 
     // Переключить таб: перерисовать страницу вкладок, сетку и сбросить выбор
-    pub fn switch_tab(&mut self, new_tab: i32, ecs: &mut EcsAdapter, device: &wgpu::Device, queue: &wgpu::Queue) {
+    pub fn switch_tab(
+        &mut self,
+        new_tab: i32,
+        ecs: &mut EcsAdapter,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+    ) {
         let last = crate::scripts::items::TAB_NAMES.len() as i32 - 1;
         self.tab = new_tab.clamp(0, last.max(0));
         self.tab_page = Self::tab_page_of(self.tab);
@@ -281,8 +296,15 @@ impl Inventory {
         hotbar_slots: &mut [crate::data::Slot],
         hotbar_entities: &[Entity],
     ) {
-        let Some(name) = self.selected_item_name() else { return };
-        let owned = ecs.world.read_resource::<ShopOwned>().0.iter().any(|o| o == name);
+        let Some(name) = self.selected_item_name() else {
+            return;
+        };
+        let owned = ecs
+            .world
+            .read_resource::<ShopOwned>()
+            .0
+            .iter()
+            .any(|o| o == name);
         if crate::data::placement::requires_shop(name) && !owned {
             ecs.world.write_resource::<ShopDenied>().0 = true;
             crate::audio::play("error");
@@ -347,16 +369,30 @@ impl Inventory {
                 } else {
                     ecs.add_ui_sized(x, y, icon_size[0], icon_size[1], &tex, device, queue)
                 };
-                self.grid_entities.push(PlacedEntity { ent, base_x: SLOT_BAR_X + col as f32, base_y: INVENTORY_BASE_Y + row as f32 });
+                self.grid_entities.push(PlacedEntity {
+                    ent,
+                    base_x: SLOT_BAR_X + col as f32,
+                    base_y: INVENTORY_BASE_Y + row as f32,
+                });
 
                 // Доступ к такому предмету НЕ открыт (нужна покупка в магазине).
                 if item_idx < items.len() {
                     let name = items[item_idx];
-                    let owned = ecs.world.read_resource::<ShopOwned>().0.iter().any(|o| o == name);
+                    let owned = ecs
+                        .world
+                        .read_resource::<ShopOwned>()
+                        .0
+                        .iter()
+                        .any(|o| o == name);
                     if crate::data::placement::requires_shop(name) && !owned {
                         let lock = ecs.add_ui_sized(
-                            x + LOCK_OFFSET_X, y + LOCK_OFFSET_Y,
-                            LOCK_SIZE, LOCK_SIZE, TEX_LOCK, device, queue,
+                            x + LOCK_OFFSET_X,
+                            y + LOCK_OFFSET_Y,
+                            LOCK_SIZE,
+                            LOCK_SIZE,
+                            TEX_LOCK,
+                            device,
+                            queue,
                         );
                         // Замок рисуется поверх иконки предмета (следующий под-слой Z_UI).
                         ecs.update_transform_z(lock, Z_UI_TEXT);
@@ -378,7 +414,9 @@ impl Inventory {
 
     /// Переставляет уже созданные элементы сетки/табов по актуальному сдвигу.
     pub fn apply_layout(&mut self, ecs: &mut EcsAdapter) {
-        for p in self.grid_entities.iter()
+        for p in self
+            .grid_entities
+            .iter()
             .chain(self.tab_entities.iter())
             .chain(self.page_entities.iter())
             .chain(self.lock_entities.iter())
@@ -410,7 +448,11 @@ impl Inventory {
             let ent = ecs.add_ui(x, INV_TAB_Y + self.bottom_dy, TAB_TEX[tab as usize]);
             let a = if tab == self.tab { 1.0 } else { 0.5 };
             ecs.update_sprite_alpha(ent, a);
-            self.tab_entities.push(PlacedEntity { ent, base_x: x, base_y: INV_TAB_Y });
+            self.tab_entities.push(PlacedEntity {
+                ent,
+                base_x: x,
+                base_y: INV_TAB_Y,
+            });
         }
         if Self::tab_page_count() <= 1 {
             return;
@@ -421,12 +463,28 @@ impl Inventory {
         let right_x = SLOT_BAR_X + visible as f32;
         let left = ecs.add_ui(left_x, INV_TAB_Y + self.bottom_dy, TAB_ARROW_LEFT_TEX);
         let right = ecs.add_ui(right_x, INV_TAB_Y + self.bottom_dy, TAB_ARROW_RIGHT_TEX);
-        let left_alpha = if self.tab_page > 0 { 1.0 } else { TAB_ARROW_DISABLED_ALPHA };
-        let right_alpha = if self.tab_page + 1 < Self::tab_page_count() { 1.0 } else { TAB_ARROW_DISABLED_ALPHA };
+        let left_alpha = if self.tab_page > 0 {
+            1.0
+        } else {
+            TAB_ARROW_DISABLED_ALPHA
+        };
+        let right_alpha = if self.tab_page + 1 < Self::tab_page_count() {
+            1.0
+        } else {
+            TAB_ARROW_DISABLED_ALPHA
+        };
         ecs.update_sprite_alpha(left, left_alpha);
         ecs.update_sprite_alpha(right, right_alpha);
-        self.page_entities.push(PlacedEntity { ent: left, base_x: left_x, base_y: INV_TAB_Y });
-        self.page_entities.push(PlacedEntity { ent: right, base_x: right_x, base_y: INV_TAB_Y });
+        self.page_entities.push(PlacedEntity {
+            ent: left,
+            base_x: left_x,
+            base_y: INV_TAB_Y,
+        });
+        self.page_entities.push(PlacedEntity {
+            ent: right,
+            base_x: right_x,
+            base_y: INV_TAB_Y,
+        });
     }
 
     // Убираем закладки и кнопки страниц из ECS

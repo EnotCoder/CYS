@@ -17,12 +17,7 @@ use crate::scripts::config::BalanceConfig;
 use crate::tests::helpers::{add_object, ecs_with_map, first_entity, set_food};
 use crate::EcsAdapter;
 
-fn spawn(
-    ecs: &mut EcsAdapter,
-    rack: Node,
-    cassa: Node,
-    candy: Option<Node>,
-) -> ShopperNpc {
+fn spawn(ecs: &mut EcsAdapter, rack: Node, cassa: Node, candy: Option<Node>) -> ShopperNpc {
     let walkable = load_walkable_cells();
     ShopperNpc::spawn(
         ecs,
@@ -93,7 +88,13 @@ fn take_food_accepts_the_lower_cell_of_a_two_tall_rack() {
     let upper = first_entity(&ecs, gid);
     ecs.world
         .write_storage::<FoodStorage>()
-        .insert(upper, FoodStorage { food_count: 1, max_food: 15 })
+        .insert(
+            upper,
+            FoodStorage {
+                food_count: 1,
+                max_food: 15,
+            },
+        )
         .ok();
 
     let mut npc = spawn(&mut ecs, Node::new(0, -3), Node::new(2, -3), None);
@@ -139,7 +140,10 @@ fn cassa_exists_checks_the_exact_cell() {
     assert_eq!(ShopperNpc::find_any_cassa(&ecs), Some(Node::new(2, -3)));
 
     let no_cassa = spawn(&mut ecs, Node::new(0, -3), Node::new(5, 0), None);
-    assert!(!no_cassa.cassa_exists(&ecs), "касса на другой клетке не считается");
+    assert!(
+        !no_cassa.cassa_exists(&ecs),
+        "касса на другой клетке не считается"
+    );
 }
 
 #[test]
@@ -148,10 +152,7 @@ fn reroute_to_cassa_moves_the_busy_marker_and_state() {
     add_object(&mut ecs, "cassa", 2, -3);
     add_object(&mut ecs, "cassa", 4, -3);
     let mut npc = spawn(&mut ecs, Node::new(0, -3), Node::new(2, -3), None);
-    ecs.world
-        .write_resource::<BusyCassas>()
-        .0
-        .insert((2, -3));
+    ecs.world.write_resource::<BusyCassas>().0.insert((2, -3));
 
     let walkable = load_walkable_cells();
     npc.reroute_to_cassa(&mut ecs, &walkable, Node::new(4, -3));
@@ -246,7 +247,10 @@ fn update_fades_in_then_out_before_despawn() {
             break;
         }
     }
-    assert!(despawned, "покупатель не деспавнится после фейда (fade={fade})");
+    assert!(
+        despawned,
+        "покупатель не деспавнится после фейда (fade={fade})"
+    );
     assert!(ticks >= 2);
     let alpha = ecs
         .world

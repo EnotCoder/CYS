@@ -7,14 +7,19 @@
 //  (кадры box/rack по количеству еды), update_fence_textures (заборы по соседям).
 // ========================================================================
 
-use specs::{WorldExt, Join};
+use super::SpriteRenderData;
+use crate::core::constants::{
+    DOOR_FADE_RAMP, DOOR_X_MAX, DOOR_X_MIN, DOOR_Y_MAX, DOOR_Y_MIN, TILE_HALF, Z_CARPET, Z_CURSOR,
+    Z_DECOR, Z_DOOR, Z_LIGHT, Z_MAP, Z_NPC, Z_WEATHER,
+};
+use crate::data::map::{door_cells, door_frame_for_cell, door_texture_for_step};
+use crate::ecs::components::{
+    FenceComponent, FoodStorage, ObjectTag, Rotation, ShopperTag, SpriteComponent, Transform,
+};
+use crate::GroupComponent;
+use specs::{Join, WorldExt};
 use std::collections::HashSet;
 use std::sync::Arc;
-use crate::ecs::components::{Transform, SpriteComponent, Rotation, ObjectTag, FoodStorage, FenceComponent, ShopperTag};
-use crate::core::constants::{DOOR_X_MAX, DOOR_X_MIN, DOOR_Y_MAX, DOOR_Y_MIN, DOOR_FADE_RAMP, TILE_HALF, Z_CARPET, Z_CURSOR, Z_DECOR, Z_DOOR, Z_LIGHT, Z_MAP, Z_NPC, Z_WEATHER};
-use crate::data::map::{door_cells, door_frame_for_cell, door_texture_for_step};
-use crate::GroupComponent;
-use super::SpriteRenderData;
 
 /// Насколько покупатель виден у дверного проёма: 1 — полностью, 0 — скрыт.
 ///
@@ -111,16 +116,17 @@ impl super::EcsAdapter {
             // Уровневые сущности (не UI/курсор) отсекаются по границам экрана:
             // невидимые объекты не попадают в список отрисовки.
             let z = transform.position[2];
-            let should_cull = z == Z_MAP
-                || z == Z_CARPET
-                || z == Z_LIGHT
-                || z == Z_DECOR
-                || z == Z_NPC;
+            let should_cull =
+                z == Z_MAP || z == Z_CARPET || z == Z_LIGHT || z == Z_DECOR || z == Z_NPC;
             if should_cull {
                 if let Some((l, r, b, t)) = visible_bounds {
                     let x = transform.position[0];
                     let y = transform.position[1];
-                    if x + 1.0 + margin < l || x - margin > r || y + 1.0 + margin < b || y - margin > t {
+                    if x + 1.0 + margin < l
+                        || x - margin > r
+                        || y + 1.0 + margin < b
+                        || y - margin > t
+                    {
                         continue;
                     }
                 }
@@ -145,13 +151,24 @@ impl super::EcsAdapter {
             }
         }
 
-        (map_sprites, carpet_sprites, light_sprites, decor_sprites, npc_sprites, weather_sprites, cursor_sprites, ui_sprites)
+        (
+            map_sprites,
+            carpet_sprites,
+            light_sprites,
+            decor_sprites,
+            npc_sprites,
+            weather_sprites,
+            cursor_sprites,
+            ui_sprites,
+        )
     }
 
     // Обновляет текстуры заполненных объектов (box/rack) по количеству еды.
     // Пороги из BalanceConfig: box меняет кадр на tiers, rack — пусто/полно.
     pub fn update_object_textures(&mut self) {
-        let cfg = self.world.read_resource::<crate::scripts::config::BalanceConfig>();
+        let cfg = self
+            .world
+            .read_resource::<crate::scripts::config::BalanceConfig>();
         let (t1, t2) = (cfg.box_tex_threshold_1, cfg.box_tex_threshold_2);
         // Накопляем обновления по группам, чтобы не писать в storage во время чтения.
         let mut updates: Vec<(u32, Arc<str>)> = Vec::new();
@@ -216,11 +233,20 @@ impl super::EcsAdapter {
             let down = positions.contains(&(x, y - 1));
             // Разные наборы текстур у уличного и обычного заборов.
             let (dir, fallback_arc) = if fence.name == "street_fence" {
-                ("assets/tex/decor/outdoor/street_fence/street_fence", Arc::from("assets/tex/decor/outdoor/street_fence/street_fence_0_0_0_0.png"))
+                (
+                    "assets/tex/decor/outdoor/street_fence/street_fence",
+                    Arc::from("assets/tex/decor/outdoor/street_fence/street_fence_0_0_0_0.png"),
+                )
             } else {
-                ("assets/tex/decor/regular/fence/fence", Arc::from("assets/tex/decor/regular/fence/fence_0_0_0_0.png"))
+                (
+                    "assets/tex/decor/regular/fence/fence",
+                    Arc::from("assets/tex/decor/regular/fence/fence_0_0_0_0.png"),
+                )
             };
-            let path = format!("{}_{}_{}_{}_{}.png", dir, up as u8, down as u8, left as u8, right as u8);
+            let path = format!(
+                "{}_{}_{}_{}_{}.png",
+                dir, up as u8, down as u8, left as u8, right as u8
+            );
             // Проверяем наличие варианта через загрузчик ассетов (работает и на
             // Android, где текстуры упакованы в APK, а не лежат файлами на диске).
             if crate::core::texture_pack::exists(&path) {
@@ -238,7 +264,9 @@ impl super::EcsAdapter {
     pub fn update_door_textures(&mut self, step: i32) {
         let path = door_texture_for_step(step);
         for (x, y) in door_cells() {
-            let Some(&entity) = self.map_entities.get(&(x, y)) else { continue };
+            let Some(&entity) = self.map_entities.get(&(x, y)) else {
+                continue;
+            };
             self.set_door_cell_frame(entity, door_frame_for_cell(x, y));
             self.update_sprite_texture(entity, path);
         }
@@ -246,7 +274,11 @@ impl super::EcsAdapter {
 
     // Кадр атласа 2x2 для одной клетки двери.
     pub fn set_door_cell_frame(&mut self, entity: specs::Entity, frame: [i32; 2]) {
-        if let Some(sprite) = self.world.write_storage::<SpriteComponent>().get_mut(entity) {
+        if let Some(sprite) = self
+            .world
+            .write_storage::<SpriteComponent>()
+            .get_mut(entity)
+        {
             sprite.texture_frame = frame;
         }
     }

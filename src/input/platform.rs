@@ -47,7 +47,8 @@ fn process_ime_event(ime: &winit::event::Ime) {
             }
         }
         winit::event::Ime::Preedit(s, _) => {
-            crate::ui::text_input::IME_COMPOSING.store(!s.is_empty(), std::sync::atomic::Ordering::SeqCst);
+            crate::ui::text_input::IME_COMPOSING
+                .store(!s.is_empty(), std::sync::atomic::Ordering::SeqCst);
             crate::ui::text_input::TEXT_INPUT.set_preedit(s);
         }
         winit::event::Ime::Enabled => {
@@ -72,15 +73,16 @@ fn process_keyboard_event(key: &KeyEvent) {
         _ => None,
     });
     let text_has_controls = text.map_or(false, |text| text.chars().any(|ch| ch.is_control()));
-    let text_is_enter = text.map_or(false, |text| {
-        text.contains('\n') || text.contains('\r')
-    });
+    let text_is_enter = text.map_or(false, |text| text.contains('\n') || text.contains('\r'));
     let text_is_backspace = text.map_or(false, |text| {
         text.contains('\u{8}') || text.contains('\u{7f}')
     });
     let logical_enter = matches!(&key.logical_key, Key::Named(NamedKey::Enter));
     let is_enter = logical_enter
-        || matches!(key.physical_key, PhysicalKey::Code(KeyCode::Enter | KeyCode::NumpadEnter))
+        || matches!(
+            key.physical_key,
+            PhysicalKey::Code(KeyCode::Enter | KeyCode::NumpadEnter)
+        )
         || text_is_enter;
     let is_backspace = matches!(
         key.physical_key,
@@ -150,22 +152,46 @@ impl Default for DesktopInput {
 
 impl DesktopInput {
     pub fn new() -> Self {
-        Self { inner: WinitInputHelper::new() }
+        Self {
+            inner: WinitInputHelper::new(),
+        }
     }
 }
 
 impl InputSource for DesktopInput {
-    fn cursor(&self) -> Option<(f32, f32)> { self.inner.cursor() }
-    fn cursor_diff(&self) -> (f32, f32) { self.inner.cursor_diff() }
-    fn mouse_pressed(&self, btn: MouseButton) -> bool { self.inner.mouse_pressed(btn) }
-    fn mouse_held(&self, btn: MouseButton) -> bool { self.inner.mouse_held(btn) }
-    fn key_pressed(&self, key: KeyCode) -> bool { self.inner.key_pressed(key) }
-    fn key_held(&self, key: KeyCode) -> bool { self.inner.key_held(key) }
-    fn held_control(&self) -> bool { self.inner.held_control() }
-    fn scroll_diff(&self) -> (f32, f32) { self.inner.scroll_diff() }
-    fn close_requested(&self) -> bool { self.inner.close_requested() }
-    fn step(&mut self) { let _ = self.inner.step(); }
-    fn end_step(&mut self) { self.inner.end_step(); }
+    fn cursor(&self) -> Option<(f32, f32)> {
+        self.inner.cursor()
+    }
+    fn cursor_diff(&self) -> (f32, f32) {
+        self.inner.cursor_diff()
+    }
+    fn mouse_pressed(&self, btn: MouseButton) -> bool {
+        self.inner.mouse_pressed(btn)
+    }
+    fn mouse_held(&self, btn: MouseButton) -> bool {
+        self.inner.mouse_held(btn)
+    }
+    fn key_pressed(&self, key: KeyCode) -> bool {
+        self.inner.key_pressed(key)
+    }
+    fn key_held(&self, key: KeyCode) -> bool {
+        self.inner.key_held(key)
+    }
+    fn held_control(&self) -> bool {
+        self.inner.held_control()
+    }
+    fn scroll_diff(&self) -> (f32, f32) {
+        self.inner.scroll_diff()
+    }
+    fn close_requested(&self) -> bool {
+        self.inner.close_requested()
+    }
+    fn step(&mut self) {
+        let _ = self.inner.step();
+    }
+    fn end_step(&mut self) {
+        self.inner.end_step();
+    }
     fn process_window_event(&mut self, event: &WindowEvent) {
         match event {
             WindowEvent::Ime(ime) => process_ime_event(ime),
@@ -174,7 +200,9 @@ impl InputSource for DesktopInput {
         }
         let _ = self.inner.process_window_event(event);
     }
-    fn process_device_event(&mut self, event: &DeviceEvent) { let _ = self.inner.process_device_event(event); }
+    fn process_device_event(&mut self, event: &DeviceEvent) {
+        let _ = self.inner.process_device_event(event);
+    }
 }
 
 /// Мобильный (тач) ввод.
@@ -297,8 +325,13 @@ impl InputSource for TouchInput {
             WindowEvent::KeyboardInput { event: key, .. } => {
                 process_keyboard_event(key);
                 if key.state == ElementState::Pressed
-                    && (matches!(&key.logical_key, Key::Named(NamedKey::Escape | NamedKey::BrowserBack))
-                        || matches!(key.physical_key, PhysicalKey::Code(KeyCode::Escape | KeyCode::BrowserBack)))
+                    && (matches!(
+                        &key.logical_key,
+                        Key::Named(NamedKey::Escape | NamedKey::BrowserBack)
+                    ) || matches!(
+                        key.physical_key,
+                        PhysicalKey::Code(KeyCode::Escape | KeyCode::BrowserBack)
+                    ))
                 {
                     self.back_pressed = true;
                 }

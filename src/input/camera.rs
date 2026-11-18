@@ -6,9 +6,9 @@
 //  в диапазоне [ZOOM_MIN, ZOOM_MAX] с шагом из настроек.
 // ========================================================================
 
-use winit::keyboard::KeyCode;
 use crate::core::constants::*;
 use crate::input::platform::InputSource;
+use winit::keyboard::KeyCode;
 
 // Приближение/отдаление камеры: колесо мыши или клавиши K/L
 // Зум ограничен диапазоном [ZOOM_MIN, ZOOM_MAX], шаг задаётся извне

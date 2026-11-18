@@ -10,18 +10,19 @@
 
 pub mod render;
 
+use crate::core::constants::*;
+use crate::core::util;
+use crate::ecs::components::{
+    BasementPlaced, BusyCassas, DoorProgress, FenceComponent, FoodStorage, Money, ObjectTag,
+    PlacementError, PointLight, Rotation, Season, ShopDenied, ShopOwned, ShopperTag,
+    SpriteComponent, TotalFood, Transform,
+};
+use crate::Sprite;
+use crate::Texture;
+use crate::{GroupComponent, GroupInfoResource};
 use specs::{World, WorldExt};
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
-use crate::Sprite;
-use crate::Texture;
-use crate::ecs::components::{
-    BasementPlaced, DoorProgress, FenceComponent, FoodStorage, Money, ObjectTag, PointLight, Rotation,
-    Season, ShopperTag, SpriteComponent, TotalFood, Transform, BusyCassas, PlacementError, ShopOwned, ShopDenied,
-};
-use crate::{GroupComponent, GroupInfoResource};
-use crate::core::constants::*;
-use crate::core::util;
 
 // ========================================================================
 //  SpriteRenderData — плоские данные для рендера (без привязки к ECS)
@@ -126,7 +127,11 @@ impl EcsAdapter {
 
     // Меняет текстуру существующего спрайта (смена состояния, анимация).
     pub fn update_sprite_texture(&mut self, entity: specs::Entity, texture_path: &str) {
-        if let Some(sprite) = self.world.write_storage::<SpriteComponent>().get_mut(entity) {
+        if let Some(sprite) = self
+            .world
+            .write_storage::<SpriteComponent>()
+            .get_mut(entity)
+        {
             sprite.texture_path = Arc::from(texture_path);
         }
     }
@@ -148,14 +153,22 @@ impl EcsAdapter {
 
     // Меняет прозрачность спрайта (моргание, эффекты выделения).
     pub fn update_sprite_alpha(&mut self, entity: specs::Entity, alpha: f32) {
-        if let Some(sprite) = self.world.write_storage::<SpriteComponent>().get_mut(entity) {
+        if let Some(sprite) = self
+            .world
+            .write_storage::<SpriteComponent>()
+            .get_mut(entity)
+        {
             sprite.alpha = alpha;
         }
     }
 
     // Меняет масштаб отдельного спрайта (UI-анимации: пульс, поп-эффекты).
     pub fn update_sprite_scale(&mut self, entity: specs::Entity, scale: f32) {
-        if let Some(sprite) = self.world.write_storage::<SpriteComponent>().get_mut(entity) {
+        if let Some(sprite) = self
+            .world
+            .write_storage::<SpriteComponent>()
+            .get_mut(entity)
+        {
             sprite.scale = scale;
         }
     }
@@ -164,7 +177,9 @@ impl EcsAdapter {
     // Если группы уже нет — безопасно делает ничего.
     pub fn update_group_scale(&mut self, group_id: u32, scale: f32) {
         let group_info = self.world.read_resource::<GroupInfoResource>();
-        let Some(info) = group_info.groups.get(&group_id) else { return };
+        let Some(info) = group_info.groups.get(&group_id) else {
+            return;
+        };
         let mut sprites = self.world.write_storage::<SpriteComponent>();
         for &entity in &info.entities {
             if let Some(sprite) = sprites.get_mut(entity) {
@@ -207,8 +222,15 @@ impl EcsAdapter {
     // Спрайт интерфейса без масштабирования (размер определяет текстура).
     pub fn add_ui(&mut self, x: f32, y: f32, texture_path: &str) -> specs::Entity {
         crate::ecs::factory::create_sprite(
-            &mut self.world, x, y, Z_UI,
-            texture_path, [0, 0], [1, 1], 1.0, 1.0,
+            &mut self.world,
+            x,
+            y,
+            Z_UI,
+            texture_path,
+            [0, 0],
+            [1, 1],
+            1.0,
+            1.0,
         )
     }
 
@@ -217,8 +239,10 @@ impl EcsAdapter {
     // не пересоздавали quad каждый раз.
     pub fn add_ui_sized(
         &mut self,
-        x: f32, y: f32,
-        width: f32, height: f32,
+        x: f32,
+        y: f32,
+        width: f32,
+        height: f32,
         texture_path: &str,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
@@ -227,8 +251,15 @@ impl EcsAdapter {
         let unique = format!("{}@{:.2}x{:.2}", texture_path, width, height);
 
         let entity = crate::ecs::factory::create_sprite(
-            &mut self.world, x, y, Z_UI,
-            &unique, [0, 0], [1, 1], 1.0, 1.0,
+            &mut self.world,
+            x,
+            y,
+            Z_UI,
+            &unique,
+            [0, 0],
+            [1, 1],
+            1.0,
+            1.0,
         );
 
         // Готовим quad нужного размера и кладём в кэш по тому же имени.
@@ -263,16 +294,32 @@ impl EcsAdapter {
                     "ui"
                 };
                 keep.insert(util::sprite_cache_key(
-                    prefix, &sprite.texture_path, sprite.texture_frame,
-                    sprite.texture_count, sprite.scale,
+                    prefix,
+                    &sprite.texture_path,
+                    sprite.texture_frame,
+                    sprite.texture_count,
+                    sprite.scale,
                 ));
             }
         }
         self.sprite_cache.retain(|key, _| keep.contains(key));
         self.texture_cache.clear();
 
-        let groups = self.world.read_resource::<GroupInfoResource>().groups.clone();
-        let mut changes: Vec<(specs::Entity, String, [i32; 2], [i32; 2], bool, Vec<String>, f32, bool)> = Vec::new();
+        let groups = self
+            .world
+            .read_resource::<GroupInfoResource>()
+            .groups
+            .clone();
+        let mut changes: Vec<(
+            specs::Entity,
+            String,
+            [i32; 2],
+            [i32; 2],
+            bool,
+            Vec<String>,
+            f32,
+            bool,
+        )> = Vec::new();
         {
             let entities = self.world.entities();
             let sprites = self.world.read_storage::<SpriteComponent>();
@@ -281,7 +328,11 @@ impl EcsAdapter {
             use crate::core::texture_pack as pack;
             for (entity, tag, sprite) in (&entities, &tags, &sprites).join() {
                 let name = tag.name.as_str();
-                let Some(obj) = crate::data::catalog().objects.iter().find(|o| o.name == name) else {
+                let Some(obj) = crate::data::catalog()
+                    .objects
+                    .iter()
+                    .find(|o| o.name == name)
+                else {
                     continue;
                 };
                 let count = pack::object_atlas(name, obj.texture_count);
@@ -290,10 +341,17 @@ impl EcsAdapter {
                 // box/rack меняют путь по количеству еды — оставляем их
                 // логические пути, файловый оверлей пака применяется при загрузке.
                 let stateful = name == "box" || name == "rack";
-                let animated = if stateful { false } else { pack::object_animated(name, obj.animated) };
+                let animated = if stateful {
+                    false
+                } else {
+                    pack::object_animated(name, obj.animated)
+                };
                 let mut path = sprite.texture_path.to_string();
                 let mut frame = frame_base;
-                if let Some(info) = group_comps.get(entity).and_then(|g| groups.get(&g.group_id)) {
+                if let Some(info) = group_comps
+                    .get(entity)
+                    .and_then(|g| groups.get(&g.group_id))
+                {
                     if info.width * info.height > 1 && count == [1, 1] {
                         if !stateful {
                             let base = pack::object_texture(name, obj.path);
@@ -301,7 +359,8 @@ impl EcsAdapter {
                         }
                         frame = [0, 0];
                     } else {
-                        let index = info.entities.iter().position(|&e| e == entity).unwrap_or(0) as i32;
+                        let index =
+                            info.entities.iter().position(|&e| e == entity).unwrap_or(0) as i32;
                         let i = index / info.height.max(1);
                         let j = index % info.height.max(1);
                         frame = [
@@ -316,8 +375,14 @@ impl EcsAdapter {
                     path = pack::object_texture(name, obj.path);
                 }
                 changes.push((
-                    entity, path, frame, count, animated, frames,
-                    pack::object_fps(name), pack::object_loop(name),
+                    entity,
+                    path,
+                    frame,
+                    count,
+                    animated,
+                    frames,
+                    pack::object_fps(name),
+                    pack::object_loop(name),
                 ));
             }
         }
@@ -345,7 +410,8 @@ impl EcsAdapter {
             let entities = self.world.entities();
             let transforms = self.world.read_storage::<Transform>();
             let sprites = self.world.read_storage::<SpriteComponent>();
-            (&entities, &transforms, &sprites).join()
+            (&entities, &transforms, &sprites)
+                .join()
                 .map(|(e, _, _)| e)
                 .collect()
         };
@@ -376,10 +442,12 @@ impl EcsAdapter {
         self.floor_positions.clear();
         self.outdoor_positions.clear();
         self.flower_positions.clear();
-        self.world.write_resource::<crate::GroupInfoResource>().groups.clear();
+        self.world
+            .write_resource::<crate::GroupInfoResource>()
+            .groups
+            .clear();
         self.world.write_resource::<BasementPlaced>().0 = false;
         // Дверь магазина возвращается в закрытое состояние вместе с миром.
         *self.world.write_resource::<DoorProgress>() = DoorProgress::new();
     }
-
 }

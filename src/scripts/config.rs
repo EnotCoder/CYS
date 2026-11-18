@@ -6,8 +6,8 @@
 //  Если файл отсутствует или повреждён — используются значения по умолчанию.
 // ========================================================================
 
-use std::collections::HashMap;
 use mlua::{Lua, Table, Value};
+use std::collections::HashMap;
 
 /// Путь к файлу баланса относительно корня проекта.
 const CONFIG_PATH: &str = "assets/scripts/config.lua";
@@ -110,11 +110,14 @@ impl BalanceConfig {
                 }
             }
         }
-        cfg.shopper_spawn_interval = get_f64(get("shopper_spawn_interval"), cfg.shopper_spawn_interval);
-        cfg.shopper_spawn_cooldown = get_f64(get("shopper_spawn_cooldown"), cfg.shopper_spawn_cooldown);
+        cfg.shopper_spawn_interval =
+            get_f64(get("shopper_spawn_interval"), cfg.shopper_spawn_interval);
+        cfg.shopper_spawn_cooldown =
+            get_f64(get("shopper_spawn_cooldown"), cfg.shopper_spawn_cooldown);
         cfg.max_shoppers = get_i64(get("max_shoppers"), cfg.max_shoppers as i64).max(1) as usize;
         cfg.food_regen_tick = get_f64(get("food_regen_tick"), cfg.food_regen_tick);
-        cfg.food_regen_amount = get_i64(get("food_regen_amount"), cfg.food_regen_amount as i64) as i32;
+        cfg.food_regen_amount =
+            get_i64(get("food_regen_amount"), cfg.food_regen_amount as i64) as i32;
         cfg.day_cycle_secs = get_f64(get("day_cycle_secs"), cfg.day_cycle_secs);
         cfg.day_secs = get_f64(get("day_secs"), cfg.day_secs);
         cfg.night_start_secs = get_f64(get("night_start_secs"), cfg.night_start_secs);
@@ -133,9 +136,12 @@ impl BalanceConfig {
         cfg.max_food_box = get_i64(get("max_food_box"), cfg.max_food_box as i64) as i32;
         cfg.max_food_rack = get_i64(get("max_food_rack"), cfg.max_food_rack as i64) as i32;
         cfg.max_food_candies = get_i64(get("max_food_candies"), cfg.max_food_candies as i64) as i32;
-        cfg.candies_start_food = get_i64(get("candies_start_food"), cfg.candies_start_food as i64) as i32;
-        cfg.box_tex_threshold_1 = get_i64(get("box_tex_threshold_1"), cfg.box_tex_threshold_1 as i64) as i32;
-        cfg.box_tex_threshold_2 = get_i64(get("box_tex_threshold_2"), cfg.box_tex_threshold_2 as i64) as i32;
+        cfg.candies_start_food =
+            get_i64(get("candies_start_food"), cfg.candies_start_food as i64) as i32;
+        cfg.box_tex_threshold_1 =
+            get_i64(get("box_tex_threshold_1"), cfg.box_tex_threshold_1 as i64) as i32;
+        cfg.box_tex_threshold_2 =
+            get_i64(get("box_tex_threshold_2"), cfg.box_tex_threshold_2 as i64) as i32;
         cfg.start_money = get_i64(get("start_money"), cfg.start_money as i64) as i32;
         cfg.rent_amount = get_i64(get("rent_amount"), cfg.rent_amount as i64) as i32;
         cfg.rent_interval_secs = get_f64(get("rent_interval_secs"), cfg.rent_interval_secs);
@@ -208,7 +214,10 @@ fn get_i64(v: Value, default: i64) -> i64 {
 /// Достаёт строку из Lua-значения; иначе — дефолт.
 fn get_string(v: Value, default: &str) -> String {
     match v {
-        Value::String(s) => s.to_str().map(|s| s.to_string()).unwrap_or_else(|_| default.to_string()),
+        Value::String(s) => s
+            .to_str()
+            .map(|s| s.to_string())
+            .unwrap_or_else(|_| default.to_string()),
         _ => default.to_string(),
     }
 }

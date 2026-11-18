@@ -14,10 +14,10 @@
 //  проходима для поиска пути — load_walkable_cells не зависит от анимации,
 //  иначе уже построенные маршруты стали бы невалидными.
 
-use specs::{WorldExt, Join};
-use crate::EcsAdapter;
 use crate::core::constants::*;
 use crate::ecs::components::{DoorProgress, DoorState, ShopperTag, Transform};
+use crate::EcsAdapter;
+use specs::{Join, WorldExt};
 
 /// Число шагов распахивания: 0 — закрыта, 3 — полностью открыта.
 const MAX_STEP: i32 = 3;
@@ -83,11 +83,9 @@ fn shopper_near_door(ecs: &EcsAdapter) -> bool {
     let r2 = DOOR_TRIGGER_RADIUS * DOOR_TRIGGER_RADIUS;
     let transforms = ecs.world.read_storage::<Transform>();
     let shoppers = ecs.world.read_storage::<ShopperTag>();
-    (&transforms, &shoppers)
-        .join()
-        .any(|(t, _tag)| {
-            let dx = t.position[0] - center_x;
-            let dy = t.position[1] - center_y;
-            dx * dx + dy * dy <= r2
-        })
+    (&transforms, &shoppers).join().any(|(t, _tag)| {
+        let dx = t.position[0] - center_x;
+        let dy = t.position[1] - center_y;
+        dx * dx + dy * dy <= r2
+    })
 }

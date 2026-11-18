@@ -55,12 +55,17 @@ fn bundled_warm_shader_is_well_formed() {
 fn shader_is_discovered_and_its_wgsl_is_loaded() {
     let _guard = SHADER_LOCK.lock().unwrap_or_else(|e| e.into_inner());
     let root = setup(&[
-        ("shader.json", r#"{"name":"Test Shader","author":"tester","version":"1"}"#),
+        (
+            "shader.json",
+            r#"{"name":"Test Shader","author":"tester","version":"1"}"#,
+        ),
         ("shader.wgsl", SOURCE),
     ]);
 
     shader::rescan();
-    assert!(shader::list().iter().any(|s| s.id == TEST_ID && s.name == "Test Shader"));
+    assert!(shader::list()
+        .iter()
+        .any(|s| s.id == TEST_ID && s.name == "Test Shader"));
     assert!(shader::active_id().is_none());
     assert!(shader::source().is_none());
     assert!(shader::error().is_none());
@@ -76,16 +81,16 @@ fn shader_is_discovered_and_its_wgsl_is_loaded() {
 #[test]
 fn broken_manifest_falls_back_to_vanilla_and_reports_the_reason() {
     let _guard = SHADER_LOCK.lock().unwrap_or_else(|e| e.into_inner());
-    let root = setup(&[
-        ("shader.json", "{"),
-        ("shader.wgsl", SOURCE),
-    ]);
+    let root = setup(&[("shader.json", "{"), ("shader.wgsl", SOURCE)]);
 
     shader::set_active(Some(TEST_ID));
     assert!(shader::active_id().is_none());
     assert!(shader::source().is_none());
     let error = shader::error().expect("broken manifest must report an error");
-    assert!(error.contains("invalid shader.json"), "unexpected error: {error}");
+    assert!(
+        error.contains("invalid shader.json"),
+        "unexpected error: {error}"
+    );
 
     cleanup(&root);
 }
@@ -94,14 +99,20 @@ fn broken_manifest_falls_back_to_vanilla_and_reports_the_reason() {
 fn shader_file_cannot_escape_its_folder() {
     let _guard = SHADER_LOCK.lock().unwrap_or_else(|e| e.into_inner());
     let root = setup(&[
-        ("shader.json", r#"{"name":"Traversal","file":"../shaders.wgsl"}"#),
+        (
+            "shader.json",
+            r#"{"name":"Traversal","file":"../shaders.wgsl"}"#,
+        ),
         ("shader.wgsl", SOURCE),
     ]);
 
     shader::set_active(Some(TEST_ID));
     assert!(shader::source().is_none());
     let error = shader::error().expect("unsafe path must report an error");
-    assert!(error.contains("unsafe file path"), "unexpected error: {error}");
+    assert!(
+        error.contains("unsafe file path"),
+        "unexpected error: {error}"
+    );
 
     cleanup(&root);
 }

@@ -17,7 +17,7 @@ pub struct Texture {
 }
 
 impl Texture {
-    // Создаёт текстуру из сырых байтов PNG/JPEG (декодирование image-крейтом) 
+    // Создаёт текстуру из сырых байтов PNG/JPEG (декодирование image-крейтом)
     // и загружает пиксели в GPU через queue.write_texture.
     pub fn from_bytes(
         device: &wgpu::Device,
@@ -29,13 +29,13 @@ impl Texture {
         // Конвертируем в RGBA8: wgpu потребует байты в этом формате.
         let rgba = img.to_rgba8();
         let dimensions = img.dimensions();
-        
+
         let size = wgpu::Extent3d {
             width: dimensions.0,
             height: dimensions.1,
             depth_or_array_layers: 1,
         };
-        
+
         let texture = device.create_texture(&wgpu::TextureDescriptor {
             label: Some(label),
             size,
@@ -48,7 +48,7 @@ impl Texture {
             usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
             view_formats: &[],
         });
-        
+
         // Копирование пикселей из CPU-памяти в GPU-текстуру.
         // bytes_per_row = 4 (RGBA) * ширину — обязательное выравнивание строк.
         queue.write_texture(
@@ -66,7 +66,7 @@ impl Texture {
             },
             size,
         );
-        
+
         let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
         // Пиксель-арт фильтруется Nearest (резкие квадраты, без размытия).
         let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
@@ -78,19 +78,18 @@ impl Texture {
             mipmap_filter: wgpu::MipmapFilterMode::Nearest,
             ..Default::default()
         });
-        
-        Ok(Self { _texture: texture, view, sampler })
+
+        Ok(Self {
+            _texture: texture,
+            view,
+            sampler,
+        })
     }
-    
+
     // Удобный способ загрузить текстуру с диска по пути. Файл активного пака
     // имеет приоритет; если он сломан, пробуем ванильный путь и только потом
     // подставляем заглушку null.png.
-    pub fn from_path(
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
-        path: &str,
-        label: &str,
-    ) -> Self {
+    pub fn from_path(device: &wgpu::Device, queue: &wgpu::Queue, path: &str, label: &str) -> Self {
         let resolved = crate::core::texture_pack::resolve(path);
         if let Ok(texture) = Self::try_load(device, queue, &resolved, label) {
             return texture;
@@ -175,27 +174,40 @@ impl Texture {
             ..Default::default()
         });
 
-        Self { _texture: texture, view, sampler }
+        Self {
+            _texture: texture,
+            view,
+            sampler,
+        }
     }
-    
+
     // Текстура-заглушка (fallback) для случаев сбоя загрузки обычной текстуры.
     // Полный сбой здесь считается критической ошибкой — паникуем с сообщением.
-    fn load_null(
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
-        original_label: &str,
-    ) -> Self {
+    fn load_null(device: &wgpu::Device, queue: &wgpu::Queue, original_label: &str) -> Self {
         match crate::core::asset::load_bytes(crate::core::constants::TEX_FALLBACK) {
             Ok(bytes) => {
-                match Self::from_bytes(device, queue, &bytes, &format!("{}_fallback", original_label)) {
+                match Self::from_bytes(
+                    device,
+                    queue,
+                    &bytes,
+                    &format!("{}_fallback", original_label),
+                ) {
                     Ok(texture) => texture,
                     Err(e) => {
-                        panic!("Critical error: {} exists but failed to decode: {}", crate::core::constants::TEX_FALLBACK, e);
+                        panic!(
+                            "Critical error: {} exists but failed to decode: {}",
+                            crate::core::constants::TEX_FALLBACK,
+                            e
+                        );
                     }
                 }
             }
             Err(e) => {
-                panic!("Critical error: {} not found: {}", crate::core::constants::TEX_FALLBACK, e);
+                panic!(
+                    "Critical error: {} not found: {}",
+                    crate::core::constants::TEX_FALLBACK,
+                    e
+                );
             }
         }
     }

@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Copyright (C) 2026 EnotCoder
 
-use std::collections::HashSet;
-use specs::Join;
-use crate::EcsAdapter;
-use crate::data::map::pathfinding::Node;
-use crate::npc::ShopperNpc;
 use crate::core::constants::*;
+use crate::data::map::pathfinding::Node;
 use crate::ecs::components::{FoodStorage, ObjectTag, Transform};
-use specs::WorldExt;
+use crate::npc::ShopperNpc;
 use crate::scripts::config::BalanceConfig;
 use crate::scripts::npc::NpcScript;
+use crate::EcsAdapter;
+use specs::Join;
+use specs::WorldExt;
+use std::collections::HashSet;
 
 // ========================================================================
 //  ShopperManager — менеджер покупателей
@@ -72,16 +72,25 @@ impl ShopperManager {
             let mut candies = Vec::new();
             for (tag, transform) in (&tags, &transforms).join() {
                 if tag.name == "cassa" {
-                    cassas.push(Node::new(transform.position[0] as i32, transform.position[1] as i32));
+                    cassas.push(Node::new(
+                        transform.position[0] as i32,
+                        transform.position[1] as i32,
+                    ));
                 }
             }
             for (tag, food, transform) in (&tags, &foods, &transforms).join() {
                 if tag.name == "rack" && food.food_count > 0 {
                     // Клетка перед стеллажом, куда подходят покупатели
-                    racks.push(Node::new(transform.position[0] as i32, transform.position[1] as i32 + 1));
+                    racks.push(Node::new(
+                        transform.position[0] as i32,
+                        transform.position[1] as i32 + 1,
+                    ));
                 }
                 if tag.name == "candies" && food.food_count > 0 {
-                    candies.push(Node::new(transform.position[0] as i32, transform.position[1] as i32));
+                    candies.push(Node::new(
+                        transform.position[0] as i32,
+                        transform.position[1] as i32,
+                    ));
                 }
             }
             (racks, cassas, candies)
@@ -89,7 +98,9 @@ impl ShopperManager {
         if !all_racks.is_empty() && !all_cassas.is_empty() {
             // Случайный выбор целей через время системы (играет роль seed)
             let seed = std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH).unwrap().subsec_nanos();
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .subsec_nanos();
             let rack = all_racks[(seed as usize) % all_racks.len()];
             let cassa = all_cassas[((seed >> 16) as usize) % all_cassas.len()];
             let candy_pos = if !all_candies.is_empty() {
@@ -106,7 +117,9 @@ impl ShopperManager {
                 1 => (TEX_PLAYER_IDLE, TEX_PLAYER_WALK_1, TEX_PLAYER_WALK_2),
                 _ => (TEX_SASHA_IDLE, TEX_SASHA_WALK_1, TEX_SASHA_WALK_2),
             };
-            if let Some(shopper) = ShopperNpc::spawn(ecs, walkable, spawn_node, rack, cassa, candy_pos, tex_idle, tex_walk_1, tex_walk_2) {
+            if let Some(shopper) = ShopperNpc::spawn(
+                ecs, walkable, spawn_node, rack, cassa, candy_pos, tex_idle, tex_walk_1, tex_walk_2,
+            ) {
                 self.shoppers.push(shopper);
             }
         }
@@ -121,7 +134,15 @@ impl ShopperManager {
 
     /// Ежекадровая логика: спавн по таймеру до лимита, обновление всех NPC,
     /// удаление ушедших и установка паузы перед следующим спавном
-    pub fn tick(&mut self, ecs: &mut EcsAdapter, dt: f64, walkable: &HashSet<Node>, active: bool, config: &BalanceConfig, npc_script: Option<&NpcScript>) {
+    pub fn tick(
+        &mut self,
+        ecs: &mut EcsAdapter,
+        dt: f64,
+        walkable: &HashSet<Node>,
+        active: bool,
+        config: &BalanceConfig,
+        npc_script: Option<&NpcScript>,
+    ) {
         self.timer += dt;
         // После ухода покупателя ждём cooldown, затем разрешаем спавн
         if self.exit_cooldown > 0.0 {
@@ -132,7 +153,11 @@ impl ShopperManager {
             }
         }
         // Обычный спавн: магазин активен и прошло время между появлениями
-        if active && self.timer >= config.shopper_spawn_interval && self.shoppers.len() < config.max_shoppers && self.exit_cooldown <= 0.0 {
+        if active
+            && self.timer >= config.shopper_spawn_interval
+            && self.shoppers.len() < config.max_shoppers
+            && self.exit_cooldown <= 0.0
+        {
             self.timer = 0.0;
             self.spawn_shopper(ecs, walkable);
         }

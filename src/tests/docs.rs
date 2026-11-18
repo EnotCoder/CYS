@@ -20,8 +20,8 @@ fn read(path: &Path) -> String {
 
 fn md_files(dir: &Path) -> Vec<PathBuf> {
     let mut out = Vec::new();
-    let entries = fs::read_dir(dir)
-        .unwrap_or_else(|e| panic!("нет каталога {}: {e}", dir.display()));
+    let entries =
+        fs::read_dir(dir).unwrap_or_else(|e| panic!("нет каталога {}: {e}", dir.display()));
     for entry in entries.flatten() {
         let path = entry.path();
         if path.is_dir() {
@@ -42,7 +42,10 @@ fn rel(path: &Path) -> String {
 }
 
 fn collect_rs(dir: &Path, out: &mut Vec<PathBuf>) {
-    for entry in fs::read_dir(dir).unwrap_or_else(|e| panic!("нет {}: {e}", dir.display())).flatten() {
+    for entry in fs::read_dir(dir)
+        .unwrap_or_else(|e| panic!("нет {}: {e}", dir.display()))
+        .flatten()
+    {
         let path = entry.path();
         if path.is_dir() {
             collect_rs(&path, out);

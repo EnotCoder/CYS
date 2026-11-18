@@ -7,18 +7,20 @@
 //  банкротство), FoodPulse для «попа еды», настройки и уровни.
 // ========================================================================
 
-use std::collections::{HashMap, HashSet};
-use specs::{WorldExt, Join};
-use winit::keyboard::KeyCode;
-use crate::scenes::scene_trait::{Scene, SceneAction};
 use crate::core::constants::*;
-use crate::input::platform::InputSource;
-use crate::ui::inventory::Inventory;
 use crate::data::map::pathfinding::Node;
-use crate::ecs::components::{FoodStorage, ObjectTag, TotalFood, BusyCassas, Money, PlacementError, ShopOwned, ShopDenied};
+use crate::ecs::components::{
+    BusyCassas, FoodStorage, Money, ObjectTag, PlacementError, ShopDenied, ShopOwned, TotalFood,
+};
+use crate::input::platform::InputSource;
 use crate::scenes::game::day_night::DayNightCycle;
 use crate::scenes::game::hud::GameHud;
 use crate::scenes::game::shoppers::ShopperManager;
+use crate::scenes::scene_trait::{Scene, SceneAction};
+use crate::ui::inventory::Inventory;
+use specs::{Join, WorldExt};
+use std::collections::{HashMap, HashSet};
+use winit::keyboard::KeyCode;
 
 mod camera;
 pub(crate) mod day_night;
@@ -198,7 +200,13 @@ impl GameScene {
         }
     }
 
-    fn show_loading(&mut self, ecs: &mut crate::EcsAdapter, text_renderer: &mut crate::ui::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) {
+    fn show_loading(
+        &mut self,
+        ecs: &mut crate::EcsAdapter,
+        text_renderer: &mut crate::ui::text_renderer::TextRenderer,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+    ) {
         self.hud.show_loading(ecs, text_renderer, device, queue);
     }
 
@@ -207,7 +215,13 @@ impl GameScene {
     }
 
     /// Собирает контент сцены: UI и, для магазина (уровень 0), загрузку карты
-    fn setup_content(&mut self, ecs: &mut crate::EcsAdapter, text_renderer: &mut crate::ui::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) {
+    fn setup_content(
+        &mut self,
+        ecs: &mut crate::EcsAdapter,
+        text_renderer: &mut crate::ui::text_renderer::TextRenderer,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+    ) {
         self.setup_ui(ecs, text_renderer, device, queue);
         if self.current_level == 0 {
             crate::data::map::load_map_to_ecs(ecs);
@@ -216,13 +230,23 @@ impl GameScene {
     }
 
     /// Строит постоянный UI: слоты хотбара, иконки режимов, курсор, инфо-панель
-    fn setup_ui(&mut self, ecs: &mut crate::EcsAdapter, _text_renderer: &mut crate::ui::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) {
+    fn setup_ui(
+        &mut self,
+        ecs: &mut crate::EcsAdapter,
+        _text_renderer: &mut crate::ui::text_renderer::TextRenderer,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+    ) {
         self.slots = crate::data::get_slot_vec();
 
         let dy = self.bottom_dy;
 
         // Иконки режима игры, активного состояния и кнопки инвентаря
-        let icon_mode = ecs.add_ui(ICON_MODE_X, SLOT_BAR_Y + dy, MODE_ICON_TEX[self.mode as usize]);
+        let icon_mode = ecs.add_ui(
+            ICON_MODE_X,
+            SLOT_BAR_Y + dy,
+            MODE_ICON_TEX[self.mode as usize],
+        );
         let active_entity = ecs.add_ui(ACTIVE_X, SLOT_BAR_Y + dy, TEX_ACTIVE);
         self.active_entity = Some(active_entity);
         let inv_entity = ecs.add_ui(INV_BTN_X, SLOT_BAR_Y + dy, TEX_INV_BUTTON);
@@ -242,10 +266,7 @@ impl GameScene {
         // Иконки всех слотов хотбара (сдвинуты на 1: кнопка настроек перед 1-м слотом)
         for (i, slot) in self.slots.iter().enumerate() {
             let icon_path = crate::core::util::slot_icon_path(slot.obj.name);
-            let ent = ecs.add_ui(
-                HOTBAR_X + i as f32, SLOT_BAR_Y + dy,
-                &icon_path,
-            );
+            let ent = ecs.add_ui(HOTBAR_X + i as f32, SLOT_BAR_Y + dy, &icon_path);
             ecs.update_transform_z(ent, Z_UI_HOTBAR);
             self.slot_entities.push(ent);
         }
@@ -321,7 +342,7 @@ impl GameScene {
         }
     }
 
-        /// Перебирает накопленные сценой/вводом события «еда добавлена» и запускает пульс объекта.
+    /// Перебирает накопленные сценой/вводом события «еда добавлена» и запускает пульс объекта.
     fn drain_food_fx(&mut self, ecs: &mut crate::EcsAdapter) {
         let pending = std::mem::take(&mut ecs.pending_food_adds);
         for group_id in pending {
@@ -385,14 +406,16 @@ impl GameScene {
     /// цена из баланса и флаг, куплен ли уже доступ в текущем мире (ShopOwned).
     fn shop_items(&self, ecs: &crate::EcsAdapter) -> Vec<crate::ui::shop::ShopItem> {
         let owned = &ecs.world.read_resource::<ShopOwned>().0;
-        crate::data::ALL_OBJECTS.iter()
+        crate::data::ALL_OBJECTS
+            .iter()
             .filter(|o| !crate::core::constants::SHOP_EXEMPT.contains(&o.name))
             .map(|o| {
                 let is_owned = owned.iter().any(|a| a.as_str() == o.name);
                 let price = crate::data::object_price(o.name, &self.config);
                 let icon = crate::core::util::slot_icon_path(o.name);
                 (o.name.to_string(), icon, price, is_owned)
-            }).collect()
+            })
+            .collect()
     }
 
     /// Минимальная сумма, чтобы снова сделать магазин зарабатывающим:
@@ -403,7 +426,9 @@ impl GameScene {
         let foods = ecs.world.read_storage::<FoodStorage>();
         let has_cassa = (&tags).join().any(|t| t.name == "cassa");
         let has_food = (&tags, &foods).join().any(|(t, f)| {
-            t.name == "box" || (t.name == "rack" && f.food_count > 0) || (t.name == "candies" && f.food_count > 0)
+            t.name == "box"
+                || (t.name == "rack" && f.food_count > 0)
+                || (t.name == "candies" && f.food_count > 0)
         });
         let mut cost = 0;
         if !has_cassa {
@@ -460,7 +485,9 @@ impl GameScene {
             if let Some(&entity) = ecs.map_entities.get(pos) {
                 let (tex, frame, count) = crate::data::map::token_to_texture(token, season);
                 ecs.update_sprite_texture(entity, tex);
-                let mut sprites = ecs.world.write_storage::<crate::ecs::components::SpriteComponent>();
+                let mut sprites = ecs
+                    .world
+                    .write_storage::<crate::ecs::components::SpriteComponent>();
                 if let Some(sprite) = sprites.get_mut(entity) {
                     sprite.texture_frame = frame;
                     sprite.texture_count = count;
@@ -470,7 +497,10 @@ impl GameScene {
         // Проход выше прогоняет и клетки двери, возвращая им закрытое
         // состояние из token_to_texture. Возвращаем двери текущий шаг
         // анимации, иначе смена сезона закрыла бы её на середине opensвания.
-        let step = ecs.world.read_resource::<crate::ecs::components::DoorProgress>().step;
+        let step = ecs
+            .world
+            .read_resource::<crate::ecs::components::DoorProgress>()
+            .step;
         ecs.update_door_textures(step);
     }
 
@@ -493,7 +523,11 @@ impl GameScene {
 impl Scene for GameScene {
     /// Вход в игру: полный сброс всех систем и ресурсов, запуск музыки.
     /// Построение карты откладывается до первого update().
-    fn on_enter(&mut self, ecs: &mut crate::EcsAdapter, _text_renderer: &mut crate::ui::text_renderer::TextRenderer) {
+    fn on_enter(
+        &mut self,
+        ecs: &mut crate::EcsAdapter,
+        _text_renderer: &mut crate::ui::text_renderer::TextRenderer,
+    ) {
         self.loaded = false;
         self.loading = true;
         self.slots = Vec::new();
@@ -507,7 +541,8 @@ impl Scene for GameScene {
         self.inventory.reset();
         self.npc_walkable.clear();
         // Переносим балансовые настройки в мир ECS для использования другими системами
-        *ecs.world.write_resource::<crate::scripts::config::BalanceConfig>() = self.config.clone();
+        *ecs.world
+            .write_resource::<crate::scripts::config::BalanceConfig>() = self.config.clone();
         self.last_frame = std::time::Instant::now();
         self.camera_offset_x = 0.0;
         self.camera_offset_y = 0.0;
@@ -555,7 +590,11 @@ impl Scene for GameScene {
     }
 
     /// Автосохранение мира и настроек при выходе из игры (в меню или закрытие приложения).
-    fn on_exit(&mut self, ecs: &mut crate::EcsAdapter, _text_renderer: &mut crate::ui::text_renderer::TextRenderer) {
+    fn on_exit(
+        &mut self,
+        ecs: &mut crate::EcsAdapter,
+        _text_renderer: &mut crate::ui::text_renderer::TextRenderer,
+    ) {
         self.persist_settings();
         if self.shop.open {
             self.shop.close(ecs);
@@ -571,11 +610,23 @@ impl Scene for GameScene {
         }
     }
 
-    fn update(&mut self, ecs: &mut crate::EcsAdapter, input: &dyn InputSource, window_size: (f32, f32), text_renderer: &mut crate::ui::text_renderer::TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) -> SceneAction {
+    fn update(
+        &mut self,
+        ecs: &mut crate::EcsAdapter,
+        input: &dyn InputSource,
+        window_size: (f32, f32),
+        text_renderer: &mut crate::ui::text_renderer::TextRenderer,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+    ) -> SceneAction {
         // Адаптивный масштаб UI под соотношение сторон: интерфейс целиком
         // (хотбар и иконки слева/справа, HUD сверху) должен помещаться в экран
         // на телефонах и планшетах, а не только по ширине.
-        let aspect = if window_size.1 > 0.0 { window_size.0 / window_size.1 } else { 1.0 };
+        let aspect = if window_size.1 > 0.0 {
+            window_size.0 / window_size.1
+        } else {
+            1.0
+        };
         self.ui_scale = crate::core::util::ui_fit_scale(
             aspect,
             crate::core::constants::GAME_UI_HALF_W,
@@ -640,7 +691,8 @@ impl Scene for GameScene {
             if let Some((mx, my)) = input.cursor() {
                 let (wx, wy) = crate::ui::system::ndc_to_ui(mx, my, window_size);
                 if input.mouse_pressed(winit::event::MouseButton::Left)
-                    && (self.tutorial.button_hit(wx, wy) || !self.tutorial.panel_hit(wx, wy)) {
+                    && (self.tutorial.button_hit(wx, wy) || !self.tutorial.panel_hit(wx, wy))
+                {
                     self.tutorial.close(ecs);
                     crate::audio::play("click");
                 }
@@ -653,7 +705,11 @@ impl Scene for GameScene {
         }
         // Показываем один раз сессию, только если в магазине ещё ничего нет.
         if !self.tutorial_shown && self.current_level == 0 {
-            let empty = ecs.world.read_resource::<crate::ecs::components::GroupInfoResource>().groups.is_empty();
+            let empty = ecs
+                .world
+                .read_resource::<crate::ecs::components::GroupInfoResource>()
+                .groups
+                .is_empty();
             if empty {
                 self.tutorial.open(ecs, text_renderer, device, queue);
                 self.tutorial_shown = true;
@@ -681,18 +737,67 @@ impl Scene for GameScene {
                     self.bankrupt = true;
                     self.shoppers.set_active(false);
                     crate::audio::play("error");
-                    let bg = ecs.add_ui_sized(0.0, 0.0, 24.0, 16.0, "assets/tex/dev_tools/black.png", device, queue);
+                    let bg = ecs.add_ui_sized(
+                        0.0,
+                        0.0,
+                        24.0,
+                        16.0,
+                        "assets/tex/dev_tools/black.png",
+                        device,
+                        queue,
+                    );
                     ecs.update_sprite_alpha(bg, 0.75);
                     self.bankrupt_bg = Some(bg);
-                    let title = text_renderer.add_text(ecs, device, queue, "BANKRUPT", FONT_SIZE_LOGO, 0.0, 2.0, 7.0, 1.0, RED);
+                    let title = text_renderer.add_text(
+                        ecs,
+                        device,
+                        queue,
+                        "BANKRUPT",
+                        FONT_SIZE_LOGO,
+                        0.0,
+                        2.0,
+                        7.0,
+                        1.0,
+                        RED,
+                    );
                     self.bankrupt_title = Some(title);
-                    let hint = text_renderer.add_text(ecs, device, queue, "Tap the button to return to menu", FONT_SIZE_BTN, 0.0, 0.5, 9.0, 1.0, WHITE);
+                    let hint = text_renderer.add_text(
+                        ecs,
+                        device,
+                        queue,
+                        "Tap the button to return to menu",
+                        FONT_SIZE_BTN,
+                        0.0,
+                        0.5,
+                        9.0,
+                        1.0,
+                        WHITE,
+                    );
                     self.bankrupt_hint = Some(hint);
                     // Кликабельная кнопка «В меню» (на телефоне нет клавиши R).
-                    let btn = ecs.add_ui_sized(crate::core::constants::BANKRUPT_BTN_X, crate::core::constants::BANKRUPT_BTN_Y, crate::core::constants::BANKRUPT_BTN_HALF_W * 2.0, crate::core::constants::BANKRUPT_BTN_HALF_H * 2.0, "assets/tex/dev_tools/black.png", device, queue);
+                    let btn = ecs.add_ui_sized(
+                        crate::core::constants::BANKRUPT_BTN_X,
+                        crate::core::constants::BANKRUPT_BTN_Y,
+                        crate::core::constants::BANKRUPT_BTN_HALF_W * 2.0,
+                        crate::core::constants::BANKRUPT_BTN_HALF_H * 2.0,
+                        "assets/tex/dev_tools/black.png",
+                        device,
+                        queue,
+                    );
                     ecs.update_sprite_alpha(btn, 0.85);
                     self.bankrupt_button = Some(btn);
-                    let btn_label = text_renderer.add_text(ecs, device, queue, "Menu", FONT_SIZE_BTN, crate::core::constants::BANKRUPT_BTN_X, crate::core::constants::BANKRUPT_BTN_Y, 3.0, 1.0, WHITE);
+                    let btn_label = text_renderer.add_text(
+                        ecs,
+                        device,
+                        queue,
+                        "Menu",
+                        FONT_SIZE_BTN,
+                        crate::core::constants::BANKRUPT_BTN_X,
+                        crate::core::constants::BANKRUPT_BTN_Y,
+                        3.0,
+                        1.0,
+                        WHITE,
+                    );
                     self.bankrupt_button_label = Some(btn_label);
                 }
             }
@@ -705,8 +810,11 @@ impl Scene for GameScene {
             if let Some((mx, my)) = input.cursor() {
                 let (wx, wy) = crate::ui::system::ndc_to_ui(mx, my, window_size);
                 if input.mouse_pressed(winit::event::MouseButton::Left)
-                    && (wx - crate::core::constants::BANKRUPT_BTN_X).abs() <= crate::core::constants::BANKRUPT_BTN_HALF_W
-                    && (wy - crate::core::constants::BANKRUPT_BTN_Y).abs() <= crate::core::constants::BANKRUPT_BTN_HALF_H {
+                    && (wx - crate::core::constants::BANKRUPT_BTN_X).abs()
+                        <= crate::core::constants::BANKRUPT_BTN_HALF_W
+                    && (wy - crate::core::constants::BANKRUPT_BTN_Y).abs()
+                        <= crate::core::constants::BANKRUPT_BTN_HALF_H
+                {
                     return SceneAction::Switch("menu".to_string());
                 }
             }
@@ -737,7 +845,8 @@ impl Scene for GameScene {
                 let (wx, wy) = crate::ui::system::ndc_to_ui(mx, my, window_size);
                 if input.mouse_pressed(winit::event::MouseButton::Left)
                     && (wx - SETTINGS_BTN_X).abs() < TILE_HALF
-                    && (wy - (SETTINGS_BTN_Y + self.bottom_dy)).abs() < TILE_HALF {
+                    && (wy - (SETTINGS_BTN_Y + self.bottom_dy)).abs() < TILE_HALF
+                {
                     if self.settings.open {
                         self.settings.close(ecs);
                     } else {
@@ -755,7 +864,8 @@ impl Scene for GameScene {
                 let (wx, wy) = crate::ui::system::ndc_to_ui(mx, my, window_size);
                 if input.mouse_pressed(winit::event::MouseButton::Left)
                     && (wx - SHOP_BTN_X).abs() < TILE_HALF
-                    && (wy - (SLOT_BAR_Y + self.bottom_dy)).abs() < TILE_HALF {
+                    && (wy - (SLOT_BAR_Y + self.bottom_dy)).abs() < TILE_HALF
+                {
                     if self.shop.open {
                         self.shop.close(ecs);
                         crate::audio::play("close");
@@ -778,7 +888,8 @@ impl Scene for GameScene {
                 let (wx, wy) = crate::ui::system::ndc_to_ui(mx, my, window_size);
                 if input.mouse_pressed(winit::event::MouseButton::Left)
                     && (wx - WEATHER_BTN_X).abs() < TILE_HALF
-                    && (wy - (WEATHER_BTN_Y + self.bottom_dy)).abs() < TILE_HALF {
+                    && (wy - (WEATHER_BTN_Y + self.bottom_dy)).abs() < TILE_HALF
+                {
                     if self.weather.open {
                         self.weather.close(ecs);
                         crate::audio::play("close");
@@ -816,7 +927,8 @@ impl Scene for GameScene {
                 }
             }
             // Пока открыты настройки — обрабатываем только их ввод
-            self.settings.handle_input(ecs, text_renderer, device, queue, input, window_size);
+            self.settings
+                .handle_input(ecs, text_renderer, device, queue, input, window_size);
             if self.settings.vsync_toggled {
                 self.settings.vsync_toggled = false;
                 let enabled = self.settings.vsync.checked;
@@ -876,10 +988,12 @@ impl Scene for GameScene {
                     return SceneAction::None;
                 }
             }
-            self.weather.handle_input(ecs, text_renderer, device, queue, input, window_size);
+            self.weather
+                .handle_input(ecs, text_renderer, device, queue, input, window_size);
             if self.weather.season_changed {
                 self.weather.season_changed = false;
-                *ecs.world.write_resource::<crate::ecs::components::Season>() = self.weather.selected;
+                *ecs.world.write_resource::<crate::ecs::components::Season>() =
+                    self.weather.selected;
                 self.refresh_grass_tiles(ecs);
             }
         } else if self.shop.open {
@@ -900,7 +1014,8 @@ impl Scene for GameScene {
                                 // Денег не хватает: закрываем диалог и показываем
                                 // ту же красную подсказку, что и раньше.
                                 self.shop.close_confirm(ecs);
-                                ecs.world.write_resource::<PlacementError>().0 = Some((money, price));
+                                ecs.world.write_resource::<PlacementError>().0 =
+                                    Some((money, price));
                             }
                         }
                     }
@@ -924,10 +1039,16 @@ impl Scene for GameScene {
             if !self.shop.thumb_dragging {
                 if let Some(idx) = self.shop.row_clicked(input, window_size) {
                     if let Some(name) = shop_names.get(idx) {
-                        let owned = ecs.world.read_resource::<ShopOwned>().0.iter().any(|o| o == name);
+                        let owned = ecs
+                            .world
+                            .read_resource::<ShopOwned>()
+                            .0
+                            .iter()
+                            .any(|o| o == name);
                         if !owned {
                             let price = crate::data::object_price(name, &self.config);
-                            self.shop.open_confirm(ecs, text_renderer, device, queue, name, price);
+                            self.shop
+                                .open_confirm(ecs, text_renderer, device, queue, name, price);
                             crate::audio::play("click");
                         }
                     }
@@ -952,9 +1073,21 @@ impl Scene for GameScene {
 
             // Основной игровой ввод: курсор, размещение/удаление/взаимодействие
             let result = crate::input::do_input(
-                input, ecs, &mut self.slots, self.act_slot, self.mode, self.map_size, self.zoom_step,
-                window_size, cursor, icon_mode, icons_slot_cursor, self.inventory.mode,
-                self.camera_offset_x, self.camera_offset_y, self.bottom_dy,
+                input,
+                ecs,
+                &mut self.slots,
+                self.act_slot,
+                self.mode,
+                self.map_size,
+                self.zoom_step,
+                window_size,
+                cursor,
+                icon_mode,
+                icons_slot_cursor,
+                self.inventory.mode,
+                self.camera_offset_x,
+                self.camera_offset_y,
+                self.bottom_dy,
             );
             self.act_slot = result.0;
             self.mode = result.1;
@@ -966,7 +1099,9 @@ impl Scene for GameScene {
             if input.mouse_pressed(winit::event::MouseButton::Left) {
                 if let Some((mx, my)) = input.cursor() {
                     let (wx, wy) = crate::ui::system::ndc_to_ui(mx, my, window_size);
-                    if (wx - INV_BTN_X).abs() < TILE_HALF && (wy - (SLOT_BAR_Y + self.bottom_dy)).abs() < TILE_HALF {
+                    if (wx - INV_BTN_X).abs() < TILE_HALF
+                        && (wy - (SLOT_BAR_Y + self.bottom_dy)).abs() < TILE_HALF
+                    {
                         if self.inventory.open {
                             self.inventory.exit(ecs);
                             crate::audio::play("close");
@@ -983,9 +1118,15 @@ impl Scene for GameScene {
                 if let Some((mx, my)) = input.cursor() {
                     let (wx, wy) = crate::ui::system::ndc_to_ui(mx, my, window_size);
                     // Кнопка "открыт/закрыт": переключает доступность магазина для покупателей
-                    if (wx - ACTIVE_X).abs() < TILE_HALF && (wy - (SLOT_BAR_Y + self.bottom_dy)).abs() < TILE_HALF {
+                    if (wx - ACTIVE_X).abs() < TILE_HALF
+                        && (wy - (SLOT_BAR_Y + self.bottom_dy)).abs() < TILE_HALF
+                    {
                         self.active = !self.active;
-                        let tex = if self.active { TEX_ACTIVE } else { TEX_NO_ACTIVE };
+                        let tex = if self.active {
+                            TEX_ACTIVE
+                        } else {
+                            TEX_NO_ACTIVE
+                        };
                         if let Some(entity) = self.active_entity {
                             ecs.update_sprite_texture(entity, tex);
                         }
@@ -993,10 +1134,13 @@ impl Scene for GameScene {
                         crate::audio::play("bell");
                     }
                     // --- Клик по mode ---
-                    if (wx - ICON_MODE_X).abs() < TILE_HALF && (wy - (SLOT_BAR_Y + self.bottom_dy)).abs() < TILE_HALF {
+                    if (wx - ICON_MODE_X).abs() < TILE_HALF
+                        && (wy - (SLOT_BAR_Y + self.bottom_dy)).abs() < TILE_HALF
+                    {
                         let cursor = self.cursor_entity.unwrap();
                         let icon_mode = self.icon_mode.unwrap();
-                        self.mode = crate::input::interact::cycle_mode(self.mode, ecs, cursor, icon_mode);
+                        self.mode =
+                            crate::input::interact::cycle_mode(self.mode, ecs, cursor, icon_mode);
                     }
                 }
             }
@@ -1012,7 +1156,18 @@ impl Scene for GameScene {
 
             // Пасхалка: всплывающая надпись после установки магазина (с cooldown)
             if show_ilm && self.ilm_cooldown <= 0.0 && self.ilm_entity.is_none() {
-                let ent = text_renderer.add_text(ecs, device, queue, "Minecraft", 48.0, 0.0, -3.0 + self.bottom_dy, 2.0, 1.0, WHITE);
+                let ent = text_renderer.add_text(
+                    ecs,
+                    device,
+                    queue,
+                    "Minecraft",
+                    48.0,
+                    0.0,
+                    -3.0 + self.bottom_dy,
+                    2.0,
+                    1.0,
+                    WHITE,
+                );
                 self.ilm_entity = Some(ent);
                 self.ilm_timer = 2.0;
                 self.ilm_cooldown = 5.0;
@@ -1027,8 +1182,22 @@ impl Scene for GameScene {
         if let Some((money, price)) = placement_err {
             ecs.world.write_resource::<PlacementError>().0 = None;
             if self.no_money_entity.is_none() {
-                let msg = format!("Not enough money: you have {}, but it costs {}", money, price);
-                let ent = text_renderer.add_text(ecs, device, queue, &msg, 40.0, 0.0, -3.0 + self.bottom_dy, 8.0, 1.0, RED);
+                let msg = format!(
+                    "Not enough money: you have {}, but it costs {}",
+                    money, price
+                );
+                let ent = text_renderer.add_text(
+                    ecs,
+                    device,
+                    queue,
+                    &msg,
+                    40.0,
+                    0.0,
+                    -3.0 + self.bottom_dy,
+                    8.0,
+                    1.0,
+                    RED,
+                );
                 self.no_money_entity = Some(ent);
                 self.no_money_timer = 2.0;
             }
@@ -1039,7 +1208,18 @@ impl Scene for GameScene {
         if shop_denied {
             ecs.world.write_resource::<ShopDenied>().0 = false;
             if self.no_money_entity.is_none() {
-                let ent = text_renderer.add_text(ecs, device, queue, "You don't have this item", 40.0, 0.0, -3.0, 8.0, 1.0, RED);
+                let ent = text_renderer.add_text(
+                    ecs,
+                    device,
+                    queue,
+                    "You don't have this item",
+                    40.0,
+                    0.0,
+                    -3.0,
+                    8.0,
+                    1.0,
+                    RED,
+                );
                 self.no_money_entity = Some(ent);
                 self.no_money_timer = 2.0;
             }
@@ -1109,7 +1289,10 @@ impl Scene for GameScene {
                         let foods = ecs.world.read_storage::<FoodStorage>();
                         let tags = ecs.world.read_storage::<ObjectTag>();
                         if let Some(f) = foods.get(*first) {
-                            let name = tags.get(*first).map(|t| t.name.clone()).unwrap_or("Object".to_string());
+                            let name = tags
+                                .get(*first)
+                                .map(|t| t.name.clone())
+                                .unwrap_or("Object".to_string());
                             return Some((f.food_count, f.max_food, name));
                         }
                     }
@@ -1117,7 +1300,8 @@ impl Scene for GameScene {
             }
             None
         });
-        self.hud.update_hover(ecs, text_renderer, device, queue, hovered_object);
+        self.hud
+            .update_hover(ecs, text_renderer, device, queue, hovered_object);
 
         // --- Tooltip для ячеек инвентаря ---
         let slot_tooltip = if self.inventory.mode {
@@ -1132,7 +1316,12 @@ impl Scene for GameScene {
                     if item_idx < items.len() {
                         let name = items[item_idx];
                         let price = crate::data::object_price(name, &self.config);
-                        Some((name.to_string(), price, SLOT_BAR_X + col as f32, INVENTORY_BASE_Y + row as f32 - 0.55 + self.bottom_dy))
+                        Some((
+                            name.to_string(),
+                            price,
+                            SLOT_BAR_X + col as f32,
+                            INVENTORY_BASE_Y + row as f32 - 0.55 + self.bottom_dy,
+                        ))
                     } else {
                         None
                     }
@@ -1143,16 +1332,19 @@ impl Scene for GameScene {
         } else {
             None
         };
-        self.hud.update_slot_tooltip(ecs, text_renderer, device, queue, slot_tooltip);
+        self.hud
+            .update_slot_tooltip(ecs, text_renderer, device, queue, slot_tooltip);
 
         // --- Статистика (еда / деньги) ---
         let total_food = ecs.world.read_resource::<TotalFood>().0;
         let money = ecs.world.read_resource::<Money>().0;
-        self.hud.update_stats(ecs, text_renderer, device, queue, total_food, money);
+        self.hud
+            .update_stats(ecs, text_renderer, device, queue, total_food, money);
 
         // --- Время на часах ---
         let time_str = self.day_night.time_string(&self.config);
-        self.hud.update_time(ecs, text_renderer, device, queue, &time_str, dt);
+        self.hud
+            .update_time(ecs, text_renderer, device, queue, &time_str, dt);
 
         // Управление таймером пасхалки "Minecraft"
         if self.ilm_cooldown > 0.0 {
@@ -1177,7 +1369,14 @@ impl Scene for GameScene {
 
         // --- Shopper NPCs и анимации спрайтов (замирают на паузе) ---
         if !paused {
-            self.shoppers.tick(ecs, dt, &self.npc_walkable, self.active, &self.config, self.npc_script.as_ref());
+            self.shoppers.tick(
+                ecs,
+                dt,
+                &self.npc_walkable,
+                self.active,
+                &self.config,
+                self.npc_script.as_ref(),
+            );
             self.update_animations(ecs, dt);
         }
 
@@ -1194,7 +1393,20 @@ impl Scene for GameScene {
         SceneAction::None
     }
 
-    fn sprites(&self, ecs: &crate::EcsAdapter, visible_bounds: Option<(f32, f32, f32, f32)>) -> (Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>, Vec<crate::SpriteRenderData>) {
+    fn sprites(
+        &self,
+        ecs: &crate::EcsAdapter,
+        visible_bounds: Option<(f32, f32, f32, f32)>,
+    ) -> (
+        Vec<crate::SpriteRenderData>,
+        Vec<crate::SpriteRenderData>,
+        Vec<crate::SpriteRenderData>,
+        Vec<crate::SpriteRenderData>,
+        Vec<crate::SpriteRenderData>,
+        Vec<crate::SpriteRenderData>,
+        Vec<crate::SpriteRenderData>,
+        Vec<crate::SpriteRenderData>,
+    ) {
         // Отдаём слои рендера с отсечением по видимой области
         ecs.get_sprites_by_layer(visible_bounds)
     }
@@ -1221,18 +1433,21 @@ impl Scene for GameScene {
     }
 
     fn lights(&self, ecs: &crate::EcsAdapter) -> Vec<crate::core::buffers::LightData> {
-        let transforms = ecs.world.read_storage::<crate::ecs::components::Transform>();
-        let lights = ecs.world.read_storage::<crate::ecs::components::PointLight>();
-        
-        (&transforms, &lights).join()
+        let transforms = ecs
+            .world
+            .read_storage::<crate::ecs::components::Transform>();
+        let lights = ecs
+            .world
+            .read_storage::<crate::ecs::components::PointLight>();
+
+        (&transforms, &lights)
+            .join()
             .take(crate::core::constants::MAX_LIGHTS)
-            .map(|(t, l)| {
-                crate::core::buffers::LightData {
-                    position: [t.position[0], t.position[1], t.position[2], 0.0],
-                    color: [l.color[0], l.color[1], l.color[2], l.intensity],
-                    radius: l.radius,
-                    _padding: [0.0; 7],
-                }
+            .map(|(t, l)| crate::core::buffers::LightData {
+                position: [t.position[0], t.position[1], t.position[2], 0.0],
+                color: [l.color[0], l.color[1], l.color[2], l.intensity],
+                radius: l.radius,
+                _padding: [0.0; 7],
             })
             .collect()
     }

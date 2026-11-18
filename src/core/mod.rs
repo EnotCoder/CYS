@@ -17,13 +17,13 @@
 
 pub mod asset;
 pub mod buffers;
+pub mod constants;
 pub mod init;
 pub mod pipeline;
 pub mod render;
 pub mod shader_pack;
 pub mod texture;
 pub mod texture_pack;
-pub mod constants;
 pub mod util;
 
 // Продляем наружу всё содержимое подмодулей, чтобы работать было удобнее.

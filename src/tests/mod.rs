@@ -60,13 +60,23 @@ fn door_opening_is_four_cells_in_the_south_facade() {
         }
     }
     // Дверь должна стоять вплотную к тротуару, иначе покупатель не дойдёт.
-    assert_eq!(DOOR_Y_MIN, SIDEWALK_Y + 1, "нижний край двери должен примыкать к тротуару");
+    assert_eq!(
+        DOOR_Y_MIN,
+        SIDEWALK_Y + 1,
+        "нижний край двери должен примыкать к тротуару"
+    );
     assert!(is_door_token(crate::core::constants::DOOR_TOKEN));
     // Дверь — не пол и не стена: на неё ничего нельзя поставить, но она
     // не должна попадать в пересчёт стен.
-    assert!(!crate::data::map::is_floor_tile(crate::core::constants::DOOR_TOKEN));
-    assert!(!crate::data::map::is_wall_tile(crate::core::constants::DOOR_TOKEN));
-    assert!(!crate::data::is_grass_token(crate::core::constants::DOOR_TOKEN));
+    assert!(!crate::data::map::is_floor_tile(
+        crate::core::constants::DOOR_TOKEN
+    ));
+    assert!(!crate::data::map::is_wall_tile(
+        crate::core::constants::DOOR_TOKEN
+    ));
+    assert!(!crate::data::is_grass_token(
+        crate::core::constants::DOOR_TOKEN
+    ));
 }
 
 #[test]
@@ -78,16 +88,30 @@ fn door_texture_steps_cover_the_animation_cycle() {
 
     // 0 — закрыта, 1..3 — распахивание, дальше полностью открыта.
     assert_eq!(door_texture_for_step(0), DOOR_TEX_CLOSED);
-    assert_eq!(door_texture_for_step(-1), DOOR_TEX_CLOSED, "отрицательный шаг тоже закрытая");
+    assert_eq!(
+        door_texture_for_step(-1),
+        DOOR_TEX_CLOSED,
+        "отрицательный шаг тоже закрытая"
+    );
     assert_eq!(door_texture_for_step(1), DOOR_TEX_OPEN_1);
     assert_eq!(door_texture_for_step(2), DOOR_TEX_OPEN_2);
     assert_eq!(door_texture_for_step(3), DOOR_TEX_OPEN_3);
     assert_eq!(door_texture_for_step(4), DOOR_TEX_OPEN, "дальше открыта");
 
     // Все пять текстур должны быть разными файлами.
-    let all = [DOOR_TEX_CLOSED, DOOR_TEX_OPEN_1, DOOR_TEX_OPEN_2, DOOR_TEX_OPEN_3, DOOR_TEX_OPEN];
+    let all = [
+        DOOR_TEX_CLOSED,
+        DOOR_TEX_OPEN_1,
+        DOOR_TEX_OPEN_2,
+        DOOR_TEX_OPEN_3,
+        DOOR_TEX_OPEN,
+    ];
     for i in 0..all.len() {
-        assert!(crate::core::asset::load_bytes(all[i]).is_ok(), "нет текстуры {}", all[i]);
+        assert!(
+            crate::core::asset::load_bytes(all[i]).is_ok(),
+            "нет текстуры {}",
+            all[i]
+        );
         for j in i + 1..all.len() {
             assert_ne!(all[i], all[j]);
         }
@@ -96,19 +120,25 @@ fn door_texture_steps_cover_the_animation_cycle() {
 
 #[test]
 fn shopper_can_walk_from_the_street_into_the_shop_through_the_door() {
-    use crate::data::map::{door_cells, load_walkable_cells, shopper_spawn_point};
     use crate::data::map::pathfinding::find_path;
+    use crate::data::map::{door_cells, load_walkable_cells, shopper_spawn_point};
 
     let walkable = load_walkable_cells();
 
     // Точка входа с улицы и обе клетки пола должны быть проходимы.
     let spawn = shopper_spawn_point();
-    assert!(walkable.contains(&spawn), "точка входа с улицы не проходима: {spawn:?}");
+    assert!(
+        walkable.contains(&spawn),
+        "точка входа с улицы не проходима: {spawn:?}"
+    );
 
     // Проём целиком проходим (иначе покупатель не пройдёт).
     for (x, y) in door_cells() {
         let cell = crate::data::map::pathfinding::Node::new(x, y);
-        assert!(walkable.contains(&cell), "клетка двери ({x},{y}) не проходима");
+        assert!(
+            walkable.contains(&cell),
+            "клетка двери ({x},{y}) не проходима"
+        );
     }
 
     // Ключевая проверка: покупатель с улицы доходит до пола магазина.
@@ -117,25 +147,33 @@ fn shopper_can_walk_from_the_street_into_the_shop_through_the_door() {
     assert!(walkable.contains(&inside), "пол магазина не проходим");
     let path = find_path(&walkable, spawn, inside)
         .unwrap_or_else(|| panic!("нет пути с улицы {spawn:?} в магазин {inside:?}"));
-    assert!(path.len() > 2, "маршрут подозрительно короткий: {} клеток", path.len());
+    assert!(
+        path.len() > 2,
+        "маршрут подозрительно короткий: {} клеток",
+        path.len()
+    );
 
     // Маршрут обязан проходить через дверь, а не в обход неё.
     assert!(
-        path.iter().any(|n| door_cells().iter().any(|(x, y)| *x == n.x && *y == n.y)),
+        path.iter()
+            .any(|n| door_cells().iter().any(|(x, y)| *x == n.x && *y == n.y)),
         "покупатель не проходит через дверь"
     );
 
     // Обратный маршрут (выход) тоже должен существовать.
-    assert!(find_path(&walkable, inside, spawn).is_some(), "покупатель не может выйти на улицу");
+    assert!(
+        find_path(&walkable, inside, spawn).is_some(),
+        "покупатель не может выйти на улицу"
+    );
 }
 
 #[test]
 fn shopper_walks_in_through_the_door_and_back_out() {
-    use specs::WorldExt;
     use crate::core::constants::*;
     use crate::data::map::{door_cells, load_map_to_ecs, load_walkable_cells, shopper_spawn_point};
     use crate::ecs::components::{BusyCassas, FoodStorage, ObjectTag};
     use crate::npc::ShopperNpc;
+    use specs::WorldExt;
 
     let mut ecs = crate::EcsAdapter::new();
     load_map_to_ecs(&mut ecs);
@@ -143,20 +181,68 @@ fn shopper_walks_in_through_the_door_and_back_out() {
 
     // Стеллаж с едой и касса внутри магазина.
     let rack_gid = ecs.add_group_object(
-        0, 2, 1, 2, "rack", "assets/tex/decor/regular/rack/rack_0.png",
-        [0, 1], [1, 2], false, false, false, &[],
+        0,
+        2,
+        1,
+        2,
+        "rack",
+        "assets/tex/decor/regular/rack/rack_0.png",
+        [0, 1],
+        [1, 2],
+        false,
+        false,
+        false,
+        &[],
     );
     let cassa_gid = ecs.add_group_object(
-        2, -2, 2, 2, "cassa", "assets/tex/decor/regular/cassa.png",
-        [0, 1], [2, 2], false, false, false, &[],
+        2,
+        -2,
+        2,
+        2,
+        "cassa",
+        "assets/tex/decor/regular/cassa.png",
+        [0, 1],
+        [2, 2],
+        false,
+        false,
+        false,
+        &[],
     );
     {
-        let groups = ecs.world.read_resource::<crate::GroupInfoResource>().clone();
+        let groups = ecs
+            .world
+            .read_resource::<crate::GroupInfoResource>()
+            .clone();
         let rack_ent = groups.groups.get(&rack_gid).unwrap().entities[0];
         let cassa_ent = groups.groups.get(&cassa_gid).unwrap().entities[0];
-        ecs.world.write_storage::<ObjectTag>().insert(rack_ent, ObjectTag { name: "rack".into() }).unwrap();
-        ecs.world.write_storage::<ObjectTag>().insert(cassa_ent, ObjectTag { name: "cassa".into() }).unwrap();
-        ecs.world.write_storage::<FoodStorage>().insert(rack_ent, FoodStorage { food_count: 10, max_food: 15 }).unwrap();
+        ecs.world
+            .write_storage::<ObjectTag>()
+            .insert(
+                rack_ent,
+                ObjectTag {
+                    name: "rack".into(),
+                },
+            )
+            .unwrap();
+        ecs.world
+            .write_storage::<ObjectTag>()
+            .insert(
+                cassa_ent,
+                ObjectTag {
+                    name: "cassa".into(),
+                },
+            )
+            .unwrap();
+        ecs.world
+            .write_storage::<FoodStorage>()
+            .insert(
+                rack_ent,
+                FoodStorage {
+                    food_count: 10,
+                    max_food: 15,
+                },
+            )
+            .unwrap();
     }
     ecs.world.write_resource::<BusyCassas>().0.clear();
 
@@ -166,14 +252,26 @@ fn shopper_walks_in_through_the_door_and_back_out() {
     let spawn = shopper_spawn_point();
 
     let mut shopper = ShopperNpc::spawn(
-        &mut ecs, &walkable, spawn, rack_pos, cassa_pos, None,
-        TEX_BOB_IDLE, TEX_BOB_WALK_1, TEX_BOB_WALK_2,
-    ).expect("покупатель не заспавнился: нет пути с улицы");
+        &mut ecs,
+        &walkable,
+        spawn,
+        rack_pos,
+        cassa_pos,
+        None,
+        TEX_BOB_IDLE,
+        TEX_BOB_WALK_1,
+        TEX_BOB_WALK_2,
+    )
+    .expect("покупатель не заспавнился: нет пути с улицы");
 
     // Пока покупатель далеко, дверь закрыта.
     crate::data::door::tick_door(&mut ecs, 1.0 / 60.0);
-    assert_eq!(ecs.world.read_resource::<crate::ecs::components::DoorProgress>().state,
-               crate::ecs::components::DoorState::Closed);
+    assert_eq!(
+        ecs.world
+            .read_resource::<crate::ecs::components::DoorProgress>()
+            .state,
+        crate::ecs::components::DoorState::Closed
+    );
 
     let dt = 1.0 / 60.0;
     let mut door_opened = false;
@@ -189,7 +287,10 @@ fn shopper_walks_in_through_the_door_and_back_out() {
         // Дверь тикаем после шага NPC, чтобы видеть его актуальную позицию.
         crate::data::door::tick_door(&mut ecs, dt);
 
-        let state = ecs.world.read_resource::<crate::ecs::components::DoorProgress>().state;
+        let state = ecs
+            .world
+            .read_resource::<crate::ecs::components::DoorProgress>()
+            .state;
         if state == crate::ecs::components::DoorState::Open {
             door_opened = true;
         }
@@ -210,7 +311,10 @@ fn shopper_walks_in_through_the_door_and_back_out() {
     }
 
     assert!(door_opened, "дверь так и не открылась");
-    assert!(went_through_door, "покупатель не вошёл в магазин через дверь");
+    assert!(
+        went_through_door,
+        "покупатель не вошёл в магазин через дверь"
+    );
     assert!(bought, "покупатель не взял товар");
     assert!(left_through_door, "покупатель не вышел обратно через дверь");
     assert!(despawned, "покупатель не ушёл");
@@ -230,22 +334,28 @@ fn shopper_walks_in_through_the_door_and_back_out() {
         // Внутри проёма: спрайта нет вовсе.
         for (gx, gy) in [(-1, -6), (0, -6), (-1, -5), (0, -5)] {
             ecs.update_transform_position(shopper.entity, gx as f32, gy as f32);
-            assert!(npc_alpha(&ecs).is_none(),
-                    "в клетке проёма ({gx},{gy}) покупатель не должен рисоваться");
+            assert!(
+                npc_alpha(&ecs).is_none(),
+                "в клетке проёма ({gx},{gy}) покупатель не должен рисоваться"
+            );
         }
         // Середина рампы: ровно 0.5 альфы (это 0.25 клетки от края проёма).
         for gy in [-6.75, -4.25] {
             ecs.update_transform_position(shopper.entity, 0.0, gy);
             let a = npc_alpha(&ecs).expect("на рампе покупатель должен рисоваться");
-            assert!((a - 0.5).abs() < 0.02,
-                    "на середине рампы (y={gy}) ожидалась альфа 0.5, а {a}");
+            assert!(
+                (a - 0.5).abs() < 0.02,
+                "на середине рампы (y={gy}) ожидалась альфа 0.5, а {a}"
+            );
         }
         // Границы рампы: у края тротуара и у края паркета — полная видимость.
         for gy in [-7.0, -4.0] {
             ecs.update_transform_position(shopper.entity, 0.0, gy);
             let a = npc_alpha(&ecs).expect("покупатель обязан рисоваться");
-            assert!((a - 1.0).abs() < 0.001,
-                    "на границе (y={gy}) ожидалась альфа 1.0, а {a}");
+            assert!(
+                (a - 1.0).abs() < 0.001,
+                "на границе (y={gy}) ожидалась альфа 1.0, а {a}"
+            );
         }
         // Рампа обязана быть непрерывной: ни одного скачка между 0 и 1.
         let mut prev = 1.0f32;
@@ -256,9 +366,13 @@ fn shopper_walks_in_through_the_door_and_back_out() {
             ecs.update_transform_position(shopper.entity, 0.0, y);
             let a = npc_alpha(&ecs).unwrap_or(0.0);
             if y < -5.0 {
-                if a > prev + 0.001 { monotonic_down = false; }
+                if a > prev + 0.001 {
+                    monotonic_down = false;
+                }
             } else {
-                if a < prev - 0.001 { monotonic_up = false; }
+                if a < prev - 0.001 {
+                    monotonic_up = false;
+                }
             }
             prev = a;
         }
@@ -270,8 +384,13 @@ fn shopper_walks_in_through_the_door_and_back_out() {
     for _ in 0..(60 * 5) {
         crate::data::door::tick_door(&mut ecs, dt);
     }
-    assert_eq!(ecs.world.read_resource::<crate::ecs::components::DoorProgress>().state,
-               crate::ecs::components::DoorState::Closed, "дверь не закрылась после ухода покупателя");
+    assert_eq!(
+        ecs.world
+            .read_resource::<crate::ecs::components::DoorProgress>()
+            .state,
+        crate::ecs::components::DoorState::Closed,
+        "дверь не закрылась после ухода покупателя"
+    );
 
     // Проверяем, что клетки двери ссылаются на 2x2 атлас и у каждой СВОЙ кадр.
     // Раньше все четыре получали кадр [0,0] и проём собирался из четырёх
@@ -279,19 +398,29 @@ fn shopper_walks_in_through_the_door_and_back_out() {
     let mut frames: Vec<[i32; 2]> = Vec::new();
     for (x, y) in door_cells() {
         let entity = ecs.map_entities[&(x, y)];
-        let sprites = ecs.world.read_storage::<crate::ecs::components::SpriteComponent>();
+        let sprites = ecs
+            .world
+            .read_storage::<crate::ecs::components::SpriteComponent>();
         let s = sprites.get(entity).expect("нет спрайта двери");
         assert_eq!(s.texture_count, [2, 2], "дверь должна быть 2x2 атласом");
-        assert_eq!(s.texture_frame, crate::data::map::door_frame_for_cell(x, y),
-                   "неверный кадр клетки ({x},{y})");
-        assert!(s.texture_path.as_ref().ends_with("shop_door.png"),
-                "дверь должна ссылаться на текстуру двери, а не на {}",
-                s.texture_path);
+        assert_eq!(
+            s.texture_frame,
+            crate::data::map::door_frame_for_cell(x, y),
+            "неверный кадр клетки ({x},{y})"
+        );
+        assert!(
+            s.texture_path.as_ref().ends_with("shop_door.png"),
+            "дверь должна ссылаться на текстуру двери, а не на {}",
+            s.texture_path
+        );
         frames.push(s.texture_frame);
     }
     frames.sort_unstable();
-    assert_eq!(frames, vec![[0, 0], [0, 1], [1, 0], [1, 1]],
-               "у четырёх клеток двери должны быть четыре разных кадра атласа");
+    assert_eq!(
+        frames,
+        vec![[0, 0], [0, 1], [1, 0], [1, 1]],
+        "у четырёх клеток двери должны быть четыре разных кадра атласа"
+    );
 
     // Дверь переживает пересборку мира и не теряет ни кадр, ни слой.
     // Проверяем оба пути создания тайлов — обычную загрузку карты и
@@ -304,28 +433,47 @@ fn shopper_walks_in_through_the_door_and_back_out() {
         for (x, y) in door_cells() {
             crate::data::map::spawn_map_tile(&mut ecs, DOOR_TOKEN, x as f32, y as f32, x, y);
         }
-        let transforms = ecs.world.read_storage::<crate::ecs::components::Transform>();
-        let sprites = ecs.world.read_storage::<crate::ecs::components::SpriteComponent>();
+        let transforms = ecs
+            .world
+            .read_storage::<crate::ecs::components::Transform>();
+        let sprites = ecs
+            .world
+            .read_storage::<crate::ecs::components::SpriteComponent>();
         for (x, y) in door_cells() {
             let entity = ecs.map_entities[&(x, y)];
-            let t = transforms.get(entity).expect("нет клетки двери после spawn_map_tile");
-            assert!((t.position[2] - Z_DOOR).abs() < 0.001,
-                    "через spawn_map_tile клетка ({x},{y}) уехала на слой {}", t.position[2]);
+            let t = transforms
+                .get(entity)
+                .expect("нет клетки двери после spawn_map_tile");
+            assert!(
+                (t.position[2] - Z_DOOR).abs() < 0.001,
+                "через spawn_map_tile клетка ({x},{y}) уехала на слой {}",
+                t.position[2]
+            );
             let s = sprites.get(entity).unwrap();
-            assert_eq!(s.texture_frame, crate::data::map::door_frame_for_cell(x, y),
-                       "через spawn_map_tile у клетки ({x},{y}) сбился кадр");
+            assert_eq!(
+                s.texture_frame,
+                crate::data::map::door_frame_for_cell(x, y),
+                "через spawn_map_tile у клетки ({x},{y}) сбился кадр"
+            );
         }
         // Путь 2: полная перезагрузка карты в чистом мире.
         let mut ecs2 = crate::EcsAdapter::new();
         load_map_to_ecs(&mut ecs2);
         ecs2.clear_world();
         load_map_to_ecs(&mut ecs2);
-        let transforms2 = ecs2.world.read_storage::<crate::ecs::components::Transform>();
+        let transforms2 = ecs2
+            .world
+            .read_storage::<crate::ecs::components::Transform>();
         for (x, y) in door_cells() {
             let entity = ecs2.map_entities[&(x, y)];
-            let t = transforms2.get(entity).expect("после перезагрузки карты нет двери");
-            assert!((t.position[2] - Z_DOOR).abs() < 0.001,
-                    "после перезагрузки карты клетка ({x},{y}) уехала на слой {}", t.position[2]);
+            let t = transforms2
+                .get(entity)
+                .expect("после перезагрузки карты нет двери");
+            assert!(
+                (t.position[2] - Z_DOOR).abs() < 0.001,
+                "после перезагрузки карты клетка ({x},{y}) уехала на слой {}",
+                t.position[2]
+            );
         }
     }
 
@@ -336,12 +484,19 @@ fn shopper_walks_in_through_the_door_and_back_out() {
     assert!(Z_DOOR < Z_NPC, "дверь должна быть ниже NPC");
     assert!(Z_DOOR >= Z_MAP, "дверь не должна проваливаться под карту");
     assert_eq!(Z_DOOR, Z_DECOR, "дверь обязана быть в прозрачном проходе");
-    let transforms = ecs.world.read_storage::<crate::ecs::components::Transform>();
+    let transforms = ecs
+        .world
+        .read_storage::<crate::ecs::components::Transform>();
     for (x, y) in door_cells() {
         let entity = ecs.map_entities[&(x, y)];
-        let t = transforms.get(entity).expect("нет трансформа у клетки двери");
-        assert!((t.position[2] - Z_DOOR).abs() < 0.001,
-                "клетка двери ({x},{y}) не на слое Z_DOOR, а на {}", t.position[2]);
+        let t = transforms
+            .get(entity)
+            .expect("нет трансформа у клетки двери");
+        assert!(
+            (t.position[2] - Z_DOOR).abs() < 0.001,
+            "клетка двери ({x},{y}) не на слое Z_DOOR, а на {}",
+            t.position[2]
+        );
     }
 }
 
@@ -376,21 +531,33 @@ fn path_on_open_field_is_optimal_and_walkable() {
     // поэтому если она когда-то станет неточной (например, с диагоналями или
     // разными весами рёбер), тест это поймает.
     let manhattan = (start.x - goal.x).abs() + (start.y - goal.y).abs();
-    assert_eq!(path.len(), manhattan as usize + 1,
-               "путь должен быть кратчайшим, а не каким-то обходом");
+    assert_eq!(
+        path.len(),
+        manhattan as usize + 1,
+        "путь должен быть кратчайшим, а не каким-то обходом"
+    );
 
     // Путь начинается в старте, кончается в цели, идёт только по проходимым
     // клеткам и каждым шагом смещается ровно на одну клетку по оси
     // (движение строго 4-связное, диагоналей быть не должно).
     assert_eq!(path[0], start, "маршрут должен начинаться в старте");
-    assert_eq!(*path.last().unwrap(), goal, "маршрут должен кончаться в цели");
+    assert_eq!(
+        *path.last().unwrap(),
+        goal,
+        "маршрут должен кончаться в цели"
+    );
     for (i, node) in path.iter().enumerate() {
-        assert!(walkable.contains(node), "клетка {node:?} вне проходимой области");
+        assert!(
+            walkable.contains(node),
+            "клетка {node:?} вне проходимой области"
+        );
         if i > 0 {
             let prev = path[i - 1];
             let step = (prev.x - node.x).abs() + (prev.y - node.y).abs();
-            assert_eq!(step, 1,
-                       "переход {prev:?} -> {node:?} должен быть шагом в одну клетку, а не скачком");
+            assert_eq!(
+                step, 1,
+                "переход {prev:?} -> {node:?} должен быть шагом в одну клетку, а не скачком"
+            );
         }
     }
 }
@@ -402,21 +569,32 @@ fn path_reports_unreachable_and_out_of_bounds() {
     let mut walkable = walkable_rect(4, 4);
 
     // Старт равен цели — путь состоит из одной клетки, а не пустой.
-    assert_eq!(find_path(&walkable, Node::new(2, 2), Node::new(2, 2)),
-               Some(vec![Node::new(2, 2)]));
+    assert_eq!(
+        find_path(&walkable, Node::new(2, 2), Node::new(2, 2)),
+        Some(vec![Node::new(2, 2)])
+    );
 
     // Старт или цель вне проходимой области — пути нет.
-    assert_eq!(find_path(&walkable, Node::new(-9, 0), Node::new(1, 1)), None,
-               "старт вне карты должен давать None, а не путь по воздуху");
+    assert_eq!(
+        find_path(&walkable, Node::new(-9, 0), Node::new(1, 1)),
+        None,
+        "старт вне карты должен давать None, а не путь по воздуху"
+    );
     assert_eq!(find_path(&walkable, Node::new(1, 1), Node::new(0, 9)), None);
 
     // Цель заперта в отдельной клетке-островке: до неё физически не дойти.
     let island = Node::new(20, 20);
     walkable.insert(island);
-    assert_eq!(find_path(&walkable, Node::new(0, 0), island), None,
-               "изолированная клетка недостижима, A* обязан честно вернуть None");
-    assert_eq!(find_path(&walkable, island, Node::new(0, 0)), None,
-               "и обратно из неё тоже");
+    assert_eq!(
+        find_path(&walkable, Node::new(0, 0), island),
+        None,
+        "изолированная клетка недостижима, A* обязан честно вернуть None"
+    );
+    assert_eq!(
+        find_path(&walkable, island, Node::new(0, 0)),
+        None,
+        "и обратно из неё тоже"
+    );
 }
 
 #[test]
@@ -428,11 +606,23 @@ fn world_to_cell_snapping_survives_round_trip() {
     // возвращает целое (x, y), то есть левый-нижний угол клетки.
     // Округление round-half-up: ровно половина клетки уходит ВВЕРХ, в том
     // числе для отрицательных координат (-0.5 -> 0, а не -1).
-    let cases: &[(f32, i32)] = &[(-1.6, -2), (-0.6, -1), (-0.5, 0), (-0.4, 0), (0.0, 0),
-                                 (0.4, 0), (0.5, 1), (0.6, 1), (3.9, 4)];
+    let cases: &[(f32, i32)] = &[
+        (-1.6, -2),
+        (-0.6, -1),
+        (-0.5, 0),
+        (-0.4, 0),
+        (0.0, 0),
+        (0.4, 0),
+        (0.5, 1),
+        (0.6, 1),
+        (3.9, 4),
+    ];
     for (world, expected) in cases {
-        assert_eq!(Node::from_world(*world, *world).x, *expected,
-                   "мировая координата {world} должна попадать в клетку {expected}");
+        assert_eq!(
+            Node::from_world(*world, *world).x,
+            *expected,
+            "мировая координата {world} должна попадать в клетку {expected}"
+        );
         assert_eq!(Node::from_world(*world, *world).y, *expected);
     }
 
@@ -443,8 +633,11 @@ fn world_to_cell_snapping_survives_round_trip() {
         for y in -12..=12 {
             let node = Node::new(x, y);
             let (wx, wy) = node.to_world();
-            assert_eq!(Node::from_world(wx, wy), node,
-                       "округление туда-обратно сломало клетку {node:?}");
+            assert_eq!(
+                Node::from_world(wx, wy),
+                node,
+                "округление туда-обратно сломало клетку {node:?}"
+            );
         }
     }
 }
@@ -463,17 +656,32 @@ fn ndc_to_world_maps_window_centre_onto_the_camera() {
     // Центр окна — это ровно позиция камеры, независимо от зума (map_size).
     // Если это разъедется, мышь и камера разъедутся по экрану.
     for map_size in [0.4, 0.8, 1.0, 2.5] {
-        let (wx, wy) = ndc_to_world(window.0 / 2.0, window.1 / 2.0, window, map_size, cam_x, cam_y);
-        assert!((wx - cam_x).abs() < 1e-4 && (wy - cam_y).abs() < 1e-4,
-                "при map_size={map_size} центр окна дал ({wx},{wy}), а камера в ({cam_x},{cam_y})");
+        let (wx, wy) = ndc_to_world(
+            window.0 / 2.0,
+            window.1 / 2.0,
+            window,
+            map_size,
+            cam_x,
+            cam_y,
+        );
+        assert!(
+            (wx - cam_x).abs() < 1e-4 && (wy - cam_y).abs() < 1e-4,
+            "при map_size={map_size} центр окна дал ({wx},{wy}), а камера в ({cam_x},{cam_y})"
+        );
     }
 
     // Ось Y в мировых координатах смотрит вверх, а в пикселях окна — вниз,
     // поэтому верх окна (my = 0) должен быть ВЫШЕ центра мира.
     let (_, wy_top) = ndc_to_world(window.0 / 2.0, 0.0, window, 1.0, cam_x, cam_y);
-    assert!(wy_top > cam_y, "верх окна (y={wy_top}) должен быть выше центра ({cam_y})");
+    assert!(
+        wy_top > cam_y,
+        "верх окна (y={wy_top}) должен быть выше центра ({cam_y})"
+    );
     let (_, wy_bottom) = ndc_to_world(window.0 / 2.0, window.1, window, 1.0, cam_x, cam_y);
-    assert!(wy_bottom < cam_y, "низ окна (y={wy_bottom}) должен быть ниже центра ({cam_y})");
+    assert!(
+        wy_bottom < cam_y,
+        "низ окна (y={wy_bottom}) должен быть ниже центра ({cam_y})"
+    );
 
     // map_size — это ЗУМ, а не размер карты: он входит в множитель масштаба
     // напрямую, поэтому большее значение приближает камеру (меньше мира в
@@ -490,8 +698,14 @@ fn ease_out_back_is_clamped_and_overshoots_once() {
     use crate::core::util::ease_out_back;
 
     // Границы перелёта: ease_out_back — это «0 в начале, 1 в конце с отскоком».
-    assert!((ease_out_back(0.0) - 0.0).abs() < 1e-6, "в начале перелёта должно быть 0");
-    assert!((ease_out_back(1.0) - 1.0).abs() < 1e-6, "в конце перелёта должно быть 1");
+    assert!(
+        (ease_out_back(0.0) - 0.0).abs() < 1e-6,
+        "в начале перелёта должно быть 0"
+    );
+    assert!(
+        (ease_out_back(1.0) - 1.0).abs() < 1e-6,
+        "в конце перелёта должно быть 1"
+    );
 
     // Значения вне [0,1] клампятся — иначе «поп» инвентаря улетел бы за экран.
     assert_eq!(ease_out_back(-5.0), ease_out_back(0.0));
@@ -504,14 +718,20 @@ fn ease_out_back_is_clamped_and_overshoots_once() {
     let peak = (0..=1000)
         .map(|i| ease_out_back(i as f32 / 1000.0))
         .fold(f32::MIN, f32::max);
-    assert!(peak > 1.05, "перелёт без отскока (пик {peak}) — ease_out_back считается неверно");
-    assert!(peak < 1.3, "отскок слишком большой ({peak}), иконки будут вылетать за клетки");
+    assert!(
+        peak > 1.05,
+        "перелёт без отскока (пик {peak}) — ease_out_back считается неверно"
+    );
+    assert!(
+        peak < 1.3,
+        "отскок слишком большой ({peak}), иконки будут вылетать за клетки"
+    );
 }
 
 #[test]
 fn inventory_index_flips_rows_so_grid_fills_bottom_up() {
-    use crate::core::util::inventory_index;
     use crate::core::constants::{INVENTORY_COLS, INVENTORY_ROWS};
+    use crate::core::util::inventory_index;
 
     // Сетка нумеруется сверху вниз, а список предметов снизу вверх, поэтому
     // первая строка отдаёт самые высокие индексы. Если flip пропадёт, вся
@@ -525,15 +745,17 @@ fn inventory_index_flips_rows_so_grid_fills_bottom_up() {
         .collect();
     assert_eq!(all.len() as i32, INVENTORY_ROWS * INVENTORY_COLS);
     all.sort_unstable();
-    assert_eq!(all, (0..INVENTORY_ROWS * INVENTORY_COLS).collect::<Vec<_>>(),
-               "индексы сетки должны быть перестановкой 0..N без повторов");
+    assert_eq!(
+        all,
+        (0..INVENTORY_ROWS * INVENTORY_COLS).collect::<Vec<_>>(),
+        "индексы сетки должны быть перестановкой 0..N без повторов"
+    );
 }
 
 #[test]
 fn ui_fit_scale_fits_the_whole_ui_box() {
     use crate::core::constants::{
-        GAME_UI_HALF_H, GAME_UI_HALF_W, MENU_UI_HALF_H, MENU_UI_HALF_W, SHADER_SCALE,
-        UI_MIN_SCALE,
+        GAME_UI_HALF_H, GAME_UI_HALF_W, MENU_UI_HALF_H, MENU_UI_HALF_W, SHADER_SCALE, UI_MIN_SCALE,
     };
     use crate::core::util::ui_fit_scale;
 
@@ -551,26 +773,36 @@ fn ui_fit_scale_fits_the_whole_ui_box() {
     ];
     for &(aspect, half_w, half_h) in &cases {
         let s = ui_fit_scale(aspect, half_w, half_h);
-        assert!((UI_MIN_SCALE..=1.0).contains(&s),
-                "ui_fit_scale({aspect}, {half_w}, {half_h}) = {s} вышло за [{UI_MIN_SCALE}, 1.0]");
+        assert!(
+            (UI_MIN_SCALE..=1.0).contains(&s),
+            "ui_fit_scale({aspect}, {half_w}, {half_h}) = {s} вышло за [{UI_MIN_SCALE}, 1.0]"
+        );
         assert!(s.is_finite(), "ui_fit_scale вернул {s}");
 
         // Всё, что не упёрлось в нижний предел, обязано помещаться по обеим осям.
         if s > UI_MIN_SCALE {
             let visible_w = aspect / (SHADER_SCALE * s);
             let visible_h = 1.0 / (SHADER_SCALE * s);
-            assert!(visible_w >= half_w - 0.01,
-                    "aspect {aspect}: видимая ширина {visible_w} < {half_w}");
-            assert!(visible_h >= half_h - 0.01,
-                    "aspect {aspect}: видимая высота {visible_h} < {half_h}");
+            assert!(
+                visible_w >= half_w - 0.01,
+                "aspect {aspect}: видимая ширина {visible_w} < {half_w}"
+            );
+            assert!(
+                visible_h >= half_h - 0.01,
+                "aspect {aspect}: видимая высота {visible_h} < {half_h}"
+            );
         }
     }
 
     // Узкий экран обязан ужимать интерфейс сильнее широкого.
-    assert!(ui_fit_scale(4.0 / 3.0, GAME_UI_HALF_W, GAME_UI_HALF_H)
-            < ui_fit_scale(20.0 / 9.0, GAME_UI_HALF_W, GAME_UI_HALF_H));
-    assert!(ui_fit_scale(4.0 / 3.0, GAME_UI_HALF_W, GAME_UI_HALF_H) < 1.0,
-            "на планшете 4:3 интерфейс должен ужиматься, а не обрезаться");
+    assert!(
+        ui_fit_scale(4.0 / 3.0, GAME_UI_HALF_W, GAME_UI_HALF_H)
+            < ui_fit_scale(20.0 / 9.0, GAME_UI_HALF_W, GAME_UI_HALF_H)
+    );
+    assert!(
+        ui_fit_scale(4.0 / 3.0, GAME_UI_HALF_W, GAME_UI_HALF_H) < 1.0,
+        "на планшете 4:3 интерфейс должен ужиматься, а не обрезаться"
+    );
 }
 
 #[test]
@@ -591,29 +823,45 @@ fn ui_groups_hug_the_screen_edges() {
         // Нижняя кромка хотбара — на UI_EDGE_MARGIN от нижнего края экрана.
         let hotbar_edge = SLOT_BAR_Y + bottom - TILE_HALF;
         let expected_bottom = -half_h + UI_EDGE_MARGIN;
-        assert!((hotbar_edge - expected_bottom).abs() < 1e-4,
-                "aspect {aspect}: кромка хотбара {hotbar_edge} != {expected_bottom}");
+        assert!(
+            (hotbar_edge - expected_bottom).abs() < 1e-4,
+            "aspect {aspect}: кромка хотбара {hotbar_edge} != {expected_bottom}"
+        );
 
         // Верхняя кромка HUD-панели — на UI_EDGE_MARGIN от верхнего края.
         let panel_edge = HUD_PANEL_Y + top + HUD_PANEL_H * 0.5;
         let expected_top = half_h - UI_EDGE_MARGIN;
-        assert!((panel_edge - expected_top).abs() < 1e-4,
-                "aspect {aspect}: кромка HUD {panel_edge} != {expected_top}");
+        assert!(
+            (panel_edge - expected_top).abs() < 1e-4,
+            "aspect {aspect}: кромка HUD {panel_edge} != {expected_top}"
+        );
 
         // Нижняя группа двигается только вниз, верхняя — только вверх.
-        assert!(bottom < 0.0, "aspect {aspect}: хотбар должен прижиматься вниз, а не вверх");
-        assert!(top > 0.0, "aspect {aspect}: HUD должен прижиматься вверх, а не вниз");
-        assert!(hotbar_edge > -half_h && panel_edge < half_h,
-                "aspect {aspect}: группы не должны уезжать за экран");
+        assert!(
+            bottom < 0.0,
+            "aspect {aspect}: хотбар должен прижиматься вниз, а не вверх"
+        );
+        assert!(
+            top > 0.0,
+            "aspect {aspect}: HUD должен прижиматься вверх, а не вниз"
+        );
+        assert!(
+            hotbar_edge > -half_h && panel_edge < half_h,
+            "aspect {aspect}: группы не должны уезжать за экран"
+        );
     }
 
     // Чем уже/ниже экран, тем сильнее разъезжаются группы к краям.
     let wide = ui_fit_scale(16.0 / 9.0, GAME_UI_HALF_W, GAME_UI_HALF_H);
     let tablet = ui_fit_scale(4.0 / 3.0, GAME_UI_HALF_W, GAME_UI_HALF_H);
-    assert!(ui_bottom_offset(tablet) < ui_bottom_offset(wide),
-            "на планшете хотбар должен опускаться ниже, чем на 16:9");
-    assert!(ui_top_offset(tablet) > ui_top_offset(wide),
-            "на планшете HUD должен подниматься выше, чем на 16:9");
+    assert!(
+        ui_bottom_offset(tablet) < ui_bottom_offset(wide),
+        "на планшете хотбар должен опускаться ниже, чем на 16:9"
+    );
+    assert!(
+        ui_top_offset(tablet) > ui_top_offset(wide),
+        "на планшете HUD должен подниматься выше, чем на 16:9"
+    );
 }
 
 // ========================================================================
@@ -625,25 +873,47 @@ fn sized_path_parsing_splits_base_and_footprint() {
     use crate::ecs::Sprite;
 
     // Обычный атласный путь: размера в мире нет, берётся из scale.
-    assert_eq!(Sprite::split_sized_path("assets/tex/decor/regular/box.png"),
-               ("assets/tex/decor/regular/box.png", None));
+    assert_eq!(
+        Sprite::split_sized_path("assets/tex/decor/regular/box.png"),
+        ("assets/tex/decor/regular/box.png", None)
+    );
 
     // Виртуальный путь много��леточного объекта (например big_lamp 1x2):
     // база + размер в клетках.
-    assert_eq!(Sprite::split_sized_path("assets/tex/decor/light/big_lamp.png@1x2"),
-               ("assets/tex/decor/light/big_lamp.png", Some((1.0, 2.0))));
+    assert_eq!(
+        Sprite::split_sized_path("assets/tex/decor/light/big_lamp.png@1x2"),
+        ("assets/tex/decor/light/big_lamp.png", Some((1.0, 2.0)))
+    );
 
     // Разделитель берётся ПОСЛЕДНИМ: в базовом пути уже может быть «@».
-    assert_eq!(Sprite::split_sized_path("a/b@old@2x1"), ("a/b@old", Some((2.0, 1.0))),
-               "нужен последний @, а не первый");
+    assert_eq!(
+        Sprite::split_sized_path("a/b@old@2x1"),
+        ("a/b@old", Some((2.0, 1.0))),
+        "нужен последний @, а не первый"
+    );
 
     // Мусор и нулевые/отрицательные размеры должны откатываться к атласу,
     // иначе Sprite::new построит quad с нулевым или вывернутым размером.
-    for bad in ["a/b.png@", "a/b.png@2", "a/b.png@2x", "a/b.png@xx", "a/b.png@2xy",
-                "a/b.png@0x1", "a/b.png@1x0", "a/b.png@-2x1", "a/b.png@0.0x0.0"] {
+    for bad in [
+        "a/b.png@",
+        "a/b.png@2",
+        "a/b.png@2x",
+        "a/b.png@xx",
+        "a/b.png@2xy",
+        "a/b.png@0x1",
+        "a/b.png@1x0",
+        "a/b.png@-2x1",
+        "a/b.png@0.0x0.0",
+    ] {
         let (base, size) = Sprite::split_sized_path(bad);
-        assert_eq!(size, None, "путь {bad:?} не должен давать размер, а дал {size:?}");
-        assert_eq!(base, "a/b.png", "при неудачном разборе база должна остаться прежней");
+        assert_eq!(
+            size, None,
+            "путь {bad:?} не должен давать размер, а дал {size:?}"
+        );
+        assert_eq!(
+            base, "a/b.png",
+            "при неудачном разборе база должна остаться прежней"
+        );
     }
 
     // Путь без базы — вроде валидный, но рисуется в никуда; парсер не должен
@@ -670,23 +940,35 @@ fn menu_drops_off_screen_map_tiles_like_the_game_does() {
     let aspect = 1280.0 / 720.0;
     let vis_w = 2.0 * aspect / (SHADER_SCALE * MENU_MAP_SIZE);
     let vis_h = 2.0 / (SHADER_SCALE * MENU_MAP_SIZE);
-    let bounds = (0.0 - vis_w / 2.0, 0.0 + vis_w / 2.0, 0.0 - vis_h / 2.0, 0.0 + vis_h / 2.0);
+    let bounds = (
+        0.0 - vis_w / 2.0,
+        0.0 + vis_w / 2.0,
+        0.0 - vis_h / 2.0,
+        0.0 + vis_h / 2.0,
+    );
 
     let all = scene.sprites(&ecs, None);
     let visible = scene.sprites(&ecs, Some(bounds));
 
     assert!(!all.0.is_empty(), "карта меню не загрузилась");
-    assert!(visible.0.len() * 2 < all.0.len(),
-            "в кадре {} тайлов из {} — отсечение по видимой области не работает",
-            visible.0.len(), all.0.len());
+    assert!(
+        visible.0.len() * 2 < all.0.len(),
+        "в кадре {} тайлов из {} — отсечение по видимой области не работает",
+        visible.0.len(),
+        all.0.len()
+    );
     // Всё, что попало в кадр, обязано быть внутри видимой области с запасом
     // (margin в get_sprites_by_layer + размер тайла).
     let margin = 2.0;
     for sprite in &visible.0 {
         let (x, y) = (sprite.position[0], sprite.position[1]);
-        assert!(x + 1.0 + margin >= bounds.0 && x - margin <= bounds.1
-                && y + 1.0 + margin >= bounds.2 && y - margin <= bounds.3,
-                "тайл ({x},{y}) вне видимой области (не должен рисоваться)");
+        assert!(
+            x + 1.0 + margin >= bounds.0
+                && x - margin <= bounds.1
+                && y + 1.0 + margin >= bounds.2
+                && y - margin <= bounds.3,
+            "тайл ({x},{y}) вне видимой области (не должен рисоваться)"
+        );
     }
 }
 
@@ -715,13 +997,22 @@ fn every_map_token_resolves_to_an_in_bounds_atlas_frame() {
     for token in TOKENS.chars().map(|c| c.to_string()).chain(from_map) {
         for season in Season::all() {
             let (path, frame, count) = token_to_texture(&token, *season);
-            assert!(path.ends_with(".png"), "токен {token:?} дал не текстуру: {path}");
-            assert!(frame[0] >= 0 && frame[1] >= 0,
-                    "токен {token:?} ({season:?}) дал отрицательный кадр {frame:?}");
-            assert!(frame[0] < count[0] && frame[1] < count[1],
-                    "токен {token:?} ({season:?}) дал кадр {frame:?} за пределами атласа {count:?}");
-            assert!(count[0] > 0 && count[1] > 0,
-                    "токен {token:?} ({season:?}) дал пустой атлас {count:?}");
+            assert!(
+                path.ends_with(".png"),
+                "токен {token:?} дал не текстуру: {path}"
+            );
+            assert!(
+                frame[0] >= 0 && frame[1] >= 0,
+                "токен {token:?} ({season:?}) дал отрицательный кадр {frame:?}"
+            );
+            assert!(
+                frame[0] < count[0] && frame[1] < count[1],
+                "токен {token:?} ({season:?}) дал кадр {frame:?} за пределами атласа {count:?}"
+            );
+            assert!(
+                count[0] > 0 && count[1] > 0,
+                "токен {token:?} ({season:?}) дал пустой атлас {count:?}"
+            );
         }
     }
 
@@ -743,12 +1034,21 @@ fn is_inside_uses_exclusive_bounds() {
 
     // Центр и почти-центр внутри.
     assert!(is_inside(0.0, 0.0, 0.0, 0.0, 1.0, 1.0));
-    assert!(is_inside(0.99, -0.99, 0.0, 0.0, 1.0, 1.0), "угол почти вплотную — ещё внутри");
+    assert!(
+        is_inside(0.99, -0.99, 0.0, 0.0, 1.0, 1.0),
+        "угол почти вплотную — ещё внутри"
+    );
 
     // Граница НЕ внутри: соседние кнопки, поставленные вплотную, иначе
     // перехватывали бы клики друг друга ровно на шов.
-    assert!(!is_inside(1.0, 0.0, 0.0, 0.0, 1.0, 1.0), "верхняя граница должна быть снаружи");
-    assert!(!is_inside(0.0, -1.0, 0.0, 0.0, 1.0, 1.0), "нижняя граница должна быть снаружи");
+    assert!(
+        !is_inside(1.0, 0.0, 0.0, 0.0, 1.0, 1.0),
+        "верхняя граница должна быть снаружи"
+    );
+    assert!(
+        !is_inside(0.0, -1.0, 0.0, 0.0, 1.0, 1.0),
+        "нижняя граница должна быть снаружи"
+    );
     assert!(!is_inside(1.5, 0.0, 0.0, 0.0, 1.0, 1.0));
 
     // Прямоугольник несимметричен: каждая ось проверяется своей половиной.
@@ -774,7 +1074,10 @@ fn object_categories_partition_the_inventory_tabs() {
         assert!(is_light_name(name), "{name} должен быть светом");
     }
     for &name in INV_WALLDECOR.iter() {
-        assert!(is_wall_decor_name(name), "{name} должен быть настенным декором");
+        assert!(
+            is_wall_decor_name(name),
+            "{name} должен быть настенным декором"
+        );
     }
     for &name in OUTDOOR_NAMES.iter() {
         assert!(is_outdoor_name(name), "{name} должен быть уличным декором");
@@ -785,7 +1088,10 @@ fn object_categories_partition_the_inventory_tabs() {
 
     // Цветы — частный случай уличного декора: их можно ставить на траву.
     for &name in FLOWER_NAMES.iter() {
-        assert!(is_outdoor_name(name), "{name} обязан быть и уличным декором");
+        assert!(
+            is_outdoor_name(name),
+            "{name} обязан быть и уличным декором"
+        );
     }
 
     // Таблицы не должны пересекаться: один предмет не может попасть на две
@@ -800,17 +1106,27 @@ fn object_categories_partition_the_inventory_tabs() {
     for i in 0..lists.len() {
         for j in i + 1..lists.len() {
             for &a in lists[i].1 {
-                assert!(!lists[j].1.contains(&a),
-                        "{} ({a}) попал сразу в две вкладки: {} и {}",
-                        a, lists[i].0, lists[j].0);
+                assert!(
+                    !lists[j].1.contains(&a),
+                    "{} ({a}) попал сразу в две вкладки: {} и {}",
+                    a,
+                    lists[i].0,
+                    lists[j].0
+                );
             }
         }
     }
     for &name in INV_CARPETS {
-        assert!(!OUTDOOR_NAMES.contains(&name), "ковёр {name} не должен быть уличным декором");
+        assert!(
+            !OUTDOOR_NAMES.contains(&name),
+            "ковёр {name} не должен быть уличным декором"
+        );
     }
     for &name in INV_LIGHT {
-        assert!(!OUTDOOR_NAMES.contains(&name), "свет {name} не должен быть уличным декором");
+        assert!(
+            !OUTDOOR_NAMES.contains(&name),
+            "свет {name} не должен быть уличным декором"
+        );
     }
 
     // Предметы стартового хотбара обязаны существовать в каталоге.
@@ -818,16 +1134,24 @@ fn object_categories_partition_the_inventory_tabs() {
     // входит в SHOP_EXEMPT — он в хотбаре как подсказка, но покупается.
     for (i, &name) in INITIAL_SLOTS_TESTS.iter().enumerate() {
         let slot = crate::data::make_slot(name);
-        assert_eq!(slot.obj.name, name, "предмет хотбара №{i} ({name}) не найден в ALL_OBJECTS");
-        assert!(slot.obj.price > 0, "у предмета {name} должна быть ненулевая цена");
+        assert_eq!(
+            slot.obj.name, name,
+            "предмет хотбара №{i} ({name}) не найден в ALL_OBJECTS"
+        );
+        assert!(
+            slot.obj.price > 0,
+            "у предмета {name} должна быть ненулевая цена"
+        );
     }
 
     // А вот базовые предметы магазина (коробки, стеллажи, касса, вывеска) —
     // единственные, что обязаны быть доступны бесплатно, иначе игрок не
     // сможет запустить магазин в принципе.
     for &name in crate::core::constants::SHOP_EXEMPT {
-        assert!(!requires_shop(name),
-                "{name} — базовый предмет, он не должен требовать покупки");
+        assert!(
+            !requires_shop(name),
+            "{name} — базовый предмет, он не должен требовать покупки"
+        );
     }
 }
 
@@ -844,9 +1168,17 @@ fn every_catalog_object_has_a_resolvable_icon() {
     // категории, поэтому проверяем именно его вывод.
     for obj in crate::data::ALL_OBJECTS.iter() {
         let icon = slot_icon_path(obj.name);
-        assert!(icon.ends_with(".png"), "иконка {name} собралась в не-PNG: {icon}", name = obj.name);
-        assert!(crate::core::asset::load_bytes(&icon).is_ok(),
-                "нет файла иконки предмета {}: {}", obj.name, icon);
+        assert!(
+            icon.ends_with(".png"),
+            "иконка {name} собралась в не-PNG: {icon}",
+            name = obj.name
+        );
+        assert!(
+            crate::core::asset::load_bytes(&icon).is_ok(),
+            "нет файла иконки предмета {}: {}",
+            obj.name,
+            icon
+        );
     }
 
     // Плюс все предметы вкладок инвентаря — они рисуются в сетке напрямую,
@@ -855,7 +1187,10 @@ fn every_catalog_object_has_a_resolvable_icon() {
     tab_names.extend_from_slice(crate::core::constants::INV_OUTDOOR);
     for name in tab_names {
         let icon = slot_icon_path(name);
-        assert!(crate::core::asset::load_bytes(&icon).is_ok(), "нет иконки {name}: {icon}");
+        assert!(
+            crate::core::asset::load_bytes(&icon).is_ok(),
+            "нет иконки {name}: {icon}"
+        );
     }
 }
 
@@ -869,23 +1204,35 @@ fn shop_catalogue_matches_the_purchasable_object_list() {
     // Магазин — это каталог минус стартовые предметы. Соответствие строится
     // в двух местах (shop_item_names и GameScene::shop_items по одному и тому
     // же ALL_OBJECTS), поэтому порядок и состав обязаны совпадать.
-    let expected: Vec<&str> = crate::data::ALL_OBJECTS.iter()
+    let expected: Vec<&str> = crate::data::ALL_OBJECTS
+        .iter()
         .map(|o| o.name)
         .filter(|n| !SHOP_EXEMPT.contains(n))
         .collect();
-    assert_eq!(names, expected, "состав магазина разошёлся с каталогом объектов");
+    assert_eq!(
+        names, expected,
+        "состав магазина разошёлся с каталогом объектов"
+    );
 
     // Всё, что продаётся, обязано иметь цену и иконку, а стартовое —
     // не продаваться.
     for &name in &names {
         assert!(crate::core::util::slot_icon_path(name).ends_with(".png"));
         let cfg = crate::scripts::config::BalanceConfig::load();
-        assert!(object_price(name, &cfg) > 0, "товар {name} продаётся с неположительной ценой");
+        assert!(
+            object_price(name, &cfg) > 0,
+            "товар {name} продаётся с неположительной ценой"
+        );
     }
     for &name in SHOP_EXEMPT {
-        assert!(!names.contains(&name), "{name} не должен продаваться в магазине");
-        assert!(!crate::data::placement::requires_shop(name),
-                "{name} должен быть доступен без магазина");
+        assert!(
+            !names.contains(&name),
+            "{name} не должен продаваться в магазине"
+        );
+        assert!(
+            !crate::data::placement::requires_shop(name),
+            "{name} должен быть доступен без магазина"
+        );
     }
 }
 
@@ -898,43 +1245,95 @@ fn balance_config_defaults_are_internally_consistent() {
     // Порядок фаз суток: день -> закат -> ночь -> рассвет -> снова день.
     // Нарушение этого порядка (например в config.lua) ломает DayNightCycle:
     // ветки перекрываются и затенение прыгает.
-    assert!(cfg.day_secs > 0.0, "день не может быть нулевой длительности");
-    assert!(cfg.day_secs <= cfg.night_start_secs,
-            "ночь не может начаться раньше конца дня ({day} > {night_start})",
-            day = cfg.day_secs, night_start = cfg.night_start_secs);
-    assert!(cfg.night_start_secs <= cfg.night_secs,
-            "рассвет не может начаться раньше конца ночи ({night_start} > {night})",
-            night_start = cfg.night_start_secs, night = cfg.night_secs);
+    assert!(
+        cfg.day_secs > 0.0,
+        "день не может быть нулевой длительности"
+    );
+    assert!(
+        cfg.day_secs <= cfg.night_start_secs,
+        "ночь не может начаться раньше конца дня ({day} > {night_start})",
+        day = cfg.day_secs,
+        night_start = cfg.night_start_secs
+    );
+    assert!(
+        cfg.night_start_secs <= cfg.night_secs,
+        "рассвет не может начаться раньше конца ночи ({night_start} > {night})",
+        night_start = cfg.night_start_secs,
+        night = cfg.night_secs
+    );
     // Рассвет обязан успеть закончиться до конца цикла, иначе factor()
     // вернёт отрицательное затенение (1 - (cycle - night)/fade < 0).
-    assert!(cfg.night_secs + cfg.fade_secs <= cfg.day_cycle_secs,
-            "рассвет ({night}+{fade}) не помещается в цикл {cycle} — затенение уйдёт в минус",
-            night = cfg.night_secs, fade = cfg.fade_secs, cycle = cfg.day_cycle_secs);
-    assert!(cfg.fade_secs > 0.0, "нулевая длительность перехода даёт деление на ноль");
+    assert!(
+        cfg.night_secs + cfg.fade_secs <= cfg.day_cycle_secs,
+        "рассвет ({night}+{fade}) не помещается в цикл {cycle} — затенение уйдёт в минус",
+        night = cfg.night_secs,
+        fade = cfg.fade_secs,
+        cycle = cfg.day_cycle_secs
+    );
+    assert!(
+        cfg.fade_secs > 0.0,
+        "нулевая длительность перехода даёт деление на ноль"
+    );
 
     // Пороги текстур ящика: по порядку, иначе средний ящик никогда не рисуется.
-    assert!(cfg.box_tex_threshold_1 <= cfg.box_tex_threshold_2,
-            "пороги текстур ящика идут в обратном порядке: {} > {}",
-            cfg.box_tex_threshold_1, cfg.box_tex_threshold_2);
+    assert!(
+        cfg.box_tex_threshold_1 <= cfg.box_tex_threshold_2,
+        "пороги текстур ящика идут в обратном порядке: {} > {}",
+        cfg.box_tex_threshold_1,
+        cfg.box_tex_threshold_2
+    );
 
     // Запасы конфет не могут превышать вместимость.
-    assert!(cfg.candies_start_food <= cfg.max_food_candies,
-            "стартовая еда {} больше максимума {}",
-            cfg.candies_start_food, cfg.max_food_candies);
+    assert!(
+        cfg.candies_start_food <= cfg.max_food_candies,
+        "стартовая еда {} больше максимума {}",
+        cfg.candies_start_food,
+        cfg.max_food_candies
+    );
 
-    assert!(cfg.max_shoppers >= 1, "хотя бы один покупатель должен ходить в магазин");
-    assert!(cfg.npc_speed > 0.0, "нулевая скорость NPC замораживает покупателей");
-    assert!(cfg.day_cycle_secs > 0.0, "нулевой цикл суток даёт деление на ноль в time_string");
-    assert!(!cfg.font_path.is_empty(), "путь к шрифту не должен быть пустым");
+    assert!(
+        cfg.max_shoppers >= 1,
+        "хотя бы один покупатель должен ходить в магазин"
+    );
+    assert!(
+        cfg.npc_speed > 0.0,
+        "нулевая скорость NPC замораживает покупателей"
+    );
+    assert!(
+        cfg.day_cycle_secs > 0.0,
+        "нулевой цикл суток даёт деление на ноль в time_string"
+    );
+    assert!(
+        !cfg.font_path.is_empty(),
+        "путь к шрифту не должен быть пустым"
+    );
 }
 
 // Локальные срезы данных для тестов выше: держать списки рядом с тестом,
 // чтобы при изменении каталога падение было в читаемом месте.
 const INITIAL_SLOTS_TESTS: &[&str] = &["box", "sign", "rack", "table", "cassa"];
-const INVENTORY_TAB_NAMES_TESTS: &[&str] = &["box", "sign", "rack", "table", "cassa", "ice_cream",
-                                            "arcade_machine", "candies", "fence", "basement",
-                                            "blue_carpet", "red_carpet", "green_carpet",
-                                            "white_carpet", "black_carpet", "iron_panel",
-                                            "gold_panel", "diamond_panel",
-                                            "welcome", "fnaf", "watch",
-                                            "lamp", "big_lamp"];
+const INVENTORY_TAB_NAMES_TESTS: &[&str] = &[
+    "box",
+    "sign",
+    "rack",
+    "table",
+    "cassa",
+    "ice_cream",
+    "arcade_machine",
+    "candies",
+    "fence",
+    "basement",
+    "blue_carpet",
+    "red_carpet",
+    "green_carpet",
+    "white_carpet",
+    "black_carpet",
+    "iron_panel",
+    "gold_panel",
+    "diamond_panel",
+    "welcome",
+    "fnaf",
+    "watch",
+    "lamp",
+    "big_lamp",
+];

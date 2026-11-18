@@ -79,9 +79,13 @@ fn checkbox_click_and_hover() {
     assert!(!checkbox_clicked(&checkbox, &far_click, WINDOW));
 
     let hover = FakeInput::hold_ui(0.0, 0.0, WINDOW);
-    assert!(crate::ui::system::checkbox_hovered(&checkbox, &hover, WINDOW));
+    assert!(crate::ui::system::checkbox_hovered(
+        &checkbox, &hover, WINDOW
+    ));
     let far = FakeInput::hold_ui(3.0, 3.0, WINDOW);
-    assert!(!crate::ui::system::checkbox_hovered(&checkbox, &far, WINDOW));
+    assert!(!crate::ui::system::checkbox_hovered(
+        &checkbox, &far, WINDOW
+    ));
 }
 
 #[test]
@@ -94,8 +98,14 @@ fn checkbox_hover_scales_only_the_hovered_box() {
     crate::ui::system::update_checkbox_hover(&mut ecs, &mut hovered, &input, WINDOW, 1.0);
     crate::ui::system::update_checkbox_hover(&mut ecs, &mut other, &input, WINDOW, 1.0);
 
-    assert!(hovered.hover_scale > 1.0, "наведённый чекбокс должен увеличиться");
-    assert_eq!(other.hover_scale, 1.0, "соседний чекбокс не должен масштабироваться");
+    assert!(
+        hovered.hover_scale > 1.0,
+        "наведённый чекбокс должен увеличиться"
+    );
+    assert_eq!(
+        other.hover_scale, 1.0,
+        "соседний чекбокс не должен масштабироваться"
+    );
 }
 
 #[test]
@@ -128,7 +138,10 @@ fn slider_thumb_x_is_linear_and_symmetric() {
     let mid = slider_thumb_x(&slider);
 
     assert!(min < mid && mid < max);
-    assert!((mid - slider.x).abs() < 1e-6, "центр значения = центр дорожки");
+    assert!(
+        (mid - slider.x).abs() < 1e-6,
+        "центр значения = центр дорожки"
+    );
     assert!((min + max).abs() < 1e-6, "крайние положения симметричны");
 }
 
@@ -146,7 +159,11 @@ fn shop_scroll_helpers_are_consistent() {
     assert_eq!(thumb_height(8), 4.0);
     let h9 = thumb_height(9);
     assert!(h9 < 4.0 && h9 > 3.5);
-    assert_eq!(thumb_height(10_000), 0.4, "ползунок не должен стать нулевым");
+    assert_eq!(
+        thumb_height(10_000),
+        0.4,
+        "ползунок не должен стать нулевым"
+    );
 
     // Чем больше прокрутка, тем ниже ползунок; всё в пределах дорожки.
     let total = 20;
@@ -197,7 +214,11 @@ fn doorway_fade_hides_inside_and_ramps_outside() {
     use crate::ecs::adapter::render::doorway_fade;
 
     assert_eq!(doorway_fade([-0.5, -5.5, 0.0]), 0.0, "внутри проёма");
-    assert_eq!(doorway_fade([-0.5, -6.4, 0.0]), 0.0, "у самой кромки проёма");
+    assert_eq!(
+        doorway_fade([-0.5, -6.4, 0.0]),
+        0.0,
+        "у самой кромки проёма"
+    );
     // Середина рампы: 0.25 клетки от края при DOOR_FADE_RAMP = 0.5.
     let half = doorway_fade([0.75, -5.5, 0.0]);
     assert!((half - 0.5).abs() < 1e-6, "середина рампы: {half}");
@@ -207,7 +228,11 @@ fn doorway_fade_hides_inside_and_ramps_outside() {
     let b = doorway_fade([0.8, -5.5, 0.0]);
     let c = doorway_fade([1.1, -5.5, 0.0]);
     assert!(a < b && b < c, "затухание должно быть монотонным");
-    assert_eq!(doorway_fade([10.0, 10.0, 0.0]), 1.0, "далеко — полностью виден");
+    assert_eq!(
+        doorway_fade([10.0, 10.0, 0.0]),
+        1.0,
+        "далеко — полностью виден"
+    );
 }
 
 #[test]
@@ -240,13 +265,22 @@ fn weather_effect_and_bounds_follow_the_map() {
     use crate::ecs::components::Season;
     use crate::scenes::game::weather_fx::{Effect, WeatherFx};
 
-    assert!(matches!(WeatherFx::effect_for(Season::Winter), Some(Effect::Snow)));
-    assert!(matches!(WeatherFx::effect_for(Season::Autumn), Some(Effect::Rain)));
+    assert!(matches!(
+        WeatherFx::effect_for(Season::Winter),
+        Some(Effect::Snow)
+    ));
+    assert!(matches!(
+        WeatherFx::effect_for(Season::Autumn),
+        Some(Effect::Rain)
+    ));
     assert!(WeatherFx::effect_for(Season::Spring).is_none());
     assert!(WeatherFx::effect_for(Season::Summer).is_none());
 
     let empty = new_ecs();
-    assert!(WeatherFx::world_bounds(&empty).is_none(), "без карты границ нет");
+    assert!(
+        WeatherFx::world_bounds(&empty).is_none(),
+        "без карты границ нет"
+    );
 
     let ecs = ecs_with_map();
     let (left, right, bottom, top) = WeatherFx::world_bounds(&ecs).expect("границы карты");

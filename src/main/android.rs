@@ -19,11 +19,15 @@ use winit::event_loop::EventLoop;
 use winit::platform::android::EventLoopBuilderExtAndroid;
 
 macro_rules! jni_name {
-    ($name:literal) => { jni::jni_str!($name) };
+    ($name:literal) => {
+        jni::jni_str!($name)
+    };
 }
 
 macro_rules! jni_sig {
-    ($signature:literal) => { jni::jni_sig!($signature) };
+    ($signature:literal) => {
+        jni::jni_sig!($signature)
+    };
 }
 
 use crate::input::platform::TouchInput;
@@ -54,7 +58,9 @@ fn android_main(app: AndroidApp) {
     // Цикл событий winit, привязанный к AndroidApp.
     let mut event_loop = EventLoop::builder();
     event_loop.with_android_app(app);
-    let event_loop = event_loop.build().expect("failed to build Android event loop");
+    let event_loop = event_loop
+        .build()
+        .expect("failed to build Android event loop");
 
     // Мобильный ввод — тач-эмуляция мыши (тап/перетаскивание/щипок).
     let mut app_state = App::new(Box::new(TouchInput::new()));
@@ -79,10 +85,29 @@ fn hide_system_ui(app: &AndroidApp) {
     let res = vm.attach_current_thread(|env| -> JniResult<()> {
         let raw = app.activity_as_ptr() as jni::sys::jobject;
         let activity = std::mem::ManuallyDrop::new(unsafe { JObject::from_raw(env, raw) });
-        let window = env.call_method(&*activity, jni::jni_str!("getWindow"), jni::jni_sig!("()Landroid/view/Window;"), &[])?.l()?;
-        let decor = env.call_method(&window, jni::jni_str!("getDecorView"), jni::jni_sig!("()Landroid/view/View;"), &[])?.l()?;
+        let window = env
+            .call_method(
+                &*activity,
+                jni::jni_str!("getWindow"),
+                jni::jni_sig!("()Landroid/view/Window;"),
+                &[],
+            )?
+            .l()?;
+        let decor = env
+            .call_method(
+                &window,
+                jni::jni_str!("getDecorView"),
+                jni::jni_sig!("()Landroid/view/View;"),
+                &[],
+            )?
+            .l()?;
         let flags: i32 = (0x00000002 | 0x00000004 | 0x00000200 | 0x00000100 | 0x00001000) as i32;
-        env.call_method(&decor, jni::jni_str!("setSystemUiVisibility"), jni::jni_sig!("(I)V"), &[JValue::Int(flags)])?;
+        env.call_method(
+            &decor,
+            jni::jni_str!("setSystemUiVisibility"),
+            jni::jni_sig!("(I)V"),
+            &[JValue::Int(flags)],
+        )?;
         Ok(())
     });
     if let Err(e) = res {
@@ -128,16 +153,26 @@ pub(crate) fn init_text_input(app: &AndroidApp) {
 
 pub(crate) fn poll_text_input() {
     let input = text_input_slot().lock().unwrap().as_ref().map(|input| {
-        (input.app.clone(), input.shared.clone(), input.poll_pending.clone())
+        (
+            input.app.clone(),
+            input.shared.clone(),
+            input.poll_pending.clone(),
+        )
     });
-    let Some((app, shared, poll_pending)) = input else { return };
+    let Some((app, shared, poll_pending)) = input else {
+        return;
+    };
     let edit = {
         let state = shared.lock().unwrap();
-        if !state.active { return; }
+        if !state.active {
+            return;
+        }
         state.edit.clone()
     };
     let Some(edit) = edit else { return };
-    if poll_pending.swap(true, Ordering::AcqRel) { return; }
+    if poll_pending.swap(true, Ordering::AcqRel) {
+        return;
+    }
 
     app.clone().run_on_java_main_thread(Box::new(move || {
         let result = read_edit_text(&app, &edit);
@@ -153,9 +188,16 @@ pub(crate) fn poll_text_input() {
 
 pub(crate) fn sync_text_input(active: bool, focus_requested: bool) {
     let input = text_input_slot().lock().unwrap().as_ref().map(|input| {
-        (input.app.clone(), input.shared.clone(), input.creating.clone(), input.poll_pending.clone())
+        (
+            input.app.clone(),
+            input.shared.clone(),
+            input.creating.clone(),
+            input.poll_pending.clone(),
+        )
     });
-    let Some((app, shared, creating, poll_pending)) = input else { return };
+    let Some((app, shared, creating, poll_pending)) = input else {
+        return;
+    };
     let initial = crate::ui::text_input::TEXT_INPUT.focus_text();
     let edit = {
         let mut state = shared.lock().unwrap();
@@ -194,23 +236,25 @@ pub(crate) fn sync_text_input(active: bool, focus_requested: bool) {
     } else if !creating.swap(true, Ordering::AcqRel) {
         let shared_for_create = shared.clone();
         let app_for_create = app.clone();
-        app_for_create.clone().run_on_java_main_thread(Box::new(move || {
-            let result = create_edit_text(&app_for_create, &initial);
-            if result.is_ok() {
-                app_for_create.show_soft_input(true);
-            }
-            creating.store(false, Ordering::Release);
-            let mut state = shared_for_create.lock().unwrap();
-            match result {
-                Ok(edit) => {
-                    state.edit = Some(Arc::new(edit));
-                    state.ready = true;
-                    state.last_value = Some(initial.clone());
-                    state.value = None;
+        app_for_create
+            .clone()
+            .run_on_java_main_thread(Box::new(move || {
+                let result = create_edit_text(&app_for_create, &initial);
+                if result.is_ok() {
+                    app_for_create.show_soft_input(true);
                 }
-                Err(error) => eprintln!("create Android text input: {error:?}"),
-            }
-        }));
+                creating.store(false, Ordering::Release);
+                let mut state = shared_for_create.lock().unwrap();
+                match result {
+                    Ok(edit) => {
+                        state.edit = Some(Arc::new(edit));
+                        state.ready = true;
+                        state.last_value = Some(initial.clone());
+                        state.value = None;
+                    }
+                    Err(error) => eprintln!("create Android text input: {error:?}"),
+                }
+            }));
         app.show_soft_input(true);
     }
 }
@@ -222,14 +266,20 @@ pub(crate) fn text_input_value() -> Option<(String, bool)> {
         .as_ref()
         .and_then(|input| {
             let mut state = input.shared.lock().unwrap();
-            if state.ready { state.value.take() } else { None }
+            if state.ready {
+                state.value.take()
+            } else {
+                None
+            }
         })
 }
 
 pub(crate) fn set_text_input_value(value: &str) {
-    let input = text_input_slot().lock().unwrap().as_ref().map(|input| {
-        (input.app.clone(), input.shared.clone())
-    });
+    let input = text_input_slot()
+        .lock()
+        .unwrap()
+        .as_ref()
+        .map(|input| (input.app.clone(), input.shared.clone()));
     let Some((app, shared)) = input else { return };
     let edit = {
         let mut state = shared.lock().unwrap();
@@ -249,7 +299,10 @@ pub(crate) fn set_text_input_value(value: &str) {
 
 fn normalize_text(text: String) -> (String, bool) {
     let enter = text.contains('\n') || text.contains('\r');
-    let text = text.chars().filter(|ch| !matches!(ch, '\n' | '\r')).collect();
+    let text = text
+        .chars()
+        .filter(|ch| !matches!(ch, '\n' | '\r'))
+        .collect();
     (text, enter)
 }
 
@@ -261,7 +314,10 @@ fn store_changed_text(state: &mut AndroidTextShared, text: String) {
     }
 }
 
-fn create_edit_text(app: &AndroidApp, initial: &str) -> jni::errors::Result<Global<JObject<'static>>> {
+fn create_edit_text(
+    app: &AndroidApp,
+    initial: &str,
+) -> jni::errors::Result<Global<JObject<'static>>> {
     let vm = unsafe { JavaVM::from_raw(app.vm_as_ptr().cast()) };
     vm.attach_current_thread(|env| {
         let raw = app.activity_as_ptr() as jni::sys::jobject;
@@ -270,8 +326,22 @@ fn create_edit_text(app: &AndroidApp, initial: &str) -> jni::errors::Result<Glob
         configure_edit_text(env, &edit)?;
         set_edit_text(env, &edit, initial)?;
 
-        let window = env.call_method(&*activity, jni_name!("getWindow"), jni_sig!("()Landroid/view/Window;"), &[])?.l()?;
-        let decor = env.call_method(&window, jni_name!("getDecorView"), jni_sig!("()Landroid/view/View;"), &[])?.l()?;
+        let window = env
+            .call_method(
+                &*activity,
+                jni_name!("getWindow"),
+                jni_sig!("()Landroid/view/Window;"),
+                &[],
+            )?
+            .l()?;
+        let decor = env
+            .call_method(
+                &window,
+                jni_name!("getDecorView"),
+                jni_sig!("()Landroid/view/View;"),
+                &[],
+            )?
+            .l()?;
         let params = env.new_object(
             jni_name!("android/view/ViewGroup$LayoutParams"),
             jni_sig!("(II)V"),
@@ -289,26 +359,85 @@ fn create_edit_text(app: &AndroidApp, initial: &str) -> jni::errors::Result<Glob
 }
 
 fn configure_edit_text(env: &mut jni::Env, edit: &JObject) -> jni::errors::Result<()> {
-    env.call_method(edit, jni_name!("setSingleLine"), jni_sig!("(Z)V"), &[JValue::Bool(false)])?;
-    env.call_method(edit, jni_name!("setInputType"), jni_sig!("(I)V"), &[JValue::Int(0x0002_0001)])?;
-    env.call_method(edit, jni_name!("setImeOptions"), jni_sig!("(I)V"), &[JValue::Int(0)])?;
-    env.call_method(edit, jni_name!("setBackgroundColor"), jni_sig!("(I)V"), &[JValue::Int(0)])?;
-    env.call_method(edit, jni_name!("setTextColor"), jni_sig!("(I)V"), &[JValue::Int(0)])?;
-    env.call_method(edit, jni_name!("setCursorVisible"), jni_sig!("(Z)V"), &[JValue::Bool(false)])?;
-    env.call_method(edit, jni_name!("setFocusable"), jni_sig!("(Z)V"), &[JValue::Bool(true)])?;
-    env.call_method(edit, jni_name!("setFocusableInTouchMode"), jni_sig!("(Z)V"), &[JValue::Bool(true)])?;
-    env.call_method(edit, jni_name!("setShowSoftInputOnFocus"), jni_sig!("(Z)V"), &[JValue::Bool(true)])?;
-    env.call_method(edit, jni_name!("setAlpha"), jni_sig!("(F)V"), &[JValue::Float(0.0)])?;
+    env.call_method(
+        edit,
+        jni_name!("setSingleLine"),
+        jni_sig!("(Z)V"),
+        &[JValue::Bool(false)],
+    )?;
+    env.call_method(
+        edit,
+        jni_name!("setInputType"),
+        jni_sig!("(I)V"),
+        &[JValue::Int(0x0002_0001)],
+    )?;
+    env.call_method(
+        edit,
+        jni_name!("setImeOptions"),
+        jni_sig!("(I)V"),
+        &[JValue::Int(0)],
+    )?;
+    env.call_method(
+        edit,
+        jni_name!("setBackgroundColor"),
+        jni_sig!("(I)V"),
+        &[JValue::Int(0)],
+    )?;
+    env.call_method(
+        edit,
+        jni_name!("setTextColor"),
+        jni_sig!("(I)V"),
+        &[JValue::Int(0)],
+    )?;
+    env.call_method(
+        edit,
+        jni_name!("setCursorVisible"),
+        jni_sig!("(Z)V"),
+        &[JValue::Bool(false)],
+    )?;
+    env.call_method(
+        edit,
+        jni_name!("setFocusable"),
+        jni_sig!("(Z)V"),
+        &[JValue::Bool(true)],
+    )?;
+    env.call_method(
+        edit,
+        jni_name!("setFocusableInTouchMode"),
+        jni_sig!("(Z)V"),
+        &[JValue::Bool(true)],
+    )?;
+    env.call_method(
+        edit,
+        jni_name!("setShowSoftInputOnFocus"),
+        jni_sig!("(Z)V"),
+        &[JValue::Bool(true)],
+    )?;
+    env.call_method(
+        edit,
+        jni_name!("setAlpha"),
+        jni_sig!("(F)V"),
+        &[JValue::Float(0.0)],
+    )?;
     Ok(())
 }
 
 fn set_edit_text(env: &mut jni::Env, edit: &JObject, value: &str) -> jni::errors::Result<()> {
     let value = JString::new(env, value)?;
-    env.call_method(edit, jni_name!("setText"), jni_sig!("(Ljava/lang/CharSequence;)V"), &[JValue::Object(&value)])?;
+    env.call_method(
+        edit,
+        jni_name!("setText"),
+        jni_sig!("(Ljava/lang/CharSequence;)V"),
+        &[JValue::Object(&value)],
+    )?;
     Ok(())
 }
 
-fn set_edit_text_value(app: &AndroidApp, edit: &Global<JObject<'static>>, value: &str) -> jni::errors::Result<()> {
+fn set_edit_text_value(
+    app: &AndroidApp,
+    edit: &Global<JObject<'static>>,
+    value: &str,
+) -> jni::errors::Result<()> {
     let vm = unsafe { JavaVM::from_raw(app.vm_as_ptr().cast()) };
     vm.attach_current_thread(|env| set_edit_text(env, edit.as_obj(), value))
 }
@@ -322,7 +451,12 @@ fn focus_edit_text(app: &AndroidApp, edit: Arc<Global<JObject<'static>>>, initia
             if let Some(value) = &initial {
                 set_edit_text(env, edit_for_thread.as_obj(), value)?;
             }
-            env.call_method(edit_for_thread.as_obj(), jni_name!("requestFocus"), jni_sig!("()Z"), &[])?;
+            env.call_method(
+                edit_for_thread.as_obj(),
+                jni_name!("requestFocus"),
+                jni_sig!("()Z"),
+                &[],
+            )?;
             Ok(())
         });
         if let Err(error) = result {
@@ -349,11 +483,28 @@ fn hide_edit_text(app: &AndroidApp, edit: Arc<Global<JObject<'static>>>) {
     app.hide_soft_input(true);
 }
 
-fn read_edit_text(app: &AndroidApp, edit: &Global<JObject<'static>>) -> jni::errors::Result<String> {
+fn read_edit_text(
+    app: &AndroidApp,
+    edit: &Global<JObject<'static>>,
+) -> jni::errors::Result<String> {
     let vm = unsafe { JavaVM::from_raw(app.vm_as_ptr().cast()) };
     vm.attach_current_thread(|env| {
-        let editable = env.call_method(edit.as_obj(), jni_name!("getText"), jni_sig!("()Landroid/text/Editable;"), &[])?.l()?;
-        let string = env.call_method(&editable, jni_name!("toString"), jni_sig!("()Ljava/lang/String;"), &[])?.l()?;
+        let editable = env
+            .call_method(
+                edit.as_obj(),
+                jni_name!("getText"),
+                jni_sig!("()Landroid/text/Editable;"),
+                &[],
+            )?
+            .l()?;
+        let string = env
+            .call_method(
+                &editable,
+                jni_name!("toString"),
+                jni_sig!("()Ljava/lang/String;"),
+                &[],
+            )?
+            .l()?;
         let string = unsafe { JString::from_raw(env, string.into_raw()) };
         string.try_to_string(env)
     })

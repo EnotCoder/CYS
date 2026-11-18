@@ -7,12 +7,12 @@
 //  update (Lua npc.lua либо fallback-автомат на Rust).
 // ========================================================================
 
-use std::collections::HashSet;
-use specs::WorldExt;
-use crate::data::map::pathfinding::{Node, find_path};
 use crate::core::constants::*;
-use crate::EcsAdapter;
+use crate::data::map::pathfinding::{find_path, Node};
 use crate::ecs::components::{BusyCassas, Money};
+use crate::EcsAdapter;
+use specs::WorldExt;
+use std::collections::HashSet;
 
 mod interactions;
 mod movement;
@@ -55,7 +55,17 @@ pub struct ShopperNpc {
 }
 
 impl ShopperNpc {
-    pub fn spawn(ecs: &mut EcsAdapter, walkable: &HashSet<Node>, spawn_pos: Node, rack_pos: Node, cassa_pos: Node, candy_pos: Option<Node>, tex_idle: &'static str, tex_walk_1: &'static str, tex_walk_2: &'static str) -> Option<Self> {
+    pub fn spawn(
+        ecs: &mut EcsAdapter,
+        walkable: &HashSet<Node>,
+        spawn_pos: Node,
+        rack_pos: Node,
+        cassa_pos: Node,
+        candy_pos: Option<Node>,
+        tex_idle: &'static str,
+        tex_walk_1: &'static str,
+        tex_walk_2: &'static str,
+    ) -> Option<Self> {
         let path = find_path(walkable, spawn_pos, rack_pos)?;
         let npc_id = if tex_idle.contains("bob") {
             "bob"
@@ -64,18 +74,30 @@ impl ShopperNpc {
         } else {
             "sasha"
         };
-        let (idle, walk, fps_override) = crate::core::texture_pack::npc_textures(
-            npc_id, tex_idle, tex_walk_1, tex_walk_2,
-        );
+        let (idle, walk, fps_override) =
+            crate::core::texture_pack::npc_textures(npc_id, tex_idle, tex_walk_1, tex_walk_2);
         let (sx, sy) = spawn_pos.to_world();
         let sy = sy + 0.5;
         let entity = crate::ecs::factory::create_sprite(
-            &mut ecs.world, sx, sy, Z_NPC,
-            &idle[0], [0, 0], [1, 1], NPC_SCALE, 0.0,
+            &mut ecs.world,
+            sx,
+            sy,
+            Z_NPC,
+            &idle[0],
+            [0, 0],
+            [1, 1],
+            NPC_SCALE,
+            0.0,
         );
-        ecs.world.write_storage::<crate::Rotation>().insert(entity, crate::Rotation { rotation: [0.0; 3] }).ok();
+        ecs.world
+            .write_storage::<crate::Rotation>()
+            .insert(entity, crate::Rotation { rotation: [0.0; 3] })
+            .ok();
         // Маркер покупателя: по нему дверь магазина понимает, что пора открыться.
-        ecs.world.write_storage::<crate::ecs::components::ShopperTag>().insert(entity, crate::ecs::components::ShopperTag).ok();
+        ecs.world
+            .write_storage::<crate::ecs::components::ShopperTag>()
+            .insert(entity, crate::ecs::components::ShopperTag)
+            .ok();
         Some(ShopperNpc {
             entity,
             pos: (sx, sy),
@@ -137,7 +159,10 @@ impl ShopperNpc {
             _ => (TEX_SASHA_IDLE, TEX_SASHA_WALK_1, TEX_SASHA_WALK_2),
         };
         let (idle, walk, fps) = crate::core::texture_pack::npc_textures(
-            &self.npc_id, base_idle, base_walk_1, base_walk_2,
+            &self.npc_id,
+            base_idle,
+            base_walk_1,
+            base_walk_2,
         );
         self.tex_idle = idle;
         self.tex_walk = walk;
@@ -220,8 +245,17 @@ impl ShopperNpc {
         self.despawning = true;
     }
 
-    pub fn update(&mut self, ecs: &mut EcsAdapter, dt: f64, walkable: &HashSet<Node>, script: Option<&crate::scripts::npc::NpcScript>) -> bool {
-        let fade = ecs.world.read_resource::<crate::scripts::config::BalanceConfig>().npc_fade_speed;
+    pub fn update(
+        &mut self,
+        ecs: &mut EcsAdapter,
+        dt: f64,
+        walkable: &HashSet<Node>,
+        script: Option<&crate::scripts::npc::NpcScript>,
+    ) -> bool {
+        let fade = ecs
+            .world
+            .read_resource::<crate::scripts::config::BalanceConfig>()
+            .npc_fade_speed;
         if self.despawning {
             self.alpha = (self.alpha - dt as f32 * fade).max(0.0);
             ecs.update_sprite_alpha(self.entity, self.alpha);
@@ -253,7 +287,6 @@ impl ShopperNpc {
 
     /// Оригинальный Rust-автомат (fallback, если не загружен/упал Lua-скрипт).
     fn update_fallback(&mut self, ecs: &mut EcsAdapter, dt: f64, walkable: &HashSet<Node>) -> bool {
-
         // Если касса удалена — переключиться на другую или уйти
         if !matches!(self.state, ShopperState::GoingToExit) && !self.cassa_exists(ecs) {
             if let Some(cassa) = Self::find_any_cassa(ecs) {
@@ -274,7 +307,10 @@ impl ShopperNpc {
         }
 
         // Если стеллаж удалён или пуст — деспавн
-        if !self.food_taken && matches!(self.state, ShopperState::GoingToRack) && !self.rack_exists(ecs) {
+        if !self.food_taken
+            && matches!(self.state, ShopperState::GoingToRack)
+            && !self.rack_exists(ecs)
+        {
             self.despawning = true;
             return false;
         }
@@ -301,7 +337,10 @@ impl ShopperNpc {
                         return false;
                     }
                     if !self.cassa_exists(ecs) {
-                        ecs.world.write_resource::<BusyCassas>().0.remove(&(self.cassa_pos.x, self.cassa_pos.y));
+                        ecs.world
+                            .write_resource::<BusyCassas>()
+                            .0
+                            .remove(&(self.cassa_pos.x, self.cassa_pos.y));
                         if let Some(cassa) = Self::find_any_cassa(ecs) {
                             self.cassa_pos = cassa;
                         } else {
@@ -332,7 +371,10 @@ impl ShopperNpc {
                 if self.path_index >= self.path.len() {
                     self.set_idle(ecs);
                     self.state = ShopperState::AtCassa;
-                    self.state_timer = ecs.world.read_resource::<crate::scripts::config::BalanceConfig>().cassa_wait_secs;
+                    self.state_timer = ecs
+                        .world
+                        .read_resource::<crate::scripts::config::BalanceConfig>()
+                        .cassa_wait_secs;
                     return false;
                 }
                 self.walk_toward(ecs, dt);
@@ -342,15 +384,24 @@ impl ShopperNpc {
                 self.state_timer -= dt;
                 self.set_idle(ecs);
                 if self.state_timer <= 0.0 {
-                    ecs.world.write_resource::<BusyCassas>().0.remove(&(self.cassa_pos.x, self.cassa_pos.y));
-                    let cfg = ecs.world.read_resource::<crate::scripts::config::BalanceConfig>();
+                    ecs.world
+                        .write_resource::<BusyCassas>()
+                        .0
+                        .remove(&(self.cassa_pos.x, self.cassa_pos.y));
+                    let cfg = ecs
+                        .world
+                        .read_resource::<crate::scripts::config::BalanceConfig>();
                     ecs.world.write_resource::<Money>().0 += cfg.money_at_cassa;
                     crate::audio::play("cash");
                     // Шанс зайти за конфетами (config.candy_chance)
                     let want_candy = self.candy_pos.is_some()
                         && (cfg.candy_chance as f64) > 0.0
                         && std::time::SystemTime::now()
-                            .duration_since(std::time::UNIX_EPOCH).unwrap().subsec_nanos() % 100 < (cfg.candy_chance * 100.0) as u32
+                            .duration_since(std::time::UNIX_EPOCH)
+                            .unwrap()
+                            .subsec_nanos()
+                            % 100
+                            < (cfg.candy_chance * 100.0) as u32
                         && self.candy_exists(ecs);
                     if want_candy {
                         if self.start_path(ecs, walkable, self.candy_pos.unwrap()) {
@@ -380,7 +431,10 @@ impl ShopperNpc {
                     self.set_idle(ecs);
                     self.take_candy(ecs);
                     self.state = ShopperState::AtCandies;
-                    self.state_timer = ecs.world.read_resource::<crate::scripts::config::BalanceConfig>().candy_wait_secs;
+                    self.state_timer = ecs
+                        .world
+                        .read_resource::<crate::scripts::config::BalanceConfig>()
+                        .candy_wait_secs;
                     return false;
                 }
                 self.walk_toward(ecs, dt);
@@ -390,7 +444,10 @@ impl ShopperNpc {
                 self.state_timer -= dt;
                 self.set_idle(ecs);
                 if self.state_timer <= 0.0 {
-                    ecs.world.write_resource::<Money>().0 += ecs.world.read_resource::<crate::scripts::config::BalanceConfig>().money_at_candy;
+                    ecs.world.write_resource::<Money>().0 += ecs
+                        .world
+                        .read_resource::<crate::scripts::config::BalanceConfig>()
+                        .money_at_candy;
                     crate::audio::play("cash");
                     if self.start_path(ecs, walkable, spawn_path_node(ecs)) {
                         self.state = ShopperState::GoingToExit;
@@ -402,7 +459,11 @@ impl ShopperNpc {
                 if self.path_index >= self.path.len() {
                     if let Some((ex, ey)) = self.exit_target {
                         let (cx, cy) = self.pos;
-                        let step = ecs.world.read_resource::<crate::scripts::config::BalanceConfig>().npc_speed * dt as f32;
+                        let step = ecs
+                            .world
+                            .read_resource::<crate::scripts::config::BalanceConfig>()
+                            .npc_speed
+                            * dt as f32;
                         let dx = ex - cx;
                         let dy = ey - cy;
                         let dist = (dx * dx + dy * dy).sqrt();

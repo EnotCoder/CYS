@@ -16,17 +16,31 @@ use crate::EcsAdapter;
 fn sprite(ecs: &mut EcsAdapter, path: &str) -> specs::Entity {
     create_sprite(
         &mut ecs.world,
-        0.0, 0.0, 0.0,
-        path, [0, 0], [1, 1], 1.0, 1.0,
+        0.0,
+        0.0,
+        0.0,
+        path,
+        [0, 0],
+        [1, 1],
+        1.0,
+        1.0,
     )
 }
 
 fn scale(ecs: &EcsAdapter, entity: specs::Entity) -> f32 {
-    ecs.world.read_storage::<SpriteComponent>().get(entity).unwrap().scale
+    ecs.world
+        .read_storage::<SpriteComponent>()
+        .get(entity)
+        .unwrap()
+        .scale
 }
 
 fn alpha(ecs: &EcsAdapter, entity: specs::Entity) -> f32 {
-    ecs.world.read_storage::<SpriteComponent>().get(entity).unwrap().alpha
+    ecs.world
+        .read_storage::<SpriteComponent>()
+        .get(entity)
+        .unwrap()
+        .alpha
 }
 
 #[test]
@@ -39,9 +53,15 @@ fn opening_animation_finishes_with_opened_event() {
     anim.start_open(&mut ecs, vec![entity]);
     assert_eq!(anim.phase(), AnimPhase::Opening);
     assert!(anim.is_active());
-    assert!((scale(&ecs, entity) - 0.6).abs() < 1e-6, "старт с масштаба 0.6");
+    assert!(
+        (scale(&ecs, entity) - 0.6).abs() < 1e-6,
+        "старт с масштаба 0.6"
+    );
 
-    assert_eq!(anim.tick(&mut ecs, PANEL_OPEN_DURATION * 0.5), AnimEvent::None);
+    assert_eq!(
+        anim.tick(&mut ecs, PANEL_OPEN_DURATION * 0.5),
+        AnimEvent::None
+    );
     let mid = scale(&ecs, entity);
     assert!(mid > 0.6 && mid <= 1.2, "масштаб в середине: {mid}");
 
@@ -60,7 +80,10 @@ fn closing_animation_fades_and_deletes_entities() {
     assert_eq!(anim.phase(), AnimPhase::Closing);
     assert!(anim.is_closing());
 
-    assert_eq!(anim.tick(&mut ecs, PANEL_CLOSE_DURATION * 0.5), AnimEvent::None);
+    assert_eq!(
+        anim.tick(&mut ecs, PANEL_CLOSE_DURATION * 0.5),
+        AnimEvent::None
+    );
     let a = alpha(&ecs, entity);
     assert!(a > 0.0 && a < 1.0, "альфа в середине закрытия: {a}");
     assert!(scale(&ecs, entity) < 1.0);
@@ -68,7 +91,10 @@ fn closing_animation_fades_and_deletes_entities() {
     assert_eq!(anim.tick(&mut ecs, PANEL_CLOSE_DURATION), AnimEvent::Closed);
     assert!(!anim.is_active());
     assert!(
-        ecs.world.read_storage::<SpriteComponent>().get(entity).is_none(),
+        ecs.world
+            .read_storage::<SpriteComponent>()
+            .get(entity)
+            .is_none(),
         "сущность должна быть удалена после закрытия"
     );
 }
@@ -81,9 +107,15 @@ fn text_sprites_fade_instead_of_scaling() {
 
     anim.start_open(&mut ecs, vec![entity]);
     assert_eq!(alpha(&ecs, entity), 0.0);
-    assert!((scale(&ecs, entity) - 1.0).abs() < 1e-6, "текст не масштабируется");
+    assert!(
+        (scale(&ecs, entity) - 1.0).abs() < 1e-6,
+        "текст не масштабируется"
+    );
 
-    assert_eq!(anim.tick(&mut ecs, PANEL_OPEN_DURATION * 0.5), AnimEvent::None);
+    assert_eq!(
+        anim.tick(&mut ecs, PANEL_OPEN_DURATION * 0.5),
+        AnimEvent::None
+    );
     assert!((alpha(&ecs, entity) - 0.5).abs() < 1e-5);
     assert!((scale(&ecs, entity) - 1.0).abs() < 1e-6);
 
@@ -101,7 +133,11 @@ fn cancel_deletes_only_while_closing() {
     anim.start_close(&mut ecs, vec![entity]);
     anim.cancel(&mut ecs);
     assert!(!anim.is_active());
-    assert!(ecs.world.read_storage::<SpriteComponent>().get(entity).is_none());
+    assert!(ecs
+        .world
+        .read_storage::<SpriteComponent>()
+        .get(entity)
+        .is_none());
 
     // Отмена открытия сущности не трогает.
     let mut ecs = new_ecs();
@@ -110,7 +146,11 @@ fn cancel_deletes_only_while_closing() {
     anim.start_open(&mut ecs, vec![entity]);
     anim.cancel(&mut ecs);
     assert!(!anim.is_active());
-    assert!(ecs.world.read_storage::<SpriteComponent>().get(entity).is_some());
+    assert!(ecs
+        .world
+        .read_storage::<SpriteComponent>()
+        .get(entity)
+        .is_some());
 }
 
 #[test]

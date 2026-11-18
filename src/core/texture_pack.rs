@@ -72,7 +72,11 @@ fn state() -> &'static Mutex<PackState> {
 
 /// Корень папки паков: на Android паки лежат внутри APK-assets.
 pub fn packs_root() -> &'static str {
-    if cfg!(target_os = "android") { "assets/texture_pack" } else { "texture_pack" }
+    if cfg!(target_os = "android") {
+        "assets/texture_pack"
+    } else {
+        "texture_pack"
+    }
 }
 
 fn pack_root(id: &str) -> String {
@@ -81,11 +85,18 @@ fn pack_root(id: &str) -> String {
 
 /// Пути из манифеста не должны выходить за пределы пака.
 pub(crate) fn safe_join(base: &str, relative: &str) -> Option<String> {
-    if relative.is_empty() || relative.starts_with('/') || relative.starts_with('\\') || relative.contains('\\') {
+    if relative.is_empty()
+        || relative.starts_with('/')
+        || relative.starts_with('\\')
+        || relative.contains('\\')
+    {
         return None;
     }
     if Path::new(relative).components().any(|c| {
-        matches!(c, Component::ParentDir | Component::RootDir | Component::Prefix(_))
+        matches!(
+            c,
+            Component::ParentDir | Component::RootDir | Component::Prefix(_)
+        )
     }) {
         return None;
     }
@@ -114,7 +125,9 @@ fn read_manifest(id: &str) -> PackManifest {
 
 fn refresh_names(st: &mut PackState) {
     for pack in &mut st.available {
-        let name = read_manifest(&pack.id).name.unwrap_or_else(|| pack.id.clone());
+        let name = read_manifest(&pack.id)
+            .name
+            .unwrap_or_else(|| pack.id.clone());
         pack.name = name;
     }
 }
@@ -132,7 +145,10 @@ pub fn rescan() {
             .iter()
             .any(|name| name == "textures" || name == "pack.json");
         if is_pack {
-            available.push(PackInfo { name: id.clone(), id });
+            available.push(PackInfo {
+                name: id.clone(),
+                id,
+            });
         }
     }
     available.sort_by(|a, b| a.id.cmp(&b.id));
@@ -153,7 +169,14 @@ pub fn set_active(id: Option<&str>) {
     rescan();
     let valid = id
         .filter(|id| !id.is_empty())
-        .filter(|id| state().lock().unwrap().available.iter().any(|p| p.id == *id))
+        .filter(|id| {
+            state()
+                .lock()
+                .unwrap()
+                .available
+                .iter()
+                .any(|p| p.id == *id)
+        })
         .map(str::to_owned);
     let mut st = state().lock().unwrap();
     st.active = valid;
@@ -182,7 +205,9 @@ pub fn active_id() -> Option<String> {
 
 /// Разделяет виртуальный путь `tex.png@WxH` на файловый путь и размер.
 fn split_sized(path: &str) -> (&str, Option<(f32, f32)>) {
-    let Some(pos) = path.rfind('@') else { return (path, None) };
+    let Some(pos) = path.rfind('@') else {
+        return (path, None);
+    };
     let (base, tail) = path.split_at(pos);
     let mut parts = tail[1..].split('x');
     let (Some(w), Some(h), None) = (parts.next(), parts.next(), parts.next()) else {
@@ -191,7 +216,11 @@ fn split_sized(path: &str) -> (&str, Option<(f32, f32)>) {
     let (Ok(w), Ok(h)) = (w.trim().parse::<f32>(), h.trim().parse::<f32>()) else {
         return (path, None);
     };
-    if w > 0.0 && h > 0.0 { (base, Some((w, h))) } else { (path, None) }
+    if w > 0.0 && h > 0.0 {
+        (base, Some((w, h)))
+    } else {
+        (path, None)
+    }
 }
 
 /// Находит файл для логического пути текстуры. Суффикс `@WxH` не является
@@ -254,38 +283,55 @@ pub fn object_texture(name: &str, default: &str) -> String {
     with_active(|id, manifest| {
         let target = manifest.objects.get(name)?.texture.as_deref()?;
         pack_relative_file(id, target)
-    }).unwrap_or_else(|| default.to_string())
+    })
+    .unwrap_or_else(|| default.to_string())
 }
 
 pub fn object_frame(name: &str, default: [i32; 2]) -> [i32; 2] {
-    object_override(name).and_then(|o| o.frame).unwrap_or(default)
+    object_override(name)
+        .and_then(|o| o.frame)
+        .unwrap_or(default)
 }
 
 pub fn object_atlas(name: &str, default: [i32; 2]) -> [i32; 2] {
-    let atlas = object_override(name).and_then(|o| o.atlas).unwrap_or(default);
+    let atlas = object_override(name)
+        .and_then(|o| o.atlas)
+        .unwrap_or(default);
     [atlas[0].max(1), atlas[1].max(1)]
 }
 
 pub fn object_animated(name: &str, default: bool) -> bool {
-    object_override(name).and_then(|o| o.animated).unwrap_or(default)
+    object_override(name)
+        .and_then(|o| o.animated)
+        .unwrap_or(default)
 }
 
 pub fn object_frames(name: &str, default: &[&str]) -> Vec<String> {
     let Some(files) = object_override(name).and_then(|o| o.frames) else {
         return default.iter().map(|p| p.to_string()).collect();
     };
-    let frames: Vec<String> = files.iter()
+    let frames: Vec<String> = files
+        .iter()
         .filter_map(|file| with_active(|id, _| pack_relative_file(id, file)))
         .collect();
-    if frames.is_empty() { default.iter().map(|p| p.to_string()).collect() } else { frames }
+    if frames.is_empty() {
+        default.iter().map(|p| p.to_string()).collect()
+    } else {
+        frames
+    }
 }
 
 pub fn object_fps(name: &str) -> f32 {
-    object_override(name).and_then(|o| o.fps).unwrap_or(1.0).max(0.01)
+    object_override(name)
+        .and_then(|o| o.fps)
+        .unwrap_or(1.0)
+        .max(0.01)
 }
 
 pub fn object_loop(name: &str) -> bool {
-    object_override(name).and_then(|o| o.looping).unwrap_or(true)
+    object_override(name)
+        .and_then(|o| o.looping)
+        .unwrap_or(true)
 }
 
 // ========================================================================
@@ -294,18 +340,32 @@ pub fn object_loop(name: &str) -> bool {
 
 /// Возвращает кадры idle, walk и скорость анимации для покупателя.
 /// Незаданные списки остаются ванильными.
-pub fn npc_textures(npc_id: &str, idle: &str, walk_1: &str, walk_2: &str) -> (Vec<String>, Vec<String>, Option<f32>) {
+pub fn npc_textures(
+    npc_id: &str,
+    idle: &str,
+    walk_1: &str,
+    walk_2: &str,
+) -> (Vec<String>, Vec<String>, Option<f32>) {
     let Some(ov) = npc_override(npc_id) else {
-        return (vec![idle.to_string()], vec![walk_1.to_string(), walk_2.to_string()], None);
+        return (
+            vec![idle.to_string()],
+            vec![walk_1.to_string(), walk_2.to_string()],
+            None,
+        );
     };
     let files = |list: Option<Vec<String>>, fallback: &[&str]| -> Vec<String> {
         let Some(files) = list else {
             return fallback.iter().map(|p| p.to_string()).collect();
         };
-        let valid: Vec<String> = files.iter()
+        let valid: Vec<String> = files
+            .iter()
             .filter_map(|file| with_active(|id, _| pack_relative_file(id, file)))
             .collect();
-        if valid.is_empty() { fallback.iter().map(|p| p.to_string()).collect() } else { valid }
+        if valid.is_empty() {
+            fallback.iter().map(|p| p.to_string()).collect()
+        } else {
+            valid
+        }
     };
     (
         files(ov.idle, &[idle]),
@@ -329,9 +389,18 @@ mod tests {
 
     #[test]
     fn sized_suffix_is_not_part_of_a_file_name() {
-        assert_eq!(split_sized("assets/tex/a.png@2x1"), ("assets/tex/a.png", Some((2.0, 1.0))));
-        assert_eq!(split_sized("assets/tex/a@old.png@1x2"), ("assets/tex/a@old.png", Some((1.0, 2.0))));
-        assert_eq!(split_sized("assets/tex/a.png@0x1"), ("assets/tex/a.png@0x1", None));
+        assert_eq!(
+            split_sized("assets/tex/a.png@2x1"),
+            ("assets/tex/a.png", Some((2.0, 1.0)))
+        );
+        assert_eq!(
+            split_sized("assets/tex/a@old.png@1x2"),
+            ("assets/tex/a@old.png", Some((1.0, 2.0)))
+        );
+        assert_eq!(
+            split_sized("assets/tex/a.png@0x1"),
+            ("assets/tex/a.png@0x1", None)
+        );
         assert_eq!(split_sized("assets/tex/a.png"), ("assets/tex/a.png", None));
     }
 
@@ -339,7 +408,8 @@ mod tests {
     fn manifest_accepts_loop_field_and_missing_fields() {
         let m: PackManifest = serde_json::from_str(
             r#"{"name":"Neon","objects":{"box":{"loop":false,"fps":4.0,"atlas":[2,2]}}}"#,
-        ).unwrap();
+        )
+        .unwrap();
         assert_eq!(m.name.as_deref(), Some("Neon"));
         let box_ov = &m.objects["box"];
         assert_eq!(box_ov.looping, Some(false));

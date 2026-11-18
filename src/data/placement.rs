@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Copyright (C) 2026 EnotCoder
 
-use specs::WorldExt;
-use crate::EcsAdapter;
 use super::Slot;
 use crate::core::constants::{WORLD_OFFSET_X, WORLD_OFFSET_Y};
-use crate::ecs::components::{BasementPlaced, Money, PlacementError, ShopOwned, ShopDenied};
+use crate::ecs::components::{BasementPlaced, Money, PlacementError, ShopDenied, ShopOwned};
+use crate::EcsAdapter;
+use specs::WorldExt;
 
 // ========================================================================
 //  Правила размещения объектов: категории, стены, трава
@@ -15,28 +15,38 @@ use crate::ecs::components::{BasementPlaced, Money, PlacementError, ShopOwned, S
 // (пол, стены, улица, клумбы) — проверки живут в EcsAdapter.
 
 pub fn is_carpet_name(name: &str) -> bool {
-    crate::data::item_kind(name)
-        .map_or_else(|| crate::core::constants::CARPET_NAMES.contains(&name), |kind| kind == crate::data::ItemKind::Carpet)
+    crate::data::item_kind(name).map_or_else(
+        || crate::core::constants::CARPET_NAMES.contains(&name),
+        |kind| kind == crate::data::ItemKind::Carpet,
+    )
 }
 
 pub fn is_wall_decor_name(name: &str) -> bool {
-    crate::data::item_kind(name)
-        .map_or_else(|| crate::core::constants::INV_WALLDECOR.contains(&name), |kind| kind == crate::data::ItemKind::Walldecor)
+    crate::data::item_kind(name).map_or_else(
+        || crate::core::constants::INV_WALLDECOR.contains(&name),
+        |kind| kind == crate::data::ItemKind::Walldecor,
+    )
 }
 
 pub fn is_outdoor_name(name: &str) -> bool {
-    crate::data::item_kind(name)
-        .map_or_else(|| crate::core::constants::OUTDOOR_NAMES.contains(&name), |kind| kind == crate::data::ItemKind::Outdoor)
+    crate::data::item_kind(name).map_or_else(
+        || crate::core::constants::OUTDOOR_NAMES.contains(&name),
+        |kind| kind == crate::data::ItemKind::Outdoor,
+    )
 }
 
 pub fn is_flower_name(name: &str) -> bool {
-    crate::data::item_meta(name)
-        .map_or_else(|| crate::core::constants::FLOWER_NAMES.contains(&name), |meta| meta.flower)
+    crate::data::item_meta(name).map_or_else(
+        || crate::core::constants::FLOWER_NAMES.contains(&name),
+        |meta| meta.flower,
+    )
 }
 
 pub fn is_light_name(name: &str) -> bool {
-    crate::data::item_kind(name)
-        .map_or_else(|| crate::core::constants::INV_LIGHT.contains(&name), |kind| kind == crate::data::ItemKind::Light)
+    crate::data::item_kind(name).map_or_else(
+        || crate::core::constants::INV_LIGHT.contains(&name),
+        |kind| kind == crate::data::ItemKind::Light,
+    )
 }
 
 pub fn requires_shop(name: &str) -> bool {
@@ -48,14 +58,37 @@ pub fn requires_shop(name: &str) -> bool {
 pub fn attach_point_light(ecs: &EcsAdapter, entity: specs::Entity, name: &str) {
     use crate::ecs::components::PointLight;
     let light = match name {
-        "street_ice_cream" => PointLight { color: [1.0, 0.8, 0.6], intensity: 0.8, radius: 4.0 },
-        "arcade_machine" => PointLight { color: [0.6, 0.8, 1.0], intensity: 0.8, radius: 3.0 },
-        "candies" => PointLight { color: [1.0, 0.6, 1.0], intensity: 0.6, radius: 2.0 },
-        "lamp" => PointLight { color: [1.0, 0.95, 0.8], intensity: 1.0, radius: 5.0 },
-        "big_lamp" => PointLight { color: [1.0, 0.95, 0.8], intensity: 1.4, radius: 7.0 },
+        "street_ice_cream" => PointLight {
+            color: [1.0, 0.8, 0.6],
+            intensity: 0.8,
+            radius: 4.0,
+        },
+        "arcade_machine" => PointLight {
+            color: [0.6, 0.8, 1.0],
+            intensity: 0.8,
+            radius: 3.0,
+        },
+        "candies" => PointLight {
+            color: [1.0, 0.6, 1.0],
+            intensity: 0.6,
+            radius: 2.0,
+        },
+        "lamp" => PointLight {
+            color: [1.0, 0.95, 0.8],
+            intensity: 1.0,
+            radius: 5.0,
+        },
+        "big_lamp" => PointLight {
+            color: [1.0, 0.95, 0.8],
+            intensity: 1.4,
+            radius: 7.0,
+        },
         _ => return,
     };
-    ecs.world.write_storage::<PointLight>().insert(entity, light).ok();
+    ecs.world
+        .write_storage::<PointLight>()
+        .insert(entity, light)
+        .ok();
 }
 
 // Токеры «травы» — свободный открытый грунт, на который можно сажать
@@ -65,7 +98,10 @@ pub fn attach_point_light(ecs: &EcsAdapter, entity: specs::Entity, name: &str) {
 // Список один на весь проект: его используют и загрузка карты, и
 // восстановление уровня из кэша, и load_walkable_cells.
 pub fn is_grass_token(token: &str) -> bool {
-    matches!(token, "." | "@" | "*" | "m" | "f" | "~" | "l" | "1" | "2" | "3" | "4" | "5" | "6" | "H" | "K")
+    matches!(
+        token,
+        "." | "@" | "*" | "m" | "f" | "~" | "l" | "1" | "2" | "3" | "4" | "5" | "6" | "H" | "K"
+    )
 }
 
 // Стены, которые игра пересобирает сама по соседям с полом (см.
@@ -79,8 +115,14 @@ fn is_generated_wall_token(token: &str) -> bool {
 // это зависит от того, какие соседние клетки являются полом (floor_positions).
 fn refresh_walls_around(ecs: &mut EcsAdapter, gx: i32, gy: i32) {
     let dirs: [(i32, i32); 8] = [
-        (0, -1), (0, 1), (-1, 0), (1, 0),
-        (-1, -1), (1, -1), (-1, 1), (1, 1),
+        (0, -1),
+        (0, 1),
+        (-1, 0),
+        (1, 0),
+        (-1, -1),
+        (1, -1),
+        (-1, 1),
+        (1, 1),
     ];
     for &(dx, dy) in &dirs {
         let nx = gx + dx;
@@ -88,8 +130,12 @@ fn refresh_walls_around(ecs: &mut EcsAdapter, gx: i32, gy: i32) {
         // Переводим игровые координаты в индексы сетки карты (карта читается из файла).
         let file_col = nx - WORLD_OFFSET_X as i32;
         let file_row = WORLD_OFFSET_Y as i32 - ny;
-        if file_row < 0 || file_row >= ecs.map_grid.len() as i32 { continue; }
-        if file_col < 0 || file_col >= ecs.map_grid[file_row as usize].len() as i32 { continue; }
+        if file_row < 0 || file_row >= ecs.map_grid.len() as i32 {
+            continue;
+        }
+        if file_col < 0 || file_col >= ecs.map_grid[file_row as usize].len() as i32 {
+            continue;
+        }
         let token = ecs.map_grid[file_row as usize][file_col as usize].clone();
         // Пересчитываем ТОЛЬКО сгенерированные стены ("&" "|" "/" "p" "i") —
         // их игра собирает сама по соседям с полом. Всё остальное задано
@@ -98,7 +144,9 @@ fn refresh_walls_around(ecs: &mut EcsAdapter, gx: i32, gy: i32) {
         // проём. Раньше здесь перезаписывался любой не-травяный токен, из-за
         // чего снос плитки пола у края магазина превращал паркет в стену, а
         // витрину — в траву (дыру в фасаде).
-        if !is_generated_wall_token(&token) { continue; }
+        if !is_generated_wall_token(&token) {
+            continue;
+        }
         // Пересчитываем вид стены; None — значит без пола рядом стена не нужна.
         if let Some(new_token) = recompute_wall_token(ecs, nx, ny) {
             if new_token != token {
@@ -125,14 +173,21 @@ fn refresh_walls_around(ecs: &mut EcsAdapter, gx: i32, gy: i32) {
 // позиции для уличных объектов/цветов и спрайт из original_tokens.
 fn revert_to_grass(ecs: &mut EcsAdapter, nx: i32, ny: i32, file_row: i32, file_col: i32) {
     ecs.floor_positions.remove(&(nx, ny));
-    let original = ecs.original_tokens.get(&(nx, ny)).cloned().unwrap_or_else(|| ".".to_string());
+    let original = ecs
+        .original_tokens
+        .get(&(nx, ny))
+        .cloned()
+        .unwrap_or_else(|| ".".to_string());
     ecs.map_grid[file_row as usize][file_col as usize] = original.clone();
     // Исходная трава снова принимает уличные объекты и цветы.
     if is_grass_token(&original) {
         ecs.outdoor_positions.insert((nx, ny));
         ecs.flower_positions.insert((nx, ny));
     }
-    let (tex, frame, count) = crate::data::map::token_to_texture(&original, *ecs.world.read_resource::<crate::ecs::components::Season>());
+    let (tex, frame, count) = crate::data::map::token_to_texture(
+        &original,
+        *ecs.world.read_resource::<crate::ecs::components::Season>(),
+    );
     if let Some(&map_entity) = ecs.map_entities.get(&(nx, ny)) {
         ecs.update_sprite_texture(map_entity, tex);
         let mut sprites = ecs.world.write_storage::<crate::SpriteComponent>();
@@ -147,38 +202,84 @@ fn revert_to_grass(ecs: &mut EcsAdapter, nx: i32, ny: i32, file_row: i32, file_c
 // и возвращаем код вида стены ("&" — сплошная, "/" и "|" — углы и т.д.)
 fn recompute_wall_token(ecs: &EcsAdapter, wx: i32, wy: i32) -> Option<&'static str> {
     let f = |x: i32, y: i32| ecs.floor_positions.contains(&(x, y));
-    let s = f(wx, wy+1); let n = f(wx, wy-1);
-    let e = f(wx+1, wy); let w = f(wx-1, wy);
-    let se = f(wx+1, wy+1); let sw = f(wx-1, wy+1);
-    let ne = f(wx+1, wy-1); let nw = f(wx-1, wy-1);
+    let s = f(wx, wy + 1);
+    let n = f(wx, wy - 1);
+    let e = f(wx + 1, wy);
+    let w = f(wx - 1, wy);
+    let se = f(wx + 1, wy + 1);
+    let sw = f(wx - 1, wy + 1);
+    let ne = f(wx + 1, wy - 1);
+    let nw = f(wx - 1, wy - 1);
     let count = [s, n, e, w, se, sw, ne, nw].iter().filter(|&&x| x).count();
-    if count == 0 { return None; }
-    if count == 1 {
-        if s { return Some("&"); } if n { return Some("&"); }
-        if e { return Some("/"); } if w { return Some("|"); }
-        if se { return Some("p"); } if sw { return Some("i"); }
-        if ne { return Some("/"); } if nw { return Some("|"); }
+    if count == 0 {
+        return None;
     }
-    if s || n { return Some("&"); }
-    if e || ne { return Some("/"); }
-    if w || nw { return Some("|"); }
-    if se { return Some("p"); } if sw { return Some("i"); }
+    if count == 1 {
+        if s {
+            return Some("&");
+        }
+        if n {
+            return Some("&");
+        }
+        if e {
+            return Some("/");
+        }
+        if w {
+            return Some("|");
+        }
+        if se {
+            return Some("p");
+        }
+        if sw {
+            return Some("i");
+        }
+        if ne {
+            return Some("/");
+        }
+        if nw {
+            return Some("|");
+        }
+    }
+    if s || n {
+        return Some("&");
+    }
+    if e || ne {
+        return Some("/");
+    }
+    if w || nw {
+        return Some("|");
+    }
+    if se {
+        return Some("p");
+    }
+    if sw {
+        return Some("i");
+    }
     None
 }
 
 // Кадр в атласе стены (5x5 кадров) для конкретного токена вида стены.
 fn wall_frame_count(token: &str) -> ([i32; 2], [i32; 2]) {
     match token {
-        "=" => ([0, 0], [5, 5]), "-" => ([0, 1], [5, 5]),
-        "^" => ([1, 0], [5, 5]), "&" => ([1, 1], [5, 5]),
-        "/" => ([0, 2], [5, 5]), "|" => ([1, 2], [5, 5]),
-        "(" => ([0, 3], [5, 5]), "{" => ([0, 4], [5, 5]),
-        ")" => ([1, 3], [5, 5]), "}" => ([1, 4], [5, 5]),
-        "[" => ([2, 0], [5, 5]), "]" => ([4, 0], [5, 5]),
-        ":" => ([2, 1], [5, 5]), ";" => ([4, 1], [5, 5]),
-        "o" => ([3, 0], [5, 5]), "%" => ([3, 1], [5, 5]),
+        "=" => ([0, 0], [5, 5]),
+        "-" => ([0, 1], [5, 5]),
+        "^" => ([1, 0], [5, 5]),
+        "&" => ([1, 1], [5, 5]),
+        "/" => ([0, 2], [5, 5]),
+        "|" => ([1, 2], [5, 5]),
+        "(" => ([0, 3], [5, 5]),
+        "{" => ([0, 4], [5, 5]),
+        ")" => ([1, 3], [5, 5]),
+        "}" => ([1, 4], [5, 5]),
+        "[" => ([2, 0], [5, 5]),
+        "]" => ([4, 0], [5, 5]),
+        ":" => ([2, 1], [5, 5]),
+        ";" => ([4, 1], [5, 5]),
+        "o" => ([3, 0], [5, 5]),
+        "%" => ([3, 1], [5, 5]),
         "q" => ([2, 3], [5, 5]),
-        "p" => ([3, 3], [5, 5]), "i" => ([4, 3], [5, 5]),
+        "p" => ([3, 3], [5, 5]),
+        "i" => ([4, 3], [5, 5]),
         _ => ([0, 0], [5, 5]),
     }
 }
@@ -195,7 +296,10 @@ pub fn add(ecs: &mut EcsAdapter, slots: &mut Vec<Slot>, act_slot: i32, gx: i32, 
 
     // В подвале нельзя ставить кассу, стеллаж и лестницу
     if ecs.current_level == -1 {
-        if active_slot.name == "cassa" || active_slot.name == "rack" || active_slot.name == "basement" {
+        if active_slot.name == "cassa"
+            || active_slot.name == "rack"
+            || active_slot.name == "basement"
+        {
             crate::audio::play("error");
             return;
         }
@@ -209,7 +313,14 @@ pub fn add(ecs: &mut EcsAdapter, slots: &mut Vec<Slot>, act_slot: i32, gx: i32, 
 
     // Доступ к объектам (кроме box/sign/rack/cassa) покупается в магазине
     // (проверяем ДО денег, чтобы подсказка была «Buy this in the Shop»).
-    if requires_shop(active_slot.name) && !ecs.world.read_resource::<ShopOwned>().0.iter().any(|o| o == &active_slot.name) {
+    if requires_shop(active_slot.name)
+        && !ecs
+            .world
+            .read_resource::<ShopOwned>()
+            .0
+            .iter()
+            .any(|o| o == &active_slot.name)
+    {
         ecs.world.write_resource::<ShopDenied>().0 = true;
         crate::audio::play("error");
         return;
@@ -217,7 +328,9 @@ pub fn add(ecs: &mut EcsAdapter, slots: &mut Vec<Slot>, act_slot: i32, gx: i32, 
 
     // Мини-экономика: установка объекта стоит денег.
     let price = {
-        let cfg = ecs.world.read_resource::<crate::scripts::config::BalanceConfig>();
+        let cfg = ecs
+            .world
+            .read_resource::<crate::scripts::config::BalanceConfig>();
         super::object_price(active_slot.name, &cfg)
     };
     if ecs.world.read_resource::<Money>().0 < price {
@@ -227,11 +340,16 @@ pub fn add(ecs: &mut EcsAdapter, slots: &mut Vec<Slot>, act_slot: i32, gx: i32, 
         return;
     }
 
-
     if !ecs.can_place_at(
-        gx, gy,
-        active_slot.width, active_slot.height,
-        is_carpet, is_light, is_wall_decor, is_outdoor, is_flower,
+        gx,
+        gy,
+        active_slot.width,
+        active_slot.height,
+        is_carpet,
+        is_light,
+        is_wall_decor,
+        is_outdoor,
+        is_flower,
     ) {
         crate::audio::play("error");
         return;
@@ -244,8 +362,10 @@ pub fn add(ecs: &mut EcsAdapter, slots: &mut Vec<Slot>, act_slot: i32, gx: i32, 
 
     // Создаём группу спрайтов размера width*height и получаем её id.
     let group_id = ecs.add_group_object(
-        gx, gy,
-        active_slot.width, active_slot.height,
+        gx,
+        gy,
+        active_slot.width,
+        active_slot.height,
         active_slot.name,
         active_slot.path,
         active_slot.texture_frame,
@@ -259,15 +379,25 @@ pub fn add(ecs: &mut EcsAdapter, slots: &mut Vec<Slot>, act_slot: i32, gx: i32, 
     // Получаем список сущностей созданной группы для привязки компонентов.
     let entities = {
         let groups = ecs.world.read_resource::<crate::GroupInfoResource>();
-        groups.groups.get(&group_id).map(|g| g.entities.clone()).unwrap_or_default()
+        groups
+            .groups
+            .get(&group_id)
+            .map(|g| g.entities.clone())
+            .unwrap_or_default()
     };
 
     if !entities.is_empty() {
         // Запоминаем имя объекта на всех его сущностях.
         for &entity in &entities {
-            ecs.world.write_storage::<crate::ObjectTag>().insert(entity, crate::ObjectTag {
-                name: active_slot.name.to_string(),
-            }).ok();
+            ecs.world
+                .write_storage::<crate::ObjectTag>()
+                .insert(
+                    entity,
+                    crate::ObjectTag {
+                        name: active_slot.name.to_string(),
+                    },
+                )
+                .ok();
         }
 
         let first = entities[0];
@@ -276,29 +406,67 @@ pub fn add(ecs: &mut EcsAdapter, slots: &mut Vec<Slot>, act_slot: i32, gx: i32, 
             ecs.world.write_resource::<BasementPlaced>().0 = true;
         } else if active_slot.name == "box" {
             // Ящик и стеллаж хранят еду для покупателей.
-            let max_food = ecs.world.read_resource::<crate::scripts::config::BalanceConfig>().max_food_box;
-            ecs.world.write_storage::<crate::FoodStorage>().insert(first, crate::FoodStorage {
-                food_count: 0,
-                max_food,
-            }).ok();
+            let max_food = ecs
+                .world
+                .read_resource::<crate::scripts::config::BalanceConfig>()
+                .max_food_box;
+            ecs.world
+                .write_storage::<crate::FoodStorage>()
+                .insert(
+                    first,
+                    crate::FoodStorage {
+                        food_count: 0,
+                        max_food,
+                    },
+                )
+                .ok();
         } else if active_slot.name == "rack" {
-            let max_food = ecs.world.read_resource::<crate::scripts::config::BalanceConfig>().max_food_rack;
-            ecs.world.write_storage::<crate::FoodStorage>().insert(first, crate::FoodStorage {
-                food_count: 0,
-                max_food,
-            }).ok();
+            let max_food = ecs
+                .world
+                .read_resource::<crate::scripts::config::BalanceConfig>()
+                .max_food_rack;
+            ecs.world
+                .write_storage::<crate::FoodStorage>()
+                .insert(
+                    first,
+                    crate::FoodStorage {
+                        food_count: 0,
+                        max_food,
+                    },
+                )
+                .ok();
         } else if active_slot.name == "candies" {
             // Конфеты начинаются с частично заполненного запаса.
-            let cfg = ecs.world.read_resource::<crate::scripts::config::BalanceConfig>();
+            let cfg = ecs
+                .world
+                .read_resource::<crate::scripts::config::BalanceConfig>();
             let (max_food, start) = (cfg.max_food_candies, cfg.candies_start_food);
-            ecs.world.write_storage::<crate::FoodStorage>().insert(first, crate::FoodStorage {
-                food_count: start,
-                max_food,
-            }).ok();
+            ecs.world
+                .write_storage::<crate::FoodStorage>()
+                .insert(
+                    first,
+                    crate::FoodStorage {
+                        food_count: start,
+                        max_food,
+                    },
+                )
+                .ok();
         } else if active_slot.name == "fence" || active_slot.name == "street_fence" {
-            ecs.world.write_storage::<crate::FenceComponent>().insert(first, crate::FenceComponent { name: active_slot.name.to_string() }).ok();
+            ecs.world
+                .write_storage::<crate::FenceComponent>()
+                .insert(
+                    first,
+                    crate::FenceComponent {
+                        name: active_slot.name.to_string(),
+                    },
+                )
+                .ok();
         }
-        if is_light_name(active_slot.name) || active_slot.name == "street_ice_cream" || active_slot.name == "arcade_machine" || active_slot.name == "candies" {
+        if is_light_name(active_slot.name)
+            || active_slot.name == "street_ice_cream"
+            || active_slot.name == "arcade_machine"
+            || active_slot.name == "candies"
+        {
             attach_point_light(ecs, first, active_slot.name);
         }
     }
@@ -311,13 +479,18 @@ pub fn remove(ecs: &mut EcsAdapter, gx: i32, gy: i32) -> bool {
     if let Some(group_id) = ecs.find_group_at_position(gx, gy) {
         let entity = {
             let groups = ecs.world.read_resource::<crate::GroupInfoResource>();
-            groups.groups.get(&group_id).and_then(|g| g.entities.first().copied())
+            groups
+                .groups
+                .get(&group_id)
+                .and_then(|g| g.entities.first().copied())
         };
         if let Some(entity) = entity {
             // Если удаляем подвал — разрешаем поставить его снова.
             let is_basement = {
                 let tags = ecs.world.read_storage::<crate::ObjectTag>();
-                tags.get(entity).map(|t| t.name == "basement").unwrap_or(false)
+                tags.get(entity)
+                    .map(|t| t.name == "basement")
+                    .unwrap_or(false)
             };
             if is_basement {
                 ecs.world.write_resource::<BasementPlaced>().0 = false;
@@ -328,7 +501,9 @@ pub fn remove(ecs: &mut EcsAdapter, gx: i32, gy: i32) -> bool {
                 tags.get(entity).map(|t| t.name.clone())
             };
             if let Some(name) = name {
-                let cfg = ecs.world.read_resource::<crate::scripts::config::BalanceConfig>();
+                let cfg = ecs
+                    .world
+                    .read_resource::<crate::scripts::config::BalanceConfig>();
                 let refund = super::object_price(&name, &cfg) / 2;
                 ecs.world.write_resource::<Money>().0 += refund;
             }
@@ -340,8 +515,10 @@ pub fn remove(ecs: &mut EcsAdapter, gx: i32, gy: i32) -> bool {
     // Если объекта нет — возможно, клетка является стеной.
     let file_col = gx - WORLD_OFFSET_X as i32;
     let file_row = WORLD_OFFSET_Y as i32 - gy;
-    if file_row >= 0 && file_row < ecs.map_grid.len() as i32 &&
-       file_col >= 0 && file_col < ecs.map_grid[file_row as usize].len() as i32
+    if file_row >= 0
+        && file_row < ecs.map_grid.len() as i32
+        && file_col >= 0
+        && file_col < ecs.map_grid[file_row as usize].len() as i32
     {
         let token = &ecs.map_grid[file_row as usize][file_col as usize];
         if token == "0" {

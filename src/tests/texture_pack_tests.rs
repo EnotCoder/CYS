@@ -42,8 +42,14 @@ fn pack_overlay_overrides_and_vanilla_fallback_work() {
     ] {
         copy_png(file);
     }
-    fs::copy("assets/tex/map/grass.png", root.join("textures/map/grass.png")).unwrap();
-    fs::write(root.join("pack.json"), r#"{
+    fs::copy(
+        "assets/tex/map/grass.png",
+        root.join("textures/map/grass.png"),
+    )
+    .unwrap();
+    fs::write(
+        root.join("pack.json"),
+        r#"{
         "name": "Test Pack",
         "textures": {
             "assets/tex/map/floor.png": "textures/map/grass.png",
@@ -71,11 +77,18 @@ fn pack_overlay_overrides_and_vanilla_fallback_work() {
                 "fps": 6.0
             }
         }
-    }"#).unwrap();
+    }"#,
+    )
+    .unwrap();
 
     crate::core::texture_pack::set_active(Some(TEST_ID));
-    assert_eq!(crate::core::texture_pack::active_id().as_deref(), Some(TEST_ID));
-    assert!(crate::core::texture_pack::list().iter().any(|p| p.id == TEST_ID && p.name == "Test Pack"));
+    assert_eq!(
+        crate::core::texture_pack::active_id().as_deref(),
+        Some(TEST_ID)
+    );
+    assert!(crate::core::texture_pack::list()
+        .iter()
+        .any(|p| p.id == TEST_ID && p.name == "Test Pack"));
 
     use crate::core::texture_pack as pack;
     let mirror = format!("texture_pack/{TEST_ID}/textures/map/grass.png");
@@ -90,7 +103,10 @@ fn pack_overlay_overrides_and_vanilla_fallback_work() {
         "assets/tex/ui/button/main.png",
     );
 
-    assert_eq!(pack::object_texture("box", "vanilla"), format!("texture_pack/{TEST_ID}/textures/box_alt.png"));
+    assert_eq!(
+        pack::object_texture("box", "vanilla"),
+        format!("texture_pack/{TEST_ID}/textures/box_alt.png")
+    );
     assert_eq!(pack::object_frame("box", [0, 0]), [1, 1]);
     assert_eq!(pack::object_atlas("box", [1, 1]), [2, 2]);
     assert!(!pack::object_animated("box", true));
@@ -106,25 +122,40 @@ fn pack_overlay_overrides_and_vanilla_fallback_work() {
     let arcade = format!("texture_pack/{TEST_ID}/textures/arcade_base.png");
     assert_eq!(pack::object_texture("arcade_machine", "vanilla"), arcade);
     let (idle, walk, fps) = pack::npc_textures("bob", "idle", "w1", "w2");
-    assert_eq!(idle, vec![format!("texture_pack/{TEST_ID}/textures/bob_idle.png")]);
-    assert_eq!(walk, vec![format!("texture_pack/{TEST_ID}/textures/bob_walk.png")]);
+    assert_eq!(
+        idle,
+        vec![format!("texture_pack/{TEST_ID}/textures/bob_idle.png")]
+    );
+    assert_eq!(
+        walk,
+        vec![format!("texture_pack/{TEST_ID}/textures/bob_walk.png")]
+    );
     assert_eq!(fps, Some(6.0));
 
     let mut ecs = crate::tests::helpers::ecs_with_map();
     let cursor = ecs.add_cursor(0.0, 0.0, crate::core::constants::CURSOR_TEX[1]);
     let slots = [crate::data::make_slot("arcade_machine")];
     crate::input::cursor::update_cursor_preview(
-        &mut ecs, crate::core::constants::MODE_BUILD, &slots, 0, cursor,
+        &mut ecs,
+        crate::core::constants::MODE_BUILD,
+        &slots,
+        0,
+        cursor,
     );
     use specs::WorldExt;
     let sprites = ecs.world.read_storage::<crate::SpriteComponent>();
-    let preview_paths: Vec<String> = ecs.cursor_preview.iter()
+    let preview_paths: Vec<String> = ecs
+        .cursor_preview
+        .iter()
         .filter_map(|entity| sprites.get(*entity).map(|s| s.texture_path.to_string()))
         .collect();
     assert!(preview_paths.iter().any(|path| path.starts_with(&arcade)));
 
     crate::core::texture_pack::set_active(None);
-    assert_eq!(pack::resolve("assets/tex/map/grass.png"), "assets/tex/map/grass.png");
+    assert_eq!(
+        pack::resolve("assets/tex/map/grass.png"),
+        "assets/tex/map/grass.png"
+    );
     assert_eq!(pack::object_texture("box", "vanilla"), "vanilla");
     assert_eq!(pack::object_fps("box"), 1.0);
     assert!(pack::object_loop("box"));

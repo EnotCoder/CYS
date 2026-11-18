@@ -2,8 +2,8 @@
 // Copyright (C) 2026 EnotCoder
 
 use crate::core::constants::*;
-use crate::EcsAdapter;
 use crate::ui::text_renderer::TextRenderer;
+use crate::EcsAdapter;
 
 // ========================================================================
 //  GameHud — игровой интерфейс (надписи поверх карты)
@@ -121,8 +121,27 @@ impl GameHud {
     // ====================================================================
 
     /// Показывает надпись "Loading..." в центре экрана
-    pub fn show_loading(&mut self, ecs: &mut EcsAdapter, text_renderer: &mut TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue) {
-        let (entity, key) = text_renderer.set_text(ecs, device, queue, self.loading_text, self.loading_key, "Loading...", 64.0, 0.0, 0.0, 4.0, 2.0, GRAY);
+    pub fn show_loading(
+        &mut self,
+        ecs: &mut EcsAdapter,
+        text_renderer: &mut TextRenderer,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+    ) {
+        let (entity, key) = text_renderer.set_text(
+            ecs,
+            device,
+            queue,
+            self.loading_text,
+            self.loading_key,
+            "Loading...",
+            64.0,
+            0.0,
+            0.0,
+            4.0,
+            2.0,
+            GRAY,
+        );
         self.loading_text = entity;
         self.loading_key = key;
     }
@@ -138,8 +157,21 @@ impl GameHud {
     }
 
     /// Создаёт полупрозрачную тёмную панель-подложку (угол экрана)
-    pub fn create_info_panel(&mut self, ecs: &mut EcsAdapter, device: &wgpu::Device, queue: &wgpu::Queue) {
-        let panel = ecs.add_ui_sized(HUD_PANEL_X, HUD_PANEL_Y + self.top_dy, HUD_PANEL_W, HUD_PANEL_H, "assets/tex/dev_tools/black.png", device, queue);
+    pub fn create_info_panel(
+        &mut self,
+        ecs: &mut EcsAdapter,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+    ) {
+        let panel = ecs.add_ui_sized(
+            HUD_PANEL_X,
+            HUD_PANEL_Y + self.top_dy,
+            HUD_PANEL_W,
+            HUD_PANEL_H,
+            "assets/tex/dev_tools/black.png",
+            device,
+            queue,
+        );
         ecs.update_sprite_alpha(panel, 0.5);
         self.info_panel = Some(panel);
     }
@@ -172,11 +204,31 @@ impl GameHud {
 
     /// Показывает/скрывает подсказку над наведённым объектом.
     /// Появление/скрытие плавное: альфа меняется в tick().
-    pub fn update_hover(&mut self, ecs: &mut EcsAdapter, text_renderer: &mut TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue, hovered: Option<(i32, i32, String)>) {
+    pub fn update_hover(
+        &mut self,
+        ecs: &mut EcsAdapter,
+        text_renderer: &mut TextRenderer,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        hovered: Option<(i32, i32, String)>,
+    ) {
         match hovered {
             Some((food, max, name)) => {
                 let text = format!("{}: {}/{}", name, food, max);
-                let (entity, key) = text_renderer.set_text(ecs, device, queue, self.object_hover_text, self.object_hover_key, &text, 48.0, 0.0, -3.0, 2.0, 1.0, WHITE);
+                let (entity, key) = text_renderer.set_text(
+                    ecs,
+                    device,
+                    queue,
+                    self.object_hover_text,
+                    self.object_hover_key,
+                    &text,
+                    48.0,
+                    0.0,
+                    -3.0,
+                    2.0,
+                    1.0,
+                    WHITE,
+                );
                 self.object_hover_text = entity;
                 self.object_hover_key = key;
                 // Только начали показывать — стартуем с нулевой прозрачности.
@@ -215,12 +267,33 @@ impl GameHud {
 
     /// Обновляет счётчики еды и денег, только если они изменились.
     /// При изменении значения запускается пульс (кнопка «подпрыгивает»).
-    pub fn update_stats(&mut self, ecs: &mut EcsAdapter, text_renderer: &mut TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue, total_food: i32, money: i32) {
+    pub fn update_stats(
+        &mut self,
+        ecs: &mut EcsAdapter,
+        text_renderer: &mut TextRenderer,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        total_food: i32,
+        money: i32,
+    ) {
         if total_food != self.current_total_food {
             self.current_total_food = total_food;
             self.food_pulse = UI_PULSE_SECS;
             let text = format!("Food: {}", total_food);
-            let (entity, key) = text_renderer.set_text(ecs, device, queue, self.total_food_text, self.total_food_key, &text, 64.0, HUD_FOOD_X, HUD_FOOD_Y + self.top_dy, 1.0, 4.0, WHITE);
+            let (entity, key) = text_renderer.set_text(
+                ecs,
+                device,
+                queue,
+                self.total_food_text,
+                self.total_food_key,
+                &text,
+                64.0,
+                HUD_FOOD_X,
+                HUD_FOOD_Y + self.top_dy,
+                1.0,
+                4.0,
+                WHITE,
+            );
             self.total_food_text = entity;
             self.total_food_key = key;
         }
@@ -228,7 +301,20 @@ impl GameHud {
             self.current_money = money;
             self.money_pulse = UI_PULSE_SECS;
             let text = format!("Money: {}", money);
-            let (entity, key) = text_renderer.set_text(ecs, device, queue, self.money_text, self.money_key, &text, 64.0, HUD_MONEY_X, HUD_MONEY_Y + self.top_dy, 1.0, 4.0, WHITE);
+            let (entity, key) = text_renderer.set_text(
+                ecs,
+                device,
+                queue,
+                self.money_text,
+                self.money_key,
+                &text,
+                64.0,
+                HUD_MONEY_X,
+                HUD_MONEY_Y + self.top_dy,
+                1.0,
+                4.0,
+                WHITE,
+            );
             self.money_text = entity;
             self.money_key = key;
         }
@@ -262,12 +348,33 @@ impl GameHud {
 
     /// Обновляет часы. Перерисовка выполняется не чаще раза в секунду,
     /// чтобы строка времени не мигала и не спамила кэш.
-    pub fn update_time(&mut self, ecs: &mut EcsAdapter, text_renderer: &mut TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue, time_str: &str, dt: f64) {
+    pub fn update_time(
+        &mut self,
+        ecs: &mut EcsAdapter,
+        text_renderer: &mut TextRenderer,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        time_str: &str,
+        dt: f64,
+    ) {
         self.time_update_timer += dt;
         if time_str != self.current_time_string && self.time_update_timer >= 1.0 {
             self.time_update_timer = 0.0;
             self.current_time_string = time_str.to_string();
-            let (entity, key) = text_renderer.set_text(ecs, device, queue, self.time_text, self.time_key, time_str, 64.0, HUD_TIME_X, HUD_TIME_Y + self.top_dy, 1.0, 4.0, WHITE);
+            let (entity, key) = text_renderer.set_text(
+                ecs,
+                device,
+                queue,
+                self.time_text,
+                self.time_key,
+                time_str,
+                64.0,
+                HUD_TIME_X,
+                HUD_TIME_Y + self.top_dy,
+                1.0,
+                4.0,
+                WHITE,
+            );
             self.time_text = entity;
             self.time_key = key;
         }
@@ -276,7 +383,14 @@ impl GameHud {
     /// Показывает/скрывает тултип с названием предмета над ячейкой инвентаря.
     /// Подложка создаётся один раз под размер текста, далее только двигается.
     /// Появление/скрытие плавное через альфу в tick_tooltip().
-    pub fn update_slot_tooltip(&mut self, ecs: &mut EcsAdapter, text_renderer: &mut TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue, tooltip: Option<(String, i32, f32, f32)>) {
+    pub fn update_slot_tooltip(
+        &mut self,
+        ecs: &mut EcsAdapter,
+        text_renderer: &mut TextRenderer,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        tooltip: Option<(String, i32, f32, f32)>,
+    ) {
         match tooltip {
             Some((name, price, tx, ty)) => {
                 let display_name = name.replace('_', " ");
@@ -284,7 +398,8 @@ impl GameHud {
                 let label = format!("{} — {}", display_name, price);
                 let char_w = 0.14;
                 let text_w = (label.len() as f32).max(1.0) * char_w;
-                let (_, text_h) = text_renderer.text_world_size(&label, FONT_SIZE_LOGO, text_w, 4.0, WHITE);
+                let (_, text_h) =
+                    text_renderer.text_world_size(&label, FONT_SIZE_LOGO, text_w, 4.0, WHITE);
                 // Подложка чуть больше текста по обеим осям
                 let pad_x = 0.10;
                 let pad_y = 0.04;
@@ -293,7 +408,8 @@ impl GameHud {
 
                 // Ключ кэша уникален для каждого размера подложки
                 let bg_unique = format!("assets/tex/dev_tools/black.png@{bg_w:.2}x{bg_h:.2}");
-                let bg_key = crate::core::util::sprite_cache_key("ui", &bg_unique, [0, 0], [1, 1], 1.0);
+                let bg_key =
+                    crate::core::util::sprite_cache_key("ui", &bg_unique, [0, 0], [1, 1], 1.0);
                 if self.slot_tooltip_bg_key != Some(bg_key) {
                     // Размер изменился — пересоздаём подложку
                     if let Some(old) = self.slot_tooltip_bg.take() {
@@ -302,7 +418,15 @@ impl GameHud {
                     if let Some(old_key) = self.slot_tooltip_bg_key.take() {
                         ecs.sprite_cache.remove(&old_key);
                     }
-                    let bg_ent = ecs.add_ui_sized(tx, ty, bg_w, bg_h, "assets/tex/dev_tools/black.png", device, queue);
+                    let bg_ent = ecs.add_ui_sized(
+                        tx,
+                        ty,
+                        bg_w,
+                        bg_h,
+                        "assets/tex/dev_tools/black.png",
+                        device,
+                        queue,
+                    );
                     // Подложка выше обычных UI-элементов (инвентарь/панели), но
                     // ниже самого текста тултипа — см. Z_UI_TOOLTIP_*.
                     ecs.update_transform_z(bg_ent, crate::core::constants::Z_UI_TOOLTIP_BG);
@@ -314,7 +438,20 @@ impl GameHud {
                     ecs.update_transform_position(entity, tx, ty);
                 }
 
-                let (entity, key) = text_renderer.set_text(ecs, device, queue, self.slot_tooltip_text, self.slot_tooltip_text_key, &label, FONT_SIZE_LOGO, tx, ty, text_w, 4.0, WHITE);
+                let (entity, key) = text_renderer.set_text(
+                    ecs,
+                    device,
+                    queue,
+                    self.slot_tooltip_text,
+                    self.slot_tooltip_text_key,
+                    &label,
+                    FONT_SIZE_LOGO,
+                    tx,
+                    ty,
+                    text_w,
+                    4.0,
+                    WHITE,
+                );
                 if let Some(e) = entity {
                     // Текст тултипа — поверх подложки и всех прочих UI-элементов.
                     ecs.update_transform_z(e, crate::core::constants::Z_UI_TOOLTIP_TEXT);

@@ -180,12 +180,18 @@ pub struct DoorProgress {
 
 impl DoorProgress {
     pub fn new() -> Self {
-        Self { state: DoorState::Closed, step: 0, timer: 0.0 }
+        Self {
+            state: DoorState::Closed,
+            step: 0,
+            timer: 0.0,
+        }
     }
 }
 
 impl Default for DoorProgress {
-    fn default() -> Self { Self::new() }
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 /// Маркер покупателя. Нужен, чтобы дверь могла реагировать на приход
@@ -218,7 +224,12 @@ impl Season {
     }
 
     pub fn all() -> &'static [Season] {
-        &[Season::Spring, Season::Summer, Season::Autumn, Season::Winter]
+        &[
+            Season::Spring,
+            Season::Summer,
+            Season::Autumn,
+            Season::Winter,
+        ]
     }
 
     /// Имя фонового трека сезона в assets/sounds (без расширения).
@@ -233,7 +244,9 @@ impl Season {
 }
 
 impl Default for Season {
-    fn default() -> Self { Season::Winter }
+    fn default() -> Self {
+        Season::Winter
+    }
 }
 
 /// Источник света для динамического освещения.

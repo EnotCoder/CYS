@@ -35,8 +35,10 @@ pub fn ecs_with_map() -> EcsAdapter {
 pub fn add_object(ecs: &mut EcsAdapter, name: &str, x: i32, y: i32) -> u32 {
     let slot = make_slot(name);
     let gid = ecs.add_group_object(
-        x, y,
-        slot.obj.width, slot.obj.height,
+        x,
+        y,
+        slot.obj.width,
+        slot.obj.height,
         name,
         slot.obj.path,
         slot.obj.texture_frame,
@@ -50,7 +52,12 @@ pub fn add_object(ecs: &mut EcsAdapter, name: &str, x: i32, y: i32) -> u32 {
     for entity in entities {
         ecs.world
             .write_storage::<ObjectTag>()
-            .insert(entity, ObjectTag { name: name.to_string() })
+            .insert(
+                entity,
+                ObjectTag {
+                    name: name.to_string(),
+                },
+            )
             .ok();
     }
     gid
@@ -79,7 +86,13 @@ pub fn set_food(ecs: &mut EcsAdapter, gid: u32, count: i32, max: i32) {
     let entity = first_entity(ecs, gid);
     ecs.world
         .write_storage::<FoodStorage>()
-        .insert(entity, FoodStorage { food_count: count, max_food: max })
+        .insert(
+            entity,
+            FoodStorage {
+                food_count: count,
+                max_food: max,
+            },
+        )
         .ok();
 }
 
@@ -160,19 +173,33 @@ impl FakeInput {
 }
 
 impl InputSource for FakeInput {
-    fn cursor(&self) -> Option<(f32, f32)> { self.cursor }
-    fn cursor_diff(&self) -> (f32, f32) { self.cursor_delta }
+    fn cursor(&self) -> Option<(f32, f32)> {
+        self.cursor
+    }
+    fn cursor_diff(&self) -> (f32, f32) {
+        self.cursor_delta
+    }
     fn mouse_pressed(&self, btn: MouseButton) -> bool {
         matches!(btn, MouseButton::Left) && self.pressed
     }
     fn mouse_held(&self, btn: MouseButton) -> bool {
         matches!(btn, MouseButton::Left) && self.held
     }
-    fn key_pressed(&self, key: KeyCode) -> bool { self.keys.contains(&key) }
-    fn key_held(&self, key: KeyCode) -> bool { self.keys.contains(&key) }
-    fn held_control(&self) -> bool { false }
-    fn scroll_diff(&self) -> (f32, f32) { self.scroll }
-    fn close_requested(&self) -> bool { false }
+    fn key_pressed(&self, key: KeyCode) -> bool {
+        self.keys.contains(&key)
+    }
+    fn key_held(&self, key: KeyCode) -> bool {
+        self.keys.contains(&key)
+    }
+    fn held_control(&self) -> bool {
+        false
+    }
+    fn scroll_diff(&self) -> (f32, f32) {
+        self.scroll
+    }
+    fn close_requested(&self) -> bool {
+        false
+    }
     fn step(&mut self) {}
     fn end_step(&mut self) {}
     fn process_window_event(&mut self, _event: &WindowEvent) {}

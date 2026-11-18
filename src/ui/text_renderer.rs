@@ -8,12 +8,12 @@
 //  новую растеризацию.
 // ========================================================================
 
+use crate::{Sprite, Texture};
+use ab_glyph::{Font, FontRef, Point, PxScale, ScaleFont};
+use image::RgbaImage;
+use specs::{Builder, WorldExt};
 use std::collections::HashMap;
 use std::sync::Arc;
-use ab_glyph::{FontRef, Font, PxScale, ScaleFont, Point};
-use image::RgbaImage;
-use specs::{WorldExt, Builder};
-use crate::{Sprite, Texture};
 
 /// Коэффициент перевода растрового размера глифа (в пикселях) в мировые
 /// единицы. Благодаря ему мировой размер текста зависит только от font_size
@@ -44,16 +44,24 @@ pub struct TextRenderer {
 impl TextRenderer {
     pub fn new(font_path: &str) -> Self {
         // Шрифт читается один раз и живёт всё время работы приложения.
-        let font_data: &'static [u8] = Box::leak(crate::core::asset::load_bytes(font_path)
-            .expect("Failed to read font file").into_boxed_slice());
-        let font = FontRef::try_from_slice(font_data)
-            .expect("Failed to parse font");
-        Self { font, tex_cache: HashMap::new() }
+        let font_data: &'static [u8] = Box::leak(
+            crate::core::asset::load_bytes(font_path)
+                .expect("Failed to read font file")
+                .into_boxed_slice(),
+        );
+        let font = FontRef::try_from_slice(font_data).expect("Failed to parse font");
+        Self {
+            font,
+            tex_cache: HashMap::new(),
+        }
     }
 
     /// Внутренний ключ кэша растров: объединяет текст, кегль, обводку и цвет.
     fn cache_key(text: &str, px_size: f32, outline: f32, color: [u8; 3]) -> String {
-        format!("__text__{}@{}_ol{}_c{:02x}{:02x}{:02x}", text, px_size, outline, color[0], color[1], color[2])
+        format!(
+            "__text__{}@{}_ol{}_c{:02x}{:02x}{:02x}",
+            text, px_size, outline, color[0], color[1], color[2]
+        )
     }
 
     /// Публичный ключ для кэша спрайтов (используется destroy-функциями UI).
@@ -64,7 +72,13 @@ impl TextRenderer {
 
     /// Растеризует текст (обводка + основной цвет) в употребляемое изображение.
     /// Результат кладётся в кэш и возвращается из него.
-    fn rasterize(&mut self, text: &str, px_size: f32, outline: f32, color: [u8; 3]) -> &(Vec<u8>, u32, u32) {
+    fn rasterize(
+        &mut self,
+        text: &str,
+        px_size: f32,
+        outline: f32,
+        color: [u8; 3],
+    ) -> &(Vec<u8>, u32, u32) {
         let key = Self::cache_key(text, px_size, outline, color);
         if !self.tex_cache.contains_key(&key) {
             let scale = PxScale::from(px_size);
@@ -83,15 +97,21 @@ impl TextRenderer {
                 glyph.position = Point { x: 0.0, y: 0.0 };
                 if let Some(outlined) = scaled_font.outline_glyph(glyph) {
                     let b = outlined.px_bounds();
-                    if b.min.y < min_px_top { min_px_top = b.min.y; }
-                    if b.max.y > max_px_bot { max_px_bot = b.max.y; }
+                    if b.min.y < min_px_top {
+                        min_px_top = b.min.y;
+                    }
+                    if b.max.y > max_px_bot {
+                        max_px_bot = b.max.y;
+                    }
                 }
             }
 
             // width растёт на обводку с двух сторон; высота — от базовой линии до низа.
             let ol = outline.ceil() as u32;
             total_w += ol * 2;
-            if total_w == 0 { total_w = 1; }
+            if total_w == 0 {
+                total_w = 1;
+            }
             let baseline_row = (-min_px_top).ceil() as u32 + ol;
             let h = (baseline_row as f32 + max_px_bot + outline).ceil() as u32 + ol;
             let h = h.max(1);
@@ -107,12 +127,17 @@ impl TextRenderer {
                 for c in text.chars() {
                     let gid = scaled_font.glyph_id(c);
                     let mut glyph = scaled_font.scaled_glyph(c);
-                    glyph.position = Point { x: x_cursor + ol_f, y: 0.0 };
+                    glyph.position = Point {
+                        x: x_cursor + ol_f,
+                        y: 0.0,
+                    };
                     if let Some(outlined) = scaled_font.outline_glyph(glyph) {
                         let b = outlined.px_bounds();
                         let y_off = baseline_row as i32 + b.min.y as i32;
                         outlined.draw(|gx, gy, cover| {
-                            if cover <= 0.0 { return; }
+                            if cover <= 0.0 {
+                                return;
+                            }
                             let px = (b.min.x + gx as f32) as i32;
                             let py = (y_off + gy as i32) as i32;
                             // Закрашиваем чёрным все пиксели в круге радиуса r вокруг точки глифа,
@@ -122,10 +147,17 @@ impl TextRenderer {
                                     if dx * dx + dy * dy <= r * r {
                                         let sx = px + dx;
                                         let sy = py + dy;
-                                        if sx >= 0 && sx < total_w as i32 && sy >= 0 && sy < h as i32 {
+                                        if sx >= 0
+                                            && sx < total_w as i32
+                                            && sy >= 0
+                                            && sy < h as i32
+                                        {
                                             let pix = image.get_pixel_mut(sx as u32, sy as u32);
                                             if pix[3] < 200 {
-                                                pix[0] = 0; pix[1] = 0; pix[2] = 0; pix[3] = 255;
+                                                pix[0] = 0;
+                                                pix[1] = 0;
+                                                pix[2] = 0;
+                                                pix[3] = 255;
                                             }
                                         }
                                     }
@@ -144,7 +176,10 @@ impl TextRenderer {
                 for c in text.chars() {
                     let gid = scaled_font.glyph_id(c);
                     let mut glyph = scaled_font.scaled_glyph(c);
-                    glyph.position = Point { x: x_cursor + ol_f, y: 0.0 };
+                    glyph.position = Point {
+                        x: x_cursor + ol_f,
+                        y: 0.0,
+                    };
                     if let Some(outlined) = scaled_font.outline_glyph(glyph) {
                         let b = outlined.px_bounds();
                         let y_off = baseline_row as i32 + b.min.y as i32;
@@ -169,7 +204,8 @@ impl TextRenderer {
                 }
             }
 
-            self.tex_cache.insert(key.clone(), (image.into_raw(), total_w, h));
+            self.tex_cache
+                .insert(key.clone(), (image.into_raw(), total_w, h));
         }
         &self.tex_cache[&key]
     }
@@ -202,7 +238,19 @@ impl TextRenderer {
         outline: f32,
         color: [u8; 3],
     ) -> specs::Entity {
-        self.add_text_z(ecs, device, queue, text, font_size, x, y, world_width, outline, color, crate::core::constants::Z_UI_TEXT)
+        self.add_text_z(
+            ecs,
+            device,
+            queue,
+            text,
+            font_size,
+            x,
+            y,
+            world_width,
+            outline,
+            color,
+            crate::core::constants::Z_UI_TEXT,
+        )
     }
 
     /// Инкрементальная установка текста: если текст не изменился — спрайт не трогается,
@@ -248,7 +296,15 @@ impl TextRenderer {
         let (world_w, world_h) = fit_size(tw, th, world_width);
 
         // Создаём текстуру и спрайт из растра, кладём спрайт в кэш по ключу.
-        let tex = crate::Texture::from_rgba(device, queue, &rgba, tw, th, text, wgpu::FilterMode::Nearest);
+        let tex = crate::Texture::from_rgba(
+            device,
+            queue,
+            &rgba,
+            tw,
+            th,
+            text,
+            wgpu::FilterMode::Nearest,
+        );
         let sprite = crate::Sprite::from_texture(device, &tex, text, world_w, world_h);
         ecs.sprite_cache.insert(new_key, sprite);
 
@@ -261,7 +317,8 @@ impl TextRenderer {
             }
             // Сущности нет — создаём новую с трансформом и спрайт-компонентом.
             None => {
-                let e = ecs.world
+                let e = ecs
+                    .world
                     .create_entity()
                     .with(crate::Transform {
                         position: [x, y, crate::core::constants::Z_UI_TEXT],
@@ -303,14 +360,27 @@ impl TextRenderer {
         let (rgba, tw, th) = self.rasterize(text, font_size, outline, color).clone();
         let (world_w, world_h) = fit_size(tw, th, world_width);
 
-        let tex = Texture::from_rgba(device, queue, &rgba, tw, th, text, wgpu::FilterMode::Nearest);
+        let tex = Texture::from_rgba(
+            device,
+            queue,
+            &rgba,
+            tw,
+            th,
+            text,
+            wgpu::FilterMode::Nearest,
+        );
         let sprite = Sprite::from_texture(device, &tex, text, world_w, world_h);
 
         let text_key = Self::cache_key(text, font_size, outline, color);
         // Ключ кэша различает слой UI и слой декора (иначе спрайты бы коллизировали).
         // Все под-слои UI (Z_UI, Z_UI_TEXT, тултипы) близки к 3.0 — попадают в "ui".
-        let layer_prefix = if (z - crate::core::constants::Z_UI).abs() < 0.1 { "ui" } else { "decor" };
-        let skey = crate::core::util::sprite_cache_key(layer_prefix, &text_key, [0, 0], [1, 1], 1.0);
+        let layer_prefix = if (z - crate::core::constants::Z_UI).abs() < 0.1 {
+            "ui"
+        } else {
+            "decor"
+        };
+        let skey =
+            crate::core::util::sprite_cache_key(layer_prefix, &text_key, [0, 0], [1, 1], 1.0);
         ecs.sprite_cache.insert(skey, sprite);
 
         ecs.world

@@ -9,10 +9,10 @@
 //  и мебель; конфликтовать свет может только со светом.
 // ========================================================================
 
-use specs::{WorldExt, Join};
 use crate::ecs::adapter::EcsAdapter;
 use crate::ecs::components::Transform;
 use crate::GroupComponent;
+use specs::{Join, WorldExt};
 
 impl EcsAdapter {
     // ====================================================================
@@ -25,8 +25,10 @@ impl EcsAdapter {
     // ====================================================================
     pub fn can_place_at(
         &self,
-        x: i32, y: i32,
-        width: i32, height: i32,
+        x: i32,
+        y: i32,
+        width: i32,
+        height: i32,
         is_carpet: bool,
         is_light: bool,
         is_wall_decor: bool,
@@ -80,7 +82,10 @@ impl EcsAdapter {
         // Вторая проверка: клетка не должна быть занята сущностью другого типа.
         let transforms = self.world.read_storage::<Transform>();
         let group_comps = self.world.read_storage::<GroupComponent>();
-        let groups = &self.world.read_resource::<crate::GroupInfoResource>().groups;
+        let groups = &self
+            .world
+            .read_resource::<crate::GroupInfoResource>()
+            .groups;
 
         for i in 0..width {
             for j in 0..height {

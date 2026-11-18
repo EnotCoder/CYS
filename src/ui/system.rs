@@ -6,11 +6,11 @@
 //  Checkbox, Slider) и обработка кликов по ним.
 // ========================================================================
 
-use crate::EcsAdapter;
-use crate::ui::text_renderer::TextRenderer;
+use super::components::{Button, Checkbox, Panel, Slider};
 use crate::core::constants::*;
 use crate::input::platform::InputSource;
-use super::components::{Panel, Button, Checkbox, Slider};
+use crate::ui::text_renderer::TextRenderer;
+use crate::EcsAdapter;
 
 // ========================================================================
 //  Утилиты для проверки кликов (UI: map_size=1.0, cam_x=0, cam_y=0)
@@ -30,11 +30,20 @@ pub fn is_inside(wx: f32, wy: f32, cx: f32, cy: f32, half_w: f32, half_h: f32) -
 }
 
 /// true, если левая кнопка мыши нажата и клик пришёлся в заданный прямоугольник.
-pub fn is_clicked(input: &dyn InputSource, window_size: (f32, f32), cx: f32, cy: f32, half_w: f32, half_h: f32) -> bool {
+pub fn is_clicked(
+    input: &dyn InputSource,
+    window_size: (f32, f32),
+    cx: f32,
+    cy: f32,
+    half_w: f32,
+    half_h: f32,
+) -> bool {
     if !input.mouse_pressed(winit::event::MouseButton::Left) {
         return false;
     }
-    let Some((mx, my)) = input.cursor() else { return false };
+    let Some((mx, my)) = input.cursor() else {
+        return false;
+    };
     let (wx, wy) = ndc_to_ui(mx, my, window_size);
     is_inside(wx, wy, cx, cy, half_w, half_h)
 }
@@ -45,7 +54,12 @@ pub fn is_clicked(input: &dyn InputSource, window_size: (f32, f32), cx: f32, cy:
 
 /// Ставит полупрозрачную прямоугольную подложку с заданными размерами.
 /// Перед созданием старая подложка уничтожается.
-pub fn create_panel(ecs: &mut EcsAdapter, device: &wgpu::Device, queue: &wgpu::Queue, panel: &mut Panel) {
+pub fn create_panel(
+    ecs: &mut EcsAdapter,
+    device: &wgpu::Device,
+    queue: &wgpu::Queue,
+    panel: &mut Panel,
+) {
     destroy_panel(ecs, panel);
     let tex = panel.texture.unwrap_or("assets/tex/dev_tools/black.png");
     let ent = ecs.add_ui_sized(panel.x, panel.y, panel.w, panel.h, tex, device, queue);
@@ -65,12 +79,33 @@ pub fn destroy_panel(ecs: &mut EcsAdapter, panel: &mut Panel) {
 // ========================================================================
 
 /// Создаёт фон кнопки и текст подписи; старые сущности удаляются.
-pub fn create_button(ecs: &mut EcsAdapter, text_renderer: &mut TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue, btn: &mut Button) {
+pub fn create_button(
+    ecs: &mut EcsAdapter,
+    text_renderer: &mut TextRenderer,
+    device: &wgpu::Device,
+    queue: &wgpu::Queue,
+    btn: &mut Button,
+) {
     destroy_button(ecs, btn);
-    let bg = ecs.add_ui_sized(btn.x, btn.y, btn.w, btn.h, TEX_BUTTON, device, queue);
-    let label = text_renderer.add_text(ecs, device, queue, &btn.label, btn.font_size, btn.x, btn.y, btn.w * 0.7, 1.0, WHITE);
+    let tex = btn.texture.unwrap_or(TEX_BUTTON);
+    let bg = ecs.add_ui_sized(btn.x, btn.y, btn.w, btn.h, tex, device, queue);
+    ecs.update_sprite_scale(bg, btn.hover_scale);
     btn.bg = Some(bg);
-    btn.text = Some(label);
+    if !btn.label.is_empty() {
+        let label = text_renderer.add_text(
+            ecs,
+            device,
+            queue,
+            &btn.label,
+            btn.font_size,
+            btn.x,
+            btn.y,
+            btn.w * 0.7,
+            1.0,
+            WHITE,
+        );
+        btn.text = Some(label);
+    }
 }
 
 /// Удаляет фон и текст кнопки из ECS.
@@ -81,11 +116,36 @@ pub fn destroy_button(ecs: &mut EcsAdapter, btn: &mut Button) {
     if let Some(ent) = btn.text.take() {
         ecs.delete_entity(ent);
     }
+    btn.hover_scale = 1.0;
 }
 
 /// true, если клик попал в область кнопки.
 pub fn button_clicked(btn: &Button, input: &dyn InputSource, window_size: (f32, f32)) -> bool {
     is_clicked(input, window_size, btn.x, btn.y, btn.w / 2.0, btn.h / 2.0)
+}
+
+/// true, если курсор наведён на кнопку.
+pub fn button_hovered(btn: &Button, input: &dyn InputSource, window_size: (f32, f32)) -> bool {
+    let Some((mx, my)) = input.cursor() else {
+        return false;
+    };
+    let (wx, wy) = ndc_to_ui(mx, my, window_size);
+    is_inside(wx, wy, btn.x, btn.y, btn.w / 2.0, btn.h / 2.0)
+}
+
+/// Плавно увеличивает кнопку при наведении курсора.
+pub fn update_button_hover(
+    ecs: &mut EcsAdapter,
+    btn: &mut Button,
+    input: &dyn InputSource,
+    window_size: (f32, f32),
+    dt: f64,
+) {
+    let hovered = button_hovered(btn, input, window_size);
+    step_hover_scale(&mut btn.hover_scale, hovered, dt);
+    if let Some(ent) = btn.bg {
+        ecs.update_sprite_scale(ent, btn.hover_scale);
+    }
 }
 
 // ========================================================================
@@ -99,16 +159,45 @@ const CHECKBOX_TEXT_GAP: f32 = 0.08;
 
 /// Создаёт галочку и подпись; текстура галочки зависит от состояния checked.
 /// Ключи спрайтов сохраняются, чтобы корректно очищать кэш.
-pub fn create_checkbox(ecs: &mut EcsAdapter, text_renderer: &mut TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue, checkbox: &mut Checkbox) {
+pub fn create_checkbox(
+    ecs: &mut EcsAdapter,
+    text_renderer: &mut TextRenderer,
+    device: &wgpu::Device,
+    queue: &wgpu::Queue,
+    checkbox: &mut Checkbox,
+) {
     destroy_checkbox(ecs, checkbox);
-    let tex = if checkbox.checked { "assets/tex/ui/checkbox/true.png" } else { "assets/tex/ui/checkbox/false.png" };
-    let box_ent = ecs.add_ui_sized(checkbox.x, checkbox.y, CHECKBOX_BOX_SIZE, CHECKBOX_BOX_SIZE, tex, device, queue);
+    let tex = if checkbox.checked {
+        "assets/tex/ui/checkbox/true.png"
+    } else {
+        "assets/tex/ui/checkbox/false.png"
+    };
+    let box_ent = ecs.add_ui_sized(
+        checkbox.x,
+        checkbox.y,
+        CHECKBOX_BOX_SIZE,
+        CHECKBOX_BOX_SIZE,
+        tex,
+        device,
+        queue,
+    );
     ecs.update_sprite_scale(box_ent, checkbox.hover_scale);
     let box_key = crate::core::util::sprite_cache_key("ui", tex, [0, 0], [1, 1], 1.0);
     checkbox.box_entity = Some(box_ent);
     checkbox.box_sprite_key = Some(box_key);
     let lx = checkbox.x + CHECKBOX_BOX_SIZE / 2.0 + CHECKBOX_TEXT_GAP + CHECKBOX_TEXT_WIDTH / 2.0;
-    let label_ent = text_renderer.add_text(ecs, device, queue, &checkbox.label, checkbox.font_size, lx, checkbox.y, CHECKBOX_TEXT_WIDTH, 2.0, WHITE);
+    let label_ent = text_renderer.add_text(
+        ecs,
+        device,
+        queue,
+        &checkbox.label,
+        checkbox.font_size,
+        lx,
+        checkbox.y,
+        CHECKBOX_TEXT_WIDTH,
+        2.0,
+        WHITE,
+    );
     let label_key = TextRenderer::sprite_cache_key(&checkbox.label, checkbox.font_size, 2.0, WHITE);
     checkbox.label_entity = Some(label_ent);
     checkbox.label_sprite_key = Some(label_key);
@@ -131,21 +220,44 @@ pub fn destroy_checkbox(ecs: &mut EcsAdapter, checkbox: &mut Checkbox) {
 }
 
 /// Пересоздаёт оба спрайта при изменении состояния
-pub fn refresh_checkbox(ecs: &mut EcsAdapter, text_renderer: &mut TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue, checkbox: &mut Checkbox) {
+pub fn refresh_checkbox(
+    ecs: &mut EcsAdapter,
+    text_renderer: &mut TextRenderer,
+    device: &wgpu::Device,
+    queue: &wgpu::Queue,
+    checkbox: &mut Checkbox,
+) {
     create_checkbox(ecs, text_renderer, device, queue, checkbox);
 }
 
 /// true, если клик пришёлся по галочке (небольшой запас вокруг неё).
-pub fn checkbox_clicked(checkbox: &Checkbox, input: &dyn InputSource, window_size: (f32, f32)) -> bool {
+pub fn checkbox_clicked(
+    checkbox: &Checkbox,
+    input: &dyn InputSource,
+    window_size: (f32, f32),
+) -> bool {
     let half = CHECKBOX_BOX_SIZE / 2.0 + 0.1;
     is_clicked(input, window_size, checkbox.x, checkbox.y, half, half)
 }
 
 /// true, если курсор наведён на галочку чекбокса.
-pub fn checkbox_hovered(checkbox: &Checkbox, input: &dyn InputSource, window_size: (f32, f32)) -> bool {
-    let Some((mx, my)) = input.cursor() else { return false };
+pub fn checkbox_hovered(
+    checkbox: &Checkbox,
+    input: &dyn InputSource,
+    window_size: (f32, f32),
+) -> bool {
+    let Some((mx, my)) = input.cursor() else {
+        return false;
+    };
     let (wx, wy) = ndc_to_ui(mx, my, window_size);
-    is_inside(wx, wy, checkbox.x, checkbox.y, CHECKBOX_BOX_SIZE / 2.0 + 0.1, CHECKBOX_BOX_SIZE / 2.0 + 0.1)
+    is_inside(
+        wx,
+        wy,
+        checkbox.x,
+        checkbox.y,
+        CHECKBOX_BOX_SIZE / 2.0 + 0.1,
+        CHECKBOX_BOX_SIZE / 2.0 + 0.1,
+    )
 }
 
 // Геометрия hover-анимации: целевой масштаб и скорость сглаживания.
@@ -163,7 +275,13 @@ fn step_hover_scale(scale: &mut f32, hovered: bool, dt: f64) {
 }
 
 /// Плавно увеличивает только ту галочку, на которую наведён курсор.
-pub fn update_checkbox_hover(ecs: &mut EcsAdapter, checkbox: &mut Checkbox, input: &dyn InputSource, window_size: (f32, f32), dt: f64) {
+pub fn update_checkbox_hover(
+    ecs: &mut EcsAdapter,
+    checkbox: &mut Checkbox,
+    input: &dyn InputSource,
+    window_size: (f32, f32),
+    dt: f64,
+) {
     let hovered = checkbox_hovered(checkbox, input, window_size);
     step_hover_scale(&mut checkbox.hover_scale, hovered, dt);
     if let Some(ent) = checkbox.box_entity {
@@ -189,19 +307,52 @@ pub(crate) fn slider_thumb_x(slider: &Slider) -> f32 {
 }
 
 /// Создаёт дорожку, ползунок и подпись слайдера.
-pub fn create_slider(ecs: &mut EcsAdapter, text_renderer: &mut TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue, slider: &mut Slider) {
+pub fn create_slider(
+    ecs: &mut EcsAdapter,
+    text_renderer: &mut TextRenderer,
+    device: &wgpu::Device,
+    queue: &wgpu::Queue,
+    slider: &mut Slider,
+) {
     destroy_slider(ecs, slider);
 
-    let track = ecs.add_ui_sized(slider.x, slider.y, slider.width, SLIDER_TRACK_THICKNESS, "assets/tex/ui/slide/main.png", device, queue);
+    let track = ecs.add_ui_sized(
+        slider.x,
+        slider.y,
+        slider.width,
+        SLIDER_TRACK_THICKNESS,
+        "assets/tex/ui/slide/main.png",
+        device,
+        queue,
+    );
     slider.track = Some(track);
 
     let thumb_x = slider_thumb_x(slider);
-    let thumb = ecs.add_ui_sized(thumb_x, slider.y, SLIDER_THUMB_SIZE, SLIDER_THUMB_SIZE, "assets/tex/ui/slide/point.png", device, queue);
+    let thumb = ecs.add_ui_sized(
+        thumb_x,
+        slider.y,
+        SLIDER_THUMB_SIZE,
+        SLIDER_THUMB_SIZE,
+        "assets/tex/ui/slide/point.png",
+        device,
+        queue,
+    );
     ecs.update_sprite_scale(thumb, slider.hover_scale);
     slider.thumb = Some(thumb);
 
     let ly = slider.y + SLIDER_LABEL_Y_OFFSET;
-    let label = text_renderer.add_text(ecs, device, queue, &slider.label, slider.font_size, slider.x, ly, 1.8, 2.0, WHITE);
+    let label = text_renderer.add_text(
+        ecs,
+        device,
+        queue,
+        &slider.label,
+        slider.font_size,
+        slider.x,
+        ly,
+        1.8,
+        2.0,
+        WHITE,
+    );
     let label_key = TextRenderer::sprite_cache_key(&slider.label, slider.font_size, 2.0, WHITE);
     slider.label_entity = Some(label);
     slider.label_sprite_key = Some(label_key);
@@ -232,7 +383,9 @@ pub fn slider_drag(slider: &mut Slider, input: &dyn InputSource, window_size: (f
         return false;
     }
     if !slider.dragging {
-        let Some((mx, my)) = input.cursor() else { return false };
+        let Some((mx, my)) = input.cursor() else {
+            return false;
+        };
         let (wx, wy) = ndc_to_ui(mx, my, window_size);
         let half_w = slider.width / 2.0 + 0.2;
         let half_h = SLIDER_THUMB_SIZE / 2.0 + 0.2;
@@ -245,19 +398,34 @@ pub fn slider_drag(slider: &mut Slider, input: &dyn InputSource, window_size: (f
 }
 
 /// Обновляет позицию thumb по текущему значению; пересоздаёт сущность
-pub fn update_slider_thumb(ecs: &mut EcsAdapter, device: &wgpu::Device, queue: &wgpu::Queue, slider: &mut Slider) {
+pub fn update_slider_thumb(
+    ecs: &mut EcsAdapter,
+    device: &wgpu::Device,
+    queue: &wgpu::Queue,
+    slider: &mut Slider,
+) {
     if let Some(ent) = slider.thumb.take() {
         ecs.delete_entity(ent);
     }
     let thumb_x = slider_thumb_x(slider);
-    let thumb = ecs.add_ui_sized(thumb_x, slider.y, SLIDER_THUMB_SIZE, SLIDER_THUMB_SIZE, "assets/tex/ui/slide/point.png", device, queue);
+    let thumb = ecs.add_ui_sized(
+        thumb_x,
+        slider.y,
+        SLIDER_THUMB_SIZE,
+        SLIDER_THUMB_SIZE,
+        "assets/tex/ui/slide/point.png",
+        device,
+        queue,
+    );
     ecs.update_sprite_scale(thumb, slider.hover_scale);
     slider.thumb = Some(thumb);
 }
 
 /// true, если курсор наведён на область дорожки/ползунка слайдера.
 pub fn slider_hovered(slider: &Slider, input: &dyn InputSource, window_size: (f32, f32)) -> bool {
-    let Some((mx, my)) = input.cursor() else { return false };
+    let Some((mx, my)) = input.cursor() else {
+        return false;
+    };
     let (wx, wy) = ndc_to_ui(mx, my, window_size);
     let half_w = slider.width / 2.0 + 0.2;
     let half_h = SLIDER_THUMB_SIZE / 2.0 + 0.2;
@@ -265,7 +433,13 @@ pub fn slider_hovered(slider: &Slider, input: &dyn InputSource, window_size: (f3
 }
 
 /// Плавно увеличивает только ползунок наведённого слайдера.
-pub fn update_slider_hover(ecs: &mut EcsAdapter, slider: &mut Slider, input: &dyn InputSource, window_size: (f32, f32), dt: f64) {
+pub fn update_slider_hover(
+    ecs: &mut EcsAdapter,
+    slider: &mut Slider,
+    input: &dyn InputSource,
+    window_size: (f32, f32),
+    dt: f64,
+) {
     let hovered = slider_hovered(slider, input, window_size);
     step_hover_scale(&mut slider.hover_scale, hovered, dt);
     if let Some(ent) = slider.thumb {

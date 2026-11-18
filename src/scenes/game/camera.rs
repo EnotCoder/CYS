@@ -9,10 +9,10 @@
 //  за пределы уровня.
 // ========================================================================
 
-use winit::keyboard::KeyCode;
+use super::GameScene;
 use crate::core::constants::*;
 use crate::input::platform::InputSource;
-use super::GameScene;
+use winit::keyboard::KeyCode;
 
 impl GameScene {
     /// Обновляет смещение камеры: drag средней кнопкой мыши + стрелки клавиатуры.
@@ -31,12 +31,23 @@ impl GameScene {
         // .clamp() паникует. В таком случае фиксируем камеру по центру карты.
         let cam_center_x = (CAMERA_MAP_MIN_X + CAMERA_MAP_MAX_X) / 2.0;
         let cam_center_y = (CAMERA_MAP_MIN_Y + CAMERA_MAP_MAX_Y) / 2.0;
-        let (cam_min_x, cam_max_x) = if cam_max_x >= cam_min_x { (cam_min_x, cam_max_x) } else { (cam_center_x, cam_center_x) };
-        let (cam_min_y, cam_max_y) = if cam_max_y >= cam_min_y { (cam_min_y, cam_max_y) } else { (cam_center_y, cam_center_y) };
+        let (cam_min_x, cam_max_x) = if cam_max_x >= cam_min_x {
+            (cam_min_x, cam_max_x)
+        } else {
+            (cam_center_x, cam_center_x)
+        };
+        let (cam_min_y, cam_max_y) = if cam_max_y >= cam_min_y {
+            (cam_min_y, cam_max_y)
+        } else {
+            (cam_center_y, cam_center_y)
+        };
 
         let step = CAMERA_SPEED * (dt as f32);
-        let ui_open = self.shop.open || self.inventory.open || self.inventory.mode
-            || self.weather.open || self.settings.open;
+        let ui_open = self.shop.open
+            || self.inventory.open
+            || self.inventory.mode
+            || self.weather.open
+            || self.settings.open;
         let move_mode = self.mode == MODE_MOVE && !ui_open;
 
         // Перемещение камеры доступно только в отдельном режиме move.
@@ -47,8 +58,10 @@ impl GameScene {
             if dragging {
                 let sensitivity = 0.01;
                 let (dx, dy) = input.cursor_diff();
-                self.camera_offset_x = (self.camera_offset_x - dx * sensitivity).clamp(cam_min_x, cam_max_x);
-                self.camera_offset_y = (self.camera_offset_y + dy * sensitivity).clamp(cam_min_y, cam_max_y);
+                self.camera_offset_x =
+                    (self.camera_offset_x - dx * sensitivity).clamp(cam_min_x, cam_max_x);
+                self.camera_offset_y =
+                    (self.camera_offset_y + dy * sensitivity).clamp(cam_min_y, cam_max_y);
             }
 
             if input.key_held(KeyCode::ArrowLeft) {

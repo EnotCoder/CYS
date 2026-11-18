@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Copyright (C) 2026 EnotCoder
 
-use std::collections::HashMap;
-use specs::WorldExt;
-use crate::scenes::scene_trait::Scene;
 use crate::core::constants::*;
+use crate::scenes::scene_trait::Scene;
+use specs::WorldExt;
+use std::collections::HashMap;
 
 // ========================================================================
 //  SceneManager — реестр сцен и переключение между ними
@@ -34,8 +34,14 @@ impl SceneManager {
         let mut scenes: HashMap<String, Box<dyn Scene>> = HashMap::new();
 
         // Регистрируем доступные сцены; стартуем с главного меню
-        scenes.insert("menu".to_string(), Box::new(crate::scenes::MenuScene::new()));
-        scenes.insert("game".to_string(), Box::new(crate::scenes::GameScene::new()));
+        scenes.insert(
+            "menu".to_string(),
+            Box::new(crate::scenes::MenuScene::new()),
+        );
+        scenes.insert(
+            "game".to_string(),
+            Box::new(crate::scenes::GameScene::new()),
+        );
 
         SceneManager {
             ecs,
@@ -51,7 +57,11 @@ impl SceneManager {
 
     /// Переключает активную сцену: останавливает музыку, очищает мир,
     /// вызывает on_enter новой сцены
-    pub fn switch_to(&mut self, name: &str, text_renderer: &mut crate::ui::text_renderer::TextRenderer) {
+    pub fn switch_to(
+        &mut self,
+        name: &str,
+        text_renderer: &mut crate::ui::text_renderer::TextRenderer,
+    ) {
         // Автосохранение/очистка исходящей сцены (например, сохранение мира)
         if let Some(scene) = self.scenes.get_mut(&self.current) {
             scene.on_exit(&mut self.ecs, text_renderer);
@@ -75,7 +85,10 @@ impl SceneManager {
         queue: &wgpu::Queue,
     ) {
         let cleared = self.last_clear_count != self.ecs.clear_count;
-        let top_dy = self.scenes.get(&self.current).map_or(0.0, |s| s.ui_top_offset());
+        let top_dy = self
+            .scenes
+            .get(&self.current)
+            .map_or(0.0, |s| s.ui_top_offset());
         let top_moved = (top_dy - self.last_top_offset).abs() > 1e-4;
         if !cleared && fps == self.last_fps && !top_moved {
             return;
@@ -95,8 +108,16 @@ impl SceneManager {
         }
 
         let entity = text_renderer.add_text(
-            &mut self.ecs, device, queue,
-            &fps_text, 64.0, 7.2, 4.0 + top_dy, 1.0, 4.0, WHITE,
+            &mut self.ecs,
+            device,
+            queue,
+            &fps_text,
+            64.0,
+            7.2,
+            4.0 + top_dy,
+            1.0,
+            4.0,
+            WHITE,
         );
 
         self.fps_entity = Some(entity);
@@ -114,7 +135,8 @@ impl SceneManager {
             let entities = self.ecs.world.entities();
             let transforms = self.ecs.world.read_storage::<crate::Transform>();
             let sprites = self.ecs.world.read_storage::<crate::SpriteComponent>();
-            (&entities, &transforms, &sprites).join()
+            (&entities, &transforms, &sprites)
+                .join()
                 .map(|(e, _, _)| e)
                 .collect()
         };
@@ -133,7 +155,11 @@ impl SceneManager {
         self.ecs.sprite_cache.clear();
         self.ecs.cursor_preview.clear();
         self.ecs.next_group_id = 1;
-        self.ecs.world.write_resource::<crate::GroupInfoResource>().groups.clear();
+        self.ecs
+            .world
+            .write_resource::<crate::GroupInfoResource>()
+            .groups
+            .clear();
 
         // Сбрасываем FPS-счётчик, т.к. мир сцен теперь пуст
         self.fps_entity = None;

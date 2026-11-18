@@ -1,0 +1,7 @@
+{
+  "name": "Retro",
+  "description": "Gives the scene a retro CRT television look with horizontal scanlines.",
+  "author": "CYS",
+  "version": "1.0.0",
+  "file": "shader.wgsl"
+}

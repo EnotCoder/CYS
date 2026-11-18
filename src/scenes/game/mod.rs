@@ -483,6 +483,7 @@ impl GameScene {
             music: self.settings.music.checked,
             sfx: self.settings.sfx.checked,
             texture_pack: self.settings.texture_pack_id(),
+            shader: self.settings.shader_id(),
         };
         *crate::save::SETTINGS.lock().unwrap() = s.clone();
         crate::save::save_settings(&s);
@@ -851,6 +852,13 @@ impl Scene for GameScene {
                 ecs.apply_texture_pack();
                 self.shoppers.refresh_pack(ecs);
                 self.persist_settings();
+            }
+            if self.settings.shader_changed {
+                self.settings.shader_changed = false;
+                let id = self.settings.shader_id();
+                crate::core::shader_pack::set_active(id.as_deref());
+                self.persist_settings();
+                return SceneAction::ShaderChanged;
             }
             if self.settings.menu_requested {
                 self.settings.menu_requested = false;

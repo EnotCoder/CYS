@@ -80,7 +80,7 @@ fn pack_root(id: &str) -> String {
 }
 
 /// Пути из манифеста не должны выходить за пределы пака.
-fn safe_join(base: &str, relative: &str) -> Option<String> {
+pub(crate) fn safe_join(base: &str, relative: &str) -> Option<String> {
     if relative.is_empty() || relative.starts_with('/') || relative.starts_with('\\') || relative.contains('\\') {
         return None;
     }

@@ -64,9 +64,13 @@ pub struct WgpuApp {
     pub dynamic_alignment: u64,
     pub depth_buffer: DepthBuffer,
 
-    // Готовые пайплайны + конфигурация поверхности для смены размера.
+    // Готовые пайплайны + состояние, нужное для их пересоздания при смене шейдера.
     pub render_pipeline: wgpu::RenderPipeline,
     pub transparent_pipeline: wgpu::RenderPipeline,
+    pub surface_format: wgpu::TextureFormat,
+    pub pipeline_layout: wgpu::PipelineLayout,
+    pub depth_stencil: wgpu::DepthStencilState,
+    pub transparent_depth_stencil: wgpu::DepthStencilState,
     pub config: wgpu::SurfaceConfiguration,
     pub surface_caps: wgpu::SurfaceCapabilities,
 
@@ -105,7 +109,6 @@ impl WgpuApp {
         let window_size = window.inner_size();
 
         let buffers = crate::init_buffers(window_size, &device);
-        let shader_module = Self::load_shader(&device);
 
         // Uniform (Size) для карты — постоянный буфер, обновляется извне.
         let size_buffer = Self::create_size_buffer(&device);
@@ -169,14 +172,30 @@ impl WgpuApp {
             ],
             immediate_size: 0,
         });
-        let render_pipeline = create_render_pipeline(
-            &device, &pipeline_layout, &shader_module,
-            surface_format, &buffers.depth_stencil,
-        );
-        let transparent_pipeline = create_transparent_pipeline(
-            &device, &pipeline_layout, &shader_module,
-            surface_format, &buffers.transparent_depth_stencil,
-        );
+        let shader_source = crate::core::shader_pack::source();
+        let (render_pipeline, transparent_pipeline) = match Self::build_pipelines(
+            &device,
+            &pipeline_layout,
+            surface_format,
+            &buffers.depth_stencil,
+            &buffers.transparent_depth_stencil,
+            shader_source.as_deref(),
+        ) {
+            Ok(pipelines) => pipelines,
+            Err(error) => {
+                let message = format!("custom shader failed, using Vanilla: {error}");
+                eprintln!("{message}");
+                crate::core::shader_pack::set_error(message);
+                Self::build_pipelines(
+                    &device,
+                    &pipeline_layout,
+                    surface_format,
+                    &buffers.depth_stencil,
+                    &buffers.transparent_depth_stencil,
+                    None,
+                ).expect("vanilla shader must always compile")
+            }
+        };
 
         let config = surface_config(surface_format, window_size.width, window_size.height);
         surface.configure(&device, &config);
@@ -191,6 +210,10 @@ impl WgpuApp {
             depth_buffer: buffers.depth_buffer,
             render_pipeline,
             transparent_pipeline,
+            surface_format,
+            pipeline_layout,
+            depth_stencil: buffers.depth_stencil,
+            transparent_depth_stencil: buffers.transparent_depth_stencil,
             config,
             surface_caps,
             size_buffer,
@@ -236,13 +259,65 @@ impl WgpuApp {
         surface.get_capabilities(adapter).formats[0]
     }
 
-    // Компилирует шейдеры из файла shaders.wgsl (встраивается на этапе сборки).
-    fn load_shader(device: &wgpu::Device) -> wgpu::ShaderModule {
-        let code = include_str!("shaders.wgsl");
-        device.create_shader_module(ShaderModuleDescriptor {
+    // Собирает оба пайплайна из WGSL. Ошибки компиляции и валидации ловятся
+    // error scope, чтобы битый пользовательский шейдер не ронял игру.
+    fn build_pipelines(
+        device: &wgpu::Device,
+        layout: &wgpu::PipelineLayout,
+        format: wgpu::TextureFormat,
+        depth_stencil: &wgpu::DepthStencilState,
+        transparent_depth_stencil: &wgpu::DepthStencilState,
+        source: Option<&str>,
+    ) -> Result<(wgpu::RenderPipeline, wgpu::RenderPipeline), String> {
+        let code = source.unwrap_or(crate::core::shader_pack::VANILLA_SOURCE);
+        let scope = device.push_error_scope(wgpu::ErrorFilter::Validation);
+        let module = device.create_shader_module(ShaderModuleDescriptor {
             label: None,
             source: ShaderSource::Wgsl(code.into()),
-        })
+        });
+        let render = create_render_pipeline(device, layout, &module, format, depth_stencil);
+        let transparent = create_transparent_pipeline(
+            device, layout, &module, format, transparent_depth_stencil,
+        );
+        match pollster::block_on(scope.pop()) {
+            Some(error) => Err(error.to_string()),
+            None => Ok((render, transparent)),
+        }
+    }
+
+    /// Пересоздаёт пайплайны с текущим активным шейдером. При ошибке возвращает
+    /// причину, но оставляет игру работающей на встроенном шейдере.
+    pub fn reload_shader(&mut self) -> Result<(), String> {
+        let source = crate::core::shader_pack::source();
+        match Self::build_pipelines(
+            &self.device,
+            &self.pipeline_layout,
+            self.surface_format,
+            &self.depth_stencil,
+            &self.transparent_depth_stencil,
+            source.as_deref(),
+        ) {
+            Ok((render, transparent)) => {
+                self.render_pipeline = render;
+                self.transparent_pipeline = transparent;
+                Ok(())
+            }
+            Err(error) => {
+                let message = format!("custom shader failed, using Vanilla: {error}");
+                crate::core::shader_pack::set_error(message);
+                let (render, transparent) = Self::build_pipelines(
+                    &self.device,
+                    &self.pipeline_layout,
+                    self.surface_format,
+                    &self.depth_stencil,
+                    &self.transparent_depth_stencil,
+                    None,
+                ).expect("vanilla shader must always compile");
+                self.render_pipeline = render;
+                self.transparent_pipeline = transparent;
+                Err(error)
+            }
+        }
     }
 
     // Общий layout для постоянного (non-dynamic) uniform-буфера:

@@ -79,8 +79,9 @@ impl App {
             *crate::save::SETTINGS.lock().unwrap() = s.clone();
             crate::audio::set_music_enabled(s.music);
             crate::audio::set_sfx_enabled(s.sfx);
-            // Текстур-пак применяется до первой отрисовки меню.
+            // Текстур-пак и шейдер применяются до первой отрисовки меню.
             crate::core::texture_pack::init();
+            crate::core::shader_pack::init();
         }
         let config = crate::scripts::config::BalanceConfig::load();
         let font_path = config.font_path.clone();
@@ -149,6 +150,13 @@ impl App {
                         };
                         wgpu_app.config.present_mode = mode;
                         surface.configure(&wgpu_app.device, &wgpu_app.config);
+                    }
+                }
+            }
+            crate::scenes::SceneAction::ShaderChanged => {
+                if let Some(ref mut wgpu_app) = self.wgpu_app {
+                    if let Err(error) = wgpu_app.reload_shader() {
+                        eprintln!("shader switch failed, using Vanilla: {error}");
                     }
                 }
             }

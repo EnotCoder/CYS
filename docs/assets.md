@@ -32,9 +32,10 @@ from `std::env` or an absolute location — always go through `core::asset`.
 | `assets/map.txt`, `assets/basement.txt` | level maps |
 | `assets/icon.png` | application icon source |
 | `texture_pack/<id>/textures/` | optional player replacements mirroring `assets/tex/` |
+| `shaders/<id>/shader.wgsl` | optional player WGSL with `shader.json` metadata |
 
-The pack root is not under `assets/` on desktop; see
-[texture-packs.md](texture-packs.md).
+The pack and shader roots are not under `assets/` on desktop; see
+[texture-packs.md](texture-packs.md) and [shaders.md](shaders.md).
 
 ## Atlases
 

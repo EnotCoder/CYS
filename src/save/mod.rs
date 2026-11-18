@@ -152,11 +152,14 @@ pub struct GameSettings {
     /// Активный текстур-пак; None — ванильные текстуры.
     #[serde(default)]
     pub texture_pack: Option<String>,
+    /// Активный шейдер; None — встроенный WGSL.
+    #[serde(default)]
+    pub shader: Option<String>,
 }
 
 impl Default for GameSettings {
     fn default() -> Self {
-        Self { vsync: true, zoom_speed: 0.1, music: true, sfx: true, texture_pack: None }
+        Self { vsync: true, zoom_speed: 0.1, music: true, sfx: true, texture_pack: None, shader: None }
     }
 }
 
@@ -188,4 +191,5 @@ pub static SETTINGS: std::sync::Mutex<GameSettings> = std::sync::Mutex::new(Game
     music: true,
     sfx: true,
     texture_pack: None,
+    shader: None,
 });

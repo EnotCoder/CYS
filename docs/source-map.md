@@ -14,8 +14,9 @@ is missing from this map.
   to `cys::run()` from the library.
 - **`src/main/lib.rs`** — crate root: declares 12 modules via `#[path]`, defines
   `App` (window, `WgpuApp`, surface, scene, input, FPS, IME), applies the saved
-  texture pack before the first frame, `render` (full frame),
-  `ApplicationHandler`, desktop `run()` and the Android module.
+  texture pack and shader before the first frame, handles shader reload actions,
+  `render` (full frame), `ApplicationHandler`, desktop `run()` and the Android
+  module.
 - **`src/main/android.rs`** — `android_main`, hiding the system UI, the JNI
   bridge to `EditText` for world names, `poll_text_input` and
   `sync_text_input`.
@@ -25,8 +26,8 @@ is missing from this map.
 ## `src/core/` — wgpu kernel
 
 - **`src/core/mod.rs`** — wires `asset`, `buffers`, `init`, `pipeline`,
-  `render`, `texture`, `texture_pack`, `constants`, `util` and re-exports the
-  main types.
+  `render`, `shader_pack`, `texture`, `texture_pack`, `constants`, `util` and
+  re-exports the main types.
 - **`src/core/asset.rs`** — unified file access: `std::fs` on desktop,
   `AAssetManager` on Android (strips the `assets/` prefix); saves and settings
   go to the app's internal directory; `list_dir` for sounds.
@@ -38,7 +39,8 @@ is missing from this map.
   with offsets, texture and sampler), depth-stencil states.
 - **`src/core/init.rs`** — `WgpuApp::new`: instance → surface → adapter →
   device/queue, `Size` and `UiUniforms` buffers, dynamic storage buffer, both
-  pipelines, surface configuration; global `UI_UNIFORMS`.
+  pipelines, surface configuration; `reload_shader` rebuilds both pipelines with
+  validation scopes and vanilla fallback; global `UI_UNIFORMS`.
 - **`src/core/pipeline.rs`** — two pipelines: opaque (`create_render_pipeline`,
   alpha blending, depth LessEqual) and transparent
   (`create_transparent_pipeline`, Always) plus the vertex layout.
@@ -47,6 +49,9 @@ is missing from this map.
   passes light sources.
 - **`src/core/shaders.wgsl`** — vertex and fragment shaders: quads, camera,
   lighting, night dimming, UI space.
+- **`src/core/shader_pack.rs`** — player WGSL shaders: discovery of
+  `shaders/<id>/`, `shader.json` metadata and custom file, source loading,
+  activation, error state and the embedded vanilla source.
 - **`src/core/texture.rs`** — `Texture` (texture + view + sampler): from
   PNG/JPEG bytes, from disk (`from_path` resolves the active pack, retries the
   vanilla path, then falls back to `null.png`), from raw RGBA (`from_rgba`,
@@ -279,9 +284,11 @@ is missing from this map.
   placement, `FakeInput` (`InputSource` implementation), UI-to-pixel mapping.
 - **`src/tests/data_integrity.rs`** — invariants of constants, the object
   catalogue, balance, day/night, sprite cache and settings, including legacy
-  `texture_pack` defaults.
+  `texture_pack` and `shader` defaults.
 - **`src/tests/placement_rules.rs`** — `can_place_at`, `add`/`remove`: cell
   categories, conflicts, economy, basement, walls.
+- **`src/tests/shader_pack_tests.rs`** — shader discovery, WGSL loading, broken
+  manifest fallback and path traversal protection.
 - **`src/tests/group_tests.rs`** — multi-cell objects: layout, atlas frames,
   layers, position lookup, group deletion.
 - **`src/tests/npc_tests.rs`** — shopper: states, movement, food and candy,

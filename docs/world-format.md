@@ -14,6 +14,7 @@ hand.
 | `data/worlds/world_{id}.json` | `./data/worlds/` | internal app data |
 | `data/settings.json` | `./data/settings.json` | internal app data |
 | `texture_pack/<id>/` | `./texture_pack/<id>/` | `assets/texture_pack/<id>/` packed into the APK |
+| `shaders/<id>/` | `./shaders/<id>/` | `assets/shaders/<id>/` packed into the APK |
 
 `core::asset` hides the difference: `load_bytes` reads project assets (on
 Android through `AAssetManager`, stripping the `assets/` prefix), while
@@ -22,8 +23,9 @@ Android through `AAssetManager`, stripping the `assets/` prefix), while
 
 The whole `data/` directory is in `.gitignore`: worlds, the manifest and
 `settings.json` are created locally and never land in a commit. Texture packs
-are separate content: a `pack.json` under `texture_pack/` is explicitly
-unignored so a pack can be committed. See [texture-packs.md](texture-packs.md).
+and shaders are separate content: their manifests under `texture_pack/` and
+`shaders/` are explicitly unignored so they can be committed. See
+[texture-packs.md](texture-packs.md) and [shaders.md](shaders.md).
 
 ## Map files
 
@@ -138,7 +140,8 @@ save.
   "zoom_speed": 0.08955699,
   "music": true,
   "sfx": true,
-  "texture_pack": "neon"
+  "texture_pack": "neon",
+  "shader": "crt"
 }
 ```
 
@@ -149,12 +152,14 @@ save.
 | `music` | `true` | background music |
 | `sfx` | `true` | sound effects |
 | `texture_pack` | `null` | active pack id; `null` means Vanilla |
+| `shader` | `null` | active shader id; `null` means the built-in WGSL |
 
 The file is rewritten on every settings change and on exit. A missing or
 unparsable file silently falls back to `GameSettings::default()`. Older files
-without `texture_pack` load as Vanilla because the field has
+without `texture_pack` or `shader` load as Vanilla because both fields have
 `#[serde(default)]`. An id that no longer has a pack folder also falls back to
-Vanilla at startup.
+Vanilla at startup; a shader that fails to load or compile keeps vanilla
+pipelines and reports the reason in Settings.
 
 ## Compatibility notes
 

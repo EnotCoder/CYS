@@ -14,6 +14,7 @@ This folder is the full developer documentation.
 | `config.lua`, `items.lua`, `npc.lua`, dev scripts | [scripts.md](scripts.md) |
 | Texture and sound paths | [assets.md](assets.md) |
 | Player texture packs and `pack.json` | [texture-packs.md](texture-packs.md) |
+| Player WGSL shaders and `shader.json` | [shaders.md](shaders.md) |
 | Building for desktop and Android | [build.md](build.md) |
 | Running and writing tests | [testing.md](testing.md) |
 | Code style and documentation rules | [contributing.md](contributing.md) |

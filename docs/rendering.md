@@ -31,6 +31,13 @@ Both share the same vertex layout: position `[x, y, z]` and `uv`. Depth is
 purpose: gameplay layers are already ordered by `z`, and alpha-cut sprites must
 not occlude each other by depth.
 
+Both modules come from `core::shader_pack`: the vanilla WGSL is embedded at
+build time, while a player pack replaces it at startup and on a Settings change.
+`WgpuApp::reload_shader` recreates **both** pipelines with the same layouts
+inside a wgpu validation error scope; a failed custom shader keeps the previous
+game state, rebuilds vanilla pipelines and shows the reason in Settings. See
+[shaders.md](shaders.md).
+
 ## One frame, three passes
 
 1. **Map** — `render_pipeline`, depth cleared. Map tiles are opaque and cover

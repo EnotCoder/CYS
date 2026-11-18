@@ -12,6 +12,7 @@
 //    constants.rs — все константы игры;
 //    util.rs     — вспомогательные утилиты (кэш-ключи, координаты, иконки);
 //    texture_pack.rs — замены текстур и анимаций из папки texture_pack/.
+//    shader_pack.rs — пользовательские WGSL-шейдеры из папки shaders/.
 // ========================================================================
 
 pub mod asset;
@@ -19,6 +20,7 @@ pub mod buffers;
 pub mod init;
 pub mod pipeline;
 pub mod render;
+pub mod shader_pack;
 pub mod texture;
 pub mod texture_pack;
 pub mod constants;

@@ -23,7 +23,9 @@ src/
 Assets live in `assets/` (`assets/tex/`, `assets/sounds/`, `assets/scripts/`,
 map files) and are not part of `src/`. On Android they are packed into the APK.
 Player texture packs are a separate optional tree: `texture_pack/` on desktop
-and `assets/texture_pack/` in the APK. See [texture-packs.md](texture-packs.md).
+and `assets/texture_pack/` in the APK. Player shaders use `shaders/` or
+`assets/shaders/` the same way. See [texture-packs.md](texture-packs.md) and
+[shaders.md](shaders.md).
 
 ## Crate layout
 

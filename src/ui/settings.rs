@@ -54,6 +54,17 @@ pub struct Settings {
     pack_index: usize,
     /// Флаг смены пака в этом кадре.
     pub texture_pack_changed: bool,
+    /// Выбор шейдера стрелками: две кнопки, подпись и текущее значение.
+    shader_prev: Button,
+    shader_next: Button,
+    shader_label: Option<Entity>,
+    shader_label_key: Option<u64>,
+    shader_value: Option<Entity>,
+    shader_value_key: Option<u64>,
+    shader_list: Vec<crate::core::shader_pack::ShaderInfo>,
+    shader_index: usize,
+    /// Флаг смены шейдера в этом кадре.
+    pub shader_changed: bool,
     /// Кнопка «В меню» (выход из игры в выбор миров)
     menu_button: Button,
     /// Флаг запроса выхода в меню, устанавливается по клику на menu_button
@@ -80,8 +91,17 @@ impl Settings {
             pack_list: crate::core::texture_pack::list(),
             pack_index: 0,
             texture_pack_changed: false,
-            music: Checkbox::new(-1.4, -0.9, "Game music", true),
-            sfx: Checkbox::new(-1.4, -1.55, "Sound Effects", true),
+            shader_prev: Button { font_size: 56.0, ..Button::new(2.9, -0.45, 0.5, 0.5, "<") },
+            shader_next: Button { font_size: 56.0, ..Button::new(3.8, -0.45, 0.5, 0.5, ">") },
+            shader_label: None,
+            shader_label_key: None,
+            shader_value: None,
+            shader_value_key: None,
+            shader_list: crate::core::shader_pack::list(),
+            shader_index: 0,
+            shader_changed: false,
+            music: Checkbox::new(-1.4, -1.15, "Game music", true),
+            sfx: Checkbox::new(-1.4, -1.75, "Sound Effects", true),
             music_toggled: false,
             sfx_toggled: false,
             menu_button: Button::new(0.0, -2.55, 3.0, 0.7, "Back to menu"),
@@ -148,6 +168,74 @@ impl Settings {
         crate::audio::play("click");
     }
 
+    /// Id выбранного шейдера; None означает встроенный WGSL.
+    pub fn shader_id(&self) -> Option<String> {
+        self.shader_list
+            .get(self.shader_index)
+            .map(|shader| shader.id.clone())
+            .filter(|id| !id.is_empty())
+    }
+
+    fn refresh_shader_list(&mut self, saved: Option<&str>) {
+        crate::core::shader_pack::rescan();
+        self.shader_list = crate::core::shader_pack::list();
+        let current = saved.map(str::to_owned).or_else(crate::core::shader_pack::active_id);
+        self.shader_index = current
+            .as_deref()
+            .and_then(|id| self.shader_list.iter().position(|shader| shader.id == id))
+            .unwrap_or(0);
+    }
+
+    fn shader_value(&self) -> (String, [u8; 3]) {
+        if let Some(error) = crate::core::shader_pack::error() {
+            let flat = error.replace('\n', " ");
+            let short: String = flat.chars().take(36).collect();
+            let text = if flat.chars().count() > 36 {
+                format!("Error: {short}…")
+            } else {
+                format!("Error: {flat}")
+            };
+            return (text, RED);
+        }
+        let name = self.shader_list
+            .get(self.shader_index)
+            .map(|shader| shader.name.clone())
+            .unwrap_or_else(|| "Vanilla".to_string());
+        (name, WHITE)
+    }
+
+    fn update_shader_value(
+        &mut self,
+        ecs: &mut EcsAdapter,
+        text_renderer: &mut TextRenderer,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+    ) {
+        let (text, color) = self.shader_value();
+        let (entity, key) = text_renderer.set_text(
+            ecs, device, queue, self.shader_value, self.shader_value_key,
+            &text, 44.0, 0.4, -0.45, 4.2, 1.2, color,
+        );
+        self.shader_value = entity;
+        self.shader_value_key = key;
+    }
+
+    fn cycle_shader(
+        &mut self,
+        delta: i32,
+        ecs: &mut EcsAdapter,
+        text_renderer: &mut TextRenderer,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+    ) {
+        if self.shader_list.len() < 2 { return; }
+        let n = self.shader_list.len() as i32;
+        self.shader_index = (self.shader_index as i32 + delta).rem_euclid(n) as usize;
+        self.update_shader_value(ecs, text_renderer, device, queue);
+        self.shader_changed = true;
+        crate::audio::play("click");
+    }
+
     fn collect_entities(&self) -> Vec<Entity> {
         let mut v = Vec::new();
         if let Some(e) = self.panel.entity {
@@ -201,6 +289,24 @@ impl Settings {
         if let Some(e) = self.pack_value {
             v.push(e);
         }
+        if let Some(e) = self.shader_prev.bg {
+            v.push(e);
+        }
+        if let Some(e) = self.shader_prev.text {
+            v.push(e);
+        }
+        if let Some(e) = self.shader_next.bg {
+            v.push(e);
+        }
+        if let Some(e) = self.shader_next.text {
+            v.push(e);
+        }
+        if let Some(e) = self.shader_label {
+            v.push(e);
+        }
+        if let Some(e) = self.shader_value {
+            v.push(e);
+        }
         if let Some(e) = self.menu_button.bg {
             v.push(e);
         }
@@ -219,6 +325,8 @@ impl Settings {
         destroy_checkbox(ecs, &mut self.sfx);
         destroy_button(ecs, &mut self.pack_prev);
         destroy_button(ecs, &mut self.pack_next);
+        destroy_button(ecs, &mut self.shader_prev);
+        destroy_button(ecs, &mut self.shader_next);
         destroy_button(ecs, &mut self.menu_button);
         if let Some(ent) = self.pack_label.take() {
             ecs.delete_entity(ent);
@@ -232,6 +340,18 @@ impl Settings {
         if let Some(key) = self.pack_value_key.take() {
             ecs.sprite_cache.remove(&key);
         }
+        if let Some(ent) = self.shader_label.take() {
+            ecs.delete_entity(ent);
+        }
+        if let Some(key) = self.shader_label_key.take() {
+            ecs.sprite_cache.remove(&key);
+        }
+        if let Some(ent) = self.shader_value.take() {
+            ecs.delete_entity(ent);
+        }
+        if let Some(key) = self.shader_value_key.take() {
+            ecs.sprite_cache.remove(&key);
+        }
         if let Some(ent) = self.title.take() {
             ecs.delete_entity(ent);
         }
@@ -242,6 +362,7 @@ impl Settings {
         self.music_toggled = false;
         self.sfx_toggled = false;
         self.texture_pack_changed = false;
+        self.shader_changed = false;
         self.menu_requested = false;
     }
 
@@ -269,6 +390,17 @@ impl Settings {
         self.pack_label = label;
         self.pack_label_key = key;
         self.update_pack_value(ecs, text_renderer, device, queue);
+        let saved_shader = self.shader_id();
+        self.refresh_shader_list(saved_shader.as_deref());
+        create_button(ecs, text_renderer, device, queue, &mut self.shader_prev);
+        create_button(ecs, text_renderer, device, queue, &mut self.shader_next);
+        let (label, key) = text_renderer.set_text(
+            ecs, device, queue, None, None, "Shader", 44.0,
+            -2.6, -0.45, 3.0, 1.2, WHITE,
+        );
+        self.shader_label = label;
+        self.shader_label_key = key;
+        self.update_shader_value(ecs, text_renderer, device, queue);
         create_button(ecs, text_renderer, device, queue, &mut self.menu_button);
         let title = text_renderer.add_text(ecs, device, queue, "Settings", 64.0, 0.0, 2.4, 4.0, 2.0, WHITE);
         self.title = Some(title);
@@ -294,6 +426,7 @@ impl Settings {
         self.music.checked = s.music;
         self.sfx.checked = s.sfx;
         self.refresh_pack_list(s.texture_pack.as_deref());
+        self.refresh_shader_list(s.shader.as_deref());
     }
 
     /// Ежекадровая анимация окна: вызывает PanelAnim и подчищает поля.
@@ -320,6 +453,10 @@ impl Settings {
     pub fn handle_input(&mut self, ecs: &mut EcsAdapter, text_renderer: &mut TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue, input: &dyn InputSource, window_size: (f32, f32)) -> bool {
         if !self.open { return false; }
 
+        // Ошибка компиляции шейдера появляется после обработки действия сцены,
+        // поэтому подпись обновляется на следующем кадре.
+        self.update_shader_value(ecs, text_renderer, device, queue);
+
         // Стрелки выбора текстур-пака: меняем пак без перезагрузки уровня.
         if button_clicked(&self.pack_prev, input, window_size) {
             self.cycle_pack(-1, ecs, text_renderer, device, queue);
@@ -327,6 +464,16 @@ impl Settings {
         }
         if button_clicked(&self.pack_next, input, window_size) {
             self.cycle_pack(1, ecs, text_renderer, device, queue);
+            return true;
+        }
+
+        // Стрелки выбора шейдера: пересоздаём пайплайны без перезапуска уровня.
+        if button_clicked(&self.shader_prev, input, window_size) {
+            self.cycle_shader(-1, ecs, text_renderer, device, queue);
+            return true;
+        }
+        if button_clicked(&self.shader_next, input, window_size) {
+            self.cycle_shader(1, ecs, text_renderer, device, queue);
             return true;
         }
 

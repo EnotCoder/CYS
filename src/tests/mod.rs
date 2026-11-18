@@ -15,6 +15,7 @@ mod helpers;
 mod input_tests;
 mod npc_tests;
 mod placement_rules;
+mod shader_pack_tests;
 mod texture_pack_tests;
 
 #[test]

@@ -4,3 +4,4 @@ data/
 *.json
 !assets/**/*.json
 !texture_pack/**/*.json
+!shaders/**/*.json

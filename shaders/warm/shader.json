@@ -1,0 +1,7 @@
+{
+  "name": "Warm Evening",
+  "description": "Soft golden tint over the whole scene",
+  "author": "CYS",
+  "version": "1.0.0",
+  "file": "shader.wgsl"
+}

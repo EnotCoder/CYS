@@ -24,8 +24,10 @@ shaders/
     shader.wgsl
 ```
 
-The list is rescanned when Settings opens, so a folder added while the game is
-running appears without a restart. Android packs must be present at build time.
+The repository includes a ready-made `warm/` pack with a soft golden tint; it is
+a safe starting point for experiments. The list is rescanned when Settings
+opens, so a folder added while the game is running appears without a restart.
+Android packs must be present at build time.
 
 ## Manifest
 

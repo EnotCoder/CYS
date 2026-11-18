@@ -236,9 +236,11 @@ is missing from this map.
 ## `src/audio/`
 
 - **`src/audio/mod.rs`** — rodio `AudioEngine`: `sounds/` cache, singleton via
-  `OnceLock`/`Mutex`; `play`, replacing/looping `play_music` (season tracks
-  with `music.ogg` fallback), `play_ambient` (snow/rain loops), `stop_music`,
-  `set_music_enabled`, `set_sfx_enabled`, `init`.
+  `OnceLock`/`Mutex`; output opens with a 100 ms buffer and ignores recoverable
+  `BufferUnderrun` reports while logging other stream errors; `play`,
+  replacing/looping `play_music` (season tracks with `music.ogg` fallback),
+  `play_ambient` (snow/rain loops), `stop_music`, `set_music_enabled`,
+  `set_sfx_enabled`, `init`.
 
 ---
 

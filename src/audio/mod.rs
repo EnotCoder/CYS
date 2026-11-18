@@ -10,15 +10,64 @@ use std::io::Cursor;
 use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Mutex, OnceLock};
+use std::time::Duration;
 
+use rodio::cpal::traits::{DeviceTrait, HostTrait};
+use rodio::cpal::{self, StreamError};
 use rodio::{Decoder, DeviceSinkBuilder, MixerDeviceSink, Player, Source};
 
 pub const SOUND_DIR: &str = "assets/sounds";
+
+const OUTPUT_BUFFER: Duration = Duration::from_millis(100);
+
+fn output_buffer_size(sample_rate: u32) -> cpal::BufferSize {
+    let frames = (OUTPUT_BUFFER.as_secs_f64() * f64::from(sample_rate)).round() as u32;
+    cpal::BufferSize::Fixed(frames)
+}
 
 // Переключатели звука из настроек (data/settings.json): применяются глобально,
 // чтобы музыка в меню и эффекты в игре уважали выбор пользователя.
 static MUSIC_ENABLED: AtomicBool = AtomicBool::new(true);
 static SFX_ENABLED: AtomicBool = AtomicBool::new(true);
+
+fn should_log_stream_error(err: &StreamError) -> bool {
+    !matches!(err, StreamError::BufferUnderrun)
+}
+
+fn on_stream_error(err: StreamError) {
+    if should_log_stream_error(&err) {
+        eprintln!("audio stream error: {err}");
+    }
+}
+
+fn open_device_sink(device: cpal::Device) -> Option<MixerDeviceSink> {
+    let sample_rate = device.default_output_config().ok()?.sample_rate();
+    let builder = DeviceSinkBuilder::from_device(device).ok()?;
+    let builder = builder
+        .with_buffer_size(output_buffer_size(sample_rate))
+        .with_error_callback(on_stream_error);
+    builder.open_sink_or_fallback().ok()
+}
+
+fn open_output_sink() -> Option<MixerDeviceSink> {
+    if let Some(device) = cpal::default_host().default_output_device() {
+        if let Some(sink) = open_device_sink(device) {
+            return Some(sink);
+        }
+    }
+
+    let devices = cpal::default_host().output_devices().ok()?;
+    for device in devices {
+        let Ok(description) = device.description() else { continue };
+        if !description.driver().is_some_and(|driver| driver != "null") {
+            continue;
+        }
+        if let Some(sink) = open_device_sink(device) {
+            return Some(sink);
+        }
+    }
+    None
+}
 
 /// Включает/выключает фоновую музыку; при выключении останавливает текущий трек.
 pub fn set_music_enabled(enabled: bool) {
@@ -54,7 +103,7 @@ pub struct AudioEngine {
 impl AudioEngine {
     pub fn new() -> Option<Self> {
         // Открываем устройство вывода; если его нет — движок не создаётся (None).
-        let mut sink = DeviceSinkBuilder::open_default_sink().ok()?;
+        let mut sink = open_output_sink()?;
         sink.log_on_drop(false);
         let mixer = sink.mixer().clone();
         let mut engine = Self {
@@ -203,4 +252,22 @@ pub fn play_ambient(name: &str) {
 // Остановить все фоновые лупы (погоду).
 pub fn stop_ambient() {
     with_engine(|engine| engine.stop_ambient());
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn recoverable_buffer_glitches_are_not_logged() {
+        assert!(!should_log_stream_error(&StreamError::BufferUnderrun));
+        assert!(should_log_stream_error(&StreamError::DeviceNotAvailable));
+        assert!(should_log_stream_error(&StreamError::StreamInvalidated));
+    }
+
+    #[test]
+    fn output_buffer_matches_100_ms_at_common_sample_rates() {
+        assert_eq!(output_buffer_size(44_100), cpal::BufferSize::Fixed(4_410));
+        assert_eq!(output_buffer_size(48_000), cpal::BufferSize::Fixed(4_800));
+    }
 }

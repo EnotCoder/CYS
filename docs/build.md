@@ -109,3 +109,4 @@ No restart is needed; the scene returns `SceneAction::VsyncToggle(bool)` and
 | second light does not work | `LightData` size does not match the WGSL `std430` stride (64 bytes) |
 | textures look blurry | a sampler was created with `Linear`; pixel art must use `Nearest` |
 | font missing | `font_path` in `config.lua` points outside `assets/` or the file is absent |
+| `audio stream error: Buffer underrun/overrun occurred` | the OS audio callback missed its deadline; CYS uses a 100 ms output buffer and suppresses this recoverable warning |

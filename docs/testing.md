@@ -26,9 +26,10 @@ selected by name, for example `cargo test door`.
 | `src/tests/npc_tests.rs` | shopper states, movement, food/candy, registers, routing, fade, door |
 | `src/tests/input_tests.rs` | zoom, UI hit tests, slider, shop scrolling, world name, door fade, weather |
 | `src/tests/anim_tests.rs` | `PanelAnim` open/close/cancel and text sprites |
+| `src/tests/texture_pack_tests.rs` | file overlay, `pack.json` overrides, path safety, vanilla fallback |
 | `src/tests/docs.rs` | source map completeness and live links |
 
-Total is around 90 tests. They are ordinary `#[test]` functions, not
+Total is around 95 tests. They are ordinary `#[test]` functions, not
 `specs` systems, so a failure points at a function name, not at a schedule.
 
 ## Writing a test without a GPU
@@ -72,6 +73,8 @@ Before a release, run the game and check:
 - new world → tutorial → place box/rack/register → open shop;
 - a shopper walks in, buys, pays, leaves through the door;
 - `Esc` pauses rent and day/night;
+- switching two texture packs in Settings updates map, objects, UI and shoppers
+  without reloading the level;
 - shop purchase survives `Ctrl+S` and a reload from the menu;
 - Android: Back closes panels, pinch zooms, one-finger drag moves the camera
   only in `move` mode.

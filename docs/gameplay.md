@@ -83,7 +83,9 @@ GoingToRack → GoingToCassa → AtCassa → GoingToCandies → AtCandies → Go
 ```
 
 Movement is A* on walkable cells, 4-directional, with `npc_speed` cells per
-second. The door at the shop front opens when a `ShopperTag` entity is near and
+second. Walk frames come from the season-independent character sets and are
+swapped every `walk_anim_interval` seconds, unless a texture pack overrides the
+fps. The door at the shop front opens when a `ShopperTag` entity is near and
 closes after it leaves; the shopper fades to alpha 0 inside the doorway so the
 wall opening does not look like a hole. Empty racks or deleted registers reroute
 the shopper; a closed shop sends shoppers without food straight to the exit.
@@ -114,8 +116,9 @@ loop `snow.ogg`/`rain.ogg` as weather ambience.
   with a scrollbar and a confirmation dialog. Buying adds the name to
   `ShopOwned`; the object then becomes placeable in this world.
 - **Settings** (`Esc`, or the gear icon) pauses gameplay: rent, day/night,
-  shoppers and weather stop. It holds VSync, zoom speed, music and SFX, and
-  writes `data/settings.json` immediately.
+  shoppers and weather stop. It holds VSync, zoom speed, music, SFX and a
+  **Texture Pack** selector, and writes `data/settings.json` immediately. Pack
+  changes are applied live; see [texture-packs.md](texture-packs.md).
 - **Tutorial** opens once per session when the shop is still empty, and can be
   closed with `Esc` or its button. It sways slightly with a sine wave, which is
   the only purely decorative animation in the UI.

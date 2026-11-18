@@ -223,7 +223,7 @@ impl super::EcsAdapter {
             let path = format!("{}_{}_{}_{}_{}.png", dir, up as u8, down as u8, left as u8, right as u8);
             // Проверяем наличие варианта через загрузчик ассетов (работает и на
             // Android, где текстуры упакованы в APK, а не лежат файлами на диске).
-            if crate::core::asset::load_bytes(&path).is_ok() {
+            if crate::core::texture_pack::exists(&path) {
                 sprite.texture_path = Arc::from(path.into_boxed_str());
             } else {
                 sprite.texture_path = fallback_arc;

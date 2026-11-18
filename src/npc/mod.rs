@@ -44,9 +44,12 @@ pub struct ShopperNpc {
     food_taken: bool,
     walk_timer: f64,
     walk_frame: i32,
-    tex_idle: &'static str,
-    tex_walk_1: &'static str,
-    tex_walk_2: &'static str,
+    tex_idle: Vec<String>,
+    tex_walk: Vec<String>,
+    npc_id: String,
+    fps_override: Option<f32>,
+    idle_frame: usize,
+    idle_timer: f64,
     alpha: f32,
     despawning: bool,
 }
@@ -54,11 +57,21 @@ pub struct ShopperNpc {
 impl ShopperNpc {
     pub fn spawn(ecs: &mut EcsAdapter, walkable: &HashSet<Node>, spawn_pos: Node, rack_pos: Node, cassa_pos: Node, candy_pos: Option<Node>, tex_idle: &'static str, tex_walk_1: &'static str, tex_walk_2: &'static str) -> Option<Self> {
         let path = find_path(walkable, spawn_pos, rack_pos)?;
+        let npc_id = if tex_idle.contains("bob") {
+            "bob"
+        } else if tex_idle.contains("player") {
+            "player"
+        } else {
+            "sasha"
+        };
+        let (idle, walk, fps_override) = crate::core::texture_pack::npc_textures(
+            npc_id, tex_idle, tex_walk_1, tex_walk_2,
+        );
         let (sx, sy) = spawn_pos.to_world();
         let sy = sy + 0.5;
         let entity = crate::ecs::factory::create_sprite(
             &mut ecs.world, sx, sy, Z_NPC,
-            tex_idle, [0, 0], [1, 1], NPC_SCALE, 0.0,
+            &idle[0], [0, 0], [1, 1], NPC_SCALE, 0.0,
         );
         ecs.world.write_storage::<crate::Rotation>().insert(entity, crate::Rotation { rotation: [0.0; 3] }).ok();
         // Маркер покупателя: по нему дверь магазина понимает, что пора открыться.
@@ -79,9 +92,12 @@ impl ShopperNpc {
             food_taken: false,
             walk_timer: 0.0,
             walk_frame: 0,
-            tex_idle,
-            tex_walk_1,
-            tex_walk_2,
+            tex_idle: idle,
+            tex_walk: walk,
+            npc_id: npc_id.to_string(),
+            fps_override,
+            idle_frame: 0,
+            idle_timer: 0.0,
             alpha: 0.0,
             despawning: false,
         })
@@ -93,6 +109,48 @@ impl ShopperNpc {
 
     pub fn has_taken_food(&self) -> bool {
         self.food_taken
+    }
+
+    fn is_idle(&self) -> bool {
+        matches!(self.state, ShopperState::AtCassa | ShopperState::AtCandies)
+    }
+
+    /// Кадры idle из пака могут быть набором файлов — крутим их с тем же fps.
+    fn tick_idle_animation(&mut self, ecs: &mut EcsAdapter, dt: f64) {
+        if self.tex_idle.len() < 2 {
+            return;
+        }
+        let interval = 1.0 / self.fps_override.unwrap_or(1.0) as f64;
+        self.idle_timer += dt;
+        if self.idle_timer >= interval {
+            self.idle_timer -= interval;
+            self.idle_frame = (self.idle_frame + 1) % self.tex_idle.len();
+            self.set_idle(ecs);
+        }
+    }
+
+    /// При смене пака перерисовываем внешний вид уже живущего покупателя.
+    pub(crate) fn refresh_pack(&mut self, ecs: &mut EcsAdapter) {
+        let (base_idle, base_walk_1, base_walk_2) = match self.npc_id.as_str() {
+            "bob" => (TEX_BOB_IDLE, TEX_BOB_WALK_1, TEX_BOB_WALK_2),
+            "player" => (TEX_PLAYER_IDLE, TEX_PLAYER_WALK_1, TEX_PLAYER_WALK_2),
+            _ => (TEX_SASHA_IDLE, TEX_SASHA_WALK_1, TEX_SASHA_WALK_2),
+        };
+        let (idle, walk, fps) = crate::core::texture_pack::npc_textures(
+            &self.npc_id, base_idle, base_walk_1, base_walk_2,
+        );
+        self.tex_idle = idle;
+        self.tex_walk = walk;
+        self.fps_override = fps;
+        self.idle_frame = 0;
+        self.idle_timer = 0.0;
+        self.walk_frame = 0;
+        self.walk_timer = 0.0;
+        if self.is_idle() {
+            self.set_idle(ecs);
+        } else {
+            self.set_walk(ecs);
+        }
     }
 
     // ================================================================
@@ -176,6 +234,9 @@ impl ShopperNpc {
         if self.alpha < 1.0 {
             self.alpha = (self.alpha + dt as f32 * fade).min(1.0);
             ecs.update_sprite_alpha(self.entity, self.alpha);
+        }
+        if self.is_idle() {
+            self.tick_idle_animation(ecs, dt);
         }
 
         // Пытаемся использовать Lua-скрипт. При ошибке — fallback на Rust-автомат.

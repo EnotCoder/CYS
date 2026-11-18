@@ -13,8 +13,9 @@ is missing from this map.
 - **`src/main/main.rs`** — desktop `[[bin]]` entry point; delegates everything
   to `cys::run()` from the library.
 - **`src/main/lib.rs`** — crate root: declares 12 modules via `#[path]`, defines
-  `App` (window, `WgpuApp`, surface, scene, input, FPS, IME), `render` (full
-  frame), `ApplicationHandler`, desktop `run()` and the Android module.
+  `App` (window, `WgpuApp`, surface, scene, input, FPS, IME), applies the saved
+  texture pack before the first frame, `render` (full frame),
+  `ApplicationHandler`, desktop `run()` and the Android module.
 - **`src/main/android.rs`** — `android_main`, hiding the system UI, the JNI
   bridge to `EditText` for world names, `poll_text_input` and
   `sync_text_input`.
@@ -24,7 +25,8 @@ is missing from this map.
 ## `src/core/` — wgpu kernel
 
 - **`src/core/mod.rs`** — wires `asset`, `buffers`, `init`, `pipeline`,
-  `render`, `texture`, `constants`, `util` and re-exports the main types.
+  `render`, `texture`, `texture_pack`, `constants`, `util` and re-exports the
+  main types.
 - **`src/core/asset.rs`** — unified file access: `std::fs` on desktop,
   `AAssetManager` on Android (strips the `assets/` prefix); saves and settings
   go to the app's internal directory; `list_dir` for sounds.
@@ -46,8 +48,12 @@ is missing from this map.
 - **`src/core/shaders.wgsl`** — vertex and fragment shaders: quads, camera,
   lighting, night dimming, UI space.
 - **`src/core/texture.rs`** — `Texture` (texture + view + sampler): from
-  PNG/JPEG bytes, from disk (`from_path`, falls back to `null.png`), from raw
-  RGBA (`from_rgba`, text and UI).
+  PNG/JPEG bytes, from disk (`from_path` resolves the active pack, retries the
+  vanilla path, then falls back to `null.png`), from raw RGBA (`from_rgba`,
+  text and UI).
+- **`src/core/texture_pack.rs`** — player texture packs: discovery of
+  `texture_pack/<id>/`, `pack.json` metadata/aliases, safe path resolution with
+  vanilla fallback, live activation and object/NPC animation overrides.
 - **`src/core/util.rs`** — `sprite_cache_key`, `ndc_to_world`, `inventory_index`,
   `slot_icon_path`, `slot_icon_size`, `ui_fit_scale`,
   `ui_top_offset`/`ui_bottom_offset`, `ease_out_back`.
@@ -84,23 +90,26 @@ is missing from this map.
   `group`, `placement`, `sprite`; re-exports the adapter and `Sprite`.
 - **`src/ecs/adapter/mod.rs`** — `EcsAdapter`: owns the `World`, sprite cache,
   textures and map position sets; registers components and resources, provides
-  `add_ui`/`add_ui_sized`, world clearing and `SpriteRenderData`.
+  `add_ui`/`add_ui_sized`, world clearing, `SpriteRenderData` and live
+  `apply_texture_pack` with selective cache invalidation.
 - **`src/ecs/adapter/render.rs`** — `get_sprites_by_layer` (8 z-layers culled by
-  visible bounds), `update_object_textures` (box/rack frames by food count),
-  `update_fence_textures` (fence by neighbours), `update_sprite_alpha`,
+  visible bounds), `update_object_textures` (box/rack textures by food count),
+  `update_fence_textures` (fence by neighbours, pack-aware), `update_sprite_alpha`,
   `update_transform_position`.
 - **`src/ecs/components.rs`** — components and resources: `Transform`,
-  `SpriteComponent`, `GroupComponent`, `GroupInfoResource`, `Rotation`,
-  `ObjectTag`, `FoodStorage`, `ShopperTag`; `TotalFood`, `Money`, `BusyCassas`,
-  `BasementPlaced`, `ShopOwned`, `FenceComponent`, `Season`, `DoorState`,
-  `DoorProgress`.
+  `SpriteComponent` (including per-sprite `anim_fps`/`anim_loop`/timer),
+  `GroupComponent`, `GroupInfoResource`, `Rotation`, `ObjectTag`, `FoodStorage`,
+  `ShopperTag`; `TotalFood`, `Money`, `BusyCassas`, `BasementPlaced`,
+  `ShopOwned`, `FenceComponent`, `Season`, `DoorState`, `DoorProgress`.
 - **`src/ecs/cursor.rs`** — `add_cursor`, `update_cursor_preview` (translucent
   object ghost, atlas frames, error markers), `clear_cursor_preview`.
 - **`src/ecs/factory.rs`** — `create_sprite`: the only way to create a sprite
-  (`Transform` + `SpriteComponent` from position, texture, frame, scale, alpha).
+  (`Transform` + `SpriteComponent` from position, texture, frame, scale, alpha,
+  with neutral animation defaults).
 - **`src/ecs/group.rs`** — multi-cell objects: `add_group_object` (one entity per
-  tile with an atlas frame offset), `delete_group`, `find_group_at_position`
-  (decor beats light, light beats carpet).
+  tile with an atlas frame offset and pack overrides; box/rack keep food-driven
+  paths), `delete_group`, `find_group_at_position` (decor beats light, light
+  beats carpet).
 - **`src/ecs/placement.rs`** — `can_place_at`: categories require matching
   cells (carpet/light/decor — floor, wall decor — wall, outdoor/flowers —
   grass) and forbid placing an object over the same category.
@@ -114,14 +123,14 @@ is missing from this map.
 
 - **`src/npc/mod.rs`** — `ShopperNpc`: state machine (`GoingToRack` →
   `GoingToCassa` → `AtCassa` → `GoingToCandies` → `AtCandies` →
-  `GoingToExit`), fade-in spawn, Lua API, `update` (`npc.lua` script or
-  `update_fallback` in Rust).
+  `GoingToExit`), fade-in spawn, pack-provided idle/walk frames, `refresh_pack`,
+  Lua API, `update` (`npc.lua` script or `update_fallback` in Rust).
 - **`src/npc/interactions.rs`** — `take_food`/`take_candy`, `cassa_exists`,
   `rack_exists`, `candy_exists`, `find_any_cassa`, `reroute_to_cassa`, sounds
   and textures.
-- **`src/npc/movement.rs`** — `spawn_path_node`, `set_idle`/`set_walk`,
-  `start_path` (A* plus `exit_target`), `walk_toward` (step, animation,
-  rotation), `walk_to_exit`.
+- **`src/npc/movement.rs`** — `spawn_path_node`, `set_idle`/`set_walk` with
+  variable-length pack frame lists, `start_path` (A* plus `exit_target`),
+  `walk_toward` (step, pack fps or config interval, rotation), `walk_to_exit`.
 
 ---
 
@@ -140,9 +149,9 @@ is missing from this map.
   Play/Quit buttons, world pick/create/delete with confirmation, hover
   highlight, Space/click to start, Escape to quit.
 - **`src/scenes/game/mod.rs`** — `GameScene`: main loop — input, rent,
-  bankruptcy, settings, food regen, pop animations, day/night, shoppers,
-  weather, per-season music, tutorial, shop, hover/tooltip, autosave, level
-  switching.
+  bankruptcy, settings, live texture-pack switching, food regen, per-sprite
+  animations, day/night, shoppers, weather, per-season music, tutorial, shop,
+  hover/tooltip, autosave, level switching.
 - **`src/scenes/game/camera.rs`** — `update_camera`: movement only in `move`
   mode (mouse/finger drag or arrow keys), clamped to the map's visible area.
 - **`src/scenes/game/day_night.rs`** — `DayNightCycle`: `tick`, `factor`
@@ -157,8 +166,8 @@ is missing from this map.
   `LevelState`, `load_level` (shop ↔ basement from cache), `rebuild_ui`,
   `save_to_disk`/`load_from_disk` (`data/worlds/world_{id}.json`), basement exit.
 - **`src/scenes/game/shoppers.rs`** — `ShopperManager`: `spawn_shopper`
-  (random rack/register/candy target, three texture sets), `set_active`, `tick`
-  (spawn timers, limit, despawn, cooldown).
+  (random rack/register/candy target, three texture sets), `set_active`,
+  `refresh_pack`, `tick` (spawn timers, limit, despawn, cooldown).
 - **`src/scenes/game/tutorial.rs`** — `Tutorial`: tutorial panel, `open`/`close`,
   button and panel hit tests, gentle sine sway.
 - **`src/scenes/game/weather_fx.rs`** — `WeatherFx`: rain and snow particles,
@@ -183,8 +192,8 @@ is missing from this map.
   `switch_page`, `tab_page_of`, `visible_tab_count`), `items`, `switch_tab`,
   `tab_after`, grid clicks, move to the hotbar.
 - **`src/ui/settings.rs`** — settings panel: VSync (`vsync_toggled`), zoom
-  speed slider (`zoom_speed_changed`), music/SFX, `open`/`close`,
-  `handle_input`, `apply_saved`.
+  speed slider (`zoom_speed_changed`), music/SFX, Texture Pack selector with
+  `texture_pack_changed`, `open`/`close`, `handle_input`, `apply_saved`.
 - **`src/ui/shop.rs`** — `Shop`: scrollable catalogue with a scrollbar,
   `ShopItem`, `ConfirmAction`, purchase confirmation dialog, `refresh`,
   `row_clicked`, `scroll_input`.
@@ -198,8 +207,9 @@ is missing from this map.
 - **`src/ui/fps.rs`** — `FpsCounter`: recomputes FPS once per second from the
   frame count.
 - **`src/ui/text_renderer.rs`** — `TextRenderer`: `ab_glyph` rasterisation into
-  an RGBA texture (outline and fill), text sprites, cache keyed by
-  text+size+colour; `add_text`, `set_text`, `add_text_z`.
+  an RGBA texture (outline and fill), text sprites with synthetic cache keys
+  preserved on pack switches, cache keyed by text+size+colour; `add_text`,
+  `set_text`, `add_text_z`.
 
 ---
 
@@ -212,7 +222,8 @@ is missing from this map.
   `ZOOM_MIN..ZOOM_MAX`.
 - **`src/input/cursor.rs`** — `handle_mouse_movement` (NDC → world → cell,
   clamping, per-tile delay), `update_cursor_validity` (ok/error texture),
-  `update_cursor_preview`; `move` mode leaves the map untouched.
+  `update_cursor_preview` with texture-pack overrides; `move` mode leaves the
+  map untouched.
 - **`src/input/interact.rs`** — `try_interact` (box — sell food, rack — refill,
   basement — level switch, arcade — refund 1), `cycle_mode`, `do_interact`,
   `next_mode`.
@@ -253,8 +264,8 @@ is missing from this map.
 
 - **`src/save/mod.rs`** — worlds: `WorldMeta`, `WorldManifest`, `list_worlds`,
   `create_world_with_name`, `unique_world_name`, `touch_world`, `delete_world`,
-  `WorldSelection`/`SELECTED_WORLD`; settings `GameSettings`, `load_settings`,
-  `save_settings`, global `SETTINGS`.
+  `WorldSelection`/`SELECTED_WORLD`; settings `GameSettings` (including
+  `texture_pack`), `load_settings`, `save_settings`, global `SETTINGS`.
 
 ---
 
@@ -265,7 +276,8 @@ is missing from this map.
 - **`src/tests/helpers.rs`** — shared fixtures: ECS without a GPU, object
   placement, `FakeInput` (`InputSource` implementation), UI-to-pixel mapping.
 - **`src/tests/data_integrity.rs`** — invariants of constants, the object
-  catalogue, balance, day/night, sprite cache and settings.
+  catalogue, balance, day/night, sprite cache and settings, including legacy
+  `texture_pack` defaults.
 - **`src/tests/placement_rules.rs`** — `can_place_at`, `add`/`remove`: cell
   categories, conflicts, economy, basement, walls.
 - **`src/tests/group_tests.rs`** — multi-cell objects: layout, atlas frames,
@@ -278,3 +290,6 @@ is missing from this map.
   sprites.
 - **`src/tests/docs.rs`** — documentation checks: this map's completeness, live
   links and images.
+- **`src/tests/texture_pack_tests.rs`** — pack discovery and naming, file
+  overlay, `pack.json` object/NPC overrides, path traversal protection and
+  vanilla fallback.

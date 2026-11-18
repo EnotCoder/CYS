@@ -15,6 +15,7 @@ mod helpers;
 mod input_tests;
 mod npc_tests;
 mod placement_rules;
+mod texture_pack_tests;
 
 #[test]
 fn mode_cycle_includes_move_mode() {

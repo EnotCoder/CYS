@@ -358,6 +358,7 @@ fn game_settings_serde_roundtrip_preserves_all_fields() {
         zoom_speed: 0.15,
         music: false,
         sfx: true,
+        texture_pack: Some("neon".to_string()),
     };
     let json = serde_json::to_string(&s).unwrap();
     let back: GameSettings = serde_json::from_str(&json).unwrap();
@@ -365,12 +366,20 @@ fn game_settings_serde_roundtrip_preserves_all_fields() {
     assert_eq!(back.zoom_speed, s.zoom_speed);
     assert_eq!(back.music, s.music);
     assert_eq!(back.sfx, s.sfx);
+    assert_eq!(back.texture_pack.as_deref(), Some("neon"));
+
+    // Старый settings.json без поля texture_pack должен читаться как ваниль.
+    let legacy: GameSettings = serde_json::from_str(
+        r#"{"vsync":true,"zoom_speed":0.2,"music":true,"sfx":true}"#,
+    ).unwrap();
+    assert_eq!(legacy.texture_pack, None);
 
     let d = GameSettings::default();
     assert!(d.vsync);
     assert!((d.zoom_speed - 0.1).abs() < 1e-6);
     assert!(d.music);
     assert!(d.sfx);
+    assert_eq!(d.texture_pack, None);
 }
 
 #[test]
@@ -385,6 +394,7 @@ fn settings_apply_saved_clamps_zoom_speed() {
         zoom_speed: hi + 10.0,
         music: false,
         sfx: false,
+        texture_pack: None,
     });
     assert!(!settings.vsync.checked);
     assert!(!settings.music.checked);
@@ -396,6 +406,7 @@ fn settings_apply_saved_clamps_zoom_speed() {
         zoom_speed: lo - 10.0,
         music: true,
         sfx: true,
+        texture_pack: None,
     });
     assert!(settings.vsync.checked);
     assert_eq!(settings.zoom_speed.value, lo);
@@ -406,7 +417,7 @@ fn inventory_tabs_and_grid_clicks_are_consistent() {
     use crate::ui::inventory::Inventory;
 
     let mut inv = Inventory::new();
-    let new_year: &[&str] = &["ny_tree", "gifts", "ny_carpet", "snow"];
+    let new_year = crate::data::inventory_tab_names(5);
     let expected: [&[&str]; 6] = [
         INV_REGULAR,
         INV_CARPETS,

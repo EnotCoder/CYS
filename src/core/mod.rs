@@ -10,7 +10,8 @@
 //    texture.rs  — загрузка и создание текстур/сэмплеров;
 //    render.rs   — отрисовка кадра по слоям (map / transparent / ui);
 //    constants.rs — все константы игры;
-//    util.rs     — вспомогательные утилиты (кэш-ключи, координаты, иконки).
+//    util.rs     — вспомогательные утилиты (кэш-ключи, координаты, иконки);
+//    texture_pack.rs — замены текстур и анимаций из папки texture_pack/.
 // ========================================================================
 
 pub mod asset;
@@ -19,6 +20,7 @@ pub mod init;
 pub mod pipeline;
 pub mod render;
 pub mod texture;
+pub mod texture_pack;
 pub mod constants;
 pub mod util;
 

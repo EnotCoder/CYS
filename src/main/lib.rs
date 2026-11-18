@@ -79,6 +79,8 @@ impl App {
             *crate::save::SETTINGS.lock().unwrap() = s.clone();
             crate::audio::set_music_enabled(s.music);
             crate::audio::set_sfx_enabled(s.sfx);
+            // Текстур-пак применяется до первой отрисовки меню.
+            crate::core::texture_pack::init();
         }
         let config = crate::scripts::config::BalanceConfig::load();
         let font_path = config.font_path.clone();

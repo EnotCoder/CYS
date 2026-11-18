@@ -105,13 +105,31 @@ pub fn update_cursor_preview(ecs: &mut EcsAdapter, mode: i32, slots: &[Slot], ac
     let is_outdoor = is_outdoor_name(slot.obj.name);
     let is_flower = is_flower_name(slot.obj.name);
     let valid = ecs.can_place_at(cx as i32, cy as i32, slot.obj.width, slot.obj.height, is_carpet, is_light, is_wall_decor, is_outdoor, is_flower);
+    use crate::core::texture_pack as pack;
+    let name = slot.obj.name;
+    let stateful = name == "box" || name == "rack";
+    let preview_path = if stateful {
+        slot.obj.path.to_string()
+    } else {
+        pack::object_texture(name, slot.obj.path)
+    };
+    let preview_frame = if stateful {
+        slot.obj.texture_frame
+    } else {
+        pack::object_frame(name, slot.obj.texture_frame)
+    };
+    let preview_count = if stateful {
+        slot.obj.texture_count
+    } else {
+        pack::object_atlas(name, slot.obj.texture_count)
+    };
     // Передаём ECS размер, допустимость и текстуру — превью рисуется на месте курсора
     ecs.update_cursor_preview(
         cx, cy,
         slot.obj.width, slot.obj.height,
         valid,
-        slot.obj.path,
-        slot.obj.texture_frame,
-        slot.obj.texture_count,
+        &preview_path,
+        preview_frame,
+        preview_count,
     );
 }

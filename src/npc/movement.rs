@@ -27,12 +27,16 @@ impl ShopperNpc {
     }
 
     pub(crate) fn set_idle(&self, ecs: &mut EcsAdapter) {
-        self.set_texture(ecs, self.tex_idle);
+        if let Some(path) = self.tex_idle.get(self.idle_frame).or_else(|| self.tex_idle.first()) {
+            self.set_texture(ecs, path);
+        }
     }
 
     pub(crate) fn set_walk(&self, ecs: &mut EcsAdapter) {
-        let tex = if self.walk_frame == 0 { self.tex_walk_1 } else { self.tex_walk_2 };
-        self.set_texture(ecs, tex);
+        let index = (self.walk_frame as usize) % self.tex_walk.len().max(1);
+        if let Some(path) = self.tex_walk.get(index) {
+            self.set_texture(ecs, path);
+        }
     }
 
     pub(crate) fn start_path(&mut self, ecs: &EcsAdapter, walkable: &std::collections::HashSet<Node>, to: Node) -> bool {
@@ -57,12 +61,15 @@ impl ShopperNpc {
         }
         let (anim_interval, speed) = {
             let cfg = ecs.world.read_resource::<BalanceConfig>();
-            (cfg.walk_anim_interval, cfg.npc_speed)
+            (
+                self.fps_override.map(|fps| 1.0 / fps as f64).unwrap_or(cfg.walk_anim_interval),
+                cfg.npc_speed,
+            )
         };
         self.walk_timer += dt;
         if self.walk_timer > anim_interval {
             self.walk_timer = 0.0;
-            self.walk_frame = 1 - self.walk_frame;
+            self.walk_frame = ((self.walk_frame + 1) as usize % self.tex_walk.len().max(1)) as i32;
         }
         self.set_walk(ecs);
 

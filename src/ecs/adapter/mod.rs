@@ -241,6 +241,102 @@ impl EcsAdapter {
         entity
     }
 
+    /// Применяет новый текстур-пак к уже созданным спрайтам, не убивая уровень.
+    /// Кэш чистится выборочно: сгенерированные текстом и погодой спрайты
+    /// сохраняются, иначе интерфейс и осадки пропали бы до пересоздания.
+    pub fn apply_texture_pack(&mut self) {
+        use specs::Join;
+
+        let mut keep = HashSet::new();
+        {
+            let transforms = self.world.read_storage::<Transform>();
+            let sprites = self.world.read_storage::<SpriteComponent>();
+            for (transform, sprite) in (&transforms, &sprites).join() {
+                if sprite.texture_path.starts_with("assets/") {
+                    continue;
+                }
+                let prefix = if transform.position[2] == Z_MAP {
+                    "map"
+                } else if transform.position[2] < Z_UI {
+                    "transparent"
+                } else {
+                    "ui"
+                };
+                keep.insert(util::sprite_cache_key(
+                    prefix, &sprite.texture_path, sprite.texture_frame,
+                    sprite.texture_count, sprite.scale,
+                ));
+            }
+        }
+        self.sprite_cache.retain(|key, _| keep.contains(key));
+        self.texture_cache.clear();
+
+        let groups = self.world.read_resource::<GroupInfoResource>().groups.clone();
+        let mut changes: Vec<(specs::Entity, String, [i32; 2], [i32; 2], bool, Vec<String>, f32, bool)> = Vec::new();
+        {
+            let entities = self.world.entities();
+            let sprites = self.world.read_storage::<SpriteComponent>();
+            let tags = self.world.read_storage::<ObjectTag>();
+            let group_comps = self.world.read_storage::<GroupComponent>();
+            use crate::core::texture_pack as pack;
+            for (entity, tag, sprite) in (&entities, &tags, &sprites).join() {
+                let name = tag.name.as_str();
+                let Some(obj) = crate::data::catalog().objects.iter().find(|o| o.name == name) else {
+                    continue;
+                };
+                let count = pack::object_atlas(name, obj.texture_count);
+                let frame_base = pack::object_frame(name, obj.texture_frame);
+                let frames = pack::object_frames(name, obj.frame_paths);
+                // box/rack меняют путь по количеству еды — оставляем их
+                // логические пути, файловый оверлей пака применяется при загрузке.
+                let stateful = name == "box" || name == "rack";
+                let animated = if stateful { false } else { pack::object_animated(name, obj.animated) };
+                let mut path = sprite.texture_path.to_string();
+                let mut frame = frame_base;
+                if let Some(info) = group_comps.get(entity).and_then(|g| groups.get(&g.group_id)) {
+                    if info.width * info.height > 1 && count == [1, 1] {
+                        if !stateful {
+                            let base = pack::object_texture(name, obj.path);
+                            path = format!("{}@{}x{}", base, info.width, info.height);
+                        }
+                        frame = [0, 0];
+                    } else {
+                        let index = info.entities.iter().position(|&e| e == entity).unwrap_or(0) as i32;
+                        let i = index / info.height.max(1);
+                        let j = index % info.height.max(1);
+                        frame = [
+                            (frame_base[0] + i) % count[0],
+                            (frame_base[1] + j) % count[1],
+                        ];
+                        if !stateful {
+                            path = pack::object_texture(name, obj.path);
+                        }
+                    }
+                } else if !stateful {
+                    path = pack::object_texture(name, obj.path);
+                }
+                changes.push((
+                    entity, path, frame, count, animated, frames,
+                    pack::object_fps(name), pack::object_loop(name),
+                ));
+            }
+        }
+        let mut sprites = self.world.write_storage::<SpriteComponent>();
+        for (entity, path, frame, count, animated, frames, fps, looping) in changes {
+            if let Some(sprite) = sprites.get_mut(entity) {
+                sprite.texture_path = Arc::from(path.as_str());
+                sprite.texture_frame = frame;
+                sprite.texture_count = count;
+                sprite.animated = animated;
+                sprite.frame_paths = frames;
+                sprite.current_frame = 0;
+                sprite.anim_fps = fps;
+                sprite.anim_loop = looping;
+                sprite.anim_timer = 0.0;
+            }
+        }
+    }
+
     // Полная очистка мира между уровнями: удаляет все сущности,
     // сбрасывает кэши, счётчики, карту и ресурсы до начального состояния.
     pub fn clear_world(&mut self) {

@@ -13,6 +13,7 @@ This folder is the full developer documentation.
 | Map, saves, `data/settings.json`, worlds | [world-format.md](world-format.md) |
 | `config.lua`, `items.lua`, `npc.lua`, dev scripts | [scripts.md](scripts.md) |
 | Texture and sound paths | [assets.md](assets.md) |
+| Player texture packs and `pack.json` | [texture-packs.md](texture-packs.md) |
 | Building for desktop and Android | [build.md](build.md) |
 | Running and writing tests | [testing.md](testing.md) |
 | Code style and documentation rules | [contributing.md](contributing.md) |
@@ -23,6 +24,7 @@ This folder is the full developer documentation.
 - **New to the codebase** — [architecture.md](architecture.md), then
   [source-map.md](source-map.md).
 - **Changing rendering** — [rendering.md](rendering.md) and `src/core/`.
+- **Adding a texture pack** — [texture-packs.md](texture-packs.md).
 - **Balancing the game** — [scripts.md](scripts.md).
 - **Changing a save format** — [world-format.md](world-format.md).
 

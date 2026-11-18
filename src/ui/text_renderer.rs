@@ -275,6 +275,9 @@ impl TextRenderer {
                         animated: false,
                         frame_paths: Vec::new(),
                         current_frame: 0,
+                        anim_fps: 1.0,
+                        anim_loop: true,
+                        anim_timer: 0.0,
                     })
                     .build();
                 (Some(e), Some(new_key))
@@ -324,6 +327,9 @@ impl TextRenderer {
                 animated: false,
                 frame_paths: Vec::new(),
                 current_frame: 0,
+                anim_fps: 1.0,
+                anim_loop: true,
+                anim_timer: 0.0,
             })
             .build()
     }

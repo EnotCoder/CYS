@@ -15,6 +15,10 @@ them. `EcsAdapter` (`src/ecs/adapter/mod.rs`) is the single façade over
 | `texture_cache` | decoded textures keyed by base path (without `@WxH`) |
 | map position sets | entity lookup by cell (`map_entities`) |
 
+`apply_texture_pack()` clears asset-backed entries in both caches, keeps
+generated text/weather sprites, and reapplies object overrides to living
+entities. NPC frames are refreshed separately by `ShopperManager::refresh_pack`.
+
 `EcsAdapter::new()` registers every component and resource once. Adding a new
 component means registering it there too, otherwise `world.write_storage::<T>()`
 panics at runtime.
@@ -39,7 +43,7 @@ A sprite is a quad with a texture, an atlas frame (`[col, row]`), an atlas size
 | Type | Kind | Meaning |
 |---|---|---|
 | `Transform` | component | `position`, `scale`, `rotation` |
-| `SpriteComponent` | component | texture path, frame, atlas, alpha |
+| `SpriteComponent` | component | texture path, frame, atlas, alpha, animation `fps`/`loop`/timer |
 | `Rotation` | component | rotation vector |
 | `ObjectTag` | component | object name (`rack`, `cassa`, …) for gameplay lookup |
 | `FoodStorage` | component | `food_count`, `max_food` |
@@ -64,14 +68,19 @@ renderer.
 
 Culling happens here: sprites outside `bounds` are dropped, and sprites with
 zero alpha are dropped too. On top of that, `update_object_textures` swaps
-box/rack frames by food count, and `update_fence_textures` picks a fence frame
-from its neighbours.
+box/rack textures by food count, and `update_fence_textures` picks a fence frame
+from its neighbours, checking the active texture pack with
+`texture_pack::exists`. `GameScene::update_animations` advances frame sequences
+per sprite using `anim_fps` and `anim_loop`.
 
 ## Multi-cell objects
 
 `add_group_object` splits a W×H object into W·H entities, one per cell, each
 with `GroupComponent { group, offset }` and a frame shifted by the offset. This
-keeps the renderer dumb: every tile is still a normal sprite.
+keeps the renderer dumb: every tile is still a normal sprite. Texture-pack
+overrides are applied here at creation time and again by `apply_texture_pack`;
+`box` and `rack` keep their food-driven vanilla paths and are never animated by
+a pack.
 
 `delete_group` removes all entities of a group. `find_group_at_position`
 returns the object under the cursor with a fixed priority: decor beats light,

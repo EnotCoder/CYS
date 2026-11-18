@@ -55,7 +55,7 @@ The manifest contains the `cargo-apk` metadata:
 |---|---|
 | package | `ru.enotcoder.createshop` |
 | targets | `aarch64-linux-android`, `x86_64-linux-android` |
-| assets | `assets/` packed into the APK |
+| assets | `assets/` packed into the APK, including `assets/texture_pack/` |
 | resources | `res/` |
 | min SDK / target SDK | 26 / 34 |
 | orientation | landscape |
@@ -80,8 +80,11 @@ system Back button is treated as `Esc`: close a panel, or open settings/pause.
 
 - `assets/scripts/config.lua` — balance, font path, spawn point;
 - `assets/scripts/items.lua` — inventory catalogue (sizes, textures, icons);
-- `data/settings.json` — VSync, zoom, music and SFX, created on first change;
-- `data/worlds/` — user saves, created on demand.
+- `data/settings.json` — VSync, zoom, music, SFX and the selected texture pack,
+  created on first change;
+- `data/worlds/` — user saves, created on demand;
+- `texture_pack/` (desktop) or `assets/texture_pack/` (Android) — optional
+  texture packs, see [texture-packs.md](texture-packs.md).
 
 The font path must point at a file readable through `core::asset`; changing it
 requires a restart because `TextRenderer` caches the font at startup.

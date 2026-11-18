@@ -66,7 +66,6 @@ pub struct GameScene {
     // Проходимые клетки для поиска пути покупателей
     npc_walkable: HashSet<Node>,
     last_frame: std::time::Instant,
-    anim_timer: f64,
     // Позиция и зум камеры
     camera_offset_x: f32,
     camera_offset_y: f32,
@@ -151,7 +150,6 @@ impl GameScene {
             inventory: Inventory::new(),
             npc_walkable: HashSet::new(),
             last_frame: std::time::Instant::now(),
-            anim_timer: 0.0,
             camera_offset_x: 0.0,
             camera_offset_y: 0.0,
             ilm_entity: None,
@@ -296,20 +294,29 @@ impl GameScene {
         self.hud.apply_layout(ecs);
     }
 
-    /// Двигает кадры анимации для всех анимированных спрайтов раз в секунду
+    /// Двигает кадры анимации: у каждого спрайта свой fps и флаг зацикливания.
     fn update_animations(&mut self, ecs: &mut crate::EcsAdapter, dt: f64) {
-        self.anim_timer += dt;
-        if self.anim_timer >= 1.0 {
-            self.anim_timer -= 1.0;
-            let mut sprites = ecs.world.write_storage::<crate::SpriteComponent>();
-            for sprite in (&mut sprites).join() {
-                if sprite.animated {
-                    let n = sprite.frame_paths.len() as i32;
+        let mut sprites = ecs.world.write_storage::<crate::SpriteComponent>();
+        for sprite in (&mut sprites).join() {
+            if !sprite.animated || sprite.frame_paths.is_empty() {
+                continue;
+            }
+            let n = sprite.frame_paths.len() as i32;
+            let interval = 1.0 / sprite.anim_fps.max(0.01) as f64;
+            sprite.anim_timer += dt;
+            while sprite.anim_timer >= interval {
+                sprite.anim_timer -= interval;
+                if sprite.anim_loop {
                     sprite.current_frame = (sprite.current_frame + 1) % n;
-                    if let Some(path) = sprite.frame_paths.get(sprite.current_frame as usize) {
-                        sprite.texture_path = std::sync::Arc::from(path.as_str());
-                    }
+                } else if sprite.current_frame + 1 < n {
+                    sprite.current_frame += 1;
+                } else {
+                    sprite.anim_timer = 0.0;
+                    break;
                 }
+            }
+            if let Some(path) = sprite.frame_paths.get(sprite.current_frame as usize) {
+                sprite.texture_path = std::sync::Arc::from(path.as_str());
             }
         }
     }
@@ -475,6 +482,7 @@ impl GameScene {
             zoom_speed: self.settings.zoom_speed.value,
             music: self.settings.music.checked,
             sfx: self.settings.sfx.checked,
+            texture_pack: self.settings.texture_pack_id(),
         };
         *crate::save::SETTINGS.lock().unwrap() = s.clone();
         crate::save::save_settings(&s);
@@ -500,7 +508,6 @@ impl Scene for GameScene {
         // Переносим балансовые настройки в мир ECS для использования другими системами
         *ecs.world.write_resource::<crate::scripts::config::BalanceConfig>() = self.config.clone();
         self.last_frame = std::time::Instant::now();
-        self.anim_timer = 0.0;
         self.camera_offset_x = 0.0;
         self.camera_offset_y = 0.0;
         self.ilm_entity = None;
@@ -835,6 +842,14 @@ impl Scene for GameScene {
                 if self.settings.sfx.checked {
                     self.weather_fx.restart_ambient();
                 }
+                self.persist_settings();
+            }
+            if self.settings.texture_pack_changed {
+                self.settings.texture_pack_changed = false;
+                let id = self.settings.texture_pack_id();
+                crate::core::texture_pack::set_active(id.as_deref());
+                ecs.apply_texture_pack();
+                self.shoppers.refresh_pack(ecs);
                 self.persist_settings();
             }
             if self.settings.menu_requested {

@@ -62,7 +62,8 @@ with the world.
 - **Worlds** — create, name and delete worlds in a Minecraft-style menu;
   autosave on exit, quick save on `Ctrl+S`.
 - **Pause** — settings freeze rent, day/night, shoppers and weather.
-- **Settings** — VSync, zoom speed, music and SFX, persisted in `data/settings.json`.
+- **Settings** — VSync, zoom speed, music, SFX and live texture packs, persisted
+  in `data/settings.json`.
 - **Balance and items in Lua** — `assets/scripts/config.lua`,
   `assets/scripts/items.lua` and `assets/scripts/npc.lua` drive timings, prices,
   the inventory catalogue and shopper decisions.
@@ -81,6 +82,7 @@ The full developer documentation lives in [`docs/`](docs/README.md).
 | Saves & maps | [docs/world-format.md](docs/world-format.md) |
 | Lua scripts | [docs/scripts.md](docs/scripts.md) |
 | Assets | [docs/assets.md](docs/assets.md) |
+| Texture packs | [docs/texture-packs.md](docs/texture-packs.md) |
 | Build | [docs/build.md](docs/build.md) |
 | Tests | [docs/testing.md](docs/testing.md) |
 | Contributing | [docs/contributing.md](docs/contributing.md) |

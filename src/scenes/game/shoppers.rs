@@ -112,6 +112,13 @@ impl ShopperManager {
         }
     }
 
+    /// Применяет новый пак к уже spawned покупателям.
+    pub fn refresh_pack(&mut self, ecs: &mut EcsAdapter) {
+        for shopper in &mut self.shoppers {
+            shopper.refresh_pack(ecs);
+        }
+    }
+
     /// Ежекадровая логика: спавн по таймеру до лимита, обновление всех NPC,
     /// удаление ушедших и установка паузы перед следующим спавном
     pub fn tick(&mut self, ecs: &mut EcsAdapter, dt: f64, walkable: &HashSet<Node>, active: bool, config: &BalanceConfig, npc_script: Option<&NpcScript>) {

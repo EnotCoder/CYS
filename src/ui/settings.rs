@@ -42,6 +42,18 @@ pub struct Settings {
     /// Флаги, что переключатели звука изменены в этом кадре.
     pub music_toggled: bool,
     pub sfx_toggled: bool,
+    /// Выбор текстур-пака стрелками: две кнопки, подпись и текущее значение.
+    pack_prev: Button,
+    pack_next: Button,
+    pack_label: Option<Entity>,
+    pack_label_key: Option<u64>,
+    pack_value: Option<Entity>,
+    pack_value_key: Option<u64>,
+    /// Все доступные паки: первый — Vanilla.
+    pack_list: Vec<crate::core::texture_pack::PackInfo>,
+    pack_index: usize,
+    /// Флаг смены пака в этом кадре.
+    pub texture_pack_changed: bool,
     /// Кнопка «В меню» (выход из игры в выбор миров)
     menu_button: Button,
     /// Флаг запроса выхода в меню, устанавливается по клику на menu_button
@@ -55,18 +67,85 @@ impl Settings {
             open: false,
             panel: Panel::new(0.0, 0.0, 9.0, 6.0, 0.85),
             title: None,
-            vsync: Checkbox::new(-1.4, 1.2, "Vertical Sync", true),
+            vsync: Checkbox::new(-1.4, 1.6, "Vertical Sync", true),
             vsync_toggled: false,
-            zoom_speed: Slider::new(-0.1, 0.2, "Zoom Speed", 0.02, 0.3, 0.1),
+            zoom_speed: Slider::new(-0.1, 0.8, "Zoom Speed", 0.02, 0.3, 0.1),
             zoom_speed_changed: false,
+            pack_prev: Button { font_size: 64.0, ..Button::new(2.9, 0.0, 0.6, 0.6, "<") },
+            pack_next: Button { font_size: 64.0, ..Button::new(3.8, 0.0, 0.6, 0.6, ">") },
+            pack_label: None,
+            pack_label_key: None,
+            pack_value: None,
+            pack_value_key: None,
+            pack_list: crate::core::texture_pack::list(),
+            pack_index: 0,
+            texture_pack_changed: false,
             music: Checkbox::new(-1.4, -0.9, "Game music", true),
-            sfx: Checkbox::new(-1.4, -1.5, "Sound Effects", true),
+            sfx: Checkbox::new(-1.4, -1.55, "Sound Effects", true),
             music_toggled: false,
             sfx_toggled: false,
             menu_button: Button::new(0.0, -2.55, 3.0, 0.7, "Back to menu"),
             menu_requested: false,
             anim: PanelAnim::new(),
         }
+    }
+
+    /// Id выбранного пака; None означает ванильные текстуры.
+    pub fn texture_pack_id(&self) -> Option<String> {
+        self.pack_list
+            .get(self.pack_index)
+            .map(|p| p.id.clone())
+            .filter(|id| !id.is_empty())
+    }
+
+    /// Перечитывает паки и ставит сохранённый выбор (или ваниль).
+    fn refresh_pack_list(&mut self, saved: Option<&str>) {
+        crate::core::texture_pack::rescan();
+        self.pack_list = crate::core::texture_pack::list();
+        let current = saved.map(str::to_owned).or_else(crate::core::texture_pack::active_id);
+        self.pack_index = current
+            .as_deref()
+            .and_then(|id| self.pack_list.iter().position(|p| p.id == id))
+            .unwrap_or(0);
+    }
+
+    fn pack_name(&self) -> String {
+        self.pack_list
+            .get(self.pack_index)
+            .map(|p| p.name.clone())
+            .unwrap_or_else(|| "Vanilla".to_string())
+    }
+
+    /// Перерисовывает подпись текущего пака.
+    fn update_pack_value(
+        &mut self,
+        ecs: &mut EcsAdapter,
+        text_renderer: &mut TextRenderer,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+    ) {
+        let (entity, key) = text_renderer.set_text(
+            ecs, device, queue, self.pack_value, self.pack_value_key,
+            &self.pack_name(), 50.0, 0.4, 0.0, 4.2, 2.0, WHITE,
+        );
+        self.pack_value = entity;
+        self.pack_value_key = key;
+    }
+
+    fn cycle_pack(
+        &mut self,
+        delta: i32,
+        ecs: &mut EcsAdapter,
+        text_renderer: &mut TextRenderer,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+    ) {
+        if self.pack_list.len() < 2 { return; }
+        let n = self.pack_list.len() as i32;
+        self.pack_index = (self.pack_index as i32 + delta).rem_euclid(n) as usize;
+        self.update_pack_value(ecs, text_renderer, device, queue);
+        self.texture_pack_changed = true;
+        crate::audio::play("click");
     }
 
     fn collect_entities(&self) -> Vec<Entity> {
@@ -104,6 +183,24 @@ impl Settings {
         if let Some(e) = self.sfx.label_entity {
             v.push(e);
         }
+        if let Some(e) = self.pack_prev.bg {
+            v.push(e);
+        }
+        if let Some(e) = self.pack_prev.text {
+            v.push(e);
+        }
+        if let Some(e) = self.pack_next.bg {
+            v.push(e);
+        }
+        if let Some(e) = self.pack_next.text {
+            v.push(e);
+        }
+        if let Some(e) = self.pack_label {
+            v.push(e);
+        }
+        if let Some(e) = self.pack_value {
+            v.push(e);
+        }
         if let Some(e) = self.menu_button.bg {
             v.push(e);
         }
@@ -120,7 +217,21 @@ impl Settings {
         destroy_slider(ecs, &mut self.zoom_speed);
         destroy_checkbox(ecs, &mut self.music);
         destroy_checkbox(ecs, &mut self.sfx);
+        destroy_button(ecs, &mut self.pack_prev);
+        destroy_button(ecs, &mut self.pack_next);
         destroy_button(ecs, &mut self.menu_button);
+        if let Some(ent) = self.pack_label.take() {
+            ecs.delete_entity(ent);
+        }
+        if let Some(key) = self.pack_label_key.take() {
+            ecs.sprite_cache.remove(&key);
+        }
+        if let Some(ent) = self.pack_value.take() {
+            ecs.delete_entity(ent);
+        }
+        if let Some(key) = self.pack_value_key.take() {
+            ecs.sprite_cache.remove(&key);
+        }
         if let Some(ent) = self.title.take() {
             ecs.delete_entity(ent);
         }
@@ -130,6 +241,7 @@ impl Settings {
         self.zoom_speed.hover_scale = 1.0;
         self.music_toggled = false;
         self.sfx_toggled = false;
+        self.texture_pack_changed = false;
         self.menu_requested = false;
     }
 
@@ -146,8 +258,19 @@ impl Settings {
         create_slider(ecs, text_renderer, device, queue, &mut self.zoom_speed);
         create_checkbox(ecs, text_renderer, device, queue, &mut self.music);
         create_checkbox(ecs, text_renderer, device, queue, &mut self.sfx);
+        let saved = self.texture_pack_id();
+        self.refresh_pack_list(saved.as_deref());
+        create_button(ecs, text_renderer, device, queue, &mut self.pack_prev);
+        create_button(ecs, text_renderer, device, queue, &mut self.pack_next);
+        let (label, key) = text_renderer.set_text(
+            ecs, device, queue, None, None, "Texture Pack", 44.0,
+            -2.6, 0.0, 3.0, 2.0, WHITE,
+        );
+        self.pack_label = label;
+        self.pack_label_key = key;
+        self.update_pack_value(ecs, text_renderer, device, queue);
         create_button(ecs, text_renderer, device, queue, &mut self.menu_button);
-        let title = text_renderer.add_text(ecs, device, queue, "Settings", 64.0, 0.0, 2.2, 4.0, 2.0, WHITE);
+        let title = text_renderer.add_text(ecs, device, queue, "Settings", 64.0, 0.0, 2.4, 4.0, 2.0, WHITE);
         self.title = Some(title);
 
         let ents = self.collect_entities();
@@ -170,6 +293,7 @@ impl Settings {
         self.zoom_speed.value = s.zoom_speed.clamp(self.zoom_speed.min, self.zoom_speed.max);
         self.music.checked = s.music;
         self.sfx.checked = s.sfx;
+        self.refresh_pack_list(s.texture_pack.as_deref());
     }
 
     /// Ежекадровая анимация окна: вызывает PanelAnim и подчищает поля.
@@ -195,6 +319,16 @@ impl Settings {
     /// Возвращает true, если клик был обработан (настройки перехватили ввод).
     pub fn handle_input(&mut self, ecs: &mut EcsAdapter, text_renderer: &mut TextRenderer, device: &wgpu::Device, queue: &wgpu::Queue, input: &dyn InputSource, window_size: (f32, f32)) -> bool {
         if !self.open { return false; }
+
+        // Стрелки выбора текстур-пака: меняем пак без перезагрузки уровня.
+        if button_clicked(&self.pack_prev, input, window_size) {
+            self.cycle_pack(-1, ecs, text_renderer, device, queue);
+            return true;
+        }
+        if button_clicked(&self.pack_next, input, window_size) {
+            self.cycle_pack(1, ecs, text_renderer, device, queue);
+            return true;
+        }
 
         // Клик по галочке — переключаем vsync и перерисовываем чекбокс.
         if checkbox_clicked(&self.vsync, input, window_size) {

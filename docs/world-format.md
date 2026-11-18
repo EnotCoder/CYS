@@ -13,6 +13,7 @@ hand.
 | `data/worlds/manifest.json` | `./data/worlds/` relative to the working directory | internal app data |
 | `data/worlds/world_{id}.json` | `./data/worlds/` | internal app data |
 | `data/settings.json` | `./data/settings.json` | internal app data |
+| `texture_pack/<id>/` | `./texture_pack/<id>/` | `assets/texture_pack/<id>/` packed into the APK |
 
 `core::asset` hides the difference: `load_bytes` reads project assets (on
 Android through `AAssetManager`, stripping the `assets/` prefix), while
@@ -20,7 +21,9 @@ Android through `AAssetManager`, stripping the `assets/` prefix), while
 (`data/` on desktop, `internal_data/data/` on Android).
 
 The whole `data/` directory is in `.gitignore`: worlds, the manifest and
-`settings.json` are created locally and never land in a commit.
+`settings.json` are created locally and never land in a commit. Texture packs
+are separate content: a `pack.json` under `texture_pack/` is explicitly
+unignored so a pack can be committed. See [texture-packs.md](texture-packs.md).
 
 ## Map files
 
@@ -134,7 +137,8 @@ save.
   "vsync": true,
   "zoom_speed": 0.08955699,
   "music": true,
-  "sfx": true
+  "sfx": true,
+  "texture_pack": "neon"
 }
 ```
 
@@ -144,9 +148,13 @@ save.
 | `zoom_speed` | `0.1` | wheel/pinch zoom step |
 | `music` | `true` | background music |
 | `sfx` | `true` | sound effects |
+| `texture_pack` | `null` | active pack id; `null` means Vanilla |
 
 The file is rewritten on every settings change and on exit. A missing or
-unparsable file silently falls back to `GameSettings::default()`.
+unparsable file silently falls back to `GameSettings::default()`. Older files
+without `texture_pack` load as Vanilla because the field has
+`#[serde(default)]`. An id that no longer has a pack folder also falls back to
+Vanilla at startup.
 
 ## Compatibility notes
 

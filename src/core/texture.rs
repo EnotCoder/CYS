@@ -82,28 +82,39 @@ impl Texture {
         Ok(Self { _texture: texture, view, sampler })
     }
     
-    // Удобный способ загрузить текстуру с диска по пути.
-    // При любой ошибке (файл не найден/не декодируется) не паникуем,
-    // а молча подставляем текстуру-заглушку (null.png).
+    // Удобный способ загрузить текстуру с диска по пути. Файл активного пака
+    // имеет приоритет; если он сломан, пробуем ванильный путь и только потом
+    // подставляем заглушку null.png.
     pub fn from_path(
         device: &wgpu::Device,
         queue: &wgpu::Queue,
         path: &str,
         label: &str,
     ) -> Self {
-        match crate::core::asset::load_bytes(path) {
-            Ok(bytes) => {
-                match Self::from_bytes(device, queue, &bytes, label) {
-                    Ok(texture) => texture,
-                    Err(e) => {
-                        eprintln!("Failed to decode texture '{}': {}, loading null.png", path, e);
-                        Self::load_null(device, queue, label)
-                    }
-                }
+        let resolved = crate::core::texture_pack::resolve(path);
+        if let Ok(texture) = Self::try_load(device, queue, &resolved, label) {
+            return texture;
+        }
+        if resolved != path {
+            if let Ok(texture) = Self::try_load(device, queue, path, label) {
+                return texture;
             }
+        }
+        Self::load_null(device, queue, label)
+    }
+
+    fn try_load(
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        path: &str,
+        label: &str,
+    ) -> Result<Self, Box<dyn std::error::Error>> {
+        let bytes = crate::core::asset::load_bytes(path)?;
+        match Self::from_bytes(device, queue, &bytes, label) {
+            Ok(texture) => Ok(texture),
             Err(e) => {
-                eprintln!("Failed to read texture '{}': {}, loading null.png", path, e);
-                Self::load_null(device, queue, label)
+                eprintln!("Failed to decode texture '{path}': {e}");
+                Err(e)
             }
         }
     }

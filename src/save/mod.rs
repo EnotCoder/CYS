@@ -149,11 +149,14 @@ pub struct GameSettings {
     pub music: bool,
     /// Звуковые эффекты (клики, касса, погода)
     pub sfx: bool,
+    /// Активный текстур-пак; None — ванильные текстуры.
+    #[serde(default)]
+    pub texture_pack: Option<String>,
 }
 
 impl Default for GameSettings {
     fn default() -> Self {
-        Self { vsync: true, zoom_speed: 0.1, music: true, sfx: true }
+        Self { vsync: true, zoom_speed: 0.1, music: true, sfx: true, texture_pack: None }
     }
 }
 
@@ -184,4 +187,5 @@ pub static SETTINGS: std::sync::Mutex<GameSettings> = std::sync::Mutex::new(Game
     zoom_speed: 0.1,
     music: true,
     sfx: true,
+    texture_pack: None,
 });

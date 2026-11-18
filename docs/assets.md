@@ -31,6 +31,10 @@ from `std::env` or an absolute location — always go through `core::asset`.
 | `assets/font.otf` | the only font; path comes from `config.lua` |
 | `assets/map.txt`, `assets/basement.txt` | level maps |
 | `assets/icon.png` | application icon source |
+| `texture_pack/<id>/textures/` | optional player replacements mirroring `assets/tex/` |
+
+The pack root is not under `assets/` on desktop; see
+[texture-packs.md](texture-packs.md).
 
 ## Atlases
 
@@ -66,7 +70,8 @@ texture is drawn at its natural size.
 Each character directory contains three files: idle and two walk frames
 (`player.png`, `player_walk_1.png`, `player_walk_2.png`). Shoppers use the same
 pattern with `bob` and `sasha`; `ShopperManager` picks one of the three sets at
-random. Walk frames are swapped every `walk_anim_interval` seconds.
+random. Walk frames are swapped every `walk_anim_interval` seconds unless a
+texture pack supplies an `fps` override.
 
 ## Cursor and mode icons
 
@@ -98,6 +103,14 @@ There are no snow/rain PNG files. `WeatherFx` creates 4×4 white pixels for snow
 and 2×16 light-blue pixels for rain with `Texture::from_rgba` at runtime, and
 caches the sprite by a synthetic key (`"weather/snow"`). This keeps the asset
 folder clean and makes the particles resolution-independent.
+
+## Texture packs
+
+Players can override any `assets/tex/` file by placing a replacement at the same
+relative path under `texture_pack/<id>/textures/`. An optional `pack.json` adds
+explicit path aliases and animation overrides. Packs are selected in Settings
+and applied without reloading the level. The format and precedence rules are in
+[texture-packs.md](texture-packs.md).
 
 ## Adding an asset
 

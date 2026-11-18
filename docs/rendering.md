@@ -72,7 +72,9 @@ alpha). `render_group` then:
 4. issues one draw per sprite with a dynamic offset.
 
 The vertex and index buffers are shared (`QUAD_INDICES`), so a sprite costs one
-32-byte uniform slot, not four vertices.
+32-byte uniform slot, not four vertices. A texture-pack switch clears the
+asset-backed part of both caches and keeps generated text/weather sprites; see
+[texture-packs.md](texture-packs.md).
 
 `MAX_DYNAMIC_SPRITES` is 65,536, but the real limit is
 `max_storage_buffer_binding_size / alignment`. On AMD RADV the binding limit is
@@ -84,9 +86,10 @@ panicking.
 
 `Texture` = `wgpu::Texture` + view + sampler. Two constructors matter:
 
-- `from_path` — decode PNG/JPEG with the `image` crate, upload, fall back to
-  `dev_tools/null.png` if the file is missing (a broken asset is visible, not
-  fatal);
+- `from_path` — resolve the logical path through the active texture pack, decode
+  PNG/JPEG with the `image` crate, retry the vanilla path if a pack file is
+  unreadable or undecodable, then fall back to `dev_tools/null.png` (a broken
+  asset is visible, not fatal);
 - `from_rgba` — raw pixels for text and UI.
 
 Atlases are plain grids: `texture_count = [cols, rows]`, `texture_frame =
@@ -96,7 +99,8 @@ pixel art, and linear filtering turns it into soap.
 
 Virtual paths `tex.png@WxH` stretch one texture over W×H cells; `Sprite::
 split_sized_path` parses the suffix after the **last** `@` and ignores invalid
-sizes.
+sizes. The suffix is removed before pack lookup but remains in the sprite cache
+key, so pack replacements do not change sizing.
 
 ## Lighting and day/night
 

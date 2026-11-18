@@ -35,6 +35,21 @@ impl EcsAdapter {
         let group_id = self.next_group_id;
         self.next_group_id += 1;
 
+        use crate::core::texture_pack as pack;
+        let stateful = name == "box" || name == "rack";
+        let texture_path = if stateful {
+            texture_path.to_string()
+        } else {
+            pack::object_texture(name, texture_path)
+        };
+        let base_frame = pack::object_frame(name, base_frame);
+        let tex_count = pack::object_atlas(name, tex_count);
+        let animated = if stateful { false } else { pack::object_animated(name, animated) };
+        let frames = pack::object_frames(name, frame_paths);
+        let anim_fps = pack::object_fps(name);
+        let anim_loop = pack::object_loop(name);
+        let frame_paths = &frames;
+
         let mut entities = Vec::with_capacity((width * height) as usize);
         // Слой зависит от типа: ковры лежат под светом, свет — под декором
         // (см. карту Z-констант).
@@ -67,8 +82,11 @@ impl EcsAdapter {
                     scale: 1.0,
                     alpha: 1.0,
                     animated,
-                    frame_paths: frame_paths.iter().map(|s| s.to_string()).collect(),
+                    frame_paths: frame_paths.clone(),
                     current_frame: 0,
+                    anim_fps,
+                    anim_loop,
+                    anim_timer: 0.0,
                 })
                 .with(GroupComponent { group_id })
                 .build();
@@ -85,7 +103,7 @@ impl EcsAdapter {
                             position: [(x + i) as f32, (y + j) as f32, z],
                         })
                         .with(SpriteComponent {
-                            texture_path: Arc::from(texture_path),
+                            texture_path: Arc::from(texture_path.as_str()),
                             texture_frame: [
                                 (base_frame[0] + i) % tex_count[0],
                                 (base_frame[1] + j) % tex_count[1],
@@ -94,8 +112,11 @@ impl EcsAdapter {
                             scale: 1.0,
                             alpha: 1.0,
                             animated,
-                            frame_paths: frame_paths.iter().map(|s| s.to_string()).collect(),
+                            frame_paths: frame_paths.clone(),
                             current_frame: 0,
+                            anim_fps,
+                            anim_loop,
+                            anim_timer: 0.0,
                         })
                         .with(GroupComponent { group_id })
                         .build();

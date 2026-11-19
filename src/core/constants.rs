@@ -336,11 +336,16 @@ pub const CARPET_NAMES: [&str; 8] = [
 
 // === Меню ===
 pub const BTN_X: f32 = 0.0;
-pub const BTN_Y: f32 = -0.5;
+pub const BTN_Y: f32 = -0.1;
 pub const BTN_W: f32 = 2.0;
 pub const BTN_H: f32 = 0.8;
+// Кнопка Mods расположена ровно посередине между Play и Quit.
+pub const MODS_X: f32 = 0.0;
+pub const MODS_Y: f32 = -1.1;
+pub const MODS_W: f32 = 2.0;
+pub const MODS_H: f32 = 0.8;
 pub const QUIT_X: f32 = 0.0;
-pub const QUIT_Y: f32 = -1.5;
+pub const QUIT_Y: f32 = -2.1;
 pub const QUIT_W: f32 = 2.0;
 pub const QUIT_H: f32 = 0.8;
 pub const MENU_MAP_SIZE: f32 = 0.8;

@@ -44,7 +44,8 @@ mods/
   "version": "1.0.0",
   "entry": "main.lua",
   "load_after": [],
-  "game_version": "0.1.3"
+  "game_version": "0.1.3",
+  "use": false
 }
 ```
 
@@ -54,10 +55,19 @@ mods/
 | `entry` | main Lua file, defaults to `main.lua` |
 | `load_after` | mod ids that must load before this one |
 | `game_version` | game version the mod targets; a mismatch is flagged in the UI |
+| `use` | `true` to enable the mod on startup, `false` to keep it off; omitted means "follow `settings.json`" |
 
 All fields have defaults, so a minimal `{"name":"My Mod"}` is valid. Paths
 inside a mod are relative to its folder; `..`, absolute paths and backslashes
 are rejected.
+
+`use` is authoritative when present: on startup it overrides the `mods` array
+in [settings.json](#enabling-mods) for that mod, while mods without the field
+still follow the saved list. The load order from settings is preserved, and
+`use: true` mods missing from settings are appended in discovery order. When a
+checkbox is toggled in the Mods window, the game writes `use` back to every
+`mod.json` on desktop. Android assets are read-only, so there the choice is
+kept only in settings.
 
 ## Lua API
 
@@ -130,10 +140,17 @@ Because base scripts and mods share a VM, a mod may also define globals such as
 
 ## Enabling mods
 
-The **Mods** window is opened from **Settings → Mods...**. It lists discovered
-mods with an enable checkbox, title, author, version and status (`Loaded`,
-`Disabled`, `Pending restart`, `Error: ...` or `Needs game X`). Toggles are
-saved to `data/settings.json` under `mods`:
+The **Mods** window has two entry points: the **Mods** button in the main menu,
+placed between **Play** and **Quit**, and **Settings → Mods...** in-game. The
+window lists discovered mods with an enable checkbox, title, author, version
+and status (`Loaded`, `Disabled`, `Pending restart`, `Error: ...` or
+`Needs game X`). When there are more than six mods the list scrolls with the
+mouse wheel, by dragging inside the panel or by dragging the scrollbar on the
+right. `Escape`, the **Close** button or a click outside the panel returns to
+the previous screen.
+
+Toggles are saved both to each `mod.json` (`use`) and to `data/settings.json`
+under `mods`:
 
 ```json
 {

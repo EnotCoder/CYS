@@ -50,6 +50,8 @@ pub struct ModManifest {
     pub entry: Option<String>,
     pub load_after: Vec<String>,
     pub game_version: Option<String>,
+    #[serde(default, rename = "use")]
+    pub use_mod: Option<bool>,
 }
 
 #[derive(Clone, Debug)]
@@ -62,6 +64,7 @@ pub struct ModInfo {
     pub entry: String,
     pub load_after: Vec<String>,
     pub game_version: String,
+    pub use_mod: Option<bool>,
 }
 
 #[derive(Clone, Debug)]
@@ -194,6 +197,7 @@ fn info_from_manifest(id: &str, manifest: ModManifest) -> ModInfo {
             .unwrap_or_else(|| DEFAULT_ENTRY.to_string()),
         load_after: manifest.load_after,
         game_version: manifest.game_version.unwrap_or_default(),
+        use_mod: manifest.use_mod,
     }
 }
 
@@ -671,13 +675,32 @@ pub fn reload(enabled: &[String]) {
     load().lock().unwrap().mod_id.clear();
 }
 
+/// Итоговый список включённых модов: `use` из mod.json главнее старого списка
+/// из settings.json (он остаётся запасным для модов без поля `use`).
+/// Порядок из настроек сохраняется, новые моды добавляются в конце.
+pub fn enabled_from(available: &[ModInfo], saved: &[String]) -> Vec<String> {
+    let mut result: Vec<String> = saved
+        .iter()
+        .filter(|id| {
+            available
+                .iter()
+                .any(|m| m.id == **id && m.use_mod.unwrap_or(true))
+        })
+        .cloned()
+        .collect();
+    for info in available {
+        if info.use_mod == Some(true) && !result.iter().any(|id| id == &info.id) {
+            result.push(info.id.clone());
+        }
+    }
+    result
+}
+
 /// Применяет настройки при запуске приложения.
 pub fn init() {
-    let enabled = crate::save::SETTINGS
-        .lock()
-        .unwrap()
-        .mods
-        .clone();
+    let saved = crate::save::SETTINGS.lock().unwrap().mods.clone();
+    let available = rescan();
+    let enabled = enabled_from(&available, &saved);
     reload(&enabled);
 }
 
@@ -718,6 +741,51 @@ pub fn set_enabled(enabled: Vec<String>) {
         st.enabled = enabled.clone();
     }
     reload(&enabled);
+}
+
+/// Записывает поле `use` в mod.json одного мода. На Android ассеты внутри APK
+/// доступны только на чтение, поэтому там состояние остаётся в settings.json.
+pub fn write_use_flag(id: &str, enabled: bool) -> Result<(), String> {
+    if cfg!(target_os = "android") {
+        return Ok(());
+    }
+    let path = format!("{}/{MANIFEST_FILE}", mod_root(id));
+    let text = std::fs::read_to_string(&path)
+        .map_err(|e| format!("cannot read {path}: {e}"))?;
+    let mut value: serde_json::Value =
+        serde_json::from_str(&text).map_err(|e| format!("invalid {path}: {e}"))?;
+    let Some(object) = value.as_object_mut() else {
+        return Err(format!("{path}: mod.json must be an object"));
+    };
+    object.insert("use".to_string(), serde_json::Value::Bool(enabled));
+    let pretty = serde_json::to_string_pretty(&value)
+        .map_err(|e| format!("cannot encode {path}: {e}"))?;
+    std::fs::write(&path, format!("{pretty}\n"))
+        .map_err(|e| format!("cannot write {path}: {e}"))?;
+    {
+        let mut st = state().lock().unwrap();
+        if let Some(info) = st.available.iter_mut().find(|m| m.id == id) {
+            info.use_mod = Some(enabled);
+        }
+    }
+    Ok(())
+}
+
+/// Сохраняет выбор в `use` каждого mod.json и в settings.json, затем
+/// перезагружает песочницу с новым порядком загрузки.
+pub fn persist_enabled(enabled: &[String]) {
+    for info in list() {
+        let active = enabled.iter().any(|id| id == &info.id);
+        if let Err(error) = write_use_flag(&info.id, active) {
+            eprintln!("[mods] {error}");
+        }
+    }
+    {
+        let mut settings = crate::save::SETTINGS.lock().unwrap();
+        settings.mods = enabled.to_vec();
+        crate::save::save_settings(&settings);
+    }
+    set_enabled(enabled.to_vec());
 }
 
 pub fn apply_balance(config: &mut crate::scripts::config::BalanceConfig) {

@@ -163,8 +163,30 @@ unparsable file silently falls back to `GameSettings::default()`. Older files
 without `texture_pack`, `shader` or `mods` load as Vanilla / no mods because the
 fields have `#[serde(default)]`. An id that no longer has a pack or mod folder is
 ignored; a shader that fails to load or compile keeps vanilla pipelines and
-reports the reason in Settings. Mods toggled in **Settings → Mods...** are saved
-here; see [mods.md](mods.md) for load order and when changes take effect.
+reports the reason in Settings. Mods toggled in the menu or in
+**Settings → Mods...** are saved here and in each mod's `mod.json` as `use`
+(desktop only). When `use` is present it overrides this array for that mod;
+mods without the field follow the saved list. See [mods.md](mods.md) for load
+order and when changes take effect.
+
+### Mod manifests
+
+Each mod folder has a `mod.json`. The `use` field is a boolean enable flag;
+the desktop Mods panel rewrites it when a checkbox is toggled:
+
+```json
+{
+  "name": "Double Money",
+  "version": "1.0.0",
+  "entry": "main.lua",
+  "use": false
+}
+```
+
+On Android the bundled manifests under `assets/mods/` are read-only, so the flag
+cannot be written there and the choice stays in `settings.json`. A mod without
+`use` is enabled only if its id appears in the `mods` array. See
+[mods.md](mods.md) for the full field list.
 
 ## Compatibility notes
 

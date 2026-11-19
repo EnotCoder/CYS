@@ -1023,7 +1023,7 @@ impl Scene for GameScene {
                 .handle_input(ecs, text_renderer, device, queue, input, window_size);
             if self.mods.changed {
                 self.mods.changed = false;
-                crate::scripts::mods::set_enabled(self.mods.enabled_ids());
+                crate::scripts::mods::persist_enabled(&self.mods.enabled_ids());
                 self.persist_settings();
                 // Текстурные слои модов применяются сразу, логика — при входе в мир.
                 ecs.apply_texture_pack();

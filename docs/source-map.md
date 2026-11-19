@@ -153,8 +153,10 @@ is missing from this map.
   one ECS world, `switch_to` (stop music, clear, `on_enter`), `update_fps`,
   `clear_ecs_world`.
 - **`src/scenes/menu_scene.rs`** — `MenuScene`: background map, logo,
-  Play/Quit buttons, world pick/create/delete with confirmation, hover
-  highlight, Space/click to start, Escape to quit.
+  Play/Mods/Quit buttons, world pick/create/delete with confirmation, hover
+  highlight, Space/click to start, Escape to quit. The middle **Mods** button
+  opens the shared scrollable mod panel; `ui_size()` widens in that state so a
+  10×7.4 panel fits.
 - **`src/scenes/game/mod.rs`** — `GameScene`: main loop — input, rent,
   bankruptcy, settings and Mods window, live texture-pack/mod-layer switching,
   food regen, per-sprite animations, day/night with mod events, shoppers,
@@ -206,6 +208,8 @@ is missing from this map.
 - **`src/ui/mods.rs`** — `Mods` window: enable/disable checkboxes, status text
   (`Loaded`, `Disabled`, `Pending restart`, errors, version mismatch), load
   order from checkboxes, conflict hint, `enabled_ids`, `refresh_statuses`.
+  Scrolls with wheel / dragging / scrollbar when there are more than six mods;
+  reused by the main menu and the game's Settings panel.
 - **`src/ui/shop.rs`** — `Shop`: scrollable catalogue with a scrollbar,
   `ShopItem`, `ConfirmAction`, purchase confirmation dialog, `refresh`,
   `row_clicked`, `scroll_input`.
@@ -273,10 +277,12 @@ is missing from this map.
   `busy`, `add_money`, `find_any_cassa`), copies `state`/`timer` back, emits
   `money_changed`, lets a mod `npc_update` handler take over, and falls back
   when the script is missing.
-- **`src/scripts/mods.rs`** — player mods: `mod.json` manifests, discovery in
-  `mods/` and `assets/mods/`, dependency ordering (`load_after`), sandboxed
-  shared Lua VM (`mod.*` API), events, balance/item overrides, texture layers,
-  enable state in settings, errors/conflicts and internal tests.
+- **`src/scripts/mods.rs`** — player mods: `mod.json` manifests (including the
+  `use` enable flag), discovery in `mods/` and `assets/mods/`, dependency
+  ordering (`load_after`), sandboxed shared Lua VM (`mod.*` API), events,
+  balance/item overrides, texture layers, `enabled_from` (merges `use` with the
+  saved load order), `write_use_flag` / `persist_enabled` (desktop writes back
+  to `mod.json`), errors/conflicts and internal tests.
 
 ---
 

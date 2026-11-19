@@ -110,6 +110,13 @@ leave the map. Each season also swaps the background track (`music_spring`,
 `music_summer`, `music_autumn`, `music_winter`), and winter/autumn additionally
 loop `snow.ogg`/`rain.ogg` as weather ambience.
 
+## Main menu
+
+After the splash screen the main menu shows the game logo and three buttons:
+**Play** (world selection), **Mods** and **Quit**. The middle **Mods** button
+opens the same scrollable enable/disable panel as **Settings → Mods...** in
+game; `Escape` or **Close** returns to the menu. See [mods.md](mods.md).
+
 ## Shop, settings, tutorial
 
 - **Shop** (`src/ui/shop.rs`) lists every catalogue object except `SHOP_EXEMPT`,

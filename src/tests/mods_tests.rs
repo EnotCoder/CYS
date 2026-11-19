@@ -160,3 +160,112 @@ fn mod_texture_layer_applies_without_active_pack() {
         "disabled mod must not affect vanilla textures"
     );
 }
+
+#[test]
+fn manifest_use_flag_is_optional() {
+    let on: crate::scripts::mods::ModManifest = serde_json::from_str(
+        r#"{"name":"On","use":true}"#,
+    )
+    .unwrap();
+    let off: crate::scripts::mods::ModManifest = serde_json::from_str(
+        r#"{"name":"Off","use":false}"#,
+    )
+    .unwrap();
+    let missing: crate::scripts::mods::ModManifest = serde_json::from_str(
+        r#"{"name":"Missing"}"#,
+    )
+    .unwrap();
+    assert_eq!(on.use_mod, Some(true));
+    assert_eq!(off.use_mod, Some(false));
+    assert_eq!(missing.use_mod, None);
+}
+
+#[test]
+fn enabled_from_honors_use_flag_and_keeps_saved_order() {
+    let info = |id: &str, use_mod: Option<bool>| crate::scripts::mods::ModInfo {
+        id: id.to_string(),
+        name: id.to_string(),
+        description: String::new(),
+        author: String::new(),
+        version: String::new(),
+        entry: String::new(),
+        load_after: Vec::new(),
+        game_version: String::new(),
+        use_mod,
+    };
+    let available = vec![
+        info("a", Some(true)),
+        info("b", Some(false)),
+        info("c", None),
+        info("d", Some(true)),
+    ];
+    let saved = vec![
+        "c".to_string(),
+        "b".to_string(),
+        "a".to_string(),
+        "gone".to_string(),
+    ];
+    assert_eq!(
+        crate::scripts::mods::enabled_from(&available, &saved),
+        vec!["c", "a", "d"],
+        "`use:false` must win over settings, `use:true` mods are appended, \
+         unknown ids are dropped"
+    );
+}
+
+#[test]
+fn write_use_flag_updates_manifest_and_state() {
+    let _guard = MODS_LOCK.lock().unwrap();
+    write_mod(r#"{"name":"Toggle Test","use":false}"#, "", None);
+    crate::scripts::mods::rescan();
+    assert_eq!(
+        crate::scripts::mods::list()
+            .into_iter()
+            .find(|m| m.id == TEST_ID)
+            .unwrap()
+            .use_mod,
+        Some(false)
+    );
+    crate::scripts::mods::write_use_flag(TEST_ID, true).unwrap();
+    let raw = fs::read_to_string(test_root().join("mod.json")).unwrap();
+    let parsed: serde_json::Value = serde_json::from_str(&raw).unwrap();
+    assert_eq!(parsed["use"], serde_json::Value::Bool(true));
+    assert_eq!(
+        crate::scripts::mods::list()
+            .into_iter()
+            .find(|m| m.id == TEST_ID)
+            .unwrap()
+            .use_mod,
+        Some(true),
+        "in-memory state must follow the written flag"
+    );
+    cleanup();
+}
+
+#[test]
+fn bundled_manifests_declare_use_flag() {
+    for id in ["double_money", "big_shop"] {
+        // APK-assets are read-only, so these ship with a fixed default
+        // (the mod stays off until the player enables it in the menu).
+        let shipped = PathBuf::from("assets/mods").join(id).join("mod.json");
+        let raw = fs::read_to_string(&shipped).unwrap();
+        let parsed: serde_json::Value = serde_json::from_str(&raw).unwrap();
+        assert_eq!(
+            parsed["use"],
+            serde_json::Value::Bool(false),
+            "{} must ship with `use: false`",
+            shipped.display()
+        );
+
+        // Desktop-копия mutable: панель Mods перезаписывает `use` при переключении.
+        // Проверяем только, что поле присутствует и имеет булев тип.
+        let local = PathBuf::from("mods").join(id).join("mod.json");
+        let raw = fs::read_to_string(&local).unwrap();
+        let parsed: serde_json::Value = serde_json::from_str(&raw).unwrap();
+        assert!(
+            parsed["use"].is_boolean(),
+            "{} must declare a boolean `use`",
+            local.display()
+        );
+    }
+}

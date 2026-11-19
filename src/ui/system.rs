@@ -11,6 +11,7 @@ use crate::core::constants::*;
 use crate::input::platform::InputSource;
 use crate::ui::text_renderer::TextRenderer;
 use crate::EcsAdapter;
+use specs::WorldExt;
 
 // ========================================================================
 //  Утилиты для проверки кликов (UI: map_size=1.0, cam_x=0, cam_y=0)
@@ -211,11 +212,24 @@ pub fn destroy_checkbox(ecs: &mut EcsAdapter, checkbox: &mut Checkbox) {
     if let Some(key) = checkbox.box_sprite_key.take() {
         ecs.sprite_cache.remove(&key);
     }
+    let label_path = checkbox.label_entity.and_then(|ent| {
+        ecs.world
+            .read_storage::<crate::SpriteComponent>()
+            .get(ent)
+            .map(|sprite| sprite.texture_path.to_string())
+    });
     if let Some(ent) = checkbox.label_entity.take() {
         ecs.delete_entity(ent);
     }
     if let Some(key) = checkbox.label_sprite_key.take() {
-        ecs.sprite_cache.remove(&key);
+        match label_path {
+            Some(path) => {
+                ecs.remove_sprite_if_unused(key, &path, None);
+            }
+            None => {
+                ecs.sprite_cache.remove(&key);
+            }
+        }
     }
 }
 
@@ -366,11 +380,24 @@ pub fn destroy_slider(ecs: &mut EcsAdapter, slider: &mut Slider) {
     if let Some(ent) = slider.thumb.take() {
         ecs.delete_entity(ent);
     }
+    let label_path = slider.label_entity.and_then(|ent| {
+        ecs.world
+            .read_storage::<crate::SpriteComponent>()
+            .get(ent)
+            .map(|sprite| sprite.texture_path.to_string())
+    });
     if let Some(ent) = slider.label_entity.take() {
         ecs.delete_entity(ent);
     }
     if let Some(key) = slider.label_sprite_key.take() {
-        ecs.sprite_cache.remove(&key);
+        match label_path {
+            Some(path) => {
+                ecs.remove_sprite_if_unused(key, &path, None);
+            }
+            None => {
+                ecs.sprite_cache.remove(&key);
+            }
+        }
     }
 }
 

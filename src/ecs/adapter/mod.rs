@@ -136,6 +136,37 @@ impl EcsAdapter {
         }
     }
 
+    // Возвращает true, если на текстуру ещё ссылается живая сущность, кроме
+    // `except`. Одинаковые подписи (например, статусы двух модов) делят один
+    // спрайт в кэше, поэтому удалять его можно только когда он нигде не виден.
+    pub fn texture_path_in_use(
+        &self,
+        texture_path: &str,
+        except: Option<specs::Entity>,
+    ) -> bool {
+        use specs::Join;
+        let sprites = self.world.read_storage::<SpriteComponent>();
+        let entities = self.world.entities();
+        (&entities, &sprites).join().any(|(entity, sprite)| {
+            Some(entity) != except && sprite.texture_path.as_ref() == texture_path
+        })
+    }
+
+    // Убирает спрайт из кэша, только если его текстура больше не используется.
+    // Иначе рендер не найдёт спрайт и подставит текстуру-заглушку null.png.
+    pub fn remove_sprite_if_unused(
+        &mut self,
+        key: u64,
+        texture_path: &str,
+        except: Option<specs::Entity>,
+    ) -> bool {
+        if self.texture_path_in_use(texture_path, except) {
+            return false;
+        }
+        self.sprite_cache.remove(&key);
+        true
+    }
+
     // Передвигает сущность на новую позицию в мировых координатах.
     pub fn update_transform_position(&mut self, entity: specs::Entity, x: f32, y: f32) {
         if let Some(transform) = self.world.write_storage::<Transform>().get_mut(entity) {

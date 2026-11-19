@@ -284,9 +284,24 @@ impl TextRenderer {
             return (entity, key);
         }
 
-        // Старый растровый ключ освобождаем из кэша спрайтов.
+        // Старый спрайт освобождаем только если его текстура больше нигде не
+        // используется: одинаковые тексты (например, "Disabled" у двух модов)
+        // делят один спрайт, и его удаление дало бы текстуру-заглушку null.png.
         if let Some(old) = key {
-            ecs.sprite_cache.remove(&old);
+            let old_path = entity.and_then(|e| {
+                ecs.world
+                    .read_storage::<crate::SpriteComponent>()
+                    .get(e)
+                    .map(|sprite| sprite.texture_path.to_string())
+            });
+            match old_path {
+                Some(path) => {
+                    ecs.remove_sprite_if_unused(old, &path, entity);
+                }
+                None => {
+                    ecs.sprite_cache.remove(&old);
+                }
+            }
         }
 
         let (rgba, tw, th) = {

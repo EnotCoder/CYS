@@ -98,7 +98,9 @@ is missing from this map.
 - **`src/ecs/adapter/mod.rs`** — `EcsAdapter`: owns the `World`, sprite cache,
   textures and map position sets; registers components and resources, provides
   `add_ui`/`add_ui_sized`, world clearing, `SpriteRenderData` and live
-  `apply_texture_pack` with selective cache invalidation.
+  `apply_texture_pack` with selective cache invalidation. `texture_path_in_use`
+  / `remove_sprite_if_unused` keep a cached sprite while another live entity
+  still renders the same texture (shared text labels).
 - **`src/ecs/adapter/render.rs`** — `get_sprites_by_layer` (8 z-layers culled by
   visible bounds), `update_object_textures` (box/rack textures by food count),
   `update_fence_textures` (fence by neighbours, pack-aware), `update_sprite_alpha`,
@@ -227,7 +229,8 @@ is missing from this map.
 - **`src/ui/text_renderer.rs`** — `TextRenderer`: `ab_glyph` rasterisation into
   an RGBA texture (outline and fill), text sprites with synthetic cache keys
   preserved on pack switches, cache keyed by text+size+colour; `add_text`,
-  `set_text`, `add_text_z`.
+  `set_text`, `add_text_z`. `set_text` only evicts the old sprite when no other
+  entity renders the same text, so identical status lines survive a toggle.
 
 ---
 

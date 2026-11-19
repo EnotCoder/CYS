@@ -27,7 +27,7 @@ selected by name, for example `cargo test door`.
 | `src/tests/input_tests.rs` | zoom, UI hit tests, slider, shop scrolling, world name, door fade, weather |
 | `src/tests/anim_tests.rs` | `PanelAnim` open/close/cancel and text sprites |
 | `src/tests/mods_tests.rs` | mod discovery, manifest defaults and `use` parsing, path sandbox, blocked Lua globals, events, balance/item overrides, texture layers, `enabled_from`, `write_use_flag`, bundled manifests |
-| `src/ui/mods.rs` (unit test) | scroll offset and scrollbar thumb math |
+| `src/ui/mods.rs` (unit test) | scroll offset and scrollbar thumb math; shared status text sprite is kept while another mod row still uses it |
 | `src/tests/texture_pack_tests.rs` | file overlay, `pack.json` overrides, path safety, vanilla fallback |
 | `src/tests/docs.rs` | source map completeness and live links |
 
@@ -82,7 +82,8 @@ Before a release, run the game and check:
   zoom writes `data/settings.json`, and `Escape` returns to the menu;
 - **Mods** button in the main menu opens the panel; toggling `double_money` /
   `big_shop` shows `Pending restart`, and re-entering the world applies balance
-  and item changes;
+  and item changes; disabling one mod and enabling the other keeps both status
+  lines visible (no `null` texture on the disabled row);
 - with more than six mods, wheel / drag scrolling reaches the last row and the
   scrollbar thumb follows;
 - **Settings → Mods...** shows the same state in-game; toggling updates `use`

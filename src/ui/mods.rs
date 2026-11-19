@@ -582,4 +582,46 @@ mod tests {
         assert_eq!(thumb_y(0, 9), SCROLLBAR_TOP - thumb_height(9) / 2.0);
         assert_eq!(thumb_y(3, 9), SCROLLBAR_BOT + thumb_height(9) / 2.0);
     }
+
+    #[test]
+    fn shared_status_sprite_survives_switching_the_other_mod() {
+        use crate::ecs::components::SpriteComponent;
+        use specs::{Builder, WorldExt};
+        use std::sync::Arc;
+
+        let mut ecs = crate::EcsAdapter::new();
+        let status_text = "by CYS · v1.0.0 · Disabled";
+        let text_path = "__text__by CYS · v1.0.0 · Disabled@26_ol0.8_cc8c8c8";
+        let shared_key = TextRenderer::sprite_cache_key(status_text, 26.0, 0.8, GRAY);
+
+        let mut add_status = || {
+            ecs.world
+                .create_entity()
+                .with(SpriteComponent {
+                    texture_path: Arc::from(text_path),
+                    texture_frame: [0, 0],
+                    texture_count: [1, 1],
+                    scale: 1.0,
+                    alpha: 1.0,
+                    animated: false,
+                    frame_paths: Vec::new(),
+                    current_frame: 0,
+                    anim_fps: 1.0,
+                    anim_loop: true,
+                    anim_timer: 0.0,
+                })
+                .build()
+        };
+
+        let disabled_row = add_status();
+        let other_row = add_status();
+
+        // После выключения одного мода и включения другого общий спрайт
+        // статуса ещё нужен выключенной строке и не должен удаляться из кэша.
+        assert!(!ecs.remove_sprite_if_unused(shared_key, text_path, Some(disabled_row)));
+        assert!(ecs.texture_path_in_use(text_path, Some(other_row)));
+
+        ecs.delete_entity(other_row);
+        assert!(ecs.remove_sprite_if_unused(shared_key, text_path, Some(disabled_row)));
+    }
 }

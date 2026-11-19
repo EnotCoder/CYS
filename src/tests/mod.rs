@@ -754,6 +754,29 @@ fn inventory_index_flips_rows_so_grid_fills_bottom_up() {
 }
 
 #[test]
+fn menu_buttons_are_ordered_and_do_not_overlap() {
+    use crate::core::constants::{
+        BTN_H, BTN_Y, MENU_SETTINGS_H, MENU_SETTINGS_Y, MODS_H, MODS_Y, QUIT_H, QUIT_Y,
+    };
+
+    let rows = [
+        ("Play", BTN_Y, BTN_H),
+        ("Settings", MENU_SETTINGS_Y, MENU_SETTINGS_H),
+        ("Mods", MODS_Y, MODS_H),
+        ("Quit", QUIT_Y, QUIT_H),
+    ];
+    for pair in rows.windows(2) {
+        let (top_name, top_y, top_h) = pair[0];
+        let (bottom_name, bottom_y, _) = pair[1];
+        assert!(
+            top_y - top_h / 2.0 > bottom_y + pair[1].2 / 2.0,
+            "{top_name} and {bottom_name} must not overlap"
+        );
+    }
+    assert!(QUIT_Y - QUIT_H / 2.0 > -4.4, "Quit must stay on screen");
+}
+
+#[test]
 fn ui_fit_scale_fits_the_whole_ui_box() {
     use crate::core::constants::{
         GAME_UI_HALF_H, GAME_UI_HALF_W, MENU_UI_HALF_H, MENU_UI_HALF_W, SHADER_SCALE, UI_MIN_SCALE,

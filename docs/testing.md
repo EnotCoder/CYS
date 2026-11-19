@@ -77,9 +77,12 @@ Before a release, run the game and check:
 - `Esc` pauses rent and day/night;
 - switching two texture packs in Settings updates map, objects, UI and shoppers
   without reloading the level;
-- **Mods** button in the main menu (between Play and Quit) opens the panel;
-  toggling `double_money` / `big_shop` shows `Pending restart`, and re-entering
-  the world applies balance and item changes;
+- **Settings** button in the main menu (after Play) opens the in-game settings
+  without the **Back to menu** button; changing VSync, sound, pack, shader or
+  zoom writes `data/settings.json`, and `Escape` returns to the menu;
+- **Mods** button in the main menu opens the panel; toggling `double_money` /
+  `big_shop` shows `Pending restart`, and re-entering the world applies balance
+  and item changes;
 - with more than six mods, wheel / drag scrolling reaches the last row and the
   scrollbar thumb follows;
 - **Settings → Mods...** shows the same state in-game; toggling updates `use`

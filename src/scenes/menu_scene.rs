@@ -8,6 +8,7 @@ use crate::save::{
 };
 use crate::scenes::scene_trait::{Scene, SceneAction};
 use crate::ui::mods::Mods;
+use crate::ui::settings::Settings;
 use crate::ui::text_input::TEXT_INPUT;
 use crate::ui::{create_button, create_panel, destroy_button, destroy_panel, Button, Panel};
 use std::io::{BufRead, BufReader};
@@ -19,7 +20,8 @@ use specs::WorldExt;
 //  MenuScene — главное меню игры
 // ========================================================================
 //  Состоит из состояний:
-//  - Main: карта-фон, логотип, кнопки Play/Mods/Quit.
+//  - Main: карта-фон, логотип, кнопки Play/Settings/Mods/Quit.
+//  - Settings: те же настройки, что в игре, но без кнопки «В меню».
 //  - Mods: панель включения/выключения модов с прокруткой (Escape/Close — назад).
 //  - Worlds: выбор мира (как в Minecraft) — «Новый мир» + список сохранённых
 //    миров + «Назад». При выборе мира выставляется глобальная SELECTED_WORLD,
@@ -30,6 +32,8 @@ enum MenuState {
     /// Сплэш-экран: логотип assets/icon.png при запуске приложения
     Splash,
     Main,
+    /// Настройки (без кнопки возврата в меню — мы уже в нём)
+    Settings,
     /// Панель Mods: список модов с галочками и прокруткой
     Mods,
     Worlds,
@@ -57,28 +61,33 @@ pub struct MenuScene {
     // Логотип главного меню и время для синусоидального покачивания
     logo: Option<specs::Entity>,
     logo_time: f32,
-    // Сущности кнопок Play, Mods и Quit (панель-подложка + текстовая надпись)
+    // Сущности кнопок Play, Settings, Mods и Quit (подложка + текст)
     play_bg: Option<Panel>,
     play_label: Option<specs::Entity>,
+    settings_bg: Option<Panel>,
+    settings_label: Option<specs::Entity>,
     mods_bg: Option<Panel>,
     mods_label: Option<specs::Entity>,
     quit_bg: Option<Panel>,
     quit_label: Option<specs::Entity>,
     // Текущее состояние наведения курсора для подсветки кнопок
     play_hover: bool,
+    settings_hover: bool,
     mods_hover: bool,
     quit_hover: bool,
     // Плавный масштаб панелей при наведении (hover-анимация кнопок)
     play_scale: f32,
+    settings_scale: f32,
     mods_scale: f32,
     quit_scale: f32,
-    // Окно модов (галочки, прокрутка, статус загрузки)
+    // Окна настроек и модов (используются и в игре)
+    settings_ui: Settings,
     mods_ui: Mods,
     // Замер времени кадра для интерполяции по dt
     last_frame: Option<std::time::Instant>,
     // Адаптивный масштаб фона под соотношение сторон экрана
     ui_scale: f32,
-    // Масштаб UI-слоя: в состоянии Mods шире, чтобы вместить панель 10.0 x 7.4
+    // Масштаб UI-слоя: в подменю шире, чтобы вместить панели до 10.0 x 7.4
     ui_size_scale: f32,
     // Состояние меню: главное / выбор миров / ввод названия
     state: MenuState,
@@ -117,16 +126,25 @@ impl MenuScene {
             logo_time: 0.0,
             play_bg: None,
             play_label: None,
+            settings_bg: None,
+            settings_label: None,
             mods_bg: None,
             mods_label: None,
             quit_bg: None,
             quit_label: None,
             play_hover: false,
+            settings_hover: false,
             mods_hover: false,
             quit_hover: false,
             play_scale: 1.0,
+            settings_scale: 1.0,
             mods_scale: 1.0,
             quit_scale: 1.0,
+            settings_ui: {
+                let mut ui = Settings::new();
+                ui.hide_menu_button();
+                ui
+            },
             mods_ui: Mods::new(),
             last_frame: None,
             ui_scale: MENU_MAP_SIZE,
@@ -206,6 +224,26 @@ impl MenuScene {
                 ));
                 self.logo_time = 0.0;
                 self.build_main(ecs, text_renderer, device, queue);
+            }
+            MenuState::Settings => {
+                // Тот же затемнённый фон, что и в других подменю
+                crate::data::map::load_map_to_ecs(ecs);
+                Self::place_decor(ecs);
+                let overlay = ecs.add_ui_sized(
+                    0.0,
+                    0.0,
+                    100.0,
+                    100.0,
+                    "assets/tex/dev_tools/black.png",
+                    device,
+                    queue,
+                );
+                ecs.update_sprite_alpha(overlay, 0.6);
+                {
+                    let saved = crate::save::SETTINGS.lock().unwrap().clone();
+                    self.settings_ui.apply_saved(&saved);
+                }
+                self.settings_ui.open(ecs, text_renderer, device, queue);
             }
             MenuState::Mods => {
                 // Тот же затемнённый фон, что и в других подменю
@@ -361,6 +399,15 @@ impl MenuScene {
     ) {
         let mut play_panel = Panel::textured(BTN_X, BTN_Y, BTN_W, BTN_H, 1.0, TEX_BUTTON);
         create_panel(ecs, device, queue, &mut play_panel);
+        let mut settings_panel = Panel::textured(
+            MENU_SETTINGS_X,
+            MENU_SETTINGS_Y,
+            MENU_SETTINGS_W,
+            MENU_SETTINGS_H,
+            1.0,
+            TEX_BUTTON,
+        );
+        create_panel(ecs, device, queue, &mut settings_panel);
         let mut mods_panel = Panel::textured(MODS_X, MODS_Y, MODS_W, MODS_H, 1.0, TEX_BUTTON);
         create_panel(ecs, device, queue, &mut mods_panel);
         let mut quit_panel = Panel::textured(QUIT_X, QUIT_Y, QUIT_W, QUIT_H, 1.0, TEX_BUTTON);
@@ -374,6 +421,18 @@ impl MenuScene {
             BTN_X,
             BTN_Y + 0.05,
             BTN_W * 0.75,
+            1.0,
+            BTN_TEXT_COLOR,
+        );
+        let sl = text_renderer.add_text(
+            ecs,
+            device,
+            queue,
+            "Settings",
+            FONT_SIZE_BTN,
+            MENU_SETTINGS_X,
+            MENU_SETTINGS_Y + 0.05,
+            MENU_SETTINGS_W * 0.75,
             1.0,
             BTN_TEXT_COLOR,
         );
@@ -403,6 +462,8 @@ impl MenuScene {
         );
         self.play_bg = Some(play_panel);
         self.play_label = Some(pl);
+        self.settings_bg = Some(settings_panel);
+        self.settings_label = Some(sl);
         self.mods_bg = Some(mods_panel);
         self.mods_label = Some(ml);
         self.quit_bg = Some(quit_panel);
@@ -569,8 +630,12 @@ impl MenuScene {
             ecs.delete_entity(e);
         }
         self.logo = None;
+        self.settings_ui.reset(ecs);
         self.mods_ui.reset(ecs);
         if let Some(mut p) = self.play_bg.take() {
+            destroy_panel(ecs, &mut p);
+        }
+        if let Some(mut p) = self.settings_bg.take() {
             destroy_panel(ecs, &mut p);
         }
         if let Some(mut p) = self.mods_bg.take() {
@@ -580,6 +645,9 @@ impl MenuScene {
             destroy_panel(ecs, &mut p);
         }
         if let Some(e) = self.play_label.take() {
+            ecs.delete_entity(e);
+        }
+        if let Some(e) = self.settings_label.take() {
             ecs.delete_entity(e);
         }
         if let Some(e) = self.mods_label.take() {
@@ -773,10 +841,11 @@ impl Scene for MenuScene {
             1.0
         };
         self.ui_scale = crate::core::util::ui_fit_scale(aspect, MENU_UI_HALF_W, MENU_UI_HALF_H);
-        // Панель Mods имеет размер 10.0 x 7.4 — шире обычного меню, поэтому в
-        // этом состоянии масштаб UI считается по «игровым» границам. Фон при
-        // этом остаётся на месте (map_size по-прежнему берёт self.ui_scale).
-        let (ui_half_w, ui_half_h) = if matches!(self.state, MenuState::Mods) {
+        // Панели Settings (9.0 x 6.0) и Mods (10.0 x 7.4) шире обычного меню,
+        // поэтому в этих состояниях масштаб UI считается по «игровым» границам.
+        // Фон остаётся на месте (map_size по-прежнему берёт self.ui_scale).
+        let wide_ui = matches!(self.state, MenuState::Settings | MenuState::Mods);
+        let (ui_half_w, ui_half_h) = if wide_ui {
             (GAME_UI_HALF_W, GAME_UI_HALF_H)
         } else {
             (MENU_UI_HALF_W, MENU_UI_HALF_H)
@@ -797,6 +866,9 @@ impl Scene for MenuScene {
             MenuState::Splash => self.update_splash(dt, input, ecs, text_renderer, device, queue),
             MenuState::Main => {
                 self.update_main(dt, input, window_size, ecs, text_renderer, device, queue)
+            }
+            MenuState::Settings => {
+                self.update_settings(dt, input, window_size, ecs, text_renderer, device, queue)
             }
             MenuState::Mods => {
                 self.update_mods(dt, input, window_size, ecs, text_renderer, device, queue)
@@ -921,7 +993,7 @@ impl MenuScene {
         self.setup_content(ecs, text_renderer, device, queue);
     }
 
-    /// Логика главного экрана: подсветка Play/Quit и обработка кликов.
+    /// Логика главного экрана: подсветка Play/Settings/Mods/Quit и клики.
     fn update_main(
         &mut self,
         dt: f64,
@@ -958,6 +1030,36 @@ impl MenuScene {
                 BTN_X,
                 BTN_Y + 0.05,
                 BTN_W * 0.75,
+                1.0,
+                color,
+            );
+        }
+
+        // Подсветка кнопки Settings при наведении
+        let h = Self::is_inside(
+            input,
+            window_size,
+            MENU_SETTINGS_X,
+            MENU_SETTINGS_Y,
+            MENU_SETTINGS_W,
+            MENU_SETTINGS_H,
+        );
+        if h != self.settings_hover {
+            self.settings_hover = h;
+            if h {
+                crate::audio::play("hover");
+            }
+            let color = if h { GREEN } else { BTN_TEXT_COLOR };
+            self.settings_label = Self::set_label_texture(
+                ecs,
+                self.settings_label,
+                text_renderer,
+                device,
+                queue,
+                "Settings",
+                MENU_SETTINGS_X,
+                MENU_SETTINGS_Y + 0.05,
+                MENU_SETTINGS_W * 0.75,
                 1.0,
                 color,
             );
@@ -1012,13 +1114,18 @@ impl MenuScene {
         // Hover-масштаб кнопок: плавно нарастает/возвращается (~за 5 кадров)
         let k = 0.2;
         let play_target = if self.play_hover { 1.12 } else { 1.0 };
+        let settings_target = if self.settings_hover { 1.12 } else { 1.0 };
         let mods_target = if self.mods_hover { 1.12 } else { 1.0 };
         let quit_target = if self.quit_hover { 1.12 } else { 1.0 };
         self.play_scale += (play_target - self.play_scale) * k;
+        self.settings_scale += (settings_target - self.settings_scale) * k;
         self.mods_scale += (mods_target - self.mods_scale) * k;
         self.quit_scale += (quit_target - self.quit_scale) * k;
         if (play_target - self.play_scale).abs() < 0.0001 {
             self.play_scale = play_target;
+        }
+        if (settings_target - self.settings_scale).abs() < 0.0001 {
+            self.settings_scale = settings_target;
         }
         if (mods_target - self.mods_scale).abs() < 0.0001 {
             self.mods_scale = mods_target;
@@ -1029,6 +1136,11 @@ impl MenuScene {
         if let Some(bg) = &self.play_bg {
             if let Some(e) = bg.entity {
                 ecs.update_sprite_scale(e, self.play_scale);
+            }
+        }
+        if let Some(bg) = &self.settings_bg {
+            if let Some(e) = bg.entity {
+                ecs.update_sprite_scale(e, self.settings_scale);
             }
         }
         if let Some(bg) = &self.mods_bg {
@@ -1056,6 +1168,19 @@ impl MenuScene {
             self.setup_content(ecs, text_renderer, device, queue);
             return SceneAction::None;
         }
+        // Настройки по клику на Settings
+        if clicked(
+            input,
+            MENU_SETTINGS_X,
+            MENU_SETTINGS_Y,
+            MENU_SETTINGS_W,
+            MENU_SETTINGS_H,
+        ) {
+            crate::audio::play("click");
+            self.state = MenuState::Settings;
+            self.setup_content(ecs, text_renderer, device, queue);
+            return SceneAction::None;
+        }
         // Панель модов по клику на Mods
         if clicked(input, MODS_X, MODS_Y, MODS_W, MODS_H) {
             crate::audio::play("click");
@@ -1069,6 +1194,99 @@ impl MenuScene {
         {
             crate::audio::play("click");
             return SceneAction::Quit;
+        }
+        SceneAction::None
+    }
+
+    /// Записывает текущие значения панели в data/settings.json.
+    fn persist_settings(&self) {
+        let s = crate::save::GameSettings {
+            vsync: self.settings_ui.vsync.checked,
+            zoom_speed: self.settings_ui.zoom_speed.value,
+            music: self.settings_ui.music.checked,
+            sfx: self.settings_ui.sfx.checked,
+            texture_pack: self.settings_ui.texture_pack_id(),
+            shader: self.settings_ui.shader_id(),
+            mods: crate::scripts::mods::enabled_ids(),
+        };
+        *crate::save::SETTINGS.lock().unwrap() = s.clone();
+        crate::save::save_settings(&s);
+    }
+
+    /// Настройки в меню — те же элементы, что в игре, но без кнопки «В меню».
+    /// Escape / клик вне панели возвращают в главное меню.
+    fn update_settings(
+        &mut self,
+        dt: f64,
+        input: &dyn InputSource,
+        window_size: (f32, f32),
+        ecs: &mut crate::EcsAdapter,
+        text_renderer: &mut crate::ui::text_renderer::TextRenderer,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+    ) -> SceneAction {
+        self.settings_ui.tick(ecs, dt);
+        self.settings_ui.tick_hover(ecs, input, window_size, dt);
+
+        let mut outside_click = false;
+        if let Some((mx, my)) = input.cursor() {
+            let (wx, wy) = crate::ui::system::ndc_to_ui(mx, my, window_size);
+            let p = &self.settings_ui.panel;
+            let inside = (wx - p.x).abs() <= p.w / 2.0 && (wy - p.y).abs() <= p.h / 2.0;
+            outside_click = input.mouse_pressed(winit::event::MouseButton::Left) && !inside;
+        }
+        self.settings_ui
+            .handle_input(ecs, text_renderer, device, queue, input, window_size);
+
+        // Кнопка «Mods...» внутри настроек открывает тот же список модов
+        if self.settings_ui.mods_requested {
+            self.settings_ui.mods_requested = false;
+            self.state = MenuState::Mods;
+            self.setup_content(ecs, text_renderer, device, queue);
+            return SceneAction::None;
+        }
+        if self.settings_ui.vsync_toggled {
+            self.settings_ui.vsync_toggled = false;
+            let enabled = self.settings_ui.vsync.checked;
+            self.persist_settings();
+            return SceneAction::VsyncToggle(enabled);
+        }
+        if self.settings_ui.zoom_speed_changed {
+            self.settings_ui.zoom_speed_changed = false;
+            self.persist_settings();
+        }
+        if self.settings_ui.music_toggled {
+            self.settings_ui.music_toggled = false;
+            crate::audio::set_music_enabled(self.settings_ui.music.checked);
+            if self.settings_ui.music.checked {
+                crate::audio::play_music("music");
+            }
+            self.persist_settings();
+        }
+        if self.settings_ui.sfx_toggled {
+            self.settings_ui.sfx_toggled = false;
+            crate::audio::set_sfx_enabled(self.settings_ui.sfx.checked);
+            self.persist_settings();
+        }
+        if self.settings_ui.texture_pack_changed {
+            self.settings_ui.texture_pack_changed = false;
+            let id = self.settings_ui.texture_pack_id();
+            crate::core::texture_pack::set_active(id.as_deref());
+            ecs.apply_texture_pack();
+            self.persist_settings();
+        }
+        if self.settings_ui.shader_changed {
+            self.settings_ui.shader_changed = false;
+            let id = self.settings_ui.shader_id();
+            crate::core::shader_pack::set_active(id.as_deref());
+            self.persist_settings();
+            return SceneAction::ShaderChanged;
+        }
+
+        if input.key_pressed(winit::keyboard::KeyCode::Escape) || outside_click {
+            crate::audio::play("click");
+            self.state = MenuState::Main;
+            self.setup_content(ecs, text_renderer, device, queue);
         }
         SceneAction::None
     }

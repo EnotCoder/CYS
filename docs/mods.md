@@ -140,8 +140,9 @@ Because base scripts and mods share a VM, a mod may also define globals such as
 
 ## Enabling mods
 
-The **Mods** window has two entry points: the **Mods** button in the main menu,
-placed between **Play** and **Quit**, and **Settings → Mods...** in-game. The
+The **Mods** window has three entry points: the **Mods** button in the main
+menu, **Settings → Mods...** in that same menu, and **Settings → Mods...**
+in-game. The
 window lists discovered mods with an enable checkbox, title, author, version
 and status (`Loaded`, `Disabled`, `Pending restart`, `Error: ...` or
 `Needs game X`). When there are more than six mods the list scrolls with the

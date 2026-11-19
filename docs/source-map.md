@@ -154,9 +154,10 @@ is missing from this map.
   `clear_ecs_world`.
 - **`src/scenes/menu_scene.rs`** — `MenuScene`: background map, logo,
   Play/Mods/Quit buttons, world pick/create/delete with confirmation, hover
-  highlight, Space/click to start, Escape to quit. The middle **Mods** button
-  opens the shared scrollable mod panel; `ui_size()` widens in that state so a
-  10×7.4 panel fits.
+  highlight, Space/click to start, Escape to quit. Buttons run
+  Play → Settings → Mods → Quit; Settings reuses the in-game panel without the
+  **Back to menu** button, Mods opens the shared scrollable mod panel.
+  `ui_size()` widens in those states so 9×6 / 10×7.4 panels fit.
 - **`src/scenes/game/mod.rs`** — `GameScene`: main loop — input, rent,
   bankruptcy, settings and Mods window, live texture-pack/mod-layer switching,
   food regen, per-sprite animations, day/night with mod events, shoppers,
@@ -203,8 +204,9 @@ is missing from this map.
   `tab_after`, grid clicks, move to the hotbar.
 - **`src/ui/settings.rs`** — settings panel: VSync (`vsync_toggled`), zoom
   speed slider (`zoom_speed_changed`), music/SFX, Texture Pack and Shader
-  selectors, **Mods...** button (`mods_requested`), `open`/`close`,
-  `handle_input`, `apply_saved`.
+  selectors, **Mods...** button (`mods_requested`), `open`/`close`/`reset`,
+  `handle_input`, `apply_saved`. `hide_menu_button()` omits the **Back to menu**
+  button when the panel is opened from the main menu.
 - **`src/ui/mods.rs`** — `Mods` window: enable/disable checkboxes, status text
   (`Loaded`, `Disabled`, `Pending restart`, errors, version mismatch), load
   order from checkboxes, conflict hint, `enabled_ids`, `refresh_statuses`.
@@ -299,7 +301,8 @@ is missing from this map.
 ## `src/tests/`
 
 - **`src/tests/mod.rs`** — declares the test modules and holds general checks:
-  modes, text input, pure functions, constants.
+  modes, text input, pure functions, constants (including main-menu button
+  order and spacing).
 - **`src/tests/helpers.rs`** — shared fixtures: ECS without a GPU, object
   placement, `FakeInput` (`InputSource` implementation), UI-to-pixel mapping.
 - **`src/tests/data_integrity.rs`** — invariants of constants, the object

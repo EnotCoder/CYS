@@ -112,10 +112,12 @@ loop `snow.ogg`/`rain.ogg` as weather ambience.
 
 ## Main menu
 
-After the splash screen the main menu shows the game logo and three buttons:
-**Play** (world selection), **Mods** and **Quit**. The middle **Mods** button
-opens the same scrollable enable/disable panel as **Settings → Mods...** in
-game; `Escape` or **Close** returns to the menu. See [mods.md](mods.md).
+After the splash screen the main menu shows the game logo and four buttons:
+**Play** (world selection), **Settings**, **Mods** and **Quit**. **Settings**
+opens the same panel as the in-game settings, minus **Back to menu** (there is
+nowhere to go back to); `Escape` or a click outside closes it. **Mods** opens
+the same scrollable enable/disable panel as **Settings → Mods...** in game;
+`Escape` or **Close** returns to the menu. See [mods.md](mods.md).
 
 ## Shop, settings, tutorial
 

@@ -72,6 +72,8 @@ pub struct Settings {
     pub mods_requested: bool,
     /// Кнопка «В меню» (выход из игры в выбор миров)
     menu_button: Button,
+    /// Показывать ли кнопку «В меню»: в главном меню она не нужна.
+    show_menu_button: bool,
     /// Флаг запроса выхода в меню, устанавливается по клику на menu_button
     pub menu_requested: bool,
     anim: PanelAnim,
@@ -163,9 +165,15 @@ impl Settings {
             mods_button: Button::new(-1.5, -2.55, 2.6, 0.7, "Mods..."),
             mods_requested: false,
             menu_button: Button::new(1.6, -2.55, 2.6, 0.7, "Back to menu"),
+            show_menu_button: true,
             menu_requested: false,
             anim: PanelAnim::new(),
         }
+    }
+
+    /// Скрывает кнопку «В меню» — используется, когда панель открыта из главного меню.
+    pub fn hide_menu_button(&mut self) {
+        self.show_menu_button = false;
     }
 
     /// Id выбранного пака; None означает ванильные текстуры.
@@ -406,11 +414,13 @@ impl Settings {
         if let Some(e) = self.mods_button.text {
             v.push(e);
         }
-        if let Some(e) = self.menu_button.bg {
-            v.push(e);
-        }
-        if let Some(e) = self.menu_button.text {
-            v.push(e);
+        if self.show_menu_button {
+            if let Some(e) = self.menu_button.bg {
+                v.push(e);
+            }
+            if let Some(e) = self.menu_button.text {
+                v.push(e);
+            }
         }
         v
     }
@@ -429,7 +439,9 @@ impl Settings {
         destroy_button(ecs, &mut self.shader_next);
         destroy_panel(ecs, &mut self.shader_value_bg);
         destroy_button(ecs, &mut self.mods_button);
-        destroy_button(ecs, &mut self.menu_button);
+        if self.show_menu_button {
+            destroy_button(ecs, &mut self.menu_button);
+        }
         if let Some(ent) = self.pack_label.take() {
             ecs.delete_entity(ent);
         }
@@ -461,6 +473,8 @@ impl Settings {
             cb.hover_scale = 1.0;
         }
         self.zoom_speed.hover_scale = 1.0;
+        self.vsync_toggled = false;
+        self.zoom_speed_changed = false;
         self.music_toggled = false;
         self.sfx_toggled = false;
         self.texture_pack_changed = false;
@@ -535,7 +549,9 @@ impl Settings {
         self.shader_label_key = key;
         self.update_shader_value(ecs, text_renderer, device, queue);
         create_button(ecs, text_renderer, device, queue, &mut self.mods_button);
-        create_button(ecs, text_renderer, device, queue, &mut self.menu_button);
+        if self.show_menu_button {
+            create_button(ecs, text_renderer, device, queue, &mut self.menu_button);
+        }
         let title = text_renderer.add_text(
             ecs, device, queue, "Settings", 64.0, 0.0, 2.4, 4.0, 2.0, WHITE,
         );
@@ -553,6 +569,13 @@ impl Settings {
         self.open = false;
         let ents = self.collect_entities();
         self.anim.start_close(ecs, ents);
+    }
+
+    /// Мгновенно убирает окно (используется при смене состояния меню).
+    pub fn reset(&mut self, ecs: &mut EcsAdapter) {
+        self.anim.cancel(ecs);
+        self.open = false;
+        self.destroy_content(ecs);
     }
 
     /// Переносит сохранённые настройки (data/settings.json) в элементы панели.
@@ -594,6 +617,9 @@ impl Settings {
         update_button_hover(ecs, &mut self.shader_prev, input, window_size, dt);
         update_button_hover(ecs, &mut self.shader_next, input, window_size, dt);
         update_button_hover(ecs, &mut self.mods_button, input, window_size, dt);
+        if self.show_menu_button {
+            update_button_hover(ecs, &mut self.menu_button, input, window_size, dt);
+        }
     }
 
     /// Обработка кликов по настройкам.
@@ -686,7 +712,7 @@ impl Settings {
         }
 
         // Клик по кнопке «В меню» — запрашиваем выход из игры
-        if button_clicked(&self.menu_button, input, window_size) {
+        if self.show_menu_button && button_clicked(&self.menu_button, input, window_size) {
             self.menu_requested = true;
             crate::audio::play("click");
             return true;

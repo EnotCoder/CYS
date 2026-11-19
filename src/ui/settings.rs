@@ -104,7 +104,7 @@ impl Settings {
                 Self::SELECTOR_ARROW_SIZE,
                 Self::SELECTOR_ARROW_SIZE,
                 "",
-                "assets/tex/ui/icon_slots/arrow_left.png",
+                "assets/tex/ui/mini_icons/next_left.png",
             ),
             pack_next: Button::textured(
                 Self::SELECTOR_RIGHT_X,
@@ -112,7 +112,7 @@ impl Settings {
                 Self::SELECTOR_ARROW_SIZE,
                 Self::SELECTOR_ARROW_SIZE,
                 "",
-                "assets/tex/ui/icon_slots/arrow_right.png",
+                "assets/tex/ui/mini_icons/next_right.png",
             ),
             pack_value_bg: Panel::new(
                 Self::SELECTOR_VALUE_X,
@@ -134,7 +134,7 @@ impl Settings {
                 Self::SELECTOR_ARROW_SIZE,
                 Self::SELECTOR_ARROW_SIZE,
                 "",
-                "assets/tex/ui/icon_slots/arrow_left.png",
+                "assets/tex/ui/mini_icons/next_left.png",
             ),
             shader_next: Button::textured(
                 Self::SELECTOR_RIGHT_X,
@@ -142,7 +142,7 @@ impl Settings {
                 Self::SELECTOR_ARROW_SIZE,
                 Self::SELECTOR_ARROW_SIZE,
                 "",
-                "assets/tex/ui/icon_slots/arrow_right.png",
+                "assets/tex/ui/mini_icons/next_right.png",
             ),
             shader_value_bg: Panel::new(
                 Self::SELECTOR_VALUE_X,

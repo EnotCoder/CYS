@@ -23,7 +23,7 @@ from `std::env` or an absolute location — always go through `core::asset`.
 | `assets/tex/ui/` | panels, mode icons, cursor, sliders, checkboxes, shop/weather/settings art |
 | `assets/tex/ui/button/` | shared button background (`main.png`) used by menus and dialogs |
 | `assets/tex/ui/icon_slots/` | inventory icons by category (`regular`, `carpets`, `light`, `walldecor`, `outdoor`, `new_year`) and `arrow_left.png`/`arrow_right.png` for tab paging |
-| `assets/tex/ui/mini_icons/` | small HUD icons (food, money, clock) |
+| `assets/tex/ui/mini_icons/` | small HUD icons (food, money, clock) and `next_left.png`/`next_right.png` for the settings selectors |
 | `assets/tex/ui/time_of_year/` | season buttons |
 | `assets/tex/dev_tools/` | `null.png` (missing-texture fallback), `black.png` (dim overlays) |
 | `assets/sounds/` | 26 `.ogg` effects and music (menu + four seasonal tracks) |

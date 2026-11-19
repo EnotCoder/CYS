@@ -7,4 +7,5 @@
 
 pub mod config;
 pub mod items;
+pub mod mods;
 pub mod npc;

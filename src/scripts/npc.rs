@@ -272,7 +272,16 @@ impl NpcScript {
                 let ecs = ecs_cell_ref;
                 move |_, n: i32| -> mlua::Result<()> {
                     let ecs_borrow = ecs.borrow_mut();
-                    ecs_borrow.world.write_resource::<Money>().0 += n;
+                    let before = ecs_borrow.world.read_resource::<Money>().0;
+                    ecs_borrow.world.write_resource::<Money>().0 = before + n;
+                    crate::scripts::mods::emit(
+                        crate::scripts::mods::EVENT_MONEY_CHANGED,
+                        &[
+                            ("amount", crate::scripts::mods::ModArg::Int(before as i64 + n as i64)),
+                            ("delta", crate::scripts::mods::ModArg::Int(n as i64)),
+                        ],
+                        0.0,
+                    );
                     crate::audio::play("cash");
                     Ok(())
                 }
@@ -326,9 +335,38 @@ impl NpcScript {
             })?;
             tbl.set("log", log)?;
 
+            // Моды видят снимок состояния покупателя и могут заменить
+            // ванильное поведение, вернув true (или { handled = true }).
+            let mut mod_fields = vec![
+                ("state", crate::scripts::mods::ModArg::Int(tbl.get::<i32>("state")? as i64)),
+                ("timer", crate::scripts::mods::ModArg::Float(tbl.get::<f64>("timer")?)),
+                ("food_taken", crate::scripts::mods::ModArg::Bool(tbl.get::<bool>("food_taken")?)),
+                ("exiting", crate::scripts::mods::ModArg::Bool(tbl.get::<bool>("exiting")?)),
+                ("done", crate::scripts::mods::ModArg::Bool(tbl.get::<bool>("done")?)),
+            ];
+            for key in ["cassa_x", "cassa_y", "rack_x", "rack_y"] {
+                if let Ok(value) = tbl.get::<i32>(key) {
+                    mod_fields.push((key, crate::scripts::mods::ModArg::Int(value as i64)));
+                }
+            }
+            for key in ["candy_x", "candy_y", "pos_x", "pos_y"] {
+                if let Ok(value) = tbl.get::<f64>(key) {
+                    mod_fields.push((key, crate::scripts::mods::ModArg::Float(value)));
+                }
+            }
+            let mod_result = crate::scripts::mods::emit_npc_update(&mod_fields, dt);
+            if let Some(state) = mod_result.state {
+                tbl.set("state", state)?;
+            }
+            if let Some(timer) = mod_result.timer {
+                tbl.set("timer", timer)?;
+            }
+
             // Вызываем основную функцию скрипта с таблицей состояния и дельтой времени.
-            let update_fn: mlua::Function = lua.globals().get("npc_update")?;
-            update_fn.call::<()>((&tbl, dt))?;
+            if !mod_result.handled {
+                let update_fn: mlua::Function = lua.globals().get("npc_update")?;
+                update_fn.call::<()>((&tbl, dt))?;
+            }
 
             // Скрипт записывает новое состояние обратно в таблицу — переносим его в NPC.
             let state = tbl.get::<i32>("state")?;

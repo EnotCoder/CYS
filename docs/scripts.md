@@ -12,6 +12,10 @@ There is no Lua game loop. `config.lua` runs once inside
 `npc.lua` is called function-by-function from `ShopperNpc::update`. If a file is
 missing or fails, Rust defaults take over and the game keeps working.
 
+Player [mods](mods.md) load into the same shared Lua VM *after* these base
+scripts and may extend or override `CONFIG`, `ITEMS` and `npc_update`. The
+`mod.*` API and sandboxed loading are documented in [mods.md](mods.md).
+
 ## config.lua
 
 Loaded by `src/scripts/config.rs::load` into `BalanceConfig`, then published as

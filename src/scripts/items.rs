@@ -42,8 +42,26 @@ pub struct ItemDef {
     pub flower: bool,
 }
 
-/// Читает ITEMS из items.lua. None — файла нет, он сломан или пуст.
+/// Читает ITEMS из items.lua и добавляет предметы включённых модов.
 pub fn load() -> Option<Vec<ItemDef>> {
+    let mut defs = load_base()?;
+    if crate::scripts::mods::is_initialized() {
+        for item in crate::scripts::mods::item_defs() {
+            if let Some(old) = defs.iter_mut().find(|existing| existing.name == item.name) {
+                *old = item;
+            } else {
+                defs.push(item);
+            }
+        }
+    }
+    if defs.is_empty() {
+        None
+    } else {
+        Some(defs)
+    }
+}
+
+fn load_base() -> Option<Vec<ItemDef>> {
     let source = match crate::core::asset::load_string(ITEMS_PATH) {
         Ok(s) => s,
         Err(_) => {

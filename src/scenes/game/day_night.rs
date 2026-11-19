@@ -48,6 +48,11 @@ impl DayNightCycle {
         }
     }
 
+    /// true, когда сцена уже затемнена больше чем наполовину.
+    pub fn is_night(&self, config: &BalanceConfig) -> bool {
+        self.factor(config) > 0.5
+    }
+
     /// Игровое время в формате "T:  ЧЧ:ММ" (24 часа = полный игровой цикл)
     pub fn time_string(&self, config: &BalanceConfig) -> String {
         let cycle = config.day_cycle_secs;

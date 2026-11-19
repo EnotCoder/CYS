@@ -79,7 +79,8 @@ impl App {
             *crate::save::SETTINGS.lock().unwrap() = s.clone();
             crate::audio::set_music_enabled(s.music);
             crate::audio::set_sfx_enabled(s.sfx);
-            // Текстур-пак и шейдер применяются до первой отрисовки меню.
+            // Моды, текстур-пак и шейдер применяются до первой отрисовки меню.
+            crate::scripts::mods::init();
             crate::core::texture_pack::init();
             crate::core::shader_pack::init();
         }

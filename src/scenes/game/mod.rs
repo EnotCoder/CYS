@@ -84,6 +84,7 @@ pub struct GameScene {
     active: bool,
     active_entity: Option<specs::Entity>,
     settings: crate::ui::settings::Settings,
+    mods: crate::ui::mods::Mods,
     shop: crate::ui::shop::Shop,
     weather: crate::ui::weather::Weather,
     shop_entity: Option<specs::Entity>,
@@ -97,6 +98,8 @@ pub struct GameScene {
     hud: GameHud,
     shoppers: ShopperManager,
     day_night: DayNightCycle,
+    /// Предыдущая фаза дня/ночи — для событий day_start / night_start.
+    was_night: bool,
     // Пульсы объектов при появлении еды («поп»)
     food_pulses: Vec<FoodPulse>,
     // Аренда магазина: таймер с момента последнего списания
@@ -163,6 +166,7 @@ impl GameScene {
             active: true,
             active_entity: None,
             settings: crate::ui::settings::Settings::new(),
+            mods: crate::ui::mods::Mods::new(),
             shop: crate::ui::shop::Shop::new(),
             weather: crate::ui::weather::Weather::new(),
             shop_entity: None,
@@ -175,6 +179,7 @@ impl GameScene {
             hud: GameHud::new(),
             shoppers: ShopperManager::new(),
             day_night: DayNightCycle::new(),
+            was_night: false,
             food_pulses: Vec::new(),
             rent_timer: 0.0,
             bankrupt: false,
@@ -514,6 +519,7 @@ impl GameScene {
             sfx: self.settings.sfx.checked,
             texture_pack: self.settings.texture_pack_id(),
             shader: self.settings.shader_id(),
+            mods: crate::scripts::mods::enabled_ids(),
         };
         *crate::save::SETTINGS.lock().unwrap() = s.clone();
         crate::save::save_settings(&s);
@@ -540,6 +546,9 @@ impl Scene for GameScene {
         self.slot_entities.clear();
         self.inventory.reset();
         self.npc_walkable.clear();
+        // Логика модов применяется при входе в мир: перечитываем баланс и скрипт NPC.
+        self.config = crate::scripts::config::BalanceConfig::load();
+        self.npc_script = Some(crate::scripts::npc::NpcScript::new());
         // Переносим балансовые настройки в мир ECS для использования другими системами
         *ecs.world
             .write_resource::<crate::scripts::config::BalanceConfig>() = self.config.clone();
@@ -557,6 +566,7 @@ impl Scene for GameScene {
         self.inv_entity = None;
         self.settings_entity = None;
         self.settings = crate::ui::settings::Settings::new();
+        self.mods = crate::ui::mods::Mods::new();
         // Применяем сохранённые настройки (VSync, зум, звук) к панели настроек.
         let saved = crate::save::SETTINGS.lock().unwrap().clone();
         self.settings.apply_saved(&saved);
@@ -564,6 +574,7 @@ impl Scene for GameScene {
         self.hud.reset();
         self.shoppers.clear();
         self.day_night.reset();
+        self.was_night = false;
         self.food_pulses.clear();
         ecs.world.write_resource::<TotalFood>().0 = 0;
         ecs.world.write_resource::<BusyCassas>().0.clear();
@@ -601,6 +612,9 @@ impl Scene for GameScene {
         }
         if self.weather.open {
             self.weather.close(ecs);
+        }
+        if self.mods.open {
+            self.mods.close(ecs);
         }
         self.shop_entity = None;
         self.weather_entity = None;
@@ -718,18 +732,29 @@ impl Scene for GameScene {
         }
 
         // --- Аренда магазина (экономическая нагрузка; на паузе не списывается) ---
-        if !self.bankrupt && !self.settings.open {
+        if !self.bankrupt && !self.settings.open && !self.mods.open {
             self.rent_timer += dt;
             if self.rent_timer >= self.config.rent_interval_secs {
                 self.rent_timer = 0.0;
                 let money = ecs.world.read_resource::<Money>().0;
                 let paid = money.min(self.config.rent_amount);
-                ecs.world.write_resource::<Money>().0 -= paid;
+                ecs.world.write_resource::<Money>().0 = money - paid;
+                crate::scripts::mods::emit(
+                    crate::scripts::mods::EVENT_MONEY_CHANGED,
+                    &[
+                        (
+                            "amount",
+                            crate::scripts::mods::ModArg::Int(money as i64 - paid as i64),
+                        ),
+                        ("delta", crate::scripts::mods::ModArg::Int(-(paid as i64))),
+                    ],
+                    0.0,
+                );
             }
         }
 
         // --- Банкротство: магазин не может зарабатывать и на восстановление не хватает денег ---
-        if !self.bankrupt && self.current_level == 0 && !self.settings.open {
+        if !self.bankrupt && self.current_level == 0 && !self.settings.open && !self.mods.open {
             if !self.shop_can_earn(ecs) {
                 let money = ecs.world.read_resource::<Money>().0;
                 let recovery = Self::recovery_cost(ecs, &self.config);
@@ -929,6 +954,12 @@ impl Scene for GameScene {
             // Пока открыты настройки — обрабатываем только их ввод
             self.settings
                 .handle_input(ecs, text_renderer, device, queue, input, window_size);
+            if self.settings.mods_requested {
+                self.settings.mods_requested = false;
+                self.settings.close(ecs);
+                self.mods.open(ecs, text_renderer, device, queue);
+                return SceneAction::None;
+            }
             if self.settings.vsync_toggled {
                 self.settings.vsync_toggled = false;
                 let enabled = self.settings.vsync.checked;
@@ -976,6 +1007,30 @@ impl Scene for GameScene {
                 self.settings.menu_requested = false;
                 return SceneAction::Switch("menu".to_string());
             }
+        } else if self.mods.open {
+            // --- Окно модов: галочки вкл/выкл, статус, подсказка о перезапуске ---
+            self.mods.tick_hover(ecs, input, window_size, dt);
+            if let Some((mx, my)) = input.cursor() {
+                let (wx, wy) = crate::ui::system::ndc_to_ui(mx, my, window_size);
+                let p = &self.mods.panel;
+                let inside = (wx - p.x).abs() <= p.w / 2.0 && (wy - p.y).abs() <= p.h / 2.0;
+                if input.mouse_pressed(winit::event::MouseButton::Left) && !inside {
+                    self.mods.close(ecs);
+                    crate::audio::play("click");
+                }
+            }
+            self.mods
+                .handle_input(ecs, text_renderer, device, queue, input, window_size);
+            if self.mods.changed {
+                self.mods.changed = false;
+                crate::scripts::mods::set_enabled(self.mods.enabled_ids());
+                self.persist_settings();
+                // Текстурные слои модов применяются сразу, логика — при входе в мир.
+                ecs.apply_texture_pack();
+                self.shoppers.refresh_pack(ecs);
+                self.mods
+                    .refresh_statuses(ecs, text_renderer, device, queue);
+            }
         } else if self.weather.open {
             // --- Окно погоды: выбор сезона ---
             if let Some((mx, my)) = input.cursor() {
@@ -1005,6 +1060,22 @@ impl Scene for GameScene {
                             let money = ecs.world.read_resource::<Money>().0;
                             if money >= price {
                                 ecs.world.write_resource::<Money>().0 = money - price;
+                                crate::scripts::mods::emit(
+                                    crate::scripts::mods::EVENT_MONEY_CHANGED,
+                                    &[
+                                        (
+                                            "amount",
+                                            crate::scripts::mods::ModArg::Int(
+                                                money as i64 - price as i64,
+                                            ),
+                                        ),
+                                        (
+                                            "delta",
+                                            crate::scripts::mods::ModArg::Int(-(price as i64)),
+                                        ),
+                                    ],
+                                    0.0,
+                                );
                                 ecs.world.write_resource::<ShopOwned>().0.push(name);
                                 crate::audio::play("buy");
                                 let items = self.shop_items(ecs);
@@ -1228,11 +1299,22 @@ impl Scene for GameScene {
         // Пауза: пока открыты настройки, мир замирает — день/ночь, погода,
         // регенерация еды, покупатели и анимации не двигаются (как в обычном
         // мобильном меню паузы).
-        let paused = self.settings.open;
+        let paused = self.settings.open || self.mods.open;
 
-        // Прогресс дня/ночи
+        // Прогресс дня/ночи и события модов
         if !paused {
             self.day_night.tick(dt);
+            let night = self.day_night.is_night(&self.config);
+            if night != self.was_night {
+                self.was_night = night;
+                let event = if night {
+                    crate::scripts::mods::EVENT_NIGHT_START
+                } else {
+                    crate::scripts::mods::EVENT_DAY_START
+                };
+                crate::scripts::mods::emit(event, &[], dt);
+            }
+            crate::scripts::mods::emit(crate::scripts::mods::EVENT_TICK, &[], dt);
         }
 
         self.update_camera(input, window_size, dt);
@@ -1386,6 +1468,7 @@ impl Scene for GameScene {
         self.shop.tick(ecs, dt);
         self.weather.tick(ecs, dt);
         self.settings.tick(ecs, dt);
+        self.mods.tick(ecs, dt);
 
         // --- Пульс активного слота и иконки режима при их смене ---
         self.update_slot_mode_pulse(ecs, dt);

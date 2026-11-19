@@ -442,6 +442,7 @@ fn game_settings_serde_roundtrip_preserves_all_fields() {
         sfx: true,
         texture_pack: Some("neon".to_string()),
         shader: Some("crt".to_string()),
+        mods: vec!["double_money".to_string(), "big_shop".to_string()],
     };
     let json = serde_json::to_string(&s).unwrap();
     let back: GameSettings = serde_json::from_str(&json).unwrap();
@@ -451,12 +452,14 @@ fn game_settings_serde_roundtrip_preserves_all_fields() {
     assert_eq!(back.sfx, s.sfx);
     assert_eq!(back.texture_pack.as_deref(), Some("neon"));
     assert_eq!(back.shader.as_deref(), Some("crt"));
+    assert_eq!(back.mods, vec!["double_money", "big_shop"]);
 
-    // Старый settings.json без texture_pack и shader читается как ваниль.
+    // Старый settings.json без texture_pack/shader/mods читается как ваниль.
     let legacy: GameSettings =
         serde_json::from_str(r#"{"vsync":true,"zoom_speed":0.2,"music":true,"sfx":true}"#).unwrap();
     assert_eq!(legacy.texture_pack, None);
     assert_eq!(legacy.shader, None);
+    assert!(legacy.mods.is_empty());
 
     let d = GameSettings::default();
     assert!(d.vsync);
@@ -465,6 +468,7 @@ fn game_settings_serde_roundtrip_preserves_all_fields() {
     assert!(d.sfx);
     assert_eq!(d.texture_pack, None);
     assert_eq!(d.shader, None);
+    assert!(d.mods.is_empty());
 }
 
 #[test]
@@ -481,6 +485,7 @@ fn settings_apply_saved_clamps_zoom_speed() {
         sfx: false,
         texture_pack: None,
         shader: None,
+        mods: Vec::new(),
     });
     assert!(!settings.vsync.checked);
     assert!(!settings.music.checked);
@@ -494,6 +499,7 @@ fn settings_apply_saved_clamps_zoom_speed() {
         sfx: true,
         texture_pack: None,
         shader: None,
+        mods: Vec::new(),
     });
     assert!(settings.vsync.checked);
     assert_eq!(settings.zoom_speed.value, lo);

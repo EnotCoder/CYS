@@ -33,9 +33,12 @@ from `std::env` or an absolute location — always go through `core::asset`.
 | `assets/icon.png` | application icon source |
 | `texture_pack/<id>/textures/` | optional player replacements mirroring `assets/tex/` |
 | `shaders/<id>/shader.wgsl` | optional player WGSL with `shader.json` metadata |
+| `mods/<id>/` | optional player Lua mods (`mod.json`, `main.lua`, `textures/`) |
+| `assets/mods/<id>/` | the same mods bundled into the Android APK |
 
-The pack and shader roots are not under `assets/` on desktop; see
-[texture-packs.md](texture-packs.md) and [shaders.md](shaders.md).
+The pack, shader and desktop mod roots are not under `assets/`; see
+[texture-packs.md](texture-packs.md), [shaders.md](shaders.md) and
+[mods.md](mods.md).
 
 ## Atlases
 
@@ -112,6 +115,13 @@ relative path under `texture_pack/<id>/textures/`. An optional `pack.json` adds
 explicit path aliases and animation overrides. Packs are selected in Settings
 and applied without reloading the level. The format and precedence rules are in
 [texture-packs.md](texture-packs.md).
+
+## Mods
+
+A mod may ship a `textures/` folder mirroring `assets/tex/`; those files layer
+above the active texture pack as a mod-specific overlay. Mods also register
+items with their own texture and icon paths, resolved inside the mod folder.
+The manifest, Lua API, sandbox and load order are in [mods.md](mods.md).
 
 ## Adding an asset
 

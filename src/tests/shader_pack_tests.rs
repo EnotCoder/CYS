@@ -37,18 +37,20 @@ fn cleanup(root: &PathBuf) {
 }
 
 #[test]
-fn bundled_warm_shader_is_well_formed() {
-    let manifest_path = format!("{}/warm/shader.json", shader::shaders_root());
-    let text = crate::core::asset::load_string(&manifest_path).unwrap();
-    let manifest: shader::ShaderManifest = serde_json::from_str(&text).unwrap();
-    assert_eq!(manifest.name.as_deref(), Some("Warm Evening"));
-    assert_eq!(manifest.file.as_deref(), Some("shader.wgsl"));
+fn bundled_shader_packs_are_well_formed() {
+    for (id, name, marker) in [("warm", "Comics", "COMIC_LEVELS"), ("retro", "Retro", "CRT_SCANLINE_STRENGTH")] {
+        let manifest_path = format!("{}/{id}/shader.json", shader::shaders_root());
+        let text = crate::core::asset::load_string(&manifest_path).unwrap();
+        let manifest: shader::ShaderManifest = serde_json::from_str(&text).unwrap();
+        assert_eq!(manifest.name.as_deref(), Some(name));
+        assert_eq!(manifest.file.as_deref(), Some("shader.wgsl"));
 
-    let source_path = format!("{}/warm/{}", shader::shaders_root(), manifest.file.unwrap());
-    let source = crate::core::asset::load_string(&source_path).unwrap();
-    assert!(source.contains("fn vs_main"));
-    assert!(source.contains("fn fs_main"));
-    assert!(source.contains("warm_tint"));
+        let source_path = format!("{}/{id}/{}", shader::shaders_root(), manifest.file.unwrap());
+        let source = crate::core::asset::load_string(&source_path).unwrap();
+        assert!(source.contains("fn vs_main"), "{id} must define vs_main");
+        assert!(source.contains("fn fs_main"), "{id} must define fs_main");
+        assert!(source.contains(marker), "{id} must define {marker}");
+    }
 }
 
 #[test]

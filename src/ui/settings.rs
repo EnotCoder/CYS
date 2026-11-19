@@ -66,6 +66,10 @@ pub struct Settings {
     shader_index: usize,
     /// Флаг смены шейдера в этом кадре.
     pub shader_changed: bool,
+    /// Кнопка открытия окна модов
+    mods_button: Button,
+    /// Флаг запроса окна модов, устанавливается по клику на mods_button
+    pub mods_requested: bool,
     /// Кнопка «В меню» (выход из игры в выбор миров)
     menu_button: Button,
     /// Флаг запроса выхода в меню, устанавливается по клику на menu_button
@@ -156,7 +160,9 @@ impl Settings {
             sfx: Checkbox::new(-1.4, -1.90, "Sound Effects", true),
             music_toggled: false,
             sfx_toggled: false,
-            menu_button: Button::new(0.0, -2.55, 3.0, 0.7, "Back to menu"),
+            mods_button: Button::new(-1.5, -2.55, 2.6, 0.7, "Mods..."),
+            mods_requested: false,
+            menu_button: Button::new(1.6, -2.55, 2.6, 0.7, "Back to menu"),
             menu_requested: false,
             anim: PanelAnim::new(),
         }
@@ -394,6 +400,12 @@ impl Settings {
         if let Some(e) = self.shader_value {
             v.push(e);
         }
+        if let Some(e) = self.mods_button.bg {
+            v.push(e);
+        }
+        if let Some(e) = self.mods_button.text {
+            v.push(e);
+        }
         if let Some(e) = self.menu_button.bg {
             v.push(e);
         }
@@ -416,6 +428,7 @@ impl Settings {
         destroy_button(ecs, &mut self.shader_prev);
         destroy_button(ecs, &mut self.shader_next);
         destroy_panel(ecs, &mut self.shader_value_bg);
+        destroy_button(ecs, &mut self.mods_button);
         destroy_button(ecs, &mut self.menu_button);
         if let Some(ent) = self.pack_label.take() {
             ecs.delete_entity(ent);
@@ -452,6 +465,7 @@ impl Settings {
         self.sfx_toggled = false;
         self.texture_pack_changed = false;
         self.shader_changed = false;
+        self.mods_requested = false;
         self.menu_requested = false;
     }
 
@@ -520,6 +534,7 @@ impl Settings {
         self.shader_label = label;
         self.shader_label_key = key;
         self.update_shader_value(ecs, text_renderer, device, queue);
+        create_button(ecs, text_renderer, device, queue, &mut self.mods_button);
         create_button(ecs, text_renderer, device, queue, &mut self.menu_button);
         let title = text_renderer.add_text(
             ecs, device, queue, "Settings", 64.0, 0.0, 2.4, 4.0, 2.0, WHITE,
@@ -578,6 +593,7 @@ impl Settings {
         update_button_hover(ecs, &mut self.pack_next, input, window_size, dt);
         update_button_hover(ecs, &mut self.shader_prev, input, window_size, dt);
         update_button_hover(ecs, &mut self.shader_next, input, window_size, dt);
+        update_button_hover(ecs, &mut self.mods_button, input, window_size, dt);
     }
 
     /// Обработка кликов по настройкам.
@@ -658,6 +674,13 @@ impl Settings {
             self.sfx.checked = !self.sfx.checked;
             refresh_checkbox(ecs, text_renderer, device, queue, &mut self.sfx);
             self.sfx_toggled = true;
+            crate::audio::play("click");
+            return true;
+        }
+
+        // Клик по кнопке «Mods...» — открываем окно модов
+        if button_clicked(&self.mods_button, input, window_size) {
+            self.mods_requested = true;
             crate::audio::play("click");
             return true;
         }

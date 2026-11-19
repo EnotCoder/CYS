@@ -62,6 +62,16 @@ pub struct BalanceConfig {
 impl BalanceConfig {
     /// Загружает баланс из scripts/config.lua; при любой ошибке возвращает дефолты.
     pub fn load() -> Self {
+        let mut cfg = Self::load_base();
+        if crate::scripts::mods::is_initialized() {
+            crate::scripts::mods::apply_balance(&mut cfg);
+        }
+        cfg
+    }
+
+    /// Только ванильный конфиг — используется при загрузке самих модов, чтобы
+    /// не читать состояние модов рекурсивно.
+    fn load_base() -> Self {
         let mut cfg = BalanceConfig::default();
         // Если файла баланса нет — игра работает на дефолтных значениях.
         let source = match crate::core::asset::load_string(CONFIG_PATH) {

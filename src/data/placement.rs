@@ -357,7 +357,16 @@ pub fn add(ecs: &mut EcsAdapter, slots: &mut Vec<Slot>, act_slot: i32, gx: i32, 
 
     ecs.clear_cursor_preview();
 
-    ecs.world.write_resource::<Money>().0 -= price;
+    let money_before = ecs.world.read_resource::<Money>().0;
+    ecs.world.write_resource::<Money>().0 = money_before - price;
+    crate::scripts::mods::emit(
+        crate::scripts::mods::EVENT_MONEY_CHANGED,
+        &[
+            ("amount", crate::scripts::mods::ModArg::Int(money_before as i64 - price as i64)),
+            ("delta", crate::scripts::mods::ModArg::Int(-(price as i64))),
+        ],
+        0.0,
+    );
     crate::audio::play("place");
 
     // Создаём группу спрайтов размера width*height и получаем её id.
@@ -470,6 +479,16 @@ pub fn add(ecs: &mut EcsAdapter, slots: &mut Vec<Slot>, act_slot: i32, gx: i32, 
             attach_point_light(ecs, first, active_slot.name);
         }
     }
+    crate::scripts::mods::emit(
+        crate::scripts::mods::EVENT_OBJECT_PLACED,
+        &[
+            ("name", crate::scripts::mods::ModArg::Str(active_slot.name.to_string())),
+            ("x", crate::scripts::mods::ModArg::Int(gx as i64)),
+            ("y", crate::scripts::mods::ModArg::Int(gy as i64)),
+            ("price", crate::scripts::mods::ModArg::Int(price as i64)),
+        ],
+        0.0,
+    );
 }
 
 // Убрать объект или вернуть часть стены/траву в клетке (gx, gy).
@@ -505,7 +524,26 @@ pub fn remove(ecs: &mut EcsAdapter, gx: i32, gy: i32) -> bool {
                     .world
                     .read_resource::<crate::scripts::config::BalanceConfig>();
                 let refund = super::object_price(&name, &cfg) / 2;
-                ecs.world.write_resource::<Money>().0 += refund;
+                let money_before = ecs.world.read_resource::<Money>().0;
+                ecs.world.write_resource::<Money>().0 = money_before + refund;
+                crate::scripts::mods::emit(
+                    crate::scripts::mods::EVENT_MONEY_CHANGED,
+                    &[
+                        ("amount", crate::scripts::mods::ModArg::Int(money_before as i64 + refund as i64)),
+                        ("delta", crate::scripts::mods::ModArg::Int(refund as i64)),
+                    ],
+                    0.0,
+                );
+                crate::scripts::mods::emit(
+                    crate::scripts::mods::EVENT_OBJECT_REMOVED,
+                    &[
+                        ("name", crate::scripts::mods::ModArg::Str(name.clone())),
+                        ("x", crate::scripts::mods::ModArg::Int(gx as i64)),
+                        ("y", crate::scripts::mods::ModArg::Int(gy as i64)),
+                        ("refund", crate::scripts::mods::ModArg::Int(refund as i64)),
+                    ],
+                    0.0,
+                );
             }
         }
         ecs.delete_group(group_id);

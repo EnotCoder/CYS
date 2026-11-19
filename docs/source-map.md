@@ -13,10 +13,10 @@ is missing from this map.
 - **`src/main/main.rs`** — desktop `[[bin]]` entry point; delegates everything
   to `cys::run()` from the library.
 - **`src/main/lib.rs`** — crate root: declares 12 modules via `#[path]`, defines
-  `App` (window, `WgpuApp`, surface, scene, input, FPS, IME), applies the saved
-  texture pack and shader before the first frame, handles shader reload actions,
-  `render` (full frame), `ApplicationHandler`, desktop `run()` and the Android
-  module.
+  `App` (window, `WgpuApp`, surface, scene, input, FPS, IME), initialises mods
+  before balance/scripts load, applies the saved texture pack and shader before
+  the first frame, handles shader reload actions, `render` (full frame),
+  `ApplicationHandler`, desktop `run()` and the Android module.
 - **`src/main/android.rs`** — `android_main`, hiding the system UI, the JNI
   bridge to `EditText` for world names, `poll_text_input` and
   `sync_text_input`.
@@ -58,7 +58,8 @@ is missing from this map.
   text and UI).
 - **`src/core/texture_pack.rs`** — player texture packs: discovery of
   `texture_pack/<id>/`, `pack.json` metadata/aliases, safe path resolution with
-  vanilla fallback, live activation and object/NPC animation overrides.
+  vanilla fallback, live activation, object/NPC animation overrides and mod
+  texture overlay layers above the active pack.
 - **`src/core/util.rs`** — `sprite_cache_key`, `ndc_to_world`, `inventory_index`,
   `slot_icon_path`, `slot_icon_size`, `ui_fit_scale`,
   `ui_top_offset`/`ui_bottom_offset`, `ease_out_back`.
@@ -75,7 +76,8 @@ is missing from this map.
 - **`src/data/placement.rs`** — `add`/`remove` rules: cell categories, wall
   recomputation (`refresh_walls_around`, `recompute_wall_token`,
   `revert_to_grass`), economy (price and half refund), `FoodStorage`,
-  `FenceComponent`, `BasementPlaced`, basement checks.
+  `FenceComponent`, `BasementPlaced`, basement checks and `object_placed` /
+  `object_removed` mod events.
 - **`src/data/door.rs`** — `tick_door`: the door opens when a shopper
   (`ShopperTag`) is near and closes after they leave; `DoorProgress`, 2×2 atlas
   frames, smooth NPC fade inside the doorway.
@@ -154,13 +156,14 @@ is missing from this map.
   Play/Quit buttons, world pick/create/delete with confirmation, hover
   highlight, Space/click to start, Escape to quit.
 - **`src/scenes/game/mod.rs`** — `GameScene`: main loop — input, rent,
-  bankruptcy, settings, live texture-pack switching, food regen, per-sprite
-  animations, day/night, shoppers, weather, per-season music, tutorial, shop,
-  hover/tooltip, autosave, level switching.
+  bankruptcy, settings and Mods window, live texture-pack/mod-layer switching,
+  food regen, per-sprite animations, day/night with mod events, shoppers,
+  weather, per-season music, tutorial, shop, hover/tooltip, autosave, level
+  switching.
 - **`src/scenes/game/camera.rs`** — `update_camera`: movement only in `move`
   mode (mouse/finger drag or arrow keys), clamped to the map's visible area.
 - **`src/scenes/game/day_night.rs`** — `DayNightCycle`: `tick`, `factor`
-  (0..1 dimming with dawn and dusk), `time_string` (`HH:MM`).
+  (0..1 dimming with dawn and dusk), `is_night`, `time_string` (`HH:MM`).
 - **`src/scenes/game/hud.rs`** — `GameHud`: "Loading...", object hint,
   Food/Money counters, clock (at most once per second), item tooltip, info
   panel; text is recreated only when it changes.
@@ -183,7 +186,7 @@ is missing from this map.
 
 ## `src/ui/` — interface
 
-- **`src/ui/mod.rs`** — declares `anim`, `components`, `fps`, `inventory`,
+- **`src/ui/mod.rs`** — declares `anim`, `components`, `fps`, `inventory`, `mods`,
   `settings`, `shop`, `system`, `text_input`, `text_renderer`, `weather`;
   re-exports components and system helpers.
 - **`src/ui/components.rs`** — element descriptions: `Panel` (optional
@@ -197,8 +200,12 @@ is missing from this map.
   `switch_page`, `tab_page_of`, `visible_tab_count`), `items`, `switch_tab`,
   `tab_after`, grid clicks, move to the hotbar.
 - **`src/ui/settings.rs`** — settings panel: VSync (`vsync_toggled`), zoom
-  speed slider (`zoom_speed_changed`), music/SFX, Texture Pack selector with
-  `texture_pack_changed`, `open`/`close`, `handle_input`, `apply_saved`.
+  speed slider (`zoom_speed_changed`), music/SFX, Texture Pack and Shader
+  selectors, **Mods...** button (`mods_requested`), `open`/`close`,
+  `handle_input`, `apply_saved`.
+- **`src/ui/mods.rs`** — `Mods` window: enable/disable checkboxes, status text
+  (`Loaded`, `Disabled`, `Pending restart`, errors, version mismatch), load
+  order from checkboxes, conflict hint, `enabled_ids`, `refresh_statuses`.
 - **`src/ui/shop.rs`** — `Shop`: scrollable catalogue with a scrollbar,
   `ShopItem`, `ConfirmAction`, purchase confirmation dialog, `refresh`,
   `row_clicked`, `scroll_input`.
@@ -251,19 +258,25 @@ is missing from this map.
 
 ## `src/scripts/` — Lua bridge
 
-- **`src/scripts/mod.rs`** — declares `config`, `items` and `npc`.
+- **`src/scripts/mod.rs`** — declares `config`, `items`, `mods` and `npc`.
 - **`src/scripts/config.rs`** — `BalanceConfig`: reads
-  `assets/scripts/config.lua` through mlua, falls back to defaults on error;
-  timings, prices, capacities, economy; `publish_to_lua`.
+  `assets/scripts/config.lua` through mlua, applies mod balance overrides,
+  falls back to defaults on error; timings, prices, capacities, economy;
+  `publish_to_lua`.
 - **`src/scripts/items.rs`** — `ItemDef`/`load`: reads
   `assets/scripts/items.lua` through mlua (size, texture, inventory icon and
-  icon size, price, atlas frame, animation frames, tab, category); returns
-  `None` so `data::ItemCatalog` can use `BUILTIN_OBJECTS` when the file is
-  missing or broken.
+  icon size, price, atlas frame, animation frames, tab, category), merges
+  mod-registered items; returns `None` so `data::ItemCatalog` can use
+  `BUILTIN_OBJECTS` when the file is missing or broken.
 - **`src/scripts/npc.rs`** — `NpcScript`: calls `npc.lua` from Rust, packs NPC
   state into a Lua table, exposes primitives (`walk`, `take_food`, `start_path`,
-  `busy`, `add_money`, `find_any_cassa`), copies `state`/`timer` back, falls
-  back when the script is missing.
+  `busy`, `add_money`, `find_any_cassa`), copies `state`/`timer` back, emits
+  `money_changed`, lets a mod `npc_update` handler take over, and falls back
+  when the script is missing.
+- **`src/scripts/mods.rs`** — player mods: `mod.json` manifests, discovery in
+  `mods/` and `assets/mods/`, dependency ordering (`load_after`), sandboxed
+  shared Lua VM (`mod.*` API), events, balance/item overrides, texture layers,
+  enable state in settings, errors/conflicts and internal tests.
 
 ---
 
@@ -272,7 +285,8 @@ is missing from this map.
 - **`src/save/mod.rs`** — worlds: `WorldMeta`, `WorldManifest`, `list_worlds`,
   `create_world_with_name`, `unique_world_name`, `touch_world`, `delete_world`,
   `WorldSelection`/`SELECTED_WORLD`; settings `GameSettings` (including
-  `texture_pack`), `load_settings`, `save_settings`, global `SETTINGS`.
+  `texture_pack`, `shader` and the `mods` load-order array), `load_settings`,
+  `save_settings`, global `SETTINGS`.
 
 ---
 
@@ -291,6 +305,9 @@ is missing from this map.
   manifest fallback and path traversal protection.
 - **`src/tests/group_tests.rs`** — multi-cell objects: layout, atlas frames,
   layers, position lookup, group deletion.
+- **`src/tests/mods_tests.rs`** — mod discovery, manifest defaults, path
+  sandbox, blocked Lua globals, event handling, balance/item overrides and
+  texture layers without an active pack.
 - **`src/tests/npc_tests.rs`** — shopper: states, movement, food and candy,
   registers, routing, fade-out, door.
 - **`src/tests/input_tests.rs`** — input through `FakeInput`: zoom, UI hit

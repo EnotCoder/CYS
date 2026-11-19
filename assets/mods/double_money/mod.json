@@ -1,0 +1,9 @@
+{
+  "name": "Double Money",
+  "description": "Shoppers pay twice as much",
+  "author": "CYS",
+  "version": "1.0.0",
+  "entry": "main.lua",
+  "load_after": [],
+  "game_version": "0.1.3"
+}

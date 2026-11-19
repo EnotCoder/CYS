@@ -12,6 +12,7 @@ pub mod anim;
 pub mod components;
 pub mod fps;
 pub mod inventory;
+pub mod mods;
 pub mod settings;
 pub mod shop;
 pub mod system;

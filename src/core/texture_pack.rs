@@ -228,6 +228,21 @@ fn split_sized(path: &str) -> (&str, Option<(f32, f32)>) {
 /// путь — загрузчик сам подставит null.png, если и его нет.
 pub fn resolve(path: &str) -> String {
     let (base, _) = split_sized(path);
+
+    // Моды с текстурами — дополнительные слои поверх активного пака.
+    // Работают и без выбранного пака. Позже загруженный мод перекрывает ранний.
+    let mod_layers = crate::scripts::mods::texture_layers();
+    if let Some(rel) = base.strip_prefix("assets/tex/") {
+        for mod_id in mod_layers.iter().rev() {
+            let mod_root = format!("{}/textures", crate::scripts::mods::mod_root(mod_id));
+            if let Some(candidate) = safe_join(&mod_root, rel) {
+                if readable(&candidate) {
+                    return candidate;
+                }
+            }
+        }
+    }
+
     let st = state().lock().unwrap();
     let Some(id) = st.active.as_deref() else {
         return base.to_string();

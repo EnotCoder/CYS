@@ -155,6 +155,9 @@ pub struct GameSettings {
     /// Активный шейдер; None — встроенный WGSL.
     #[serde(default)]
     pub shader: Option<String>,
+    /// Включённые моды в порядке загрузки.
+    #[serde(default)]
+    pub mods: Vec<String>,
 }
 
 impl Default for GameSettings {
@@ -166,6 +169,7 @@ impl Default for GameSettings {
             sfx: true,
             texture_pack: None,
             shader: None,
+            mods: Vec::new(),
         }
     }
 }
@@ -199,4 +203,5 @@ pub static SETTINGS: std::sync::Mutex<GameSettings> = std::sync::Mutex::new(Game
     sfx: true,
     texture_pack: None,
     shader: None,
+    mods: Vec::new(),
 });

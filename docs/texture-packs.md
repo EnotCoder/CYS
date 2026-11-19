@@ -3,7 +3,8 @@
 A texture pack replaces existing art and animation data. It cannot add new
 objects, NPCs or gameplay logic; it only overrides what the game already draws.
 Packs can also change an object's atlas layout, add or remove object animation,
-and replace shopper idle/walk frames.
+and replace shopper idle/walk frames. To add items or change balance, use
+[mods](mods.md) instead — a mod's `textures/` folder layers above the pack.
 
 ## Pack locations
 
@@ -107,14 +108,17 @@ overlay.
 
 For a logical texture path the active pack is consulted in this order:
 
-1. `textures/<path after assets/tex/>` inside the pack;
-2. an exact key from the manifest's `textures` map;
-3. the vanilla `assets/tex/...` path;
-4. `assets/tex/dev_tools/null.png` if nothing can be loaded.
+1. an enabled [mod](mods.md)'s `textures/<path after assets/tex/>`, from the
+   last loaded mod to the first (mods work even with no pack selected);
+2. `textures/<path after assets/tex/>` inside the pack;
+3. an exact key from the manifest's `textures` map;
+4. the vanilla `assets/tex/...` path;
+5. `assets/tex/dev_tools/null.png` if nothing can be loaded.
 
 The mirror is checked first, so it wins over an explicit `textures` entry for
-the same path. If a pack file is present but cannot be decoded, the loader
-retries the vanilla path before showing `null.png`.
+the same path. Mod layers have the highest priority and are applied live when
+mods are toggled. If a file is present but cannot be decoded, the loader retries
+the next layer before showing `null.png`.
 
 A virtual size suffix such as `@2x1` is not part of a file name. It is stripped
 for lookup and still controls how the sprite is stretched, because the sprite

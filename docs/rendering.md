@@ -93,10 +93,10 @@ panicking.
 
 `Texture` = `wgpu::Texture` + view + sampler. Two constructors matter:
 
-- `from_path` — resolve the logical path through the active texture pack, decode
-  PNG/JPEG with the `image` crate, retry the vanilla path if a pack file is
-  unreadable or undecodable, then fall back to `dev_tools/null.png` (a broken
-  asset is visible, not fatal);
+- `from_path` — resolve the logical path through enabled mod texture layers and
+  the active texture pack, decode PNG/JPEG with the `image` crate, retry lower
+  layers and the vanilla path if a file is unreadable or undecodable, then fall
+  back to `dev_tools/null.png` (a broken asset is visible, not fatal);
 - `from_rgba` — raw pixels for text and UI.
 
 Atlases are plain grids: `texture_count = [cols, rows]`, `texture_frame =

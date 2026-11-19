@@ -15,6 +15,7 @@ hand.
 | `data/settings.json` | `./data/settings.json` | internal app data |
 | `texture_pack/<id>/` | `./texture_pack/<id>/` | `assets/texture_pack/<id>/` packed into the APK |
 | `shaders/<id>/` | `./shaders/<id>/` | `assets/shaders/<id>/` packed into the APK |
+| `mods/<id>/` | `./mods/<id>/` | `assets/mods/<id>/` packed into the APK |
 
 `core::asset` hides the difference: `load_bytes` reads project assets (on
 Android through `AAssetManager`, stripping the `assets/` prefix), while
@@ -22,10 +23,11 @@ Android through `AAssetManager`, stripping the `assets/` prefix), while
 (`data/` on desktop, `internal_data/data/` on Android).
 
 The whole `data/` directory is in `.gitignore`: worlds, the manifest and
-`settings.json` are created locally and never land in a commit. Texture packs
-and shaders are separate content: their manifests under `texture_pack/` and
-`shaders/` are explicitly unignored so they can be committed. See
-[texture-packs.md](texture-packs.md) and [shaders.md](shaders.md).
+`settings.json` are created locally and never land in a commit. Texture packs,
+shaders and mods are separate content: their manifests under `texture_pack/`,
+`shaders/` and `mods/` are explicitly unignored so they can be committed. See
+[texture-packs.md](texture-packs.md), [shaders.md](shaders.md) and
+[mods.md](mods.md).
 
 ## Map files
 
@@ -141,7 +143,8 @@ save.
   "music": true,
   "sfx": true,
   "texture_pack": "neon",
-  "shader": "crt"
+  "shader": "crt",
+  "mods": ["double_money", "big_shop"]
 }
 ```
 
@@ -153,13 +156,15 @@ save.
 | `sfx` | `true` | sound effects |
 | `texture_pack` | `null` | active pack id; `null` means Vanilla |
 | `shader` | `null` | active shader id; `null` means the built-in WGSL |
+| `mods` | `[]` | enabled mod ids **in load order**; later mods win |
 
 The file is rewritten on every settings change and on exit. A missing or
 unparsable file silently falls back to `GameSettings::default()`. Older files
-without `texture_pack` or `shader` load as Vanilla because both fields have
-`#[serde(default)]`. An id that no longer has a pack folder also falls back to
-Vanilla at startup; a shader that fails to load or compile keeps vanilla
-pipelines and reports the reason in Settings.
+without `texture_pack`, `shader` or `mods` load as Vanilla / no mods because the
+fields have `#[serde(default)]`. An id that no longer has a pack or mod folder is
+ignored; a shader that fails to load or compile keeps vanilla pipelines and
+reports the reason in Settings. Mods toggled in **Settings → Mods...** are saved
+here; see [mods.md](mods.md) for load order and when changes take effect.
 
 ## Compatibility notes
 

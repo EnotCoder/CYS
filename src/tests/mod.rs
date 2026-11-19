@@ -13,6 +13,7 @@ mod docs;
 mod group_tests;
 mod helpers;
 mod input_tests;
+mod mods_tests;
 mod npc_tests;
 mod placement_rules;
 mod shader_pack_tests;

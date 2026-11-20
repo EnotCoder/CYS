@@ -143,12 +143,16 @@ Because base scripts and mods share a VM, a mod may also define globals such as
 The **Mods** window has three entry points: the **Mods** button in the main
 menu, **Settings → Mods...** in that same menu, and **Settings → Mods...**
 in-game. The
-window lists discovered mods with an enable checkbox, title, author, version
-and status (`Loaded`, `Disabled`, `Pending restart`, `Error: ...` or
-`Needs game X`). When there are more than six mods the list scrolls with the
-mouse wheel, by dragging inside the panel or by dragging the scrollbar on the
-right. `Escape`, the **Close** button or a click outside the panel returns to
-the previous screen.
+window lists discovered mods in striped rows with an enable checkbox, title,
+author, version and status (`Loaded`, `Disabled`, `Pending restart`, `Error: ...`
+or `Needs game X`). The header shows how many mods are available and enabled;
+hovering a row shows its description in the footer. When there are more than
+six mods the list scrolls with the mouse wheel, by dragging inside the panel
+or by dragging the scrollbar on the right — checkboxes always belong to the
+row you clicked, even after scrolling. **Refresh** (or `R`) rescans the mods
+folder without closing the window, keeping the current selection; a mod whose
+folder was removed is dropped from the saved list. `Escape`, the **Close**
+button or a click outside the panel returns to the previous screen.
 
 Toggles are saved both to each `mod.json` (`use`) and to `data/settings.json`
 under `mods`:

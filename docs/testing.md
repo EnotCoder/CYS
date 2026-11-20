@@ -27,7 +27,7 @@ selected by name, for example `cargo test door`.
 | `src/tests/input_tests.rs` | zoom, UI hit tests, slider, shop scrolling, world name, door fade, weather |
 | `src/tests/anim_tests.rs` | `PanelAnim` open/close/cancel and text sprites |
 | `src/tests/mods_tests.rs` | mod discovery, manifest defaults and `use` parsing, path sandbox, blocked Lua globals, events, balance/item overrides, texture layers, `enabled_from`, `write_use_flag`, bundled manifests |
-| `src/ui/mods.rs` (unit test) | scroll offset and scrollbar thumb math; shared status text sprite is kept while another mod row still uses it |
+| `src/ui/mods.rs` (unit test) | scroll offset and scrollbar thumb math; a scrolled row resolves to its own mod id; shared status text sprite is kept while another mod row still uses it |
 | `src/tests/texture_pack_tests.rs` | file overlay, `pack.json` overrides, path safety, vanilla fallback |
 | `src/tests/docs.rs` | source map completeness and live links |
 
@@ -85,7 +85,11 @@ Before a release, run the game and check:
   and item changes; disabling one mod and enabling the other keeps both status
   lines visible (no `null` texture on the disabled row);
 - with more than six mods, wheel / drag scrolling reaches the last row and the
-  scrollbar thumb follows;
+  scrollbar thumb follows; clicking a checkbox after scrolling toggles the mod
+  on that row, not the one at the top of the list;
+- adding or removing a mod folder while the panel is open and pressing **Refresh**
+  (or `R`) updates the list and counter without closing it, keeping other
+  checkboxes as they were;
 - **Settings → Mods...** shows the same state in-game; toggling updates `use`
   in `mods/<id>/mod.json` on desktop;
 - shop purchase survives `Ctrl+S` and a reload from the menu;

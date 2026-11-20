@@ -209,11 +209,14 @@ is missing from this map.
   selectors, **Mods...** button (`mods_requested`), `open`/`close`/`reset`,
   `handle_input`, `apply_saved`. `hide_menu_button()` omits the **Back to menu**
   button when the panel is opened from the main menu.
-- **`src/ui/mods.rs`** — `Mods` window: enable/disable checkboxes, status text
-  (`Loaded`, `Disabled`, `Pending restart`, errors, version mismatch), load
-  order from checkboxes, conflict hint, `enabled_ids`, `refresh_statuses`.
-  Scrolls with wheel / dragging / scrollbar when there are more than six mods;
-  reused by the main menu and the game's Settings panel.
+- **`src/ui/mods.rs`** — `Mods` window: styled header/count, striped rows with
+  hover highlight, enable/disable checkboxes, status text (`Loaded`,
+  `Disabled`, `Pending restart`, errors, version mismatch), hovered description
+  in the footer, load order from checkboxes, conflict hint, `enabled_ids`,
+  `refresh_statuses`. Scrolls with wheel / dragging / scrollbar when there are
+  more than six mods; row clicks resolve through `mod_index_at` so scrolling
+  cannot toggle the wrong mod. **Refresh** / `R` calls `refresh()` to rescan the
+  folder in place. Reused by the main menu and the game's Settings panel.
 - **`src/ui/shop.rs`** — `Shop`: scrollable catalogue with a scrollbar,
   `ShopItem`, `ConfirmAction`, purchase confirmation dialog, `refresh`,
   `row_clicked`, `scroll_input`.

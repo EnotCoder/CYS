@@ -112,8 +112,16 @@ loop `snow.ogg`/`rain.ogg` as weather ambience.
 
 ## Main menu
 
-After the splash screen the main menu shows the game logo and four buttons:
-**Play** (world selection), **Settings**, **Mods** and **Quit**. **Settings**
+On the first launch, the logo splash is followed by a short intro cutscene:
+darkness, procedural stars, then three quick zooms to the solar system, a
+continent and the shop, with `swish.ogg` on each jump. Any click or key skips
+it; the skip press is consumed and cannot activate a menu button. Returning
+from the game to the menu never replays the splash or the intro.
+
+After the cutscene the main menu shows the game logo and four buttons:
+**Play** (world selection), **Settings**, **Mods** and **Quit**. The logo and
+buttons fade in with a slight upward slide and a small scale settle, staggered
+from top to bottom. **Settings**
 opens the same panel as the in-game settings, minus **Back to menu** (there is
 nowhere to go back to); `Escape` or a click outside closes it. **Mods** opens
 the same scrollable enable/disable panel as **Settings → Mods...** in game;

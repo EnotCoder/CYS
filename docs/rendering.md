@@ -38,6 +38,30 @@ inside a wgpu validation error scope; a failed custom shader keeps the previous
 game state, rebuilds vanilla pipelines and shows the reason in Settings. See
 [shaders.md](shaders.md).
 
+## Intro cutscene
+
+The logo splash hands over to `IntroScene`, which temporarily owns the whole
+surface through the `Scene::render_custom` hook. It uses four private WGSL
+modules under `src/scenes/cutscene/shaders/`: instanced star quads, procedural
+solar-system and continent planes, a two-target radial-blur composite, and a
+small alpha-blended skip hint. The nine-stage schedule and jump focus points
+live in `timeline.rs`; changing the artwork happens in the WGSL files, not in
+the sprite renderer. Holds are deliberately long and jumps stay short, so the
+cutscene reads as a series of sharp zooms with pauses, not a continuous flight.
+
+The four `cat_scene` textures are pixel art: they use a `NonFiltering` sampler
+and `FilterMode::Nearest`, while only the offscreen composite and the skip hint
+use linear sampling. The composite has no film grain or bloom — those effects
+smeared pixel edges — and the radial blur is confined to jumps.
+
+The shop plan is not a new image. On entry the intro rebuilds the same map and
+decor as the main menu, and `CutsceneRenderer::capture_shop` renders that state
+once into an offscreen target in `wgpu_app.surface_format` with
+`render_to_view`. Every other plane is drawn into reusable targets of the same
+format and size, so resize only
+recreates those targets and their bind groups. The normal sprite pass resumes
+when the scene switches back to `menu`.
+
 ## One frame, three passes
 
 1. **Map** — `render_pipeline`, depth cleared. Map tiles are opaque and cover
@@ -74,6 +98,9 @@ alpha). `render_group` then:
 1. builds a cache key with `sprite_cache_key` = layer + path + frame + atlas +
    scale (float hashed by `to_bits`);
 2. takes a ready `Sprite` from `EcsAdapter::sprite_cache` or builds it once;
+   text sprites are cached with `scale = 1.0` because their "path" is a virtual
+   raster key, so UI animations may only change their alpha and position —
+   scaling them makes the renderer fall back to `null.png`;
 3. writes all `Uniforms` for the batch into one `queue.write_buffer` call,
    padding each 32-byte struct to `min_storage_buffer_offset_alignment`;
 4. issues one draw per sprite with a dynamic offset.

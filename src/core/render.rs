@@ -41,11 +41,6 @@ pub fn render(
     light_data: &[crate::core::buffers::LightData],
     light_buffer: &wgpu::Buffer,
 ) {
-    // Пишем данные о свете в буфер перед отрисовкой
-    if !light_data.is_empty() {
-        queue.write_buffer(light_buffer, 0, bytemuck::cast_slice(light_data));
-    }
-
     // Получаем текущий кадр поверхности. Suboptimal тоже показываем —
     // это лишь сигнал о том, что размер окна скоро изменится.
     let current = surface.get_current_texture();
@@ -57,6 +52,67 @@ pub fn render(
     let view = frame
         .texture
         .create_view(&wgpu::TextureViewDescriptor::default());
+
+    render_to_view(
+        &view,
+        device,
+        queue,
+        render_pipeline,
+        transparent_pipeline,
+        depth_view,
+        map_sprites,
+        carpet_sprites,
+        light_sprites,
+        decor_sprites,
+        npc_sprites,
+        weather_sprites,
+        cursor_sprites,
+        ui_sprites,
+        size_bind_group,
+        ui_bind_group,
+        sprite_cache,
+        texture_cache,
+        dynamic_uniform_buffer,
+        dynamic_bind_group,
+        dynamic_alignment,
+        light_data,
+        light_buffer,
+    );
+
+    queue.present(frame);
+}
+
+/// Тот же кадр, но в произвольный view (surface или offscreen-таргет).
+/// Используется кат-сценой для снимка магазина в текстуру.
+#[allow(clippy::too_many_arguments)]
+pub fn render_to_view(
+    view: &wgpu::TextureView,
+    device: &wgpu::Device,
+    queue: &wgpu::Queue,
+    render_pipeline: &wgpu::RenderPipeline,
+    transparent_pipeline: &wgpu::RenderPipeline,
+    depth_view: &wgpu::TextureView,
+    map_sprites: &[SpriteRenderData],
+    carpet_sprites: &[SpriteRenderData],
+    light_sprites: &[SpriteRenderData],
+    decor_sprites: &[SpriteRenderData],
+    npc_sprites: &[SpriteRenderData],
+    weather_sprites: &[SpriteRenderData],
+    cursor_sprites: &[SpriteRenderData],
+    ui_sprites: &[SpriteRenderData],
+    size_bind_group: &wgpu::BindGroup,
+    ui_bind_group: &wgpu::BindGroup,
+    sprite_cache: &mut HashMap<u64, Sprite>,
+    texture_cache: &mut HashMap<String, Texture>,
+    dynamic_uniform_buffer: &wgpu::Buffer,
+    dynamic_bind_group: &wgpu::BindGroup,
+    dynamic_alignment: u64,
+    light_data: &[crate::core::buffers::LightData],
+    light_buffer: &wgpu::Buffer,
+) {
+    if !light_data.is_empty() {
+        queue.write_buffer(light_buffer, 0, bytemuck::cast_slice(light_data));
+    }
 
     // CommandEncoder накапливает все команды кадра, которые потом
     // одним куском отправляются в очередь (queue.submit).
@@ -157,7 +213,6 @@ pub fn render(
 
     // Отправляем все команды кадра в очередь и показываем результат на экране.
     queue.submit(std::iter::once(encoder.finish()));
-    queue.present(frame);
 }
 
 // ========================================================================

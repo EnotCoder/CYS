@@ -235,7 +235,10 @@ pub fn rescan() -> Vec<ModInfo> {
 
 /// Стабильная топологическая сортировка: зависимости из `load_after`
 /// идут раньше мода, остальной порядок сохраняется.
-pub(crate) fn resolve_order(enabled: &[String], available: &[ModInfo]) -> (Vec<String>, Vec<String>) {
+pub(crate) fn resolve_order(
+    enabled: &[String],
+    available: &[ModInfo],
+) -> (Vec<String>, Vec<String>) {
     let known: Vec<&ModInfo> = enabled
         .iter()
         .filter_map(|id| available.iter().find(|m| m.id == *id))
@@ -272,9 +275,7 @@ pub(crate) fn resolve_order(enabled: &[String], available: &[ModInfo]) -> (Vec<S
                 ));
                 continue;
             }
-            visit(
-                dep, known, known_ids, ordered, visiting, conflicts,
-            );
+            visit(dep, known, known_ids, ordered, visiting, conflicts);
         }
         visiting.retain(|x| x != id);
         if !ordered.iter().any(|x| x == id) {
@@ -303,8 +304,17 @@ pub(crate) fn resolve_order(enabled: &[String], available: &[ModInfo]) -> (Vec<S
 fn sandbox(lua: &Lua) -> mlua::Result<()> {
     let globals = lua.globals();
     for name in [
-        "io", "os", "require", "load", "loadstring", "package", "debug",
-        "dofile", "loadfile", "coroutine", "print",
+        "io",
+        "os",
+        "require",
+        "load",
+        "loadstring",
+        "package",
+        "debug",
+        "dofile",
+        "loadfile",
+        "coroutine",
+        "print",
     ] {
         globals.set(name, Value::Nil)?;
     }
@@ -316,10 +326,7 @@ fn lua_value_to_mod(value: Value) -> Option<ModValue> {
         Value::Integer(i) => Some(ModValue::Int(i)),
         Value::Number(n) => Some(ModValue::Float(n)),
         Value::Boolean(b) => Some(ModValue::Bool(b)),
-        Value::String(s) => s
-            .to_str()
-            .ok()
-            .map(|s| ModValue::Str(s.to_string())),
+        Value::String(s) => s.to_str().ok().map(|s| ModValue::Str(s.to_string())),
         _ => None,
     }
 }
@@ -348,21 +355,23 @@ fn install_api(lua: &Lua) -> mlua::Result<()> {
     let set_lua = lua.clone();
     api.set(
         "set_balance",
-        lua.create_function(move |_, (key, value): (String, Value)| -> mlua::Result<()> {
-            let Some(parsed) = lua_value_to_mod(value.clone()) else {
-                return Err(mlua::Error::RuntimeError(
-                    "mod.set_balance expects a number, boolean or string".to_string(),
-                ));
-            };
-            load()
-                .lock()
-                .unwrap()
-                .balance
-                .insert(key.clone(), parsed.clone());
-            let config: Table = set_lua.globals().get("CONFIG")?;
-            config.set(key, mod_value_to_lua(&set_lua, &parsed)?)?;
-            Ok(())
-        })?,
+        lua.create_function(
+            move |_, (key, value): (String, Value)| -> mlua::Result<()> {
+                let Some(parsed) = lua_value_to_mod(value.clone()) else {
+                    return Err(mlua::Error::RuntimeError(
+                        "mod.set_balance expects a number, boolean or string".to_string(),
+                    ));
+                };
+                load()
+                    .lock()
+                    .unwrap()
+                    .balance
+                    .insert(key.clone(), parsed.clone());
+                let config: Table = set_lua.globals().get("CONFIG")?;
+                config.set(key, mod_value_to_lua(&set_lua, &parsed)?)?;
+                Ok(())
+            },
+        )?,
     )?;
 
     api.set(
@@ -394,11 +403,13 @@ fn install_api(lua: &Lua) -> mlua::Result<()> {
         lua.create_function(|_, def: Table| -> mlua::Result<()> {
             let item = item_from_lua(&def)?;
             let mut ctx = load().lock().unwrap();
-            if let Some(index) = ctx.items.iter().position(|existing| existing.name == item.name) {
-                ctx.conflicts.push(format!(
-                    "item '{}' redefined (later mod wins)",
-                    item.name
-                ));
+            if let Some(index) = ctx
+                .items
+                .iter()
+                .position(|existing| existing.name == item.name)
+            {
+                ctx.conflicts
+                    .push(format!("item '{}' redefined (later mod wins)", item.name));
                 ctx.items[index] = item;
             } else {
                 ctx.items.push(item);
@@ -410,28 +421,30 @@ fn install_api(lua: &Lua) -> mlua::Result<()> {
     let on_lua = lua.clone();
     api.set(
         "on",
-        lua.create_function(move |_, (event, handler): (String, Function)| -> mlua::Result<()> {
-            if !EVENTS.contains(&event.as_str()) {
-                let mut ctx = load().lock().unwrap();
-                ctx.conflicts
-                    .push(format!("unknown event '{event}' ignored"));
-                return Ok(());
-            }
-            let events: Table = on_lua.globals().get(EVENT_TABLE)?;
-            let list: Table = match events.get(event.as_str()) {
-                Ok(list) => list,
-                Err(_) => {
-                    let list = on_lua.create_table()?;
-                    events.set(event.as_str(), list.clone())?;
-                    list
+        lua.create_function(
+            move |_, (event, handler): (String, Function)| -> mlua::Result<()> {
+                if !EVENTS.contains(&event.as_str()) {
+                    let mut ctx = load().lock().unwrap();
+                    ctx.conflicts
+                        .push(format!("unknown event '{event}' ignored"));
+                    return Ok(());
                 }
-            };
-            let entry = on_lua.create_table()?;
-            entry.set("mod", load().lock().unwrap().mod_id.clone())?;
-            entry.set("fn", handler)?;
-            list.set(list.raw_len() + 1, entry)?;
-            Ok(())
-        })?,
+                let events: Table = on_lua.globals().get(EVENT_TABLE)?;
+                let list: Table = match events.get(event.as_str()) {
+                    Ok(list) => list,
+                    Err(_) => {
+                        let list = on_lua.create_table()?;
+                        events.set(event.as_str(), list.clone())?;
+                        list
+                    }
+                };
+                let entry = on_lua.create_table()?;
+                entry.set("mod", load().lock().unwrap().mod_id.clone())?;
+                entry.set("fn", handler)?;
+                list.set(list.raw_len() + 1, entry)?;
+                Ok(())
+            },
+        )?,
     )?;
 
     lua.globals().set("mod", api)?;
@@ -520,7 +533,10 @@ fn item_from_lua(t: &Table) -> mlua::Result<ItemDef> {
         height: integer("height", 1) as i32,
         texture,
         icon,
-        icon_size: [number("icon_width", 1.0) as f32, number("icon_height", 1.0) as f32],
+        icon_size: [
+            number("icon_width", 1.0) as f32,
+            number("icon_height", 1.0) as f32,
+        ],
         price: integer("price", 0) as i32,
         frame: pair("frame", [0, 0]),
         atlas: pair("atlas", [1, 1]),
@@ -611,11 +627,7 @@ pub fn reload(enabled: &[String]) {
         let source = match source {
             Ok(source) => source,
             Err(error) => {
-                state()
-                    .lock()
-                    .unwrap()
-                    .errors
-                    .insert(id.clone(), error);
+                state().lock().unwrap().errors.insert(id.clone(), error);
                 continue;
             }
         };
@@ -655,11 +667,7 @@ pub fn reload(enabled: &[String]) {
             st.conflicts.extend(ctx.conflicts.clone());
         }
         state().lock().unwrap().loaded.push(id.clone());
-        emit(
-            EVENT_STARTUP,
-            &[("mod", ModArg::Str(id.clone()))],
-            0.0,
-        );
+        emit(EVENT_STARTUP, &[("mod", ModArg::Str(id.clone()))], 0.0);
     }
     {
         let mut st = state().lock().unwrap();
@@ -750,16 +758,15 @@ pub fn write_use_flag(id: &str, enabled: bool) -> Result<(), String> {
         return Ok(());
     }
     let path = format!("{}/{MANIFEST_FILE}", mod_root(id));
-    let text = std::fs::read_to_string(&path)
-        .map_err(|e| format!("cannot read {path}: {e}"))?;
+    let text = std::fs::read_to_string(&path).map_err(|e| format!("cannot read {path}: {e}"))?;
     let mut value: serde_json::Value =
         serde_json::from_str(&text).map_err(|e| format!("invalid {path}: {e}"))?;
     let Some(object) = value.as_object_mut() else {
         return Err(format!("{path}: mod.json must be an object"));
     };
     object.insert("use".to_string(), serde_json::Value::Bool(enabled));
-    let pretty = serde_json::to_string_pretty(&value)
-        .map_err(|e| format!("cannot encode {path}: {e}"))?;
+    let pretty =
+        serde_json::to_string_pretty(&value).map_err(|e| format!("cannot encode {path}: {e}"))?;
     std::fs::write(&path, format!("{pretty}\n"))
         .map_err(|e| format!("cannot write {path}: {e}"))?;
     {
@@ -793,9 +800,13 @@ pub fn apply_balance(config: &mut crate::scripts::config::BalanceConfig) {
     for (key, value) in &st.balance {
         match (key.as_str(), value) {
             ("shopper_spawn_interval", ModValue::Float(v)) => config.shopper_spawn_interval = *v,
-            ("shopper_spawn_interval", ModValue::Int(v)) => config.shopper_spawn_interval = *v as f64,
+            ("shopper_spawn_interval", ModValue::Int(v)) => {
+                config.shopper_spawn_interval = *v as f64
+            }
             ("shopper_spawn_cooldown", ModValue::Float(v)) => config.shopper_spawn_cooldown = *v,
-            ("shopper_spawn_cooldown", ModValue::Int(v)) => config.shopper_spawn_cooldown = *v as f64,
+            ("shopper_spawn_cooldown", ModValue::Int(v)) => {
+                config.shopper_spawn_cooldown = *v as f64
+            }
             ("max_shoppers", ModValue::Int(v)) => config.max_shoppers = (*v).max(1) as usize,
             ("food_regen_tick", ModValue::Float(v)) => config.food_regen_tick = *v,
             ("food_regen_tick", ModValue::Int(v)) => config.food_regen_tick = *v as f64,
@@ -896,11 +907,12 @@ pub fn emit(event: &str, fields: &[(&str, ModArg)], dt: f64) -> bool {
 
     let mut handled = false;
     let mut failed: Vec<(String, String)> = Vec::new();
-    let entries: Vec<Table> = list.sequence_values::<Table>().filter_map(Result::ok).collect();
+    let entries: Vec<Table> = list
+        .sequence_values::<Table>()
+        .filter_map(Result::ok)
+        .collect();
     for entry in entries {
-        let mod_id: String = entry
-            .get("mod")
-            .unwrap_or_else(|_| "unknown".to_string());
+        let mod_id: String = entry.get("mod").unwrap_or_else(|_| "unknown".to_string());
         let handler: Function = match entry.get("fn") {
             Ok(handler) => handler,
             Err(_) => continue,

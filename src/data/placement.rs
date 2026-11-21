@@ -362,7 +362,10 @@ pub fn add(ecs: &mut EcsAdapter, slots: &mut Vec<Slot>, act_slot: i32, gx: i32, 
     crate::scripts::mods::emit(
         crate::scripts::mods::EVENT_MONEY_CHANGED,
         &[
-            ("amount", crate::scripts::mods::ModArg::Int(money_before as i64 - price as i64)),
+            (
+                "amount",
+                crate::scripts::mods::ModArg::Int(money_before as i64 - price as i64),
+            ),
             ("delta", crate::scripts::mods::ModArg::Int(-(price as i64))),
         ],
         0.0,
@@ -482,7 +485,10 @@ pub fn add(ecs: &mut EcsAdapter, slots: &mut Vec<Slot>, act_slot: i32, gx: i32, 
     crate::scripts::mods::emit(
         crate::scripts::mods::EVENT_OBJECT_PLACED,
         &[
-            ("name", crate::scripts::mods::ModArg::Str(active_slot.name.to_string())),
+            (
+                "name",
+                crate::scripts::mods::ModArg::Str(active_slot.name.to_string()),
+            ),
             ("x", crate::scripts::mods::ModArg::Int(gx as i64)),
             ("y", crate::scripts::mods::ModArg::Int(gy as i64)),
             ("price", crate::scripts::mods::ModArg::Int(price as i64)),
@@ -529,7 +535,10 @@ pub fn remove(ecs: &mut EcsAdapter, gx: i32, gy: i32) -> bool {
                 crate::scripts::mods::emit(
                     crate::scripts::mods::EVENT_MONEY_CHANGED,
                     &[
-                        ("amount", crate::scripts::mods::ModArg::Int(money_before as i64 + refund as i64)),
+                        (
+                            "amount",
+                            crate::scripts::mods::ModArg::Int(money_before as i64 + refund as i64),
+                        ),
                         ("delta", crate::scripts::mods::ModArg::Int(refund as i64)),
                     ],
                     0.0,

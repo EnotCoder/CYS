@@ -146,20 +146,32 @@ is missing from this map.
 ## `src/scenes/` — scenes
 
 - **`src/scenes/mod.rs`** — declares `scene_trait`, `scene_manager`,
-  `menu_scene`, `game`; re-exports `Scene`, `SceneManager`, `MenuScene`,
-  `GameScene`.
+  `menu_scene`, `cutscene`, `game`; re-exports `Scene`, `SceneManager`,
+  `MenuScene`, `IntroScene`, `GameScene`.
 - **`src/scenes/scene_trait.rs`** — the `Scene` trait (`on_enter`, `on_exit`,
   `update`, `sprites`, `map_size`, `camera_offset`, `night_factor`, `lights`,
-  `ui_size`) and `SceneAction`.
-- **`src/scenes/scene_manager.rs`** — `SceneManager`: `menu`/`game` registry,
-  one ECS world, `switch_to` (stop music, clear, `on_enter`), `update_fps`,
-  `clear_ecs_world`.
+  `ui_size`, custom-render hook) and `SceneAction`.
+- **`src/scenes/scene_manager.rs`** — `SceneManager`: `menu`/`intro`/`game`
+  registry, one ECS world, `switch_to` (stop music, clear, `on_enter`),
+  `update_fps`, `clear_ecs_world`.
 - **`src/scenes/menu_scene.rs`** — `MenuScene`: background map, logo,
   Play/Mods/Quit buttons, world pick/create/delete with confirmation, hover
   highlight, Space/click to start, Escape to quit. Buttons run
   Play → Settings → Mods → Quit; Settings reuses the in-game panel without the
   **Back to menu** button, Mods opens the shared scrollable mod panel.
   `ui_size()` widens in those states so 9×6 / 10×7.4 panels fit.
+- **`src/scenes/cutscene/mod.rs`** — `IntroScene`: the logo-to-menu cutscene;
+  timeline clock, skip on any input, `swish` on each jump, rebuilds the menu
+  map/decor for the shop snapshot and owns the custom renderer.
+- **`src/scenes/cutscene/timeline.rs`** — `Stage`, `Plane`, nine-stage
+  `TIMELINE`, `IntroClock`, per-plane transforms and jump parameters (focus,
+  zoom, blur); pure data and unit tests.
+- **`src/scenes/cutscene/stars.rs`** — deterministic 296-star field with three
+  parallax layers, quantized alpha, wrap only during calm stages, and the
+  per-frame instance buffer.
+- **`src/scenes/cutscene/renderer.rs`** — `CutsceneRenderer`: offscreen plane
+  targets, instanced stars, procedural solar/continent shaders, radial-blur
+  composite, menu-background snapshot and the subtle skip hint.
 - **`src/scenes/game/mod.rs`** — `GameScene`: main loop — input, rent,
   bankruptcy, settings and Mods window, live texture-pack/mod-layer switching,
   food regen, per-sprite animations, day/night with mod events, shoppers,

@@ -69,7 +69,10 @@ fn bundled_mods_are_discovered() {
 fn mod_paths_stay_inside_the_mod_folder() {
     let base = crate::scripts::mods::mod_root("neon");
     let join = crate::core::texture_pack::safe_join;
-    assert_eq!(join(&base, "main.lua").as_deref(), Some("mods/neon/main.lua"));
+    assert_eq!(
+        join(&base, "main.lua").as_deref(),
+        Some("mods/neon/main.lua")
+    );
     assert!(join(&base, "../config.lua").is_none());
     assert!(join(&base, "/etc/passwd").is_none());
     assert!(join(&base, "textures\\a.png").is_none());
@@ -115,10 +118,7 @@ fn event_handlers_can_mark_events_handled() {
 #[test]
 fn bundled_mods_override_balance_and_item_catalog() {
     let _guard = MODS_LOCK.lock().unwrap();
-    crate::scripts::mods::set_enabled(vec![
-        "double_money".to_string(),
-        "big_shop".to_string(),
-    ]);
+    crate::scripts::mods::set_enabled(vec!["double_money".to_string(), "big_shop".to_string()]);
     let cfg = crate::scripts::config::BalanceConfig::load();
     assert_eq!(cfg.money_at_cassa, 10);
     assert_eq!(cfg.money_at_candy, 2);
@@ -163,18 +163,12 @@ fn mod_texture_layer_applies_without_active_pack() {
 
 #[test]
 fn manifest_use_flag_is_optional() {
-    let on: crate::scripts::mods::ModManifest = serde_json::from_str(
-        r#"{"name":"On","use":true}"#,
-    )
-    .unwrap();
-    let off: crate::scripts::mods::ModManifest = serde_json::from_str(
-        r#"{"name":"Off","use":false}"#,
-    )
-    .unwrap();
-    let missing: crate::scripts::mods::ModManifest = serde_json::from_str(
-        r#"{"name":"Missing"}"#,
-    )
-    .unwrap();
+    let on: crate::scripts::mods::ModManifest =
+        serde_json::from_str(r#"{"name":"On","use":true}"#).unwrap();
+    let off: crate::scripts::mods::ModManifest =
+        serde_json::from_str(r#"{"name":"Off","use":false}"#).unwrap();
+    let missing: crate::scripts::mods::ModManifest =
+        serde_json::from_str(r#"{"name":"Missing"}"#).unwrap();
     assert_eq!(on.use_mod, Some(true));
     assert_eq!(off.use_mod, Some(false));
     assert_eq!(missing.use_mod, None);

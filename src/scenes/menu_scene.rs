@@ -16,6 +16,9 @@ use std::io::{BufRead, BufReader};
 use crate::scenes::game::weather_fx;
 use specs::WorldExt;
 
+const MENU_APPEAR_DURATION: f32 = 0.45;
+const MENU_APPEAR_STAGGER: f32 = 0.09;
+
 // ========================================================================
 //  MenuScene — главное меню игры
 // ========================================================================
@@ -110,6 +113,8 @@ pub struct MenuScene {
     delete_confirm_panel: Option<Panel>,
     delete_confirm_delete_btn: Option<Button>,
     delete_confirm_cancel_btn: Option<Button>,
+    // Плавное появление логотипа и кнопок после входа в меню
+    appear_time: f32,
     // Погода
     weather_fx: weather_fx::WeatherFx,
 }
@@ -168,6 +173,7 @@ impl MenuScene {
             delete_confirm_panel: None,
             delete_confirm_delete_btn: None,
             delete_confirm_cancel_btn: None,
+            appear_time: 0.0,
             weather_fx: weather_fx::WeatherFx::new(),
         }
     }
@@ -213,6 +219,7 @@ impl MenuScene {
             }
             MenuState::Main => {
                 crate::data::map::load_map_to_ecs(ecs);
+                self.appear_time = 0.0;
                 self.logo = Some(ecs.add_ui_sized(
                     LOGO_X,
                     LOGO_Y,
@@ -706,7 +713,7 @@ impl MenuScene {
 
     /// Расставляет декоративные объекты магазина по файлу menu_shop.txt.
     /// Каждый токен-буква соответствует предмету (b — box, r — rack, c — cassa и т.д.).
-    fn place_decor(ecs: &mut crate::EcsAdapter) {
+    pub(crate) fn place_decor(ecs: &mut crate::EcsAdapter) {
         let bytes = crate::core::asset::load_bytes("assets/menu_shop.txt")
             .expect("menu_shop.txt not found!");
         let reader = BufReader::new(&bytes[..]);
@@ -762,7 +769,16 @@ impl MenuScene {
         ecs.update_fence_textures();
     }
 
-    /// Проверка, находится ли курсор мыши над прямоугольником кнопки
+    /// Alpha, смещение сверху и масштаб элемента с задержкой по очереди.
+    fn appear_state(elapsed: f32, index: usize) -> (f32, f32, f32) {
+        let delay = index as f32 * MENU_APPEAR_STAGGER;
+        let t = ((elapsed - delay) / MENU_APPEAR_DURATION).clamp(0.0, 1.0);
+        let alpha = 1.0 - (1.0 - t).powi(3);
+        let drop = 0.35 * (1.0 - alpha);
+        let scale = 0.92 + 0.08 * crate::core::util::ease_out_back(t);
+        (alpha, drop, scale)
+    }
+
     fn is_inside(
         input: &dyn InputSource,
         window_size: (f32, f32),
@@ -944,8 +960,7 @@ impl MenuScene {
             || input.key_pressed(winit::keyboard::KeyCode::Enter)
             || input.key_pressed(winit::keyboard::KeyCode::Escape)
         {
-            self.finish_splash(ecs, text_renderer, device, queue);
-            return SceneAction::None;
+            return self.finish_splash(ecs, text_renderer, device, queue);
         }
 
         let t = self.splash_timer;
@@ -975,22 +990,23 @@ impl MenuScene {
         }
 
         if t >= total {
-            self.finish_splash(ecs, text_renderer, device, queue);
+            return self.finish_splash(ecs, text_renderer, device, queue);
         }
         SceneAction::None
     }
 
-    /// Завершает сплэш и переходит в главное меню (один раз за запуск).
+    /// Завершает сплэш и передаёт управление вступительной кат-сцене.
+    /// Возврат в меню после кат-сцены уже не показывает ни сплэш, ни интро.
     fn finish_splash(
         &mut self,
-        ecs: &mut crate::EcsAdapter,
-        text_renderer: &mut crate::ui::text_renderer::TextRenderer,
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
-    ) {
+        _ecs: &mut crate::EcsAdapter,
+        _text_renderer: &mut crate::ui::text_renderer::TextRenderer,
+        _device: &wgpu::Device,
+        _queue: &wgpu::Queue,
+    ) -> SceneAction {
         self.splash_shown = true;
         self.state = MenuState::Main;
-        self.setup_content(ecs, text_renderer, device, queue);
+        SceneAction::Switch("intro".to_string())
     }
 
     /// Логика главного экрана: подсветка Play/Settings/Mods/Quit и клики.
@@ -1006,10 +1022,15 @@ impl MenuScene {
     ) -> SceneAction {
         // Синусоидальное покачивание логотипа по вертикали (dt клампим, чтобы
         // после фриза/перетаскивания окна логотип не прыгал)
-        self.logo_time += dt.clamp(0.0, 0.1) as f32;
+        let frame_dt = dt.clamp(0.0, 0.1) as f32;
+        self.logo_time += frame_dt;
+        self.appear_time += frame_dt;
         let logo_offset = MENU_LOGO_AMPLITUDE * (self.logo_time * MENU_LOGO_SPEED).sin();
+        let (logo_alpha, logo_drop, logo_scale) = Self::appear_state(self.appear_time, 0);
         if let Some(e) = self.logo {
-            ecs.update_transform_position(e, LOGO_X, LOGO_Y + logo_offset);
+            ecs.update_transform_position(e, LOGO_X, LOGO_Y + logo_offset + logo_drop);
+            ecs.update_sprite_alpha(e, logo_alpha);
+            ecs.update_sprite_scale(e, logo_scale);
         }
 
         // Подсветка кнопки Play при наведении (зелёный текст вместо обычного)
@@ -1133,24 +1154,53 @@ impl MenuScene {
         if (quit_target - self.quit_scale).abs() < 0.0001 {
             self.quit_scale = quit_target;
         }
-        if let Some(bg) = &self.play_bg {
-            if let Some(e) = bg.entity {
-                ecs.update_sprite_scale(e, self.play_scale);
+        let buttons = [
+            (
+                self.play_bg.as_ref().and_then(|p| p.entity),
+                self.play_label,
+                BTN_X,
+                BTN_Y,
+                self.play_scale,
+                1,
+            ),
+            (
+                self.settings_bg.as_ref().and_then(|p| p.entity),
+                self.settings_label,
+                MENU_SETTINGS_X,
+                MENU_SETTINGS_Y,
+                self.settings_scale,
+                2,
+            ),
+            (
+                self.mods_bg.as_ref().and_then(|p| p.entity),
+                self.mods_label,
+                MODS_X,
+                MODS_Y,
+                self.mods_scale,
+                3,
+            ),
+            (
+                self.quit_bg.as_ref().and_then(|p| p.entity),
+                self.quit_label,
+                QUIT_X,
+                QUIT_Y,
+                self.quit_scale,
+                4,
+            ),
+        ];
+        for (bg, label, x, y, hover_scale, index) in buttons {
+            let (alpha, drop, scale) = Self::appear_state(self.appear_time, index);
+            if let Some(e) = bg {
+                ecs.update_transform_position(e, x, y + drop);
+                ecs.update_sprite_alpha(e, alpha);
+                ecs.update_sprite_scale(e, hover_scale * scale);
             }
-        }
-        if let Some(bg) = &self.settings_bg {
-            if let Some(e) = bg.entity {
-                ecs.update_sprite_scale(e, self.settings_scale);
-            }
-        }
-        if let Some(bg) = &self.mods_bg {
-            if let Some(e) = bg.entity {
-                ecs.update_sprite_scale(e, self.mods_scale);
-            }
-        }
-        if let Some(bg) = &self.quit_bg {
-            if let Some(e) = bg.entity {
-                ecs.update_sprite_scale(e, self.quit_scale);
+            if let Some(e) = label {
+                // Масштаб текстового спрайта менять нельзя: он входит в ключ
+                // sprite_cache, а виртуальный путь текста не является файлом —
+                // пока scale != 1.0, рендер показал бы null.png.
+                ecs.update_transform_position(e, x, y + 0.05 + drop);
+                ecs.update_sprite_alpha(e, alpha);
             }
         }
 

@@ -139,11 +139,7 @@ impl EcsAdapter {
     // Возвращает true, если на текстуру ещё ссылается живая сущность, кроме
     // `except`. Одинаковые подписи (например, статусы двух модов) делят один
     // спрайт в кэше, поэтому удалять его можно только когда он нигде не виден.
-    pub fn texture_path_in_use(
-        &self,
-        texture_path: &str,
-        except: Option<specs::Entity>,
-    ) -> bool {
+    pub fn texture_path_in_use(&self, texture_path: &str, except: Option<specs::Entity>) -> bool {
         use specs::Join;
         let sprites = self.world.read_storage::<SpriteComponent>();
         let entities = self.world.entities();

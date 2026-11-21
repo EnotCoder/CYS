@@ -180,6 +180,32 @@ impl App {
             crate::scenes::SceneAction::None => {}
         }
 
+        // Кат-сцена владеет surface целиком: обычный sprite-рендер не вызываем.
+        let custom_rendered = {
+            let Some(ref wgpu_app) = self.wgpu_app else {
+                return;
+            };
+            let scene = self
+                .scene_manager
+                .scenes
+                .get_mut(&self.scene_manager.current)
+                .unwrap();
+            if scene.uses_custom_render() {
+                Some(scene.render_custom(
+                    &mut self.scene_manager.ecs,
+                    wgpu_app,
+                    surface,
+                    window_size,
+                    &mut self.text_renderer,
+                ))
+            } else {
+                None
+            }
+        };
+        if custom_rendered == Some(true) {
+            return;
+        }
+
         // focus_requested повторно вызывает showSoftInput после системного скрытия.
         let ime_wanted = crate::ui::text_input::TEXT_INPUT.is_active();
         let focus_requested = crate::ui::text_input::TEXT_INPUT.take_focus_request();

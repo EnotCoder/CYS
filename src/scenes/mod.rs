@@ -7,11 +7,13 @@
 //  Здесь объявлены трейт Scene, реестр сцен SceneManager, главное меню
 //  и игровая сцена (в подмодуле game/ — цикл день/ночь, HUD и покупатели).
 
+pub mod cutscene;
 pub mod game;
 pub mod menu_scene;
 pub mod scene_manager;
 pub mod scene_trait;
 
+pub use cutscene::IntroScene;
 pub use game::GameScene;
 pub use menu_scene::MenuScene;
 pub use scene_manager::*;

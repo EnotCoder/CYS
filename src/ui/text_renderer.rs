@@ -210,6 +210,18 @@ impl TextRenderer {
         &self.tex_cache[&key]
     }
 
+    /// Готовые RGBA-пиксели текста для собственных GPU-пайплайнов (заставка).
+    pub fn raster_rgba(
+        &mut self,
+        text: &str,
+        px_size: f32,
+        outline: f32,
+        color: [u8; 3],
+    ) -> (Vec<u8>, u32, u32) {
+        let (pixels, width, height) = self.rasterize(text, px_size, outline, color);
+        (pixels.clone(), *width, *height)
+    }
+
     /// World-space text size for a given width (height keeps bitmap proportions).
     pub fn text_world_size(
         &mut self,

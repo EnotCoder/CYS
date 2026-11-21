@@ -277,7 +277,10 @@ impl NpcScript {
                     crate::scripts::mods::emit(
                         crate::scripts::mods::EVENT_MONEY_CHANGED,
                         &[
-                            ("amount", crate::scripts::mods::ModArg::Int(before as i64 + n as i64)),
+                            (
+                                "amount",
+                                crate::scripts::mods::ModArg::Int(before as i64 + n as i64),
+                            ),
                             ("delta", crate::scripts::mods::ModArg::Int(n as i64)),
                         ],
                         0.0,
@@ -338,11 +341,26 @@ impl NpcScript {
             // Моды видят снимок состояния покупателя и могут заменить
             // ванильное поведение, вернув true (или { handled = true }).
             let mut mod_fields = vec![
-                ("state", crate::scripts::mods::ModArg::Int(tbl.get::<i32>("state")? as i64)),
-                ("timer", crate::scripts::mods::ModArg::Float(tbl.get::<f64>("timer")?)),
-                ("food_taken", crate::scripts::mods::ModArg::Bool(tbl.get::<bool>("food_taken")?)),
-                ("exiting", crate::scripts::mods::ModArg::Bool(tbl.get::<bool>("exiting")?)),
-                ("done", crate::scripts::mods::ModArg::Bool(tbl.get::<bool>("done")?)),
+                (
+                    "state",
+                    crate::scripts::mods::ModArg::Int(tbl.get::<i32>("state")? as i64),
+                ),
+                (
+                    "timer",
+                    crate::scripts::mods::ModArg::Float(tbl.get::<f64>("timer")?),
+                ),
+                (
+                    "food_taken",
+                    crate::scripts::mods::ModArg::Bool(tbl.get::<bool>("food_taken")?),
+                ),
+                (
+                    "exiting",
+                    crate::scripts::mods::ModArg::Bool(tbl.get::<bool>("exiting")?),
+                ),
+                (
+                    "done",
+                    crate::scripts::mods::ModArg::Bool(tbl.get::<bool>("done")?),
+                ),
             ];
             for key in ["cassa_x", "cassa_y", "rack_x", "rack_y"] {
                 if let Ok(value) = tbl.get::<i32>(key) {

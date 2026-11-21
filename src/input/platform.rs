@@ -9,9 +9,20 @@
 //  системы ввода работают с трейтом InputSource, не зная, откуда пришёл ввод.
 // ========================================================================
 
+use std::sync::atomic::{AtomicBool, Ordering};
 use winit::event::{DeviceEvent, ElementState, KeyEvent, MouseButton, WindowEvent};
 use winit::keyboard::{Key, KeyCode, NamedKey, PhysicalKey};
 use winit_input_helper::WinitInputHelper;
+
+static ANY_KEY_PRESSED: AtomicBool = AtomicBool::new(false);
+
+pub fn any_key_pressed() -> bool {
+    ANY_KEY_PRESSED.load(Ordering::Relaxed)
+}
+
+fn mark_any_key_pressed() {
+    ANY_KEY_PRESSED.store(true, Ordering::Relaxed);
+}
 
 #[cfg(target_os = "android")]
 use std::collections::HashMap;
@@ -67,6 +78,7 @@ fn process_keyboard_event(key: &KeyEvent) {
     if key.state != ElementState::Pressed {
         return;
     }
+    mark_any_key_pressed();
 
     let text = key.text.as_deref().or_else(|| match &key.logical_key {
         Key::Character(s) => Some(s.as_str()),
@@ -133,6 +145,14 @@ pub trait InputSource {
     fn held_control(&self) -> bool;
     fn scroll_diff(&self) -> (f32, f32);
     fn close_requested(&self) -> bool;
+    /// Любой клик, клавиша или скролл за текущий кадр. Используется пропуском заставки.
+    fn any_pressed(&self) -> bool {
+        any_key_pressed()
+            || self.mouse_pressed(MouseButton::Left)
+            || self.mouse_pressed(MouseButton::Right)
+            || self.mouse_pressed(MouseButton::Middle)
+            || self.scroll_diff() != (0.0, 0.0)
+    }
     fn step(&mut self);
     fn end_step(&mut self);
     fn process_window_event(&mut self, event: &WindowEvent);
@@ -187,6 +207,7 @@ impl InputSource for DesktopInput {
         self.inner.close_requested()
     }
     fn step(&mut self) {
+        ANY_KEY_PRESSED.store(false, Ordering::Relaxed);
         let _ = self.inner.step();
     }
     fn end_step(&mut self) {
@@ -306,6 +327,7 @@ impl InputSource for TouchInput {
     }
 
     fn step(&mut self) {
+        ANY_KEY_PRESSED.store(false, Ordering::Relaxed);
         self.pressed_this_frame = false;
         self.back_pressed = false;
     }

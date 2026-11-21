@@ -42,6 +42,10 @@ impl SceneManager {
             "game".to_string(),
             Box::new(crate::scenes::GameScene::new()),
         );
+        scenes.insert(
+            "intro".to_string(),
+            Box::new(crate::scenes::IntroScene::new()),
+        );
 
         SceneManager {
             ecs,

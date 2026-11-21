@@ -38,7 +38,10 @@ fn cleanup(root: &PathBuf) {
 
 #[test]
 fn bundled_shader_packs_are_well_formed() {
-    for (id, name, marker) in [("warm", "Comics", "COMIC_LEVELS"), ("retro", "Retro", "CRT_SCANLINE_STRENGTH")] {
+    for (id, name, marker) in [
+        ("warm", "Comics", "COMIC_LEVELS"),
+        ("retro", "Retro", "CRT_SCANLINE_STRENGTH"),
+    ] {
         let manifest_path = format!("{}/{id}/shader.json", shader::shaders_root());
         let text = crate::core::asset::load_string(&manifest_path).unwrap();
         let manifest: shader::ShaderManifest = serde_json::from_str(&text).unwrap();

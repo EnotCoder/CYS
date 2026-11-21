@@ -79,4 +79,21 @@ pub trait Scene {
     fn lights(&self, _ecs: &crate::EcsAdapter) -> Vec<crate::core::buffers::LightData> {
         Vec::new()
     }
+    /// Сцена целиком рисует surface сама (вступительная заставка).
+    fn uses_custom_render(&self) -> bool {
+        false
+    }
+    /// Собственный рендер кадра. Возвращает false, чтобы использовать обычный
+    /// sprite-рендер. Вызывается только когда `uses_custom_render() == true`.
+    #[allow(clippy::too_many_arguments)]
+    fn render_custom(
+        &mut self,
+        _ecs: &mut crate::EcsAdapter,
+        _wgpu_app: &crate::core::WgpuApp,
+        _surface: &wgpu::Surface,
+        _window_size: (f32, f32),
+        _text_renderer: &mut crate::ui::text_renderer::TextRenderer,
+    ) -> bool {
+        false
+    }
 }

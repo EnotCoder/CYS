@@ -49,10 +49,16 @@ live in `timeline.rs`; changing the artwork happens in the WGSL files, not in
 the sprite renderer. Holds are deliberately long and jumps stay short, so the
 cutscene reads as a series of sharp zooms with pauses, not a continuous flight.
 
-The four `cat_scene` textures are pixel art: they use a `NonFiltering` sampler
+The five `cat_scene` textures are pixel art: they use a `NonFiltering` sampler
 and `FilterMode::Nearest`, while only the offscreen composite and the skip hint
 use linear sampling. The composite has no film grain or bloom — those effects
 smeared pixel edges — and the radial blur is confined to jumps.
+
+The solar plane has its own sparse procedural stars; the Sun is just its
+pixel-art disc with no glow, rays or dust. The continent plane uses
+`sea.png` tiled four times horizontally and once vertically, so the sea stays
+a crisp repeating pattern. The shop focus point is only a zoom target in
+`timeline.rs` — the old pulsing ring marker was removed.
 
 The shop plan is not a new image. On entry the intro rebuilds the same map and
 decor as the main menu, and `CutsceneRenderer::capture_shop` renders that state

@@ -129,7 +129,7 @@ pub fn jump_params(stage: Stage) -> JumpParams {
             b_start_center: [0.53, 0.51],
             blur: 0.055,
         },
-        // Точка магазина на континенте совпадает с меткой на карте.
+        // Точка магазина на континенте — без визуальной метки.
         Stage::JumpToShop => JumpParams {
             focus: [0.56, 0.47],
             a_end_zoom: 7.0,

@@ -20,11 +20,12 @@ const PLANET_MODULE: &str = include_str!("shaders/planets.wgsl");
 const COMPOSITE_MODULE: &str = include_str!("shaders/composite.wgsl");
 const HINT_MODULE: &str = include_str!("shaders/hint.wgsl");
 
-const REQUIRED_ASSETS: [&str; 4] = [
+const REQUIRED_ASSETS: [&str; 5] = [
     "assets/tex/cat_scene/sun.png",
     "assets/tex/cat_scene/earth.png",
     "assets/tex/cat_scene/moon.png",
     "assets/tex/cat_scene/continent.png",
+    "assets/tex/cat_scene/sea.png",
 ];
 
 #[repr(C)]
@@ -286,6 +287,7 @@ pub struct CutsceneRenderer {
     _earth_tex: Texture,
     _moon_tex: Texture,
     _continent_tex: Texture,
+    _sea_tex: Texture,
     sampler: wgpu::Sampler,
 
     composite_uniform: wgpu::Buffer,
@@ -322,6 +324,7 @@ impl CutsceneRenderer {
         let earth_tex = load_texture(device, queue, REQUIRED_ASSETS[1], "cutscene earth");
         let moon_tex = load_texture(device, queue, REQUIRED_ASSETS[2], "cutscene moon");
         let continent_tex = load_texture(device, queue, REQUIRED_ASSETS[3], "cutscene continent");
+        let sea_tex = load_texture(device, queue, REQUIRED_ASSETS[4], "cutscene sea");
         let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
             address_mode_u: wgpu::AddressMode::ClampToEdge,
             address_mode_v: wgpu::AddressMode::ClampToEdge,
@@ -442,8 +445,8 @@ impl CutsceneRenderer {
         );
         let planet_pair_layout = texture_layout(
             device,
-            4,
-            4,
+            5,
+            5,
             wgpu::SamplerBindingType::NonFiltering,
             "Cutscene Planet Texture Layout",
         );
@@ -455,9 +458,10 @@ impl CutsceneRenderer {
                 &earth_tex.view,
                 &moon_tex.view,
                 &continent_tex.view,
+                &sea_tex.view,
             ],
             &pixel_sampler,
-            4,
+            5,
             "Cutscene Planet Textures",
         );
         let planet_module = shader(device, PLANET_MODULE, "Cutscene Planets WGSL");
@@ -595,6 +599,7 @@ impl CutsceneRenderer {
             _earth_tex: earth_tex,
             _moon_tex: moon_tex,
             _continent_tex: continent_tex,
+            _sea_tex: sea_tex,
             sampler,
             composite_uniform,
             composite_uniform_bg,

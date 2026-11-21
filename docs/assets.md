@@ -20,7 +20,7 @@ from `std::env` or an absolute location — always go through `core::asset`.
 | `assets/tex/decor/outdoor/` | trees, benches, street fence, flowers |
 | `assets/tex/decor/new_year/` | New Year decoration atlas (`new_year_tree.png`, `gifts.png`, `carpet.png`) |
 | `assets/tex/characters/` | `player/`, `bob/`, `sasha/` — idle + two walk frames each |
-| `assets/tex/cat_scene/` | intro planets: `sun.png`, `earth.png`, `moon.png`, `continent.png` |
+| `assets/tex/cat_scene/` | intro planets and sea: `sun.png`, `earth.png`, `moon.png`, `continent.png`, `sea.png` |
 | `assets/tex/ui/` | panels, mode icons, cursor, sliders, checkboxes, shop/weather/settings art |
 | `assets/tex/ui/button/` | shared button background (`main.png`) used by menus and dialogs |
 | `assets/tex/ui/icon_slots/` | inventory icons by category (`regular`, `carpets`, `light`, `walldecor`, `outdoor`, `new_year`) and `arrow_left.png`/`arrow_right.png` for tab paging |

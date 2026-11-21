@@ -57,7 +57,11 @@ impl IntroScene {
                 (p * p * (3.0 - 2.0 * p), 0.0, true)
             }
             Stage::StarsHold => (1.0, 0.0, true),
-            Stage::JumpToSolar => (1.0, progress * progress * 900.0, false),
+            // Движение даёт сам зум композита, звёзды не уезжают за экран —
+            // иначе на стыке с планом Солнца они бы резко вернулись назад.
+            Stage::JumpToSolar => (1.0, 0.0, true),
+            // План Солнца рисует те же звёзды, поэтому они видимы и здесь.
+            Stage::SolarHold | Stage::JumpToContinent => (1.0, 0.0, true),
             _ => (0.0, 0.0, true),
         }
     }

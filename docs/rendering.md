@@ -54,8 +54,12 @@ and `FilterMode::Nearest`, while only the offscreen composite and the skip hint
 use linear sampling. The composite has no film grain or bloom — those effects
 smeared pixel edges — and the radial blur is confined to jumps.
 
-The solar plane has its own sparse procedural stars; the Sun is just its
-pixel-art disc with no glow, rays or dust. The continent plane uses
+The solar plane is pure black with the same 296 instanced stars as the opening
+star scene — same count, palette, sizes and twinkle — drawn by the same
+pipeline before the Sun, Moon and Earth composite over them. The Sun is just
+its pixel-art disc with no glow, rays or dust. Both planet planes hold at
+zoom 1.0 centered on the frame, so the composite never samples outside the
+offscreen texture and `ClampToEdge` cannot smear an edge. The continent plane uses
 `sea.png` tiled four times horizontally and once vertically, so the sea stays
 a crisp repeating pattern. The shop focus point is only a zoom target in
 `timeline.rs` — the old pulsing ring marker was removed.

@@ -38,40 +38,6 @@ fn aspect() -> f32 {
     return max(u.resolution.x, 1.0) / max(u.resolution.y, 1.0);
 }
 
-fn hash21(p: vec2<f32>) -> f32 {
-    return fract(sin(dot(p, vec2<f32>(127.1, 311.7))) * 43758.5453);
-}
-
-fn star_layer(p: vec2<f32>, cells: vec2<f32>, threshold: f32, seed: f32, time: f32) -> f32 {
-    let grid = p * cells;
-    let cell = floor(grid);
-    let f = fract(grid);
-    let chance = hash21(cell + vec2<f32>(seed, seed * 1.73));
-    if (chance < threshold) {
-        return 0.0;
-    }
-    let offset = vec2<f32>(
-        hash21(cell + vec2<f32>(seed + 3.7, 1.3)),
-        hash21(cell + vec2<f32>(5.1, seed + 8.9)),
-    );
-    let radius = 0.06 + 0.07 * hash21(cell + vec2<f32>(seed + 11.0, 7.0));
-    let d = length(f - offset);
-    let core = 1.0 - smoothstep(0.0, radius, d);
-    let glow = 1.0 - smoothstep(radius, radius * 2.4, d);
-    let power = 0.45 + 0.55 * hash21(cell + vec2<f32>(seed + 17.0, 2.0));
-    let twinkle = 0.80 + 0.20 * sin(time * (0.7 + power * 0.8) + chance * 40.0);
-    return (core + glow * 0.22) * power * twinkle;
-}
-
-fn starfield(uv: vec2<f32>, time: f32) -> vec3<f32> {
-    let p = uv * vec2<f32>(aspect(), 1.0);
-    var amount = 0.0;
-    amount += star_layer(p, vec2<f32>(38.0), 0.86, 1.0, time) * 0.7;
-    amount += star_layer(p, vec2<f32>(78.0), 0.91, 19.0, time) * 0.9;
-    amount += star_layer(p, vec2<f32>(140.0), 0.95, 47.0, time) * 1.1;
-    return vec3<f32>(0.86, 0.91, 1.0) * amount;
-}
-
 fn sample_disc(
     image: texture_2d<f32>,
     uv: vec2<f32>,
@@ -89,19 +55,6 @@ fn sample_disc(
     return vec4<f32>(c.rgb, c.a * edge);
 }
 
-fn background(uv: vec2<f32>) -> vec3<f32> {
-    let a = aspect();
-    let center = vec2<f32>(0.5, 0.5);
-    let r = length((uv - center) * vec2<f32>(a, 1.0));
-    let nebula = sin(uv.x * 5.0 + sin(uv.y * 4.0 + u.time * 0.03)) * 0.5 + 0.5;
-    let base = mix(
-        vec3<f32>(0.022, 0.032, 0.070),
-        vec3<f32>(0.004, 0.006, 0.020),
-        smoothstep(0.05, 0.9, r),
-    );
-    return base + vec3<f32>(0.018, 0.009, 0.032) * nebula;
-}
-
 @fragment
 fn fs_solar(in: VertexOutput) -> @location(0) vec4<f32> {
     let uv = in.uv;
@@ -109,23 +62,32 @@ fn fs_solar(in: VertexOutput) -> @location(0) vec4<f32> {
     let earth_uv = vec2<f32>(0.64, 0.46);
     let moon_uv = vec2<f32>(0.79, 0.64);
 
-    var color = background(uv) + starfield(uv, u.time);
+    // Звёзды рисуются тем же инстансированным пайплайном до этого прохода.
+    // Фон прозрачный, диски — premultiplied alpha, чтобы звёзды просвечивали
+    // только вокруг планет.
+    var color = vec3<f32>(0.0);
+    var alpha = 0.0;
 
     let sun = sample_disc(sun_tex, uv, sun_uv, 0.19);
-    color = mix(color, sun.rgb, sun.a);
+    color = mix(color, sun.rgb * sun.a, sun.a);
+    alpha = sun.a + alpha * (1.0 - sun.a);
 
     // Луна рисуется после Солнца, но до Земли — диски остаются читаемыми.
     let moon = sample_disc(moon_tex, uv, moon_uv, 0.052);
-    color = mix(color, moon.rgb * 0.86, moon.a);
+    color = mix(color, moon.rgb * moon.a * 0.86, moon.a);
+    alpha = moon.a + alpha * (1.0 - moon.a);
 
     let earth = sample_disc(earth_tex, uv, earth_uv, 0.105);
     let earth_d = length((uv - earth_uv) * vec2<f32>(aspect(), 1.0)) / 0.105;
     let atmosphere = (1.0 - smoothstep(0.88, 1.0, earth_d))
         * smoothstep(0.78, 0.94, earth_d);
-    color += vec3<f32>(0.12, 0.35, 0.75) * atmosphere * 0.45;
-    color = mix(color, earth.rgb, earth.a);
+    let atmo_a = atmosphere * 0.45 * (1.0 - alpha);
+    color += vec3<f32>(0.12, 0.35, 0.75) * atmo_a;
+    alpha += atmo_a;
+    color = mix(color, earth.rgb * earth.a, earth.a);
+    alpha = earth.a + alpha * (1.0 - earth.a);
 
-    return vec4<f32>(color, 1.0);
+    return vec4<f32>(color, alpha);
 }
 
 @fragment

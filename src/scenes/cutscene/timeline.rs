@@ -95,14 +95,11 @@ pub fn plane_transform(plane: Plane) -> PlaneTransform {
             center: [0.5, 0.5],
             zoom: 1.0,
         },
-        // Солнце слева, Земля — центр следующего приближения.
-        Plane::Solar => PlaneTransform {
-            center: [0.62, 0.47],
-            zoom: 1.14,
-        },
-        Plane::Continent => PlaneTransform {
-            center: [0.53, 0.51],
-            zoom: 1.06,
+        // Планы рисуются в полном кадре: композит не должен выходить за
+        // границы текстуры, иначе ClampToEdge растягивает правый край.
+        Plane::Solar | Plane::Continent => PlaneTransform {
+            center: [0.5, 0.5],
+            zoom: 1.0,
         },
         Plane::Shop => PlaneTransform {
             center: [0.5, 0.5],

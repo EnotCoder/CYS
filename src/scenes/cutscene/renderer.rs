@@ -216,6 +216,7 @@ fn fullscreen_pipeline(
     layout: &wgpu::PipelineLayout,
     entry: &str,
     format: wgpu::TextureFormat,
+    blend: Option<wgpu::BlendState>,
     label: &str,
 ) -> wgpu::RenderPipeline {
     device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
@@ -232,7 +233,7 @@ fn fullscreen_pipeline(
             entry_point: Some(entry),
             targets: &[Some(wgpu::ColorTargetState {
                 format,
-                blend: None,
+                blend,
                 write_mask: wgpu::ColorWrites::ALL,
             })],
             compilation_options: wgpu::PipelineCompilationOptions::default(),
@@ -470,12 +471,25 @@ impl CutsceneRenderer {
             bind_group_layouts: &[Some(&planet_uniform_layout), Some(&planet_pair_layout)],
             immediate_size: 0,
         });
+        let over_stars = wgpu::BlendState {
+            color: wgpu::BlendComponent {
+                src_factor: wgpu::BlendFactor::One,
+                dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,
+                operation: wgpu::BlendOperation::Add,
+            },
+            alpha: wgpu::BlendComponent {
+                src_factor: wgpu::BlendFactor::One,
+                dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,
+                operation: wgpu::BlendOperation::Add,
+            },
+        };
         let solar_pipeline = fullscreen_pipeline(
             device,
             &planet_module,
             &planet_layout,
             "fs_solar",
             format,
+            Some(over_stars),
             "Cutscene Solar Pipeline",
         );
         let continent_pipeline = fullscreen_pipeline(
@@ -484,6 +498,7 @@ impl CutsceneRenderer {
             &planet_layout,
             "fs_continent",
             format,
+            None,
             "Cutscene Continent Pipeline",
         );
 
@@ -522,6 +537,7 @@ impl CutsceneRenderer {
             &composite_layout,
             "fs_blit",
             format,
+            None,
             "Cutscene Blit Pipeline",
         );
         let transition_pipeline = fullscreen_pipeline(
@@ -530,6 +546,7 @@ impl CutsceneRenderer {
             &composite_layout,
             "fs_transition",
             format,
+            None,
             "Cutscene Transition Pipeline",
         );
 
@@ -857,12 +874,20 @@ impl CutsceneRenderer {
                 pass.set_vertex_buffer(0, self.star_instances.slice(..));
                 pass.draw(0..6, 0..self.stars.len() as u32);
             }
-            Plane::Solar | Plane::Continent => {
-                pass.set_pipeline(if plane == Plane::Solar {
-                    &self.solar_pipeline
-                } else {
-                    &self.continent_pipeline
-                });
+            Plane::Solar => {
+                // Те же 296 звёзд, что и в отдельной звёздной сцене.
+                pass.set_pipeline(&self.star_pipeline);
+                pass.set_bind_group(0, &self.star_uniform_bg, &[]);
+                pass.set_vertex_buffer(0, self.star_instances.slice(..));
+                pass.draw(0..6, 0..self.stars.len() as u32);
+
+                pass.set_pipeline(&self.solar_pipeline);
+                pass.set_bind_group(0, &self.planet_uniform_bg, &[]);
+                pass.set_bind_group(1, &self.planet_bg, &[]);
+                pass.draw(0..3, 0..1);
+            }
+            Plane::Continent => {
+                pass.set_pipeline(&self.continent_pipeline);
                 pass.set_bind_group(0, &self.planet_uniform_bg, &[]);
                 pass.set_bind_group(1, &self.planet_bg, &[]);
                 pass.draw(0..3, 0..1);

@@ -17,6 +17,7 @@ This folder is the full developer documentation.
 | Player WGSL shaders and `shader.json` | [shaders.md](shaders.md) |
 | Player Lua mods and `mod.json` | [mods.md](mods.md) |
 | Building for desktop and Android | [build.md](build.md) |
+| `.deb`, `install.sh` and Windows installer | [packaging.md](packaging.md) |
 | Running and writing tests | [testing.md](testing.md) |
 | Code style and documentation rules | [contributing.md](contributing.md) |
 

@@ -85,6 +85,7 @@ The full developer documentation lives in [`docs/`](docs/README.md).
 | Texture packs | [docs/texture-packs.md](docs/texture-packs.md) |
 | Shader packs | [docs/shaders.md](docs/shaders.md) |
 | Build | [docs/build.md](docs/build.md) |
+| Packages & installers | [docs/packaging.md](docs/packaging.md) |
 | Tests | [docs/testing.md](docs/testing.md) |
 | Contributing | [docs/contributing.md](docs/contributing.md) |
 

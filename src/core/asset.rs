@@ -3,7 +3,10 @@
 
 // ========================================================================
 //  asset.rs — кроссплатформенная загрузка игровых файлов.
-//  На десктопе делегирует std::fs (пути относительно рабочей папки).
+//  На десктопе ассеты ищутся в CYS_ASSETS, рядом с исполняемым файлом,
+//  в /usr/share/cys/assets и в CWD (для разработки). Пользовательские
+//  данные (data/, mods/, texture_pack/, shaders/) пишутся в CYS_HOME,
+//  XDG_DATA_HOME/cys или %APPDATA%/CYS.
 //  На Android читает из APK-assets через AAssetManager, а сохранения
 //  пишет в internal data dir приложения.
 // ========================================================================
@@ -12,20 +15,121 @@
 use std::ffi::CString;
 #[cfg(target_os = "android")]
 use std::io::Read;
+#[cfg(not(target_os = "android"))]
+use std::path::Path;
 use std::path::PathBuf;
+use std::sync::OnceLock;
 
 #[cfg(target_os = "android")]
 use android_activity::AndroidApp;
-#[cfg(target_os = "android")]
-use std::sync::OnceLock;
 
 /// Глобальная ссылка на AndroidApp, устанавливается в android_main.
 #[cfg(target_os = "android")]
 static ANDROID_APP: OnceLock<AndroidApp> = OnceLock::new();
 
+#[cfg(not(target_os = "android"))]
+static USER_ROOT: OnceLock<PathBuf> = OnceLock::new();
+
 #[cfg(target_os = "android")]
 pub fn set_android_app(app: AndroidApp) {
     let _ = ANDROID_APP.set(app);
+}
+
+#[cfg(not(target_os = "android"))]
+fn home_dir() -> Option<PathBuf> {
+    std::env::var_os("HOME")
+        .or_else(|| std::env::var_os("USERPROFILE"))
+        .map(PathBuf::from)
+}
+
+/// Каталог пользовательских файлов. В исходном репозитории совпадает с CWD,
+/// чтобы `cargo run` и тесты работали с ./data, ./mods и т.д. как раньше.
+#[cfg(not(target_os = "android"))]
+fn user_root() -> &'static Path {
+    USER_ROOT.get_or_init(|| {
+        if let Some(dir) = std::env::var_os("CYS_HOME") {
+            return PathBuf::from(dir);
+        }
+        let cwd = std::env::current_dir().unwrap_or_default();
+        if cwd.join("Cargo.toml").is_file() && cwd.join("assets").is_dir() {
+            return cwd;
+        }
+        #[cfg(target_os = "windows")]
+        let base = std::env::var_os("APPDATA")
+            .map(PathBuf::from)
+            .or_else(home_dir)
+            .unwrap_or_else(|| PathBuf::from("."));
+        #[cfg(not(target_os = "windows"))]
+        let base = std::env::var_os("XDG_DATA_HOME")
+            .map(PathBuf::from)
+            .or_else(|| home_dir().map(|h| h.join(".local/share")))
+            .unwrap_or_else(|| PathBuf::from("."));
+        base.join(if cfg!(target_os = "windows") {
+            "CYS"
+        } else {
+            "cys"
+        })
+    })
+}
+
+/// Путь внутри пользовательского каталога (для записи модов и настроек).
+pub fn user_path(relative: &str) -> PathBuf {
+    #[cfg(target_os = "android")]
+    {
+        let _ = relative;
+        PathBuf::from("data")
+    }
+    #[cfg(not(target_os = "android"))]
+    {
+        user_root().join(relative)
+    }
+}
+
+/// Каталоги, в которых лежат поставляемые ассеты без префикса `assets/`.
+#[cfg(not(target_os = "android"))]
+fn asset_roots() -> Vec<PathBuf> {
+    let mut roots = Vec::new();
+    let mut push = |path: PathBuf| {
+        if !path.as_os_str().is_empty() && !roots.contains(&path) {
+            roots.push(path);
+        }
+    };
+    if let Some(dir) = std::env::var_os("CYS_ASSETS") {
+        let root = PathBuf::from(dir);
+        let nested = root.join("assets");
+        if nested.is_dir() {
+            push(nested);
+        }
+        push(root);
+    }
+    if let Ok(exe) = std::env::current_exe() {
+        if let Some(dir) = exe.parent() {
+            push(dir.join("assets"));
+        }
+    }
+    push(PathBuf::from("/usr/share/cys/assets"));
+    if let Ok(cwd) = std::env::current_dir() {
+        push(cwd.join("assets"));
+    }
+    roots
+}
+
+/// Все кандидаты для чтения игрового файла, в порядке приоритета.
+#[cfg(not(target_os = "android"))]
+fn candidates(path: &str) -> Vec<PathBuf> {
+    let mut result = vec![user_path(path)];
+    let relative = path.strip_prefix("assets/").unwrap_or(path);
+    for root in asset_roots() {
+        let candidate = root.join(relative);
+        if !result.contains(&candidate) {
+            result.push(candidate);
+        }
+    }
+    let legacy = PathBuf::from(path);
+    if !result.contains(&legacy) {
+        result.push(legacy);
+    }
+    result
 }
 
 /// Читает произвольный файл проекта (текстуру, карту, скрипт, шрифт, аудио).
@@ -53,8 +157,24 @@ pub fn load_bytes(path: &str) -> std::io::Result<Vec<u8>> {
                 format!("asset not found: {effective_path} (original: {path})"),
             ));
         }
+        std::fs::read(path)
     }
-    std::fs::read(path)
+    #[cfg(not(target_os = "android"))]
+    {
+        let mut last_error = None;
+        for candidate in candidates(path) {
+            match std::fs::read(&candidate) {
+                Ok(bytes) => return Ok(bytes),
+                Err(e) => last_error = Some(e),
+            }
+        }
+        Err(last_error.unwrap_or_else(|| {
+            std::io::Error::new(
+                std::io::ErrorKind::NotFound,
+                format!("asset not found: {path}"),
+            )
+        }))
+    }
 }
 
 /// Читает текстовый файл проекта (map.txt, *.lua, конфиги).
@@ -73,7 +193,7 @@ fn save_dir() -> PathBuf {
             return base.join("data");
         }
     }
-    PathBuf::from("data")
+    user_path("data")
 }
 
 /// Сохраняет пользовательские данные (например, save.json) по имени файла.
@@ -102,8 +222,8 @@ pub fn delete_data(name: &str) -> std::io::Result<()> {
     }
 }
 
-/// Перечисляет имена файлов внутри каталога (для директорий ассетов,
-/// например sounds/). На десктопе — read_dir, на Android — AssetManager.open_dir.
+/// Перечисляет имена файлов каталога. На десктопе объединяет пользовательские
+/// и поставляемые папки (например, свои моды и моды из поставки).
 pub fn list_dir(dir: &str) -> Vec<String> {
     #[cfg(target_os = "android")]
     {
@@ -124,13 +244,55 @@ pub fn list_dir(dir: &str) -> Vec<String> {
             }
             return Vec::new();
         }
+        std::fs::read_dir(dir)
+            .map(|entries| {
+                entries
+                    .flatten()
+                    .filter_map(|e| e.file_name().into_string().ok())
+                    .collect()
+            })
+            .unwrap_or_default()
     }
-    std::fs::read_dir(dir)
-        .map(|entries| {
-            entries
-                .flatten()
-                .filter_map(|e| e.file_name().into_string().ok())
-                .collect()
-        })
-        .unwrap_or_default()
+    #[cfg(not(target_os = "android"))]
+    {
+        let mut names = Vec::new();
+        for candidate in candidates(dir) {
+            if let Ok(entries) = std::fs::read_dir(candidate) {
+                for entry in entries.flatten() {
+                    if let Ok(name) = entry.file_name().into_string() {
+                        if !names.contains(&name) {
+                            names.push(name);
+                        }
+                    }
+                }
+            }
+        }
+        names
+    }
+}
+
+#[cfg(all(test, not(target_os = "android")))]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn asset_candidates_cover_installed_and_source_layouts() {
+        let list = candidates("assets/icon.png");
+        if let Ok(exe) = std::env::current_exe() {
+            if let Some(dir) = exe.parent() {
+                assert!(list.contains(&dir.join("assets").join("icon.png")));
+            }
+        }
+        assert!(list.contains(&PathBuf::from("/usr/share/cys/assets/icon.png")));
+        assert!(load_bytes("assets/icon.png").is_ok());
+    }
+
+    #[test]
+    fn user_path_keeps_source_checkout_layout() {
+        let cwd = std::env::current_dir().unwrap();
+        assert_eq!(
+            user_path("data/settings.json"),
+            cwd.join("data/settings.json")
+        );
+    }
 }

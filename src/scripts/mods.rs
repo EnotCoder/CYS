@@ -758,7 +758,8 @@ pub fn write_use_flag(id: &str, enabled: bool) -> Result<(), String> {
         return Ok(());
     }
     let path = format!("{}/{MANIFEST_FILE}", mod_root(id));
-    let text = std::fs::read_to_string(&path).map_err(|e| format!("cannot read {path}: {e}"))?;
+    let text =
+        crate::core::asset::load_string(&path).map_err(|e| format!("cannot read {path}: {e}"))?;
     let mut value: serde_json::Value =
         serde_json::from_str(&text).map_err(|e| format!("invalid {path}: {e}"))?;
     let Some(object) = value.as_object_mut() else {
@@ -767,8 +768,13 @@ pub fn write_use_flag(id: &str, enabled: bool) -> Result<(), String> {
     object.insert("use".to_string(), serde_json::Value::Bool(enabled));
     let pretty =
         serde_json::to_string_pretty(&value).map_err(|e| format!("cannot encode {path}: {e}"))?;
-    std::fs::write(&path, format!("{pretty}\n"))
-        .map_err(|e| format!("cannot write {path}: {e}"))?;
+    let target = crate::core::asset::user_path(&path);
+    if let Some(parent) = target.parent() {
+        std::fs::create_dir_all(parent)
+            .map_err(|e| format!("cannot create {}: {e}", parent.display()))?;
+    }
+    std::fs::write(&target, format!("{pretty}\n"))
+        .map_err(|e| format!("cannot write {}: {e}", target.display()))?;
     {
         let mut st = state().lock().unwrap();
         if let Some(info) = st.available.iter_mut().find(|m| m.id == id) {

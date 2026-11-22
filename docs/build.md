@@ -45,7 +45,15 @@ wgpu = { version = "30", default-features = false, features = ["dx12", "wgsl"] }
 `build/main.rs` embeds `build/app.ico` into the `.exe` via `winres`. The build
 script is compiled for the host, so it detects the target with
 `CARGO_CFG_TARGET_OS` instead of `cfg(target_os)` — otherwise the icon silently
-disappears during cross-compilation.
+disappears during cross-compilation. `build/windows.rs` also selects
+`x86_64-w64-mingw32-windres` (or the `i686` variant) when cross-compiling from
+a non-Windows host.
+
+## Packaging
+
+To produce installable artifacts (`.deb`, a Linux tarball with `install.sh`,
+and a Windows Inno Setup installer), see [packaging.md](packaging.md). It also
+documents where the installed game looks for assets and writes saves.
 
 ## Android
 

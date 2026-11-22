@@ -4,6 +4,7 @@
 use super::Slot;
 use crate::core::constants::{WORLD_OFFSET_X, WORLD_OFFSET_Y};
 use crate::ecs::components::{BasementPlaced, Money, PlacementError, ShopDenied, ShopOwned};
+use crate::ecs::particles::{object_color, BurstKind, PlacementFxEvent};
 use crate::EcsAdapter;
 use specs::WorldExt;
 
@@ -13,6 +14,21 @@ use specs::WorldExt;
 
 // Категории объектов определяют, куда их можно ставить
 // (пол, стены, улица, клумбы) — проверки живут в EcsAdapter.
+
+fn fx_color_for(name: &str) -> [u8; 3] {
+    crate::data::all_objects()
+        .iter()
+        .find(|obj| obj.name == name)
+        .map(|obj| {
+            object_color(
+                name,
+                obj.path,
+                obj.texture_frame,
+                obj.texture_count,
+            )
+        })
+        .unwrap_or([190, 190, 190])
+}
 
 pub fn is_carpet_name(name: &str) -> bool {
     crate::data::item_kind(name).map_or_else(
@@ -495,6 +511,14 @@ pub fn add(ecs: &mut EcsAdapter, slots: &mut Vec<Slot>, act_slot: i32, gx: i32, 
         ],
         0.0,
     );
+    ecs.pending_placement_fx.push(PlacementFxEvent {
+        kind: BurstKind::Place,
+        x: gx as f32 + (active_slot.width - 1) as f32 * 0.5,
+        y: gy as f32 + (active_slot.height - 1) as f32 * 0.5,
+        width: active_slot.width,
+        height: active_slot.height,
+        color: fx_color_for(active_slot.name),
+    });
 }
 
 // Убрать объект или вернуть часть стены/траву в клетке (gx, gy).
@@ -554,6 +578,20 @@ pub fn remove(ecs: &mut EcsAdapter, gx: i32, gy: i32) -> bool {
                     0.0,
                 );
             }
+        }
+        let fx = {
+            let groups = ecs.world.read_resource::<crate::GroupInfoResource>();
+            groups.groups.get(&group_id).map(|info| PlacementFxEvent {
+                kind: BurstKind::Remove,
+                x: info.pos_x as f32 + (info.width - 1) as f32 * 0.5,
+                y: info.pos_y as f32 + (info.height - 1) as f32 * 0.5,
+                width: info.width,
+                height: info.height,
+                color: fx_color_for(&info.name),
+            })
+        };
+        if let Some(fx) = fx {
+            ecs.pending_placement_fx.push(fx);
         }
         ecs.delete_group(group_id);
         crate::audio::play("remove");

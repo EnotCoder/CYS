@@ -8,6 +8,7 @@
 
 use crate::core::constants::{TILE_HALF, WORLD_OFFSET_X, WORLD_OFFSET_Y, Z_WEATHER};
 use crate::core::util;
+pub(crate) use crate::core::util::rand01;
 use crate::ecs::components::{Season, Transform};
 use crate::ecs::factory::create_sprite;
 use crate::EcsAdapter;
@@ -261,12 +262,4 @@ impl WeatherFx {
             });
         }
     }
-}
-
-// Равномерное число в [0,1): простая замена rand без внешних крейтов.
-pub(crate) fn rand01(seed: &mut u64) -> f32 {
-    *seed = seed
-        .wrapping_mul(6364136223846793005)
-        .wrapping_add(1442695040888963407);
-    ((*seed >> 11) as f32) / (1u64 << 53) as f32
 }

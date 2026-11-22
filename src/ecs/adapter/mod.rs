@@ -17,6 +17,7 @@ use crate::ecs::components::{
     PlacementError, PointLight, Rotation, Season, ShopDenied, ShopOwned, ShopperTag,
     SpriteComponent, TotalFood, Transform,
 };
+use crate::ecs::particles::PlacementFxEvent;
 use crate::Sprite;
 use crate::Texture;
 use crate::{GroupComponent, GroupInfoResource};
@@ -61,6 +62,8 @@ pub struct EcsAdapter {
     // Очередь событий «в объект добавлена еда»: id групп объектов.
     // Наполняется ящиком-регеном и пополнением стеллажа, дренится сценой для анимаций.
     pub pending_food_adds: Vec<u32>,
+    // Очередь событий установки/удаления объекта: дренится сценой для партиклов.
+    pub pending_placement_fx: Vec<PlacementFxEvent>,
     // Наборы клеток карты, разрешённых для размещения каждой категории
     // объектов (вычисляются при загрузке карты).
     pub wall_positions: HashSet<(i32, i32)>,
@@ -111,6 +114,7 @@ impl EcsAdapter {
             clear_count: 0,
             cursor_preview: Vec::new(),
             pending_food_adds: Vec::new(),
+            pending_placement_fx: Vec::new(),
             wall_positions: HashSet::new(),
             floor_positions: HashSet::new(),
             outdoor_positions: HashSet::new(),
@@ -460,6 +464,7 @@ impl EcsAdapter {
         self.texture_cache.clear();
         self.cursor_preview.clear();
         self.pending_food_adds.clear();
+        self.pending_placement_fx.clear();
         self.next_group_id = 1;
         self.clear_count += 1;
         self.map_grid.clear();

@@ -62,7 +62,7 @@ is missing from this map.
   texture overlay layers above the active pack.
 - **`src/core/util.rs`** — `sprite_cache_key`, `ndc_to_world`, `inventory_index`,
   `slot_icon_path`, `slot_icon_size`, `ui_fit_scale`,
-  `ui_top_offset`/`ui_bottom_offset`, `ease_out_back`.
+  `ui_top_offset`/`ui_bottom_offset`, `ease_out_back`, `rand01`.
 
 ---
 
@@ -77,7 +77,9 @@ is missing from this map.
   recomputation (`refresh_walls_around`, `recompute_wall_token`,
   `revert_to_grass`), economy (price and half refund), `FoodStorage`,
   `FenceComponent`, `BasementPlaced`, basement checks and `object_placed` /
-  `object_removed` mod events.
+  `object_removed` mod events. Successful `add`/`remove` also push a
+  `PlacementFxEvent` with the item's sampled colour into
+  `EcsAdapter::pending_placement_fx`.
 - **`src/data/door.rs`** — `tick_door`: the door opens when a shopper
   (`ShopperTag`) is near and closes after they leave; `DoorProgress`, 2×2 atlas
   frames, smooth NPC fade inside the doorway.
@@ -94,7 +96,7 @@ is missing from this map.
 ## `src/ecs/` — specs and sprites
 
 - **`src/ecs/mod.rs`** — declares `adapter`, `components`, `cursor`, `factory`,
-  `group`, `placement`, `sprite`; re-exports the adapter and `Sprite`.
+  `group`, `particles`, `placement`, `sprite`; re-exports the adapter and `Sprite`.
 - **`src/ecs/adapter/mod.rs`** — `EcsAdapter`: owns the `World`, sprite cache,
   textures and map position sets; registers components and resources, provides
   `add_ui`/`add_ui_sized`, world clearing, `SpriteRenderData` and live
@@ -119,6 +121,11 @@ is missing from this map.
   tile with an atlas frame offset and pack overrides; box/rack keep food-driven
   paths), `delete_group`, `find_group_at_position` (decor beats light, light
   beats carpet).
+- **`src/ecs/particles.rs`** — `ParticleSystem`: short-lived place/remove
+  bursts driven by `PlacementFxEvent`; `object_color` samples the dominant
+  opaque pixel of the item's atlas frame (pack/mod aware), particles are
+  solid 4×4 RGBA squares on `Z_WEATHER`, cached by color, capped at
+  `MAX_ACTIVE_PARTICLES` for the dynamic uniform budget.
 - **`src/ecs/placement.rs`** — `can_place_at`: categories require matching
   cells (carpet/light/decor — floor, wall decor — wall, outdoor/flowers —
   grass) and forbid placing an object over the same category.
@@ -175,8 +182,8 @@ is missing from this map.
 - **`src/scenes/game/mod.rs`** — `GameScene`: main loop — input, rent,
   bankruptcy, settings and Mods window, live texture-pack/mod-layer switching,
   food regen, per-sprite animations, day/night with mod events, shoppers,
-  weather, per-season music, tutorial, shop, hover/tooltip, autosave, level
-  switching.
+  weather, per-season music, placement/removal particle bursts, tutorial, shop,
+  hover/tooltip, autosave, level switching.
 - **`src/scenes/game/camera.rs`** — `update_camera`: movement only in `move`
   mode (mouse/finger drag or arrow keys), clamped to the map's visible area.
 - **`src/scenes/game/day_night.rs`** — `DayNightCycle`: `tick`, `factor`
@@ -196,8 +203,8 @@ is missing from this map.
 - **`src/scenes/game/tutorial.rs`** — `Tutorial`: tutorial panel, `open`/`close`,
   button and panel hit tests, gentle sine sway.
 - **`src/scenes/game/weather_fx.rs`** — `WeatherFx`: rain and snow particles,
-  `Effect`, sprite spawn/teardown, snow/rain ambient loops, deterministic
-  `rand01`.
+  `Effect`, sprite spawn/teardown, snow/rain ambient loops; re-exports the
+  shared deterministic `rand01` from `core::util`.
 
 ---
 
@@ -328,6 +335,8 @@ is missing from this map.
   `texture_pack` and `shader` defaults.
 - **`src/tests/placement_rules.rs`** — `can_place_at`, `add`/`remove`: cell
   categories, conflicts, economy, basement, walls.
+- **`src/tests/particles_tests.rs`** — particle presets, solid-square texture,
+  simulation (movement, fade, TTL), slot budget and item-coloured FX events.
 - **`src/tests/shader_pack_tests.rs`** — shader discovery, WGSL loading, broken
   manifest fallback and path traversal protection.
 - **`src/tests/group_tests.rs`** — multi-cell objects: layout, atlas frames,

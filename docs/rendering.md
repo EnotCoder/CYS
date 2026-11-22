@@ -24,7 +24,7 @@ recreated. Rebuilding the whole context there used to break the emulator with
 | Pipeline | Used for | Blending | Depth compare |
 |---|---|---|---|
 | `render_pipeline` | map tiles | alpha blend | `LessEqual` |
-| `transparent_pipeline` | carpets, light, decor, door, NPC, weather, cursor | `ALPHA_BLENDING` | `Always` |
+| `transparent_pipeline` | carpets, light, decor, door, NPC, weather, placement particles, cursor | `ALPHA_BLENDING` | `Always` |
 
 Both share the same vertex layout: position `[x, y, z]` and `uv`. Depth is
 `Depth32Float`, recreated on resize. The transparent pipeline ignores depth on
@@ -95,6 +95,8 @@ Z_MAP=0.0 → Z_CARPET=1.0 → Z_LIGHT=1.2 → Z_DECOR=1.5 (Z_DOOR)
 The door lives at `Z_DECOR` (not `Z_MAP`) because its open frame is
 transparent; putting it into the opaque pass would render a black hole. It must
 stay below `Z_NPC` so the leaf never covers a shopper standing in front of it.
+Placement/removal particles share `Z_WEATHER` with snow and rain: they are the
+same kind of short-lived sprite, so they need no new layer or pipeline.
 
 UI sub-layers: `Z_UI_HOTBAR` 3.002, `Z_UI_HOTBAR_CURSOR` 3.003, `Z_UI_TEXT` 3.005, tooltip background 3.01 / text 3.02, dialog
 dim 3.03 / panel 3.035 / text 3.04.
@@ -124,7 +126,14 @@ asset-backed part of both caches and keeps generated text/weather sprites; see
 `max_storage_buffer_binding_size / alignment`. On AMD RADV the binding limit is
 64 KiB, so the game may allocate far fewer sprites per frame; `init.rs` clamps
 the count with `min` and `render_group` stops when the buffer is full instead of
-panicking.
+panicking. Weather can submit up to 170 dynamic sprites, leaving room for only a
+small burst budget: `ecs::particles::MAX_ACTIVE_PARTICLES` is 64, and older
+bursts are evicted first. Particle sprites are cached under virtual paths
+`fx/place/<rrggbb>` and `fx/remove/<rrggbb>`, where the hex is the item's
+dominant pixel colour; only position and alpha change per frame — scale is part
+of `sprite_cache_key`, so animating it would miss the cache. Each sprite is a
+solid 4×4 RGBA square sampled with `Nearest` so it stays a crisp pixel-art
+block instead of a soft radial dot.
 
 ## Textures
 
@@ -134,7 +143,8 @@ panicking.
   the active texture pack, decode PNG/JPEG with the `image` crate, retry lower
   layers and the vanilla path if a file is unreadable or undecodable, then fall
   back to `dev_tools/null.png` (a broken asset is visible, not fatal);
-- `from_rgba` — raw pixels for text and UI.
+- `from_rgba` — raw pixels for text, UI and generated FX sprites (weather and
+  placement particles).
 
 Atlases are plain grids: `texture_count = [cols, rows]`, `texture_frame =
 [col, row]`, and `TEXEL_EPSILON` shrinks UVs by a fraction of a texel to avoid

@@ -16,6 +16,14 @@ cursor texture and the icon in the hotbar.
 | `build` | place the active hotbar item into the hovered cell |
 | `delete` | remove the object, refund half its price |
 
+A successful `build` or `delete` also emits a short burst at the object's
+centre. Every particle is a crisp pixel-art square coloured with the item's own
+dominant texture colour, so a wooden rack throws brown chips both when placed
+and when broken; only the motion preset differs (upward sparkle vs. falling
+crumble). The presets live as constants in `ecs/particles.rs`; the particles are
+ordinary sprites on `Z_WEATHER` and freeze with the rest of the world while a
+modal is open.
+
 `move` is the default on touch devices, because one-finger drag is reserved for
 the camera there. On desktop the default is `interact`.
 

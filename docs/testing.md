@@ -22,6 +22,7 @@ selected by name, for example `cargo test door`.
 | `src/tests/helpers.rs` | shared fixtures: `new_ecs`, placement helpers, `FakeInput`, UI pixel mapping |
 | `src/tests/data_integrity.rs` | constants, `ALL_OBJECTS`, balance config, day/night, sprite cache, settings |
 | `src/tests/placement_rules.rs` | `can_place_at`, `add`, `remove`: categories, conflicts, refunds, walls, basement |
+| `src/tests/particles_tests.rs` | place/remove presets, solid-square texture, item-coloured events, movement/fade/TTL, `MAX_ACTIVE_PARTICLES` |
 | `src/tests/group_tests.rs` | multi-cell layout, atlas frames, layers, `find_group_at_position`, deletion |
 | `src/tests/npc_tests.rs` | shopper states, movement, food/candy, registers, routing, fade, door |
 | `src/tests/input_tests.rs` | zoom, UI hit tests, slider, shop scrolling, world name, door fade, weather |
@@ -72,7 +73,9 @@ This is why a new module must be added to the source map in the same change.
 
 Before a release, run the game and check:
 
-- new world → tutorial → place box/rack/register → open shop;
+- new world → tutorial → place box/rack/register → open shop; each build and
+  each `delete` throws small pixel-art squares in that item's own colour (brown
+  for a rack, etc.), even when several objects are placed quickly;
 - a shopper walks in, buys, pays, leaves through the door;
 - `Esc` pauses rent and day/night;
 - switching two texture packs in Settings updates map, objects, UI and shoppers

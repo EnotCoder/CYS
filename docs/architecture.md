@@ -63,7 +63,8 @@ suspended           → surface = None
 6. `scene.sprites(...)` and `scene.lights(...)` — collect render data per layer,
    already culled by the visible bounds.
 7. `core::render` — one pass for the map, one transparent pass for
-   carpets/lights/decor/NPC/weather/cursor, one for UI.
+   carpets/lights/decor/NPC/weather (including placement particles)/cursor,
+   one for UI.
 
 ## Scenes
 

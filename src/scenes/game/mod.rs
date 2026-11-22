@@ -128,6 +128,8 @@ pub struct GameScene {
     top_dy: f32,
     // Погодные частицы (снег зимой, дождь осенью)
     weather_fx: weather_fx::WeatherFx,
+    // Вспышки при установке и удалении объектов
+    particles: crate::ecs::particles::ParticleSystem,
     // Сезон, для которого сейчас играет фоновая музыка
     music_season: Option<crate::ecs::components::Season>,
     // Мини-туториал: панель «как играть» на новой игре и флаг «уже показан»
@@ -198,6 +200,7 @@ impl GameScene {
             bottom_dy: 0.0,
             top_dy: 0.0,
             weather_fx: weather_fx::WeatherFx::new(),
+            particles: crate::ecs::particles::ParticleSystem::new(),
             music_season: None,
             tutorial: tutorial::Tutorial::new(),
             tutorial_shown: false,
@@ -591,6 +594,7 @@ impl Scene for GameScene {
         self.prev_act_slot = 0;
         self.prev_mode = MODE_MOVE;
         self.weather_fx.reset();
+        self.particles.reset(ecs);
         self.tutorial = tutorial::Tutorial::new();
         self.tutorial_shown = false;
         crate::audio::stop_ambient();
@@ -1354,6 +1358,11 @@ impl Scene for GameScene {
             // Обрабатываем накопленные эффекты появления еды (ящики и стеллажи)
             self.drain_food_fx(ecs);
             self.update_food_fx(ecs, dt);
+            for event in std::mem::take(&mut ecs.pending_placement_fx) {
+                self.particles.burst(ecs, event);
+            }
+            self.particles.tick(dt as f32);
+            self.particles.sync(ecs, device, queue);
             ecs.update_fence_textures();
             // Дверь магазина реагирует на покупателей: открывается, когда
             // кто-то подошёл, и закрывается, когда ушёл.

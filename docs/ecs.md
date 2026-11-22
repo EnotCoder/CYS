@@ -14,6 +14,7 @@ them. `EcsAdapter` (`src/ecs/adapter/mod.rs`) is the single façade over
 | `sprite_cache` | GPU sprites keyed by `sprite_cache_key` |
 | `texture_cache` | decoded textures keyed by base path (without `@WxH`) |
 | map position sets | entity lookup by cell (`map_entities`) |
+| event queues | `pending_food_adds` and `pending_placement_fx`, drained by `GameScene` |
 
 `apply_texture_pack()` clears asset-backed entries in both caches, keeps
 generated text/weather sprites, and reapplies object overrides to living
@@ -106,6 +107,25 @@ Rules are split in two:
 
 Keeping the predicate pure makes it cheap to test: `src/tests/placement_rules.rs`
 builds an ECS without a GPU and checks both directions.
+
+## Placement particles
+
+`data::placement::{add, remove}` push a `PlacementFxEvent` with the group centre
+and footprint into `EcsAdapter::pending_placement_fx`. `GameScene::update` drains
+that queue into `ecs::particles::ParticleSystem`, then calls `tick` and `sync`.
+The system simulates ordinary structs (no `specs`, no wgpu) and only creates
+sprite entities during `sync`, so the pure part is unit-testable without a GPU.
+
+Presets are Rust constants: `Place` uses 12 small particles, `Remove` 14 larger
+ones, both with the item's colour. `object_color` decodes the item's atlas frame
+on the CPU, counts opaque pixels and returns the most frequent RGB value; it
+follows the active texture pack and mod texture layers. Only position and alpha
+animate; `scale` stays fixed because it is part of `sprite_cache_key`. Each
+colour gets a solid 4×4 square texture via `Texture::from_rgba` under a virtual
+name like `fx/place/412e25`, cached in `sprite_cache`. `MAX_ACTIVE_PARTICLES` is
+64 so weather plus a few bursts still fit AMD RADV's 256 dynamic slots. `reset`
+on level load removes the particle entities and those synthetic cache keys;
+`sync` also rebuilds them when `clear_count` changes.
 
 ## Why no systems
 

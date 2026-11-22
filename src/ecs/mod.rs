@@ -12,6 +12,7 @@ pub mod components;
 pub mod cursor;
 pub mod factory;
 pub mod group;
+pub mod particles;
 pub mod placement;
 pub mod sprite;
 

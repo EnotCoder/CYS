@@ -1,6 +1,9 @@
 /target
 .env
 data/
+!src/data/
+!src/data/map/
+!src/data/map/image_map.rs
 *.json
 !assets/**/*.json
 !texture_pack/**/*.json

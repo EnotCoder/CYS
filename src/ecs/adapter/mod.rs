@@ -75,6 +75,8 @@ pub struct EcsAdapter {
     pub map_grid: Vec<Vec<String>>,
     pub map_entities: HashMap<(i32, i32), specs::Entity>,
     pub original_tokens: HashMap<(i32, i32), String>,
+    // Один спрайт на всю карту вместо отдельного спрайта на каждую клетку.
+    pub map_background: Option<specs::Entity>,
 }
 
 impl EcsAdapter {
@@ -122,6 +124,7 @@ impl EcsAdapter {
             map_grid: Vec::new(),
             map_entities: HashMap::new(),
             original_tokens: HashMap::new(),
+            map_background: None,
         }
     }
 
@@ -470,6 +473,7 @@ impl EcsAdapter {
         self.map_grid.clear();
         self.map_entities.clear();
         self.original_tokens.clear();
+        self.map_background = None;
         self.wall_positions.clear();
         self.floor_positions.clear();
         self.outdoor_positions.clear();

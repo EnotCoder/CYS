@@ -1,15 +1,15 @@
 # World and save format
 
-There are three kinds of user data: map files (shipped assets), world saves
-(written by the game) and `data/settings.json` (written by the settings panel).
-All of them are plain text, so a broken save can be inspected and repaired by
-hand.
+There are three kinds of user data: map images and the basement map (shipped
+assets), world saves (written by the game) and `data/settings.json` (written by
+the settings panel). Saves and the basement map are plain text; the main map is
+a PNG image.
 
 ## Where files live
 
 | File | Desktop | Android |
 |---|---|---|
-| `assets/map.txt`, `assets/basement.txt` | project / next to the binary | packed into the APK |
+| `assets/map/*.png`, `assets/basement.txt` | project / next to the binary | packed into the APK |
 | `data/worlds/manifest.json` | `./data/worlds/` relative to the working directory | internal app data |
 | `data/worlds/world_{id}.json` | `./data/worlds/` | internal app data |
 | `data/settings.json` | `./data/settings.json` | internal app data |
@@ -31,34 +31,55 @@ shaders and mods are separate content: their manifests under `texture_pack/`,
 
 ## Map files
 
-A map is a whitespace-separated grid, one token per cell. Row `j` maps to world
+The main map is a single PNG image, not a text grid. It is 16 px per cell, so
+the shipped 848×448 image is 53×28 cells. Row `j` maps to world
 `y = WORLD_OFFSET_Y - j`; column `i` maps to `x = WORLD_OFFSET_X + i`
-(`WORLD_OFFSET_X = -26`, `WORLD_OFFSET_Y = 14`). So the first row is the top of
-the map and `y` grows downwards in file order.
+(`WORLD_OFFSET_X = -26`, `WORLD_OFFSET_Y = 14`). The first image row is the top
+of the map.
 
-```
-grass      . @ * m f ~ l H K 1 2 3 4 5 6
-floor      P Q Z X , _ A D 0
-wall       = - h d ^ & W S [ ] : ; o % q p i
-grass edge / | ( { ) }
-door       E
-```
+| File | Season |
+|---|---|
+| `assets/map/map.png` | Summer (default) |
+| `assets/map/spring_map.png` | Spring |
+| `assets/map/autumn_map.png` | Autumn |
+| `assets/map/winter_map.png` | Winter |
 
-- Grass tokens select an atlas frame from `assets/tex/map/grass.png`
-  (`[col, row]` inside a 4×6 atlas); the season changes the texture file, not
-  the frame.
-- Floor tokens come from `floor.png` (3×3 atlas), wall tokens from `wall.png`
-  (5×5 atlas). Walls are recomputed when objects are added or removed
-  (`recompute_wall_token`), so hand-drawn wall corners are only the starting
-  state.
-- `E` is the animated shop door: a 2×2 atlas, one frame per cell, with
-  `Z_DOOR = Z_DECOR`.
-- Any unknown token silently becomes a default floor tile. The
-  `every_map_token_resolves_to_an_in_bounds_atlas_frame` test guards the known
-  set.
+All four have the same cell categories; only the grass pixels differ. The
+image is rendered as one virtual-sized sprite (`...png@53x28`) at `Z_MAP`, and
+`Season::map_texture()` / `set_map_season()` swap the texture when the weather
+changes. Only the door has separate tile sprites.
 
-Valid cells for walking are computed by `load_walkable_cells` from the same
-tokens; a wall token is not walkable, floor and door are.
+`image_map.rs` derives gameplay categories by comparing each 16×16 tile with
+the frames of `grass.png`, `stone_road.png`, `floor.png`, `wall.png` and
+`water_shop_wall.png` (all flips included). Overlapping layers are resolved by
+priority `water_wall > wall > floor > road > grass`. The result is reduced to
+four tokens so the existing placement and pathfinding logic keeps working:
+
+| Token | Source categories | Meaning |
+|---|---|---|
+| `.` | grass, road | outdoor, walkable, plantable |
+| `0` | floor | walkable, items can be placed |
+| `W` | wall, water wall | solid, wall decor only |
+| `E` | door override | animated shop door, walkable |
+
+The door is not part of the image: `DOOR_X_MIN..=DOOR_X_MAX` ×
+`DOOR_Y_MIN..=DOOR_Y_MAX` (2×2) is forced to `E` after classification. Its
+sprites form a 2×2 atlas with `Z_DOOR = Z_DECOR` and one frame per cell.
+Baked walls are static — `recompute_wall_token` only touches the hand-authored
+wall tokens of `basement.txt`.
+
+Valid cells for walking are computed by `load_walkable_cells` from the parsed
+image; `W` is not walkable, `.`, `0` and `E` are. The
+`image_map_classifies_all_tiles_and_overrides_door` test guards the 53×28 size,
+the category counts and the door override; `every_map_token_resolves_to_an_in_bounds_atlas_frame`
+guards the token-to-texture mapping.
+
+### Basement map
+
+`assets/basement.txt` is still a whitespace-separated token grid read by
+`load_basement_to_ecs`. It uses the full historical token set
+(`= - h d ^ & W S [ ] : ; o % q p i / | ( { ) }`, grass and floor variants),
+one sprite per cell, with generated walls recomputed after placement changes.
 
 ## World manifest
 

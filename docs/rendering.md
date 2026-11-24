@@ -175,9 +175,11 @@ global `UI_UNIFORMS`, which UI hit-testing reads to convert NDC to UI units.
 
 `sprites(bounds)` receives the visible world rectangle and drops everything
 outside it before batching. Both scenes pass it: the game with its scrolling
-camera, and the menu with its fixed camera (the menu draws the same shop map —
-without culling all ~1500 tiles are submitted every frame and the menu drops
-below 60 FPS). `ui_fit_scale` and `ui_visible_half_h` compute a
+camera, and the menu with its fixed camera. The shop map itself is one
+virtual-sized sprite; culling uses its real half-extent (parsed from the
+`@WxH` path suffix), so it stays visible when the camera moves away from the
+map centre and disappears only once the whole map is off-screen. `ui_fit_scale`
+and `ui_visible_half_h` compute a
 scale in `[UI_MIN_SCALE, 1.0]` so the whole UI box fits any aspect ratio from
 4:3 to 20:9; `ui_top_offset`/`ui_bottom_offset` pin the HUD and hotbar to the
 screen edges with `UI_EDGE_MARGIN`.

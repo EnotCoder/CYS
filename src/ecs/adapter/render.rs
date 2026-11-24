@@ -122,10 +122,24 @@ impl super::EcsAdapter {
                 if let Some((l, r, b, t)) = visible_bounds {
                     let x = transform.position[0];
                     let y = transform.position[1];
-                    if x + 1.0 + margin < l
-                        || x - margin > r
-                        || y + 1.0 + margin < b
-                        || y - margin > t
+                    // Карта — один огромный спрайт "path@WxH". Отсекать его по
+                    // центру нельзя: камера может уйти за центр карты, а фон
+                    // всё ещё оставаться на экране. Поэтому для sized-спрайтов
+                    // берём его настоящий полуразмер, для остальных — старое
+                    // правило с запасом на один тайл.
+                    let (left_ext, right_ext, bottom_ext, top_ext) =
+                        match crate::ecs::Sprite::split_sized_path(&sprite.texture_path).1 {
+                            Some((w, h)) => {
+                                let hw = w * sprite.scale * 0.5;
+                                let hh = h * sprite.scale * 0.5;
+                                (hw, hw, hh, hh)
+                            }
+                            None => (1.0, 0.0, 1.0, 0.0),
+                        };
+                    if x + left_ext + margin < l
+                        || x - right_ext - margin > r
+                        || y + bottom_ext + margin < b
+                        || y - top_ext - margin > t
                     {
                         continue;
                     }

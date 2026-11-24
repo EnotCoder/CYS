@@ -1,17 +1,16 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Copyright (C) 2026 EnotCoder
 
+pub mod image_map;
 pub mod pathfinding;
 
 // ========================================================================
-//  Загрузка карты из map.txt в ECS мир
+//  Загрузка карты из готовой картинки в ECS мир
 // ========================================================================
-//  map.txt описывает уровень строками токенов, разделённых пробелами.
-//  Каждый токен кодирует клетку: "=" / "-" — стены, "0" и его паркетные
-//  варианты ("P" "_" "Q" "A" "Z" "," "X" "D") — пол магазина,
-//  "." и прочие — трава снаружи, "/" / "|" / "&" — стены, на которые можно
-//  ставить предметы, "^" / "[" / "]" и др. — декоративные стены и окна.
-//  Здесь же происходит разбор файла и создание ECS-сущностей земли.
+//  Основная карта — один PNG 16 px на клетку (assets/map/*.png). Он рисуется
+//  одним спрайтом, а image_map.rs по совпадению тайлов с атласами восстанавливает
+//  игровые категории клеток. Подвал по-прежнему хранится в basement.txt и
+//  читается построчно старым путём.
 
 use crate::core::constants::{
     DOOR_TEX_CLOSED, DOOR_TEX_OPEN, DOOR_TEX_OPEN_1, DOOR_TEX_OPEN_2, DOOR_TEX_OPEN_3, DOOR_TOKEN,
@@ -19,23 +18,83 @@ use crate::core::constants::{
     WORLD_OFFSET_Y, Z_MAP,
 };
 use crate::data::map::pathfinding::Node;
+use crate::ecs::components::Season;
 use crate::ecs::EcsAdapter;
 use specs::WorldExt;
 use std::collections::HashSet;
 use std::io::BufRead;
 
-/// Загружает карту из файла и создаёт для каждой клетки ECS-сущность
+/// Загружает карту-картинку: один фон + отдельные спрайты только для двери.
 pub fn load_map_to_ecs(ecs: &mut EcsAdapter) {
-    let bytes = crate::core::asset::load_bytes(crate::core::constants::MAP_FILE)
-        .expect("map.txt not found!");
-    load_map_from_reader(ecs, &bytes[..], false);
+    let map = image_map::cached_map();
+    let season = *ecs.world.read_resource::<Season>();
+    let sized = format!("{}@{}x{}", season.map_texture(), map.width, map.height);
+    let cx = WORLD_OFFSET_X + (map.width as f32 - 1.0) * 0.5;
+    let cy = WORLD_OFFSET_Y - (map.height as f32 - 1.0) * 0.5;
+    let background = crate::ecs::factory::create_sprite(
+        &mut ecs.world,
+        cx,
+        cy,
+        Z_MAP,
+        &sized,
+        [0, 0],
+        [1, 1],
+        1.0,
+        1.0,
+    );
+    ecs.map_background = Some(background);
+
+    for (j, row) in map.cells.iter().enumerate() {
+        let mut grid_row = Vec::with_capacity(row.len());
+        for (i, cell) in row.iter().enumerate() {
+            let token = cell.token;
+            grid_row.push(token.to_string());
+            register_cell(ecs, token, i, j);
+            if is_door_token(token) {
+                let x = i as f32 + WORLD_OFFSET_X;
+                let y = -(j as f32) + WORLD_OFFSET_Y;
+                let grid_x = (x + 0.5).floor() as i32;
+                let grid_y = (y + 0.5).floor() as i32;
+                spawn_map_tile(ecs, token, x, y, grid_x, grid_y);
+            }
+        }
+        ecs.map_grid.push(grid_row);
+    }
 }
 
 /// Загружает карту подвала из отдельного файла
 pub fn load_basement_to_ecs(ecs: &mut EcsAdapter) {
     let bytes = crate::core::asset::load_bytes(crate::core::constants::BASEMENT_FILE)
         .expect("basement.txt not found!");
-    load_map_from_reader(ecs, &bytes[..], true);
+    load_map_from_reader(ecs, &bytes[..]);
+}
+
+/// Регистрирует категории клетки для размещения объектов и pathfinding.
+fn register_cell(ecs: &mut EcsAdapter, token: &str, i: usize, j: usize) {
+    let x = i as f32 + WORLD_OFFSET_X;
+    let y = -(j as f32) + WORLD_OFFSET_Y;
+    let grid_x = (x + 0.5).floor() as i32;
+    let grid_y = (y + 0.5).floor() as i32;
+    ecs.original_tokens.insert((grid_x, grid_y), token.to_string());
+    if is_wall_tile(token) {
+        ecs.wall_positions.insert((grid_x, grid_y));
+    } else if is_floor_tile(token) {
+        ecs.floor_positions.insert((grid_x, grid_y));
+    }
+    if crate::data::is_grass_token(token) {
+        ecs.outdoor_positions.insert((grid_x, grid_y));
+        ecs.flower_positions.insert((grid_x, grid_y));
+    }
+}
+
+/// Меняет картинку фона при смене сезона.
+pub fn set_map_season(ecs: &mut EcsAdapter, season: Season) {
+    let Some(background) = ecs.map_background else {
+        return;
+    };
+    let map = image_map::cached_map();
+    let sized = format!("{}@{}x{}", season.map_texture(), map.width, map.height);
+    ecs.update_sprite_texture(background, &sized);
 }
 
 /// Создаёт спрайт одного тайла карты и запоминает сущность в map_entities.
@@ -74,11 +133,10 @@ pub fn spawn_map_tile(
     entity
 }
 
-/// Читает текстовую карту построчно и превращает каждый токен в спрайт-сущность
-fn load_map_from_reader(ecs: &mut EcsAdapter, reader: impl std::io::Read, _is_basement: bool) {
+/// Читает текстовую карту подвала построчно и превращает каждый токен в спрайт
+fn load_map_from_reader(ecs: &mut EcsAdapter, reader: impl std::io::Read) {
     let reader = std::io::BufReader::new(reader);
 
-    // j — номер строки (ось Y), i — позиция в строке (ось X)
     for (j, line) in reader.lines().flatten().enumerate() {
         let parts: Vec<&str> = line.split_whitespace().collect();
         if parts.is_empty() {
@@ -88,29 +146,11 @@ fn load_map_from_reader(ecs: &mut EcsAdapter, reader: impl std::io::Read, _is_ba
         let mut grid_row: Vec<String> = Vec::new();
         for (i, token) in parts.iter().enumerate() {
             grid_row.push(token.to_string());
-
+            register_cell(ecs, token, i, j);
             let x = i as f32 + WORLD_OFFSET_X;
             let y = -(j as f32) + WORLD_OFFSET_Y;
             let grid_x = (x + 0.5).floor() as i32;
             let grid_y = (y + 0.5).floor() as i32;
-
-            // Сохраняем исходный токен клетки, чтобы уметь восстанавливать уровень
-            ecs.original_tokens
-                .insert((grid_x, grid_y), token.to_string());
-
-            // Токены травы/улицы — помечаем клетки как outdoor и пригодные к посадке цветов
-            let is_grass = crate::data::is_grass_token(token);
-            if is_wall_tile(token) {
-                ecs.wall_positions.insert((grid_x, grid_y));
-            } else if is_floor_tile(token) {
-                ecs.floor_positions.insert((grid_x, grid_y));
-            }
-            if is_grass {
-                ecs.outdoor_positions.insert((grid_x, grid_y));
-                ecs.flower_positions.insert((grid_x, grid_y));
-            }
-
-            // Создаём спрайт земли на уровне Z_MAP и запоминаем сущность по клетке
             spawn_map_tile(ecs, token, x, y, grid_x, grid_y);
         }
         ecs.map_grid.push(grid_row);
@@ -174,20 +214,16 @@ pub fn door_texture_for_step(step: i32) -> &'static str {
     }
 }
 
-/// Загружает проходимые клетки из map.txt (для NPC pathfinding)
+/// Загружает проходимые клетки из картинки карты (для NPC pathfinding)
 ///
 /// Возвращает множество клеток, по которым могут ходить покупатели.
-/// Проходимы: трава (включая декоративную "H"/"K"), тротуарные тени "1".."6",
-/// пол магазина "0", паркетная рамка пола (P _ Q A D Z , X — по ней покупатель
-/// заходит в магазин) и дверной проём "E".
+/// Проходимы: трава и тротуар ("."), пол магазина ("0") и дверной проём ("E").
 pub fn load_walkable_cells() -> HashSet<Node> {
-    let src = include_str!("../../../assets/map.txt");
+    let map = image_map::cached_map();
     let mut cells = HashSet::new();
-    for (j, line) in src.lines().enumerate() {
-        for (i, token) in line.split_whitespace().enumerate() {
-            // Проходимо: трава (в т.ч. декоративные "H"/"K"), тротуарные тени
-            // "1".."6", пол "0", паркетная рамка пола и дверной проём "E".
-            // "!"/"~" оставлены на случай правок карты.
+    for (j, row) in map.cells.iter().enumerate() {
+        for (i, cell) in row.iter().enumerate() {
+            let token = cell.token;
             let passable = is_floor_tile(token)
                 || is_door_token(token)
                 || matches!(token, "!" | "~")
@@ -209,21 +245,18 @@ pub fn load_walkable_cells() -> HashSet<Node> {
 /// не будет ни одного покупателя.
 pub fn shopper_spawn_point() -> Node {
     let preferred = Node::new(SHOPPER_SPAWN_X, SIDEWALK_Y);
+    let map = image_map::cached_map();
     let walkable = load_walkable_cells();
     if walkable.contains(&preferred) {
         return preferred;
     }
     let mut best: Option<Node> = None;
-    for j in 0..100 {
+    for (j, row) in map.cells.iter().enumerate() {
         let wy = -(j as f32) + WORLD_OFFSET_Y;
         if wy.round() as i32 != SIDEWALK_Y {
             continue;
         }
-        let line = include_str!("../../../assets/map.txt")
-            .lines()
-            .nth(j)
-            .unwrap_or("");
-        for (i, _) in line.split_whitespace().enumerate() {
+        for (i, _) in row.iter().enumerate() {
             let node = Node::new(i as i32 + WORLD_OFFSET_X as i32, SIDEWALK_Y);
             if !walkable.contains(&node) {
                 continue;

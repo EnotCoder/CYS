@@ -177,7 +177,7 @@ pub fn load_bytes(path: &str) -> std::io::Result<Vec<u8>> {
     }
 }
 
-/// Читает текстовый файл проекта (map.txt, *.lua, конфиги).
+/// Читает текстовый файл проекта (basement.txt, *.lua, конфиги).
 pub fn load_string(path: &str) -> std::io::Result<String> {
     Ok(String::from_utf8_lossy(&load_bytes(path)?).into_owned())
 }

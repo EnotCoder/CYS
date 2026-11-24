@@ -204,7 +204,7 @@ impl Component for ShopperTag {
     type Storage = VecStorage<Self>;
 }
 
-/// Текущий сезон ( погода): определяет текстуру травы на карте.
+/// Текущий сезон (погода): определяет текстуру готовой карты.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Season {
     Summer,
@@ -220,6 +220,16 @@ impl Season {
             Season::Spring => "assets/tex/map/spring_grass.png",
             Season::Autumn => "assets/tex/map/autumn_grass.png",
             Season::Winter => "assets/tex/map/winter_grass.png",
+        }
+    }
+
+    /// Готовое изображение карты на 16 px/клетку для текущего сезона.
+    pub fn map_texture(&self) -> &'static str {
+        match self {
+            Season::Summer => "assets/map/map.png",
+            Season::Spring => "assets/map/spring_map.png",
+            Season::Autumn => "assets/map/autumn_map.png",
+            Season::Winter => "assets/map/winter_map.png",
         }
     }
 

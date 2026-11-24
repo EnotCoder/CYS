@@ -110,8 +110,10 @@ night at `night_start_secs`, night until `night_secs`, then dawn over
 shows the in-game clock.
 
 `Season` is a resource and defaults to winter, so a new game starts with snow.
-The weather panel changes it, the grass texture follows (`summer_grass.png`,
-`spring_grass.png`, `autumn_grass.png`, `winter_grass.png`), and `WeatherFx`
+The weather panel changes it, and the whole map image follows
+(`map.png`, `spring_map.png`, `autumn_map.png`, `winter_map.png` in
+`assets/map/`). Cell categories come from the default image, so gameplay never
+changes with the season. `WeatherFx`
 adds particles: snow in winter, rain with thunder in autumn, nothing in spring
 and summer. Particles are ordinary sprites on `Z_WEATHER`, recycled when they
 leave the map. Each season also swaps the background track (`music_spring`,

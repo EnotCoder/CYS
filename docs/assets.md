@@ -30,7 +30,8 @@ from `std::env` or an absolute location — always go through `core::asset`.
 | `assets/sounds/` | 26 `.ogg` effects and music (menu + four seasonal tracks) |
 | `assets/scripts/` | `config.lua`, `items.lua`, `npc.lua`, `gen_sounds.py` |
 | `assets/font.otf` | the only font; path comes from `config.lua` |
-| `assets/map.txt`, `assets/basement.txt` | level maps |
+| `assets/map/*.png` | four 848×448 seasonal map images, 16 px per cell (see [world-format.md](world-format.md)) |
+| `assets/basement.txt` | basement level map (still a text token grid) |
 | `assets/icon.png` | application icon source |
 | `texture_pack/<id>/textures/` | optional player replacements mirroring `assets/tex/` |
 | `shaders/<id>/shader.wgsl` | optional player WGSL with `shader.json` metadata |

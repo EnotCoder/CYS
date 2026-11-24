@@ -488,6 +488,7 @@ impl GameScene {
 
     pub fn refresh_grass_tiles(&self, ecs: &mut crate::EcsAdapter) {
         let season = *ecs.world.read_resource::<crate::ecs::components::Season>();
+        crate::data::map::set_map_season(ecs, season);
         let tokens = ecs.original_tokens.clone();
         for (pos, token) in &tokens {
             if let Some(&entity) = ecs.map_entities.get(pos) {

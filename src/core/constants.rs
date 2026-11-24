@@ -171,11 +171,12 @@ pub const TEX_UI_ICON_SLOTS_OBJECT_DIR: &str = "assets/tex/ui/icon_slots/icon_sl
 pub const TEX_UI_ICON_SLOTS_MAP_DIR: &str = "assets/tex/ui/icon_slots/";
 pub const TEX_FALLBACK: &str = "assets/tex/dev_tools/null.png";
 
-pub const MAP_FILE: &str = "assets/map.txt";
+pub const MAP_FILE: &str = "assets/map/map.png";
 pub const BASEMENT_FILE: &str = "assets/basement.txt";
 
 // === Дверь магазина ===
-// Токен дверного проёма в map.txt и клетки, которые он занимает (2x2).
+// Токен дверного проёма и клетки, которые он занимает (2x2). Дверь — активный
+// объект, в готовой картинке карты её нет, поэтому она ставится отдельно.
 // Проём стоит в южном фасаде, ведёт с тротуара на паркетный пол магазина.
 pub const DOOR_TOKEN: &str = "E";
 pub const DOOR_X_MIN: i32 = -1;

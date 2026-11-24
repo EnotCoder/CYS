@@ -285,8 +285,8 @@ fn weather_effect_and_bounds_follow_the_map() {
     let ecs = ecs_with_map();
     let (left, right, bottom, top) = WeatherFx::world_bounds(&ecs).expect("границы карты");
     assert!(left < right && bottom < top);
-    assert_eq!(right - left, 53.0, "ширина map.txt");
-    assert_eq!(top - bottom, 28.0, "высота map.txt");
+    assert_eq!(right - left, 53.0, "ширина карты");
+    assert_eq!(top - bottom, 28.0, "высота карты");
     assert!((left - (crate::core::constants::WORLD_OFFSET_X - 0.5)).abs() < 1e-6);
     assert!((top - (crate::core::constants::WORLD_OFFSET_Y + 0.5)).abs() < 1e-6);
 }

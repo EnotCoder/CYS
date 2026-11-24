@@ -47,8 +47,9 @@ pressed this frame, the cursor is at NDC (x, y), the wheel moved by 3". That is
 how zoom, sliders, shop scrolling and UI hit tests are covered.
 
 Assets are read through `core::asset`, so tests that check icons or maps use
-the real files from the repository. `include_str!("../../assets/map.txt")` is
-used where a compile-time dependency is acceptable.
+the real files from the repository. `image_map::cached_map()` parses the shipped
+PNG map once and is used by both gameplay code and tests; the basement map is
+read from `assets/basement.txt`.
 
 Rules of thumb:
 

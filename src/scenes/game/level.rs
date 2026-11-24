@@ -113,17 +113,28 @@ impl GameScene {
         if let Some(state) = self.level_states.get(&level) {
             ecs.map_grid = state.map_grid.clone();
             ecs.original_tokens = state.original_tokens.clone();
-            // Пересоздаём спрайты земли для каждой сохранённой клетки.
-            // Через spawn_map_tile, а не напрямую: он же ставит клеткам
-            // двери её кадр атласа и слой Z_DOOR.
-            for (pos, _) in ecs.original_tokens.clone() {
-                let token = ecs.original_tokens.get(&pos).cloned().unwrap_or_default();
-                let (wx, wy) = (pos.0 as f32, pos.1 as f32);
-                crate::data::map::spawn_map_tile(ecs, &token, wx, wy, pos.0, pos.1);
-                ecs.map_grid[(-wy + WORLD_OFFSET_Y) as usize][(wx + -WORLD_OFFSET_X) as usize] =
-                    token;
+            if level == -1 {
+                // Подвал по-прежнему состоит из отдельных спрайтов на клетку.
+                // Через spawn_map_tile, а не напрямую: он же ставит клеткам
+                // двери её кадр атласа и слой Z_DOOR.
+                for (pos, _) in ecs.original_tokens.clone() {
+                    let token = ecs.original_tokens.get(&pos).cloned().unwrap_or_default();
+                    let (wx, wy) = (pos.0 as f32, pos.1 as f32);
+                    crate::data::map::spawn_map_tile(ecs, &token, wx, wy, pos.0, pos.1);
+                }
+            } else {
+                // Основная карта — один фон + отдельные тайлы двери. Дверь
+                // создаётся внутри load_map_to_ecs, повторно её трогать нельзя.
+                crate::data::map::load_map_to_ecs(ecs);
+                // load_map_to_ecs наполнил сетки из картинки — вернуть сохранённые.
+                ecs.map_grid = state.map_grid.clone();
+                ecs.original_tokens = state.original_tokens.clone();
             }
             // Восстанавливаем вспомогательные множества (стены, пол, трава и т.д.)
+            ecs.wall_positions.clear();
+            ecs.floor_positions.clear();
+            ecs.outdoor_positions.clear();
+            ecs.flower_positions.clear();
             for (j, row) in ecs.map_grid.iter().enumerate() {
                 for (i, token) in row.iter().enumerate() {
                     let x = i as f32 + WORLD_OFFSET_X;

@@ -83,10 +83,14 @@ is missing from this map.
 - **`src/data/door.rs`** — `tick_door`: the door opens when a shopper
   (`ShopperTag`) is near and closes after they leave; `DoorProgress`, 2×2 atlas
   frames, smooth NPC fade inside the doorway.
-- **`src/data/map/mod.rs`** — loads `map.txt`/`basement.txt` into the ECS
-  (`load_map_to_ecs`, `load_basement_to_ecs`, `spawn_map_tile`), wall/floor/
-  grass/walkable sets, `shopper_spawn_point`, `token_to_texture`, `door_cells`,
-  `door_frame_for_cell`.
+- **`src/data/map/image_map.rs`** — reads `assets/map/*.png` as one 16 px/cell
+  image, matches each tile against the atlas frames (including flips) to
+  recover walkable/floor/wall categories, caches the parsed grid and applies
+  the 2×2 door override.
+- **`src/data/map/mod.rs`** — loads the image map and `basement.txt` into the
+  ECS (`load_map_to_ecs`, `load_basement_to_ecs`, `spawn_map_tile`,
+  `set_map_season`), wall/floor/grass/walkable sets, `shopper_spawn_point`,
+  `token_to_texture`, `door_cells`, `door_frame_for_cell`.
 - **`src/data/map/pathfinding.rs`** — A*: `Node` (cell, 4 neighbours, Manhattan
   heuristic), `find_path` with a binary heap and path reconstruction,
   `from_world`/`to_world`.

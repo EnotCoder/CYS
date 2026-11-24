@@ -951,13 +951,13 @@ fn sized_path_parsing_splits_base_and_footprint() {
 // ========================================================================
 
 #[test]
-fn menu_drops_off_screen_map_tiles_like_the_game_does() {
+fn menu_keeps_the_map_background_but_drops_off_screen_tiles() {
     use crate::core::constants::{MENU_MAP_SIZE, SHADER_SCALE};
     use crate::scenes::scene_trait::Scene;
 
-    // Меню показывает тот же магазин, что и игра, но камера в нём неподвижна
-    // (смещение 0). Отсечение обязано применяться и здесь: без него каждый
-    // кадр рисовались все ~1500 тайлов карты и меню просаживалось ниже 60 FPS.
+    // Карта — один sized-спрайт на всю карту, дверь — четыре отдельных тайла.
+    // Фон нельзя отсекать по центру: камера уходит от центра карты, но фон
+    // остаётся на экране. Дверные тайлы по-прежнему отсекаются по центру.
     let mut ecs = crate::EcsAdapter::new();
     crate::data::map::load_map_to_ecs(&mut ecs);
     let scene = crate::scenes::MenuScene::new();
@@ -974,26 +974,52 @@ fn menu_drops_off_screen_map_tiles_like_the_game_does() {
 
     let all = scene.sprites(&ecs, None);
     let visible = scene.sprites(&ecs, Some(bounds));
-
     assert!(!all.0.is_empty(), "карта меню не загрузилась");
+    assert!(visible.0.iter().any(|s| s.texture_path.contains("@53x28")));
+
+    // Узкая область у центра камеры отсекает дверь, но сохраняет фон.
+    let near = (-2.0, 2.0, 0.0, 2.0);
+    let near_sprites = scene.sprites(&ecs, Some(near)).0;
+    assert_eq!(near_sprites.len(), 1, "в кадре должен остаться только фон");
+
+    // За пределами карты не рисуется ничего.
+    let far = (1000.0, 1001.0, 1000.0, 1001.0);
     assert!(
-        visible.0.len() * 2 < all.0.len(),
-        "в кадре {} тайлов из {} — отсечение по видимой области не работает",
-        visible.0.len(),
-        all.0.len()
+        scene.sprites(&ecs, Some(far)).0.is_empty(),
+        "карта не отсеклась за пределами"
     );
-    // Всё, что попало в кадр, обязано быть внутри видимой области с запасом
-    // (margin в get_sprites_by_layer + размер тайла).
-    let margin = 2.0;
-    for sprite in &visible.0 {
-        let (x, y) = (sprite.position[0], sprite.position[1]);
-        assert!(
-            x + 1.0 + margin >= bounds.0
-                && x - margin <= bounds.1
-                && y + 1.0 + margin >= bounds.2
-                && y - margin <= bounds.3,
-            "тайл ({x},{y}) вне видимой области (не должен рисоваться)"
-        );
+}
+
+// ========================================================================
+//  Карта-картинка: размеры, категории и дверной проём
+// ========================================================================
+
+#[test]
+fn image_map_classifies_all_tiles_and_overrides_door() {
+    use crate::core::constants::{WORLD_OFFSET_X, WORLD_OFFSET_Y};
+    use crate::data::map::image_map::cached_map;
+    use crate::data::map::{door_cells, is_door_token};
+
+    let map = cached_map();
+    assert_eq!((map.width, map.height), (53, 28));
+    assert_eq!(map.cells.len(), map.height);
+    assert!(map.cells.iter().all(|row| row.len() == map.width));
+
+    let mut counts = std::collections::HashMap::new();
+    for row in &map.cells {
+        for cell in row {
+            *counts.entry(cell.token).or_insert(0usize) += 1;
+        }
+    }
+    assert_eq!(counts.get(&"."), Some(&1146), "трава + тротуар");
+    assert_eq!(counts.get(&"0"), Some(&117), "пол без клеток двери");
+    assert_eq!(counts.get(&"W"), Some(&217), "стены и вода");
+    assert_eq!(counts.get(&"E"), Some(&4), "дверь 2x2");
+
+    for (x, y) in door_cells() {
+        let col = (x - WORLD_OFFSET_X as i32) as usize;
+        let row = (WORLD_OFFSET_Y as i32 - y) as usize;
+        assert!(is_door_token(map.token_at(col, row).unwrap()));
     }
 }
 
@@ -1012,9 +1038,11 @@ fn every_map_token_resolves_to_an_in_bounds_atlas_frame() {
     const TOKENS: &str = ".@*mf~lHK123456PQZX,_AD=-hd^&WS/|(){}][:;o%Eqp";
 
     // Дополнительно прогоняем токены, реально встречающиеся в карте.
-    let mut from_map: Vec<String> = include_str!("../../assets/map.txt")
-        .lines()
-        .flat_map(|line| line.chars().map(|c| c.to_string()))
+    let mut from_map: Vec<String> = crate::data::map::image_map::cached_map()
+        .cells
+        .iter()
+        .flatten()
+        .map(|cell| cell.token.to_string())
         .collect();
     from_map.sort();
     from_map.dedup();

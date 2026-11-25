@@ -32,8 +32,8 @@ is missing from this map.
   `AAssetManager` on Android (strips the `assets/` prefix); saves and settings
   go to the app's internal directory; `list_dir` for sounds.
 - **`src/core/constants.rs`** — every constant: z-layers, camera and zoom,
-  window and UI sizes, texture paths, inventory lists, `MAX_DYNAMIC_SPRITES`,
-  `QUAD_INDICES`, render service values.
+  window and UI sizes, texture paths (including the Mark portrait and walker),
+  inventory lists, `MAX_DYNAMIC_SPRITES`, `QUAD_INDICES`, render service values.
 - **`src/core/buffers.rs`** — shader-compatible `Vertex` and `Uniforms`,
   `DepthBuffer`, `init_buffers` (bind group layouts, dynamic storage buffer
   with offsets, texture and sampler), depth-stencil states.
@@ -143,8 +143,9 @@ is missing from this map.
 
 - **`src/npc/mod.rs`** — `ShopperNpc`: state machine (`GoingToRack` →
   `GoingToCassa` → `AtCassa` → `GoingToCandies` → `AtCandies` →
-  `GoingToExit`), fade-in spawn, pack-provided idle/walk frames, `refresh_pack`,
-  Lua API, `update` (`npc.lua` script or `update_fallback` in Rust).
+  `GoingToExit`), fade-in spawn, pack-provided idle/walk frames (`mark` is a
+  separate id), `refresh_pack`, `is_mark`, Lua API, `update` (`npc.lua` script
+  or `update_fallback` in Rust).
 - **`src/npc/interactions.rs`** — `take_food`/`take_candy`, `cassa_exists`,
   `rack_exists`, `candy_exists`, `find_any_cassa`, `reroute_to_cassa`, sounds
   and textures.
@@ -202,8 +203,9 @@ is missing from this map.
   `LevelState`, `load_level` (shop ↔ basement from cache), `rebuild_ui`,
   `save_to_disk`/`load_from_disk` (`data/worlds/world_{id}.json`), basement exit.
 - **`src/scenes/game/shoppers.rs`** — `ShopperManager`: `spawn_shopper`
-  (random rack/register/candy target, three texture sets), `set_active`,
-  `refresh_pack`, `tick` (spawn timers, limit, despawn, cooldown).
+  (random rack/register/candy target, three regular sets or a rare Mark),
+  `roll_mark`, `set_active`, `refresh_pack`, `tick` (spawn timers, limit,
+  one Mark at a time, despawn, cooldown).
 - **`src/scenes/game/tutorial.rs`** — `Tutorial`: tutorial panel, `open`/`close`,
   button and panel hit tests, gentle sine sway.
 - **`src/scenes/game/weather_fx.rs`** — `WeatherFx`: rain and snow particles,
@@ -241,8 +243,8 @@ is missing from this map.
   cannot toggle the wrong mod. **Refresh** / `R` calls `refresh()` to rescan the
   folder in place. Reused by the main menu and the game's Settings panel.
 - **`src/ui/shop.rs`** — `Shop`: scrollable catalogue with a scrollbar,
-  `ShopItem`, `ConfirmAction`, purchase confirmation dialog, `refresh`,
-  `row_clicked`, `scroll_input`.
+  `ShopItem`, `ConfirmAction`, purchase confirmation dialog, bobbing Mark
+  portrait, `refresh`, `row_clicked`, `scroll_input`.
 - **`src/ui/weather.rs`** — `Weather`: season panel (4 buttons), `selected`,
   `season_changed`, `open`/`close`, `handle_input`, highlight.
 - **`src/ui/anim.rs`** — `PanelAnim`: panel open/close, `AnimPhase`/`AnimEvent`,
@@ -296,8 +298,8 @@ is missing from this map.
 - **`src/scripts/mod.rs`** — declares `config`, `items`, `mods` and `npc`.
 - **`src/scripts/config.rs`** — `BalanceConfig`: reads
   `assets/scripts/config.lua` through mlua, applies mod balance overrides,
-  falls back to defaults on error; timings, prices, capacities, economy;
-  `publish_to_lua`.
+  falls back to defaults on error; timings (`mark_chance` included), prices,
+  capacities, economy; `publish_to_lua`.
 - **`src/scripts/items.rs`** — `ItemDef`/`load`: reads
   `assets/scripts/items.lua` through mlua (size, texture, inventory icon and
   icon size, price, atlas frame, animation frames, tab, category), merges
@@ -349,7 +351,7 @@ is missing from this map.
   sandbox, blocked Lua globals, event handling, balance/item overrides and
   texture layers without an active pack.
 - **`src/tests/npc_tests.rs`** — shopper: states, movement, food and candy,
-  registers, routing, fade-out, door.
+  registers, routing, fade-out, door, Mark texture recognition.
 - **`src/tests/input_tests.rs`** — input through `FakeInput`: zoom, UI hit
   tests, slider, shop scrolling, world name, door fade, weather.
 - **`src/tests/anim_tests.rs`** — `PanelAnim`: open, close, cancel, text

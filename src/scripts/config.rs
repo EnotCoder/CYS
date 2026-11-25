@@ -19,6 +19,7 @@ pub struct BalanceConfig {
     pub shopper_spawn_interval: f64,
     pub shopper_spawn_cooldown: f64,
     pub max_shoppers: usize,
+    pub mark_chance: f64,
     // === Реген еды в box ===
     pub food_regen_tick: f64,
     pub food_regen_amount: i32,
@@ -125,6 +126,7 @@ impl BalanceConfig {
         cfg.shopper_spawn_cooldown =
             get_f64(get("shopper_spawn_cooldown"), cfg.shopper_spawn_cooldown);
         cfg.max_shoppers = get_i64(get("max_shoppers"), cfg.max_shoppers as i64).max(1) as usize;
+        cfg.mark_chance = get_f64(get("mark_chance"), cfg.mark_chance);
         cfg.food_regen_tick = get_f64(get("food_regen_tick"), cfg.food_regen_tick);
         cfg.food_regen_amount =
             get_i64(get("food_regen_amount"), cfg.food_regen_amount as i64) as i32;
@@ -165,6 +167,7 @@ impl BalanceConfig {
         t.set("shopper_spawn_interval", self.shopper_spawn_interval)?;
         t.set("shopper_spawn_cooldown", self.shopper_spawn_cooldown)?;
         t.set("max_shoppers", self.max_shoppers)?;
+        t.set("mark_chance", self.mark_chance)?;
         t.set("food_regen_tick", self.food_regen_tick)?;
         t.set("food_regen_amount", self.food_regen_amount)?;
         t.set("day_cycle_secs", self.day_cycle_secs)?;
@@ -238,6 +241,7 @@ impl Default for BalanceConfig {
             shopper_spawn_interval: 2.0,
             shopper_spawn_cooldown: 2.0,
             max_shoppers: 22,
+            mark_chance: 0.05,
             food_regen_tick: 1.0,
             food_regen_amount: 1,
             day_cycle_secs: 120.0,

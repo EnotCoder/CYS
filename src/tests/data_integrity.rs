@@ -322,6 +322,7 @@ fn balance_defaults_are_sane() {
     assert!(cfg.rent_amount > 0);
     assert!(cfg.start_money >= 0);
     assert!((0.0..=1.0).contains(&cfg.candy_chance));
+    assert!((0.0..=1.0).contains(&cfg.mark_chance));
     assert!(cfg.max_food_box > 0 && cfg.max_food_rack > 0 && cfg.max_food_candies > 0);
     assert!(cfg.candies_start_food <= cfg.max_food_candies);
     assert!(cfg.npc_speed > 0.0);
@@ -332,6 +333,7 @@ fn balance_defaults_are_sane() {
 fn balance_config_publishes_every_field_to_lua() {
     let mut cfg = BalanceConfig::default();
     cfg.shopper_spawn_interval = 1.5;
+    cfg.mark_chance = 0.35;
     cfg.object_prices.insert("box".to_string(), 7);
     cfg.font_path = "assets/test-font.otf".to_string();
 
@@ -351,6 +353,7 @@ fn balance_config_publishes_every_field_to_lua() {
         t.get::<i64>("max_shoppers").unwrap(),
         cfg.max_shoppers as i64
     );
+    assert_eq!(t.get::<f64>("mark_chance").unwrap(), cfg.mark_chance);
     assert_eq!(
         t.get::<f64>("food_regen_tick").unwrap(),
         cfg.food_regen_tick

@@ -8,7 +8,9 @@
 
 use specs::WorldExt;
 
-use crate::core::constants::{TEX_BOB_IDLE, TEX_BOB_WALK_1, TEX_BOB_WALK_2};
+use crate::core::constants::{
+    TEX_BOB_IDLE, TEX_BOB_WALK_1, TEX_BOB_WALK_2, TEX_MARK_IDLE, TEX_MARK_WALK_1, TEX_MARK_WALK_2,
+};
 use crate::data::map::pathfinding::Node;
 use crate::data::map::{load_walkable_cells, shopper_spawn_point};
 use crate::ecs::components::{BusyCassas, FoodStorage, Money, Transform};
@@ -58,6 +60,27 @@ fn state_int_roundtrips_for_all_states() {
     assert_eq!(npc.state_int(), 1);
     npc.set_state_int(-1);
     assert_eq!(npc.state_int(), 1);
+}
+
+#[test]
+fn mark_textures_are_recognized_as_a_separate_shopper() {
+    let mut ecs = ecs_with_map();
+    let walkable = load_walkable_cells();
+    let mark = ShopperNpc::spawn(
+        &mut ecs,
+        &walkable,
+        shopper_spawn_point(),
+        Node::new(0, -3),
+        Node::new(2, -3),
+        None,
+        TEX_MARK_IDLE,
+        TEX_MARK_WALK_1,
+        TEX_MARK_WALK_2,
+    )
+    .expect("нет пути от входа до стеллажа");
+
+    assert!(mark.is_mark());
+    assert!(!spawn(&mut ecs, Node::new(0, -3), Node::new(2, -3), None).is_mark());
 }
 
 #[test]

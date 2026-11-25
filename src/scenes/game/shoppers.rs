@@ -2,6 +2,7 @@
 // Copyright (C) 2026 EnotCoder
 
 use crate::core::constants::*;
+use crate::core::util::rand01;
 use crate::data::map::pathfinding::Node;
 use crate::ecs::components::{FoodStorage, ObjectTag, Transform};
 use crate::npc::ShopperNpc;
@@ -18,7 +19,19 @@ use std::collections::HashSet;
 //  Периодически спавнит покупателей (ShopperNpc) в точке входа магазина,
 //  пока есть стеллажи с едой и открытая касса. Направляет их к случайным
 //  стеллажам, кассе и выходу. Управляет таймингами спавна и паузой после
-//  ухода покупателя.
+//  ухода покупателя. Редко спавнится Марк, при этом одновременно в магазине
+//  может находиться только один Марк.
+
+fn roll_mark(seed: u32, chance: f64) -> bool {
+    if chance <= 0.0 {
+        return false;
+    }
+    if chance >= 1.0 {
+        return true;
+    }
+    let mut state = seed as u64;
+    (rand01(&mut state) as f64) < chance
+}
 
 pub struct ShopperManager {
     shoppers: Vec<ShopperNpc>,
@@ -61,7 +74,12 @@ impl ShopperManager {
 
     /// Создаёт одного нового покупателя: выбирает случайные стеллаж и кассу
     /// с едой, затем спавнит NPC на точке входа
-    fn spawn_shopper(&mut self, ecs: &mut EcsAdapter, walkable: &HashSet<Node>) {
+    fn spawn_shopper(
+        &mut self,
+        ecs: &mut EcsAdapter,
+        walkable: &HashSet<Node>,
+        config: &BalanceConfig,
+    ) {
         // Собираем позиции всех касс и стеллажей/витрин с остатком еды
         let (all_racks, all_cassas, all_candies) = {
             let tags = ecs.world.read_storage::<ObjectTag>();
@@ -109,13 +127,20 @@ impl ShopperManager {
                 None
             };
             let spawn_node = crate::data::map::shopper_spawn_point();
-            // Внешний вид покупателя меняется по кругу (3 набора текстур)
-            let tex_set = self.index % 3;
-            self.index += 1;
-            let (tex_idle, tex_walk_1, tex_walk_2) = match tex_set {
-                0 => (TEX_BOB_IDLE, TEX_BOB_WALK_1, TEX_BOB_WALK_2),
-                1 => (TEX_PLAYER_IDLE, TEX_PLAYER_WALK_1, TEX_PLAYER_WALK_2),
-                _ => (TEX_SASHA_IDLE, TEX_SASHA_WALK_1, TEX_SASHA_WALK_2),
+            // Марк приходит редко и не должен дублироваться, пока первый ещё в магазине.
+            let mark = !self.shoppers.iter().any(ShopperNpc::is_mark)
+                && roll_mark(seed, config.mark_chance);
+            let (tex_idle, tex_walk_1, tex_walk_2) = if mark {
+                (TEX_MARK_IDLE, TEX_MARK_WALK_1, TEX_MARK_WALK_2)
+            } else {
+                // Обычный внешний вид меняется по кругу (3 набора текстур).
+                let tex_set = self.index % 3;
+                self.index += 1;
+                match tex_set {
+                    0 => (TEX_BOB_IDLE, TEX_BOB_WALK_1, TEX_BOB_WALK_2),
+                    1 => (TEX_PLAYER_IDLE, TEX_PLAYER_WALK_1, TEX_PLAYER_WALK_2),
+                    _ => (TEX_SASHA_IDLE, TEX_SASHA_WALK_1, TEX_SASHA_WALK_2),
+                }
             };
             if let Some(shopper) = ShopperNpc::spawn(
                 ecs, walkable, spawn_node, rack, cassa, candy_pos, tex_idle, tex_walk_1, tex_walk_2,
@@ -149,7 +174,7 @@ impl ShopperManager {
             self.exit_cooldown -= dt;
             if self.exit_cooldown <= 0.0 && active && self.shoppers.len() < config.max_shoppers {
                 self.timer = 0.0;
-                self.spawn_shopper(ecs, walkable);
+                self.spawn_shopper(ecs, walkable, config);
             }
         }
         // Обычный спавн: магазин активен и прошло время между появлениями
@@ -159,7 +184,7 @@ impl ShopperManager {
             && self.exit_cooldown <= 0.0
         {
             self.timer = 0.0;
-            self.spawn_shopper(ecs, walkable);
+            self.spawn_shopper(ecs, walkable, config);
         }
         // Обновляем всех покупателей; закончивших покупку удаляем из мира
         let prev_len = self.shoppers.len();
@@ -173,5 +198,68 @@ impl ShopperManager {
         if self.shoppers.len() < prev_len {
             self.exit_cooldown = config.shopper_spawn_cooldown;
         }
+    }
+
+    #[cfg(test)]
+    fn mark_count(&self) -> usize {
+        self.shoppers.iter().filter(|s| s.is_mark()).count()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::data::map::load_walkable_cells;
+    use crate::tests::helpers::{add_object, ecs_with_map, set_food};
+
+    fn ready_shop() -> EcsAdapter {
+        let mut ecs = ecs_with_map();
+        let rack = add_object(&mut ecs, "rack", -1, -3);
+        set_food(&mut ecs, rack, 5, 15);
+        add_object(&mut ecs, "cassa", 2, -3);
+        ecs
+    }
+
+    fn fast_config(mark_chance: f64) -> BalanceConfig {
+        let mut config = BalanceConfig::default();
+        config.shopper_spawn_interval = 0.0;
+        config.shopper_spawn_cooldown = 0.0;
+        config.mark_chance = mark_chance;
+        config
+    }
+
+    #[test]
+    fn mark_roll_respects_bounds() {
+        for seed in 0..64 {
+            assert!(!roll_mark(seed, 0.0));
+            assert!(roll_mark(seed, 1.0));
+        }
+    }
+
+    #[test]
+    fn two_marks_cannot_be_in_the_same_shop() {
+        let mut ecs = ready_shop();
+        let walkable = load_walkable_cells();
+        let config = fast_config(1.0);
+        let mut manager = ShopperManager::new();
+
+        manager.tick(&mut ecs, 0.1, &walkable, true, &config, None);
+        assert_eq!(manager.mark_count(), 1);
+
+        manager.tick(&mut ecs, 0.1, &walkable, true, &config, None);
+        assert_eq!(manager.mark_count(), 1);
+    }
+
+    #[test]
+    fn zero_chance_never_spawns_mark() {
+        let mut ecs = ready_shop();
+        let walkable = load_walkable_cells();
+        let config = fast_config(0.0);
+        let mut manager = ShopperManager::new();
+
+        for _ in 0..3 {
+            manager.tick(&mut ecs, 0.1, &walkable, true, &config, None);
+        }
+        assert_eq!(manager.mark_count(), 0);
     }
 }

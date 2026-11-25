@@ -814,6 +814,8 @@ pub fn apply_balance(config: &mut crate::scripts::config::BalanceConfig) {
                 config.shopper_spawn_cooldown = *v as f64
             }
             ("max_shoppers", ModValue::Int(v)) => config.max_shoppers = (*v).max(1) as usize,
+            ("mark_chance", ModValue::Float(v)) => config.mark_chance = *v,
+            ("mark_chance", ModValue::Int(v)) => config.mark_chance = *v as f64,
             ("food_regen_tick", ModValue::Float(v)) => config.food_regen_tick = *v,
             ("food_regen_tick", ModValue::Int(v)) => config.food_regen_tick = *v as f64,
             ("food_regen_amount", ModValue::Int(v)) => config.food_regen_amount = *v as i32,

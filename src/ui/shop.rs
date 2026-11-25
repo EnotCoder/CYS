@@ -17,6 +17,10 @@ const COL_ICON_X: [f32; 2] = [-3.2, 1.8];
 const COL_LABEL_X: [f32; 2] = [-2.0, 3.0];
 const COL_HALF_W: f32 = 2.2;
 
+const PANEL_W: f32 = 9.0;
+const PANEL_H: f32 = 6.0;
+const ROW_ICON_SIZE: f32 = 0.8;
+
 const SCROLLBAR_X: f32 = 4.0;
 const SCROLLBAR_W: f32 = 0.25;
 const SCROLLBAR_TOP: f32 = 2.0;
@@ -31,6 +35,16 @@ const CONFIRM_BTN_W: f32 = 2.2;
 const CONFIRM_BTN_H: f32 = 0.8;
 const CONFIRM_BUY_X: f32 = -1.35;
 const CONFIRM_CLOSE_X: f32 = 1.35;
+
+const MARK_FACE_X: f32 = -6.0;
+const MARK_FACE_Y: f32 = 0.0;
+const MARK_FACE_SIZE: f32 = 3.6;
+const MARK_BOB_AMPLITUDE: f32 = 0.14;
+const MARK_BOB_SPEED: f64 = 2.4;
+
+fn mark_y(time: f64) -> f32 {
+    MARK_FACE_Y + (time * MARK_BOB_SPEED).sin() as f32 * MARK_BOB_AMPLITUDE
+}
 
 struct ShopRow {
     icon: Entity,
@@ -76,6 +90,8 @@ pub struct Shop {
     thumb_grab_offset: f32,
     anim: PanelAnim,
     confirm: Option<ConfirmDialog>,
+    mark: Option<Entity>,
+    mark_time: f64,
 }
 
 pub type ShopItem = (String, String, i32, bool);
@@ -115,7 +131,8 @@ fn build_rows(
             let (_, icon, price, owned) = &items[idx];
             let y = ROW_START_Y + ROW_STEP * row as f32;
             let x = COL_ICON_X[col];
-            let icon_ent = ecs.add_ui_sized(x, y, 0.8, 0.8, icon, device, queue);
+            let icon_ent =
+                ecs.add_ui_sized(x, y, ROW_ICON_SIZE, ROW_ICON_SIZE, icon, device, queue);
             let text = if *owned {
                 "— Owned".to_string()
             } else {
@@ -287,7 +304,7 @@ impl Shop {
     pub fn new() -> Self {
         Self {
             open: false,
-            panel: Panel::new(0.0, 0.0, 9.0, 6.0, 0.85),
+            panel: Panel::new(0.0, 0.0, PANEL_W, PANEL_H, 0.85),
             rows: Vec::new(),
             scroll_offset: 0.0,
             touch_scroll_start: None,
@@ -299,6 +316,8 @@ impl Shop {
             thumb_grab_offset: 0.0,
             anim: PanelAnim::new(),
             confirm: None,
+            mark: None,
+            mark_time: 0.0,
         }
     }
 
@@ -318,6 +337,9 @@ impl Shop {
             v.push(r.icon);
             v.push(r.label);
         }
+        if let Some(e) = self.mark {
+            v.push(e);
+        }
         v
     }
 
@@ -330,6 +352,9 @@ impl Shop {
             ecs.delete_entity(e);
         }
         if let Some(e) = self.thumb.take() {
+            ecs.delete_entity(e);
+        }
+        if let Some(e) = self.mark.take() {
             ecs.delete_entity(e);
         }
     }
@@ -356,6 +381,7 @@ impl Shop {
         self.thumb_dragging = false;
         self.thumb_grab_y = 0.0;
         self.thumb_grab_offset = 0.0;
+        self.mark_time = 0.0;
         let ent = ecs.add_ui_sized(
             self.panel.x,
             self.panel.y,
@@ -404,6 +430,18 @@ impl Shop {
             &mut self.rows,
         );
 
+        let mark = ecs.add_ui_sized(
+            MARK_FACE_X,
+            mark_y(self.mark_time),
+            MARK_FACE_SIZE,
+            MARK_FACE_SIZE,
+            TEX_MARK_FACE,
+            device,
+            queue,
+        );
+        ecs.update_transform_z(mark, Z_UI_TEXT);
+        self.mark = Some(mark);
+
         let ents = self.collect_entities();
         self.anim.start_open(ecs, ents);
     }
@@ -422,12 +460,19 @@ impl Shop {
 
     /// Ежекадровая анимация окна: вызывает PanelAnim и подчищает поля.
     pub fn tick(&mut self, ecs: &mut EcsAdapter, dt: f64) {
+        if self.open {
+            if let Some(mark) = self.mark {
+                self.mark_time += dt;
+                ecs.update_transform_position(mark, MARK_FACE_X, mark_y(self.mark_time));
+            }
+        }
         if self.anim.tick(ecs, dt) == AnimEvent::Closed {
             self.destroy_content(ecs);
             self.scroll_offset = 0.0;
             self.thumb_dragging = false;
             self.touch_scroll_start = None;
             self.touch_scroll_base = 0.0;
+            self.mark_time = 0.0;
         }
     }
 
@@ -723,5 +768,23 @@ impl Shop {
             }
         }
         None
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn mark_bob_stays_beside_the_panel_and_clear_of_columns() {
+        let half = MARK_FACE_SIZE / 2.0;
+        assert!(MARK_FACE_X - half >= -GAME_UI_HALF_W);
+        assert!(MARK_FACE_X + half <= COL_ICON_X[0] - ROW_ICON_SIZE / 2.0);
+        for i in 0..128 {
+            let y = mark_y(i as f64 * 0.1);
+            assert!((y - MARK_FACE_Y).abs() <= MARK_BOB_AMPLITUDE + 1e-6);
+            assert!(y + half <= PANEL_H / 2.0);
+            assert!(y - half >= -PANEL_H / 2.0);
+        }
     }
 }

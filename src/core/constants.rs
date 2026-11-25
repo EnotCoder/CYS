@@ -102,6 +102,11 @@ pub const TEX_SASHA_IDLE: &str = "assets/tex/characters/sasha/sasha.png";
 pub const TEX_SASHA_WALK_1: &str = "assets/tex/characters/sasha/sasha_walk_1.png";
 pub const TEX_SASHA_WALK_2: &str = "assets/tex/characters/sasha/sasha_walk_2.png";
 
+pub const TEX_MARK_FACE: &str = "assets/tex/characters/mark_salesman/mark_full_face.png";
+pub const TEX_MARK_IDLE: &str = "assets/tex/characters/mark_salesman/mark.png";
+pub const TEX_MARK_WALK_1: &str = "assets/tex/characters/mark_salesman/mark_walk_1.png";
+pub const TEX_MARK_WALK_2: &str = "assets/tex/characters/mark_salesman/mark_walk_2.png";
+
 // === Shopping NPC ===
 // (тайминги и экономика покупателя — в scripts/config.lua)
 

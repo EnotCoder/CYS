@@ -67,7 +67,9 @@ impl ShopperNpc {
         tex_walk_2: &'static str,
     ) -> Option<Self> {
         let path = find_path(walkable, spawn_pos, rack_pos)?;
-        let npc_id = if tex_idle.contains("bob") {
+        let npc_id = if tex_idle.contains("mark") {
+            "mark"
+        } else if tex_idle.contains("bob") {
             "bob"
         } else if tex_idle.contains("player") {
             "player"
@@ -129,6 +131,10 @@ impl ShopperNpc {
         self.exiting = val;
     }
 
+    pub fn is_mark(&self) -> bool {
+        self.npc_id == "mark"
+    }
+
     pub fn has_taken_food(&self) -> bool {
         self.food_taken
     }
@@ -154,6 +160,7 @@ impl ShopperNpc {
     /// При смене пака перерисовываем внешний вид уже живущего покупателя.
     pub(crate) fn refresh_pack(&mut self, ecs: &mut EcsAdapter) {
         let (base_idle, base_walk_1, base_walk_2) = match self.npc_id.as_str() {
+            "mark" => (TEX_MARK_IDLE, TEX_MARK_WALK_1, TEX_MARK_WALK_2),
             "bob" => (TEX_BOB_IDLE, TEX_BOB_WALK_1, TEX_BOB_WALK_2),
             "player" => (TEX_PLAYER_IDLE, TEX_PLAYER_WALK_1, TEX_PLAYER_WALK_2),
             _ => (TEX_SASHA_IDLE, TEX_SASHA_WALK_1, TEX_SASHA_WALK_2),

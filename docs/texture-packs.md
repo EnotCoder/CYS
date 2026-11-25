@@ -132,12 +132,16 @@ frame per second with looping, which matches the old global timer. A non-looping
 sequence stops on its last frame. Only readable frame files are used; if all of
 them fail, the vanilla frame list remains.
 
-Shopper ids are inferred from the vanilla idle path: it contains `bob` or
-`player`, otherwise the shopper is treated as `sasha`. A pack with a single idle
-frame does not animate while waiting; longer lists cycle at the pack's `fps`.
+Shopper ids are inferred from the vanilla idle path: it contains `bob`,
+`player` or `mark`, otherwise the shopper is treated as `sasha`. The rare Mark
+shopper uses the `mark` id and can be overridden the same way. A pack with a
+single idle frame does not animate while waiting; longer lists cycle at the
+pack's `fps`.
 Walk frames cycle at `fps` instead of `walk_anim_interval` from
 [scripts.md](scripts.md). New shoppers use the active pack at spawn, and
-existing shoppers are refreshed when the pack changes.
+existing shoppers are refreshed when the pack changes. The shop's Mark portrait
+uses `assets/tex/characters/mark_salesman/mark_full_face.png`, resolves like any
+other UI texture and keeps its vanilla sine bob.
 
 `box` and `rack` are exceptions: their texture is chosen by the amount of food
 they contain. Their logical vanilla paths and food-driven state are preserved,

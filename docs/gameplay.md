@@ -61,6 +61,7 @@ register).
 | `money_at_cassa` | 5 | income per food item sold at the register |
 | `money_at_candy` | 1 | income per candy |
 | `candy_chance` | 0.2 | chance a shopper also visits the candy display |
+| `mark_chance` | 0.05 | chance a spawned shopper is Mark instead of a regular character |
 
 Rent is subtracted as `min(money, rent)` — the balance never goes negative.
 Bankruptcy triggers when the shop cannot earn (no register, or no food source:
@@ -93,7 +94,10 @@ GoingToRack → GoingToCassa → AtCassa → GoingToCandies → AtCandies → Go
 Movement is A* on walkable cells, 4-directional, with `npc_speed` cells per
 second. Walk frames come from the season-independent character sets and are
 swapped every `walk_anim_interval` seconds, unless a texture pack overrides the
-fps. The door at the shop front opens when a `ShopperTag` entity is near and
+fps. With `mark_chance`, a spawn uses Mark's `mark_salesman` textures and the
+same state machine; `ShopperManager` allows only one Mark in the shop at a
+time, so the next one can enter only after the previous one leaves. The door at
+the shop front opens when a `ShopperTag` entity is near and
 closes after it leaves; the shopper fades to alpha 0 inside the doorway so the
 wall opening does not look like a hole. Empty racks or deleted registers reroute
 the shopper; a closed shop sends shoppers without food straight to the exit.
@@ -140,7 +144,8 @@ the same scrollable enable/disable panel as **Settings → Mods...** in game;
 ## Shop, settings, tutorial
 
 - **Shop** (`src/ui/shop.rs`) lists every catalogue object except `SHOP_EXEMPT`,
-  with a scrollbar and a confirmation dialog. Buying adds the name to
+  with a scrollbar and a confirmation dialog. A large portrait of Mark stands
+  just left of the panel and bobs gently on a sine wave. Buying adds the name to
   `ShopOwned`; the object then becomes placeable in this world.
 - **Settings** (`Esc`, or the gear icon) pauses gameplay: rent, day/night,
   shoppers and weather stop. It holds VSync, zoom speed, music, SFX, a
@@ -149,8 +154,8 @@ the same scrollable enable/disable panel as **Settings → Mods...** in game;
   [texture-packs.md](texture-packs.md). Mods are enabled in
   [mods.md](mods.md); logic changes apply on the next world entry or restart.
 - **Tutorial** opens once per session when the shop is still empty, and can be
-  closed with `Esc` or its button. It sways slightly with a sine wave, which is
-  the only purely decorative animation in the UI.
+  closed with `Esc` or its button. It sways slightly with a sine wave, like the
+  shop's Mark portrait.
 - **Pause** is implicit: any open modal (shop, weather, settings, mods) freezes
   the world. Only UI input is processed.
 

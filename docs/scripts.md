@@ -33,6 +33,7 @@ CONFIG = {
 | Parameter | Role |
 |---|---|
 | `shopper_spawn_interval`, `shopper_spawn_cooldown`, `max_shoppers` | shopper spawn rate, cooldown and limit (`ShopperManager::tick`) |
+| `mark_chance` | chance a spawn is Mark instead of a regular shopper; at most one Mark at a time |
 | `food_regen_tick`, `food_regen_amount` | box food regeneration (`GameScene::update`) |
 | `day_cycle_secs`, `day_secs`, `night_start_secs`, `night_secs`, `fade_secs` | day/night phases and fade (`day_night.rs`) |
 | `npc_speed`, `walk_anim_interval`, `npc_fade_speed` | shopper speed, walk animation, fade |
@@ -121,6 +122,9 @@ Lifecycle:
 3. Walk to the register, pay (`add_money`), free it (`free_busy`).
 4. With `candy_chance`, walk to the candy display, take and pay.
 5. Walk to `spawn_x/spawn_y` (`walk_to_exit`) and despawn.
+
+Mark uses the same lifecycle; `mark_chance` only changes the spawned texture
+set, and `ShopperManager` prevents two Marks from being in the shop at once.
 
 Failure handling is part of the script:
 

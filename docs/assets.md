@@ -75,8 +75,10 @@ texture is drawn at its natural size.
 
 Each character directory contains three files: idle and two walk frames
 (`player.png`, `player_walk_1.png`, `player_walk_2.png`). Shoppers use the same
-pattern with `bob` and `sasha`; `ShopperManager` picks one of the three sets at
-random. Walk frames are swapped every `walk_anim_interval` seconds unless a
+pattern with `bob` and `sasha`; `ShopperManager` picks one of those three sets
+at random and rarely uses `mark_salesman` instead. `mark_salesman/` also has
+`mark_full_face.png`, used as the large bobbing portrait beside the item shop
+panel. Walk frames are swapped every `walk_anim_interval` seconds unless a
 texture pack supplies an `fps` override.
 
 ## Cursor and mode icons

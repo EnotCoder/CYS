@@ -11,7 +11,7 @@ mod anim_tests;
 mod data_integrity;
 mod docs;
 mod group_tests;
-mod helpers;
+pub(crate) mod helpers;
 mod input_tests;
 mod mods_tests;
 mod npc_tests;

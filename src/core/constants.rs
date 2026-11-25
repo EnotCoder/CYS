@@ -80,7 +80,7 @@ pub const ZOOM_MAX: f32 = 0.8;
 
 // === Камера ===
 pub const CAMERA_SPEED: f32 = 5.0;
-pub const CAMERA_MAP_MIN_X: f32 = -20.0;
+pub const CAMERA_MAP_MIN_X: f32 = -26.0;
 pub const CAMERA_MAP_MAX_X: f32 = 18.0;
 pub const CAMERA_MAP_MIN_Y: f32 = -13.0;
 pub const CAMERA_MAP_MAX_Y: f32 = 13.0;

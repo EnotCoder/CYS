@@ -777,6 +777,7 @@ impl Scene for GameScene {
                         queue,
                     );
                     ecs.update_sprite_alpha(bg, 0.75);
+                    ecs.update_transform_z(bg, Z_UI_DIALOG_DIM);
                     self.bankrupt_bg = Some(bg);
                     let title = text_renderer.add_text(
                         ecs,
@@ -790,6 +791,7 @@ impl Scene for GameScene {
                         1.0,
                         RED,
                     );
+                    ecs.update_transform_z(title, Z_UI_DIALOG_TEXT);
                     self.bankrupt_title = Some(title);
                     let hint = text_renderer.add_text(
                         ecs,
@@ -803,6 +805,7 @@ impl Scene for GameScene {
                         1.0,
                         WHITE,
                     );
+                    ecs.update_transform_z(hint, Z_UI_DIALOG_TEXT);
                     self.bankrupt_hint = Some(hint);
                     // Кликабельная кнопка «В меню» (на телефоне нет клавиши R).
                     let btn = ecs.add_ui_sized(
@@ -815,6 +818,7 @@ impl Scene for GameScene {
                         queue,
                     );
                     ecs.update_sprite_alpha(btn, 0.85);
+                    ecs.update_transform_z(btn, Z_UI_DIALOG);
                     self.bankrupt_button = Some(btn);
                     let btn_label = text_renderer.add_text(
                         ecs,
@@ -828,6 +832,7 @@ impl Scene for GameScene {
                         1.0,
                         WHITE,
                     );
+                    ecs.update_transform_z(btn_label, Z_UI_DIALOG_TEXT);
                     self.bankrupt_button_label = Some(btn_label);
                 }
             }

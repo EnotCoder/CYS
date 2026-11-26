@@ -120,6 +120,7 @@ impl Tutorial {
             queue,
         );
         ecs.update_sprite_alpha(overlay, 0.6);
+        ecs.update_transform_z(overlay, Z_UI_DIALOG_DIM);
         self.overlay = Some(overlay);
 
         // Панель в центре.
@@ -133,6 +134,7 @@ impl Tutorial {
             queue,
         );
         ecs.update_sprite_alpha(panel, 0.92);
+        ecs.update_transform_z(panel, Z_UI_DIALOG);
         self.panel = Some(panel);
 
         let title = tr.add_text(
@@ -147,15 +149,18 @@ impl Tutorial {
             2.0,
             GOLD,
         );
+        ecs.update_transform_z(title, Z_UI_DIALOG_TEXT);
         self.title = Some(title);
 
         for (i, (icon, text)) in STEPS.iter().enumerate() {
             let y = ROW_YS[i];
             let icon_ent = ecs.add_ui_sized(ICON_X, y, ICON_SIZE, ICON_SIZE, icon, device, queue);
+            ecs.update_transform_z(icon_ent, Z_UI_DIALOG_TEXT);
             self.icons.push(icon_ent);
             let text_ent = tr.add_text(
                 ecs, device, queue, text, 40.0, TEXT_X, y, TEXT_W, 1.5, WHITE,
             );
+            ecs.update_transform_z(text_ent, Z_UI_DIALOG_TEXT);
             self.texts.push(text_ent);
         }
 
@@ -169,10 +174,12 @@ impl Tutorial {
             queue,
         );
         ecs.update_sprite_alpha(button, 0.85);
+        ecs.update_transform_z(button, Z_UI_DIALOG);
         self.button = Some(button);
         let label = tr.add_text(
             ecs, device, queue, "Got it!", 44.0, BUTTON_X, BUTTON_Y, 2.4, 1.5, WHITE,
         );
+        ecs.update_transform_z(label, Z_UI_DIALOG_TEXT);
         self.button_label = Some(label);
     }
 

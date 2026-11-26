@@ -600,10 +600,14 @@ impl MenuScene {
             queue,
         );
         ecs.update_sprite_alpha(overlay, 0.55);
+        ecs.update_transform_z(overlay, Z_UI_DIALOG_DIM);
         self.world_misc.push(overlay);
 
         let mut panel = Panel::new(0.0, 0.0, 6.0, 3.0, 0.9);
         create_panel(ecs, device, queue, &mut panel);
+        if let Some(e) = panel.entity {
+            ecs.update_transform_z(e, Z_UI_DIALOG);
+        }
         self.delete_confirm_panel = Some(panel);
 
         let message = text_renderer.add_text(
@@ -618,14 +622,27 @@ impl MenuScene {
             1.0,
             WHITE,
         );
+        ecs.update_transform_z(message, Z_UI_DIALOG_TEXT);
         self.world_misc.push(message);
 
         let mut delete = Button::new(-1.2, -0.8, 2.0, 0.8, "Delete");
         create_button(ecs, text_renderer, device, queue, &mut delete);
+        if let Some(e) = delete.bg {
+            ecs.update_transform_z(e, Z_UI_DIALOG);
+        }
+        if let Some(e) = delete.text {
+            ecs.update_transform_z(e, Z_UI_DIALOG_TEXT);
+        }
         self.delete_confirm_delete_btn = Some(delete);
 
         let mut cancel = Button::new(1.2, -0.8, 2.0, 0.8, "Cancel");
         create_button(ecs, text_renderer, device, queue, &mut cancel);
+        if let Some(e) = cancel.bg {
+            ecs.update_transform_z(e, Z_UI_DIALOG);
+        }
+        if let Some(e) = cancel.text {
+            ecs.update_transform_z(e, Z_UI_DIALOG_TEXT);
+        }
         self.delete_confirm_cancel_btn = Some(cancel);
     }
 

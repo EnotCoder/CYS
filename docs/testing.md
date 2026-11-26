@@ -30,9 +30,10 @@ selected by name, for example `cargo test door`.
 | `src/tests/mods_tests.rs` | mod discovery, manifest defaults and `use` parsing, path sandbox, blocked Lua globals, events, balance/item overrides, texture layers, `enabled_from`, `write_use_flag`, bundled manifests |
 | `src/ui/mods.rs` (unit test) | scroll offset and scrollbar thumb math; a scrolled row resolves to its own mod id; shared status text sprite is kept while another mod row still uses it |
 | `src/tests/texture_pack_tests.rs` | file overlay, `pack.json` overrides, path safety, vanilla fallback |
+| `src/tests/shader_pack_tests.rs` | shader discovery, WGSL loading, broken manifest fallback, path traversal protection |
 | `src/tests/docs.rs` | source map completeness and live links |
 
-Total is around 100 tests. They are ordinary `#[test]` functions, not
+The suite currently has 144 tests. They are ordinary `#[test]` functions, not
 `specs` systems, so a failure points at a function name, not at a schedule.
 
 ## Writing a test without a GPU

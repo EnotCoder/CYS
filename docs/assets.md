@@ -1,6 +1,6 @@
 # Assets
 
-Everything the game loads at runtime lives in `assets/`. There are 158 PNG
+Everything the game loads at runtime lives in `assets/`. There are 187 PNG
 files and 26 OGG files at the time of writing, all addressed by paths that start
 with `assets/`, for example `assets/tex/decor/regular/rack/rack_0.png`.
 
@@ -19,7 +19,7 @@ from `std::env` or an absolute location — always go through `core::asset`.
 | `assets/tex/decor/walldecor/` | wall posters, clock, welcome sign |
 | `assets/tex/decor/outdoor/` | trees, benches, street fence, flowers |
 | `assets/tex/decor/new_year/` | New Year decoration atlas (`new_year_tree.png`, `gifts.png`, `carpet.png`) |
-| `assets/tex/characters/` | `player/`, `bob/`, `sasha/` — idle + two walk frames each |
+| `assets/tex/characters/` | `player/`, `bob/`, `sasha/`, `mark_salesman/`, `peter_businessman/` — idle + two walk frames, plus face portraits for the salesmen |
 | `assets/tex/cat_scene/` | intro planets and sea: `sun.png`, `earth.png`, `moon.png`, `continent.png`, `sea.png` |
 | `assets/tex/ui/` | panels, mode icons, cursor, sliders, checkboxes, shop/weather/settings art |
 | `assets/tex/ui/button/` | shared button background (`main.png`) used by menus and dialogs |
@@ -33,14 +33,17 @@ from `std::env` or an absolute location — always go through `core::asset`.
 | `assets/map/*.png` | four 848×448 seasonal map images, 16 px per cell (see [world-format.md](world-format.md)) |
 | `assets/basement.txt` | basement level map (still a text token grid) |
 | `assets/icon.png` | application icon source |
-| `texture_pack/<id>/textures/` | optional player replacements mirroring `assets/tex/` |
-| `shaders/<id>/shader.wgsl` | optional player WGSL with `shader.json` metadata |
-| `mods/<id>/` | optional player Lua mods (`mod.json`, `main.lua`, `textures/`) |
-| `assets/mods/<id>/` | the same mods bundled into the Android APK |
+| `texture_pack/<id>/textures/` | writable desktop pack root, mirroring `assets/tex/` |
+| `shaders/<id>/shader.wgsl` | writable desktop shaders with `shader.json` metadata |
+| `mods/<id>/` | writable desktop Lua mods (`mod.json`, `main.lua`, `textures/`) |
+| `assets/texture_pack/<id>/` | shipped pack copies, packed into the APK |
+| `assets/shaders/<id>/` | shipped shader copies, packed into the APK |
+| `assets/mods/<id>/` | shipped mod copies, packed into the APK |
 
-The pack, shader and desktop mod roots are not under `assets/`; see
-[texture-packs.md](texture-packs.md), [shaders.md](shaders.md) and
-[mods.md](mods.md).
+The three writable roots and their `assets/` counterparts keep identical
+folder names and ids. On desktop the writable root wins; on Android only the
+`assets/` copy is available. See [texture-packs.md](texture-packs.md),
+[shaders.md](shaders.md) and [mods.md](mods.md).
 
 ## Atlases
 

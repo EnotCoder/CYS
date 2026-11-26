@@ -12,9 +12,9 @@ shaders/
 The folder name is the shader id saved in `data/settings.json`. On Android,
 ship shaders under `assets/shaders/` so they are bundled into the APK.
 
-A ready-made `warm/` pack is included: it keeps the vanilla geometry and
-lighting but adds a soft golden tint. Choose the active shader in Settings →
-Shader. Both render pipelines are recreated on the fly; a broken shader falls
-back to Vanilla and the reason is shown in Settings. Keep the vanilla
-`vs_main` / `fs_main` entry points and bindings — see
-[docs/shaders.md](../docs/shaders.md) for the full contract.
+Ready-made `warm/` (Comics, with posterized shading) and `retro/` packs are
+included; both are mirrored under `assets/shaders/` for Android and installed
+builds. Choose the active shader in Settings → Shader. Both render pipelines
+are recreated on the fly; a broken shader falls back to Vanilla and the reason
+is shown in Settings. Keep the vanilla `vs_main` / `fs_main` entry points and
+bindings — see [docs/shaders.md](../docs/shaders.md) for the full contract.

@@ -9,9 +9,11 @@ for Android.
 - `big_shop/` — raises starting money and registers a `neon_box` item with its
   own texture, plus an `object_placed` event handler.
 
-Both ship with `"use": false` and stay disabled until enabled from the **Mods**
-button in the main menu (after Settings), from **Settings → Mods...** in the
-menu or in game. The panel scrolls when there are many mods; toggling a checkbox rewrites
-`use` in these manifests on desktop, while Android keeps the choice in
-`settings.json`. See [docs/mods.md](../docs/mods.md) for the Lua API, sandbox
-rules, load order and settings format.
+The shipped copies in `assets/mods/` use `"use": false`; these writable copies
+keep the player's own flag and take priority on desktop. A mod stays disabled
+until enabled from the **Mods** button in the main menu (after Settings) or
+from **Settings → Mods...** in the menu or in game. The panel scrolls when
+there are many mods; toggling a checkbox rewrites `use` in these manifests on
+desktop, while Android keeps the choice in `settings.json`. See
+[docs/mods.md](../docs/mods.md) for the Lua API, sandbox rules, load order
+and settings format.

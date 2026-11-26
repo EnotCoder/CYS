@@ -97,18 +97,21 @@ source map, and all relative links must resolve.
 ```text
 src/
 ├── main/     — entry point, App, winit event loop, Android entry
-├── core/     — wgpu kernel: pipeline, textures, render, shaders, lighting
-├── scenes/   — menu, game scene, scene manager
-├── ecs/      — specs adapter, components, factory, groups, cursor
-├── data/     — slots/objects, placement logic, map, pathfinding, door
-├── ui/       — HUD, inventory, shop, settings, weather, text renderer
-├── input/    — camera, cursor, interaction, desktop/touch abstraction
-├── npc/      — ShopperNpc state machine and movement
+├── core/     — wgpu kernel: pipeline, textures, render, shaders, packs
+├── scenes/   — menu, cutscene/, game/ (HUD, level, tutorial, weather FX), manager
+├── ecs/      — specs adapter/, components, factory, groups, particles, cursor
+├── data/     — slots/objects, placement logic, map/, pathfinding, door
+├── ui/       — inventory, shop, settings, mods, weather, text renderer
+├── input/    — zoom, cursor, interaction, desktop/touch abstraction
+├── npc/      — ShopperNpc state machine, interactions, movement
 ├── audio/    — sound engine (rodio)
-├── scripts/  — Lua bridge (config.lua, items.lua, npc.lua)
+├── scripts/  — Lua bridge (config.lua, items.lua, npc.lua, mods)
 ├── save/     — worlds, manifest, data/settings.json
 └── tests/    — unit tests (including docs checks)
 ```
+
+The 12 folders are top-level; several contain subfolders as they grew.
+`docs/source-map.md` lists every source file.
 
 Assets live in `assets/`: textures, sounds, Lua scripts, maps and the font.
 See [docs/architecture.md](docs/architecture.md) for the frame pipeline

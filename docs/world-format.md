@@ -23,11 +23,12 @@ Android through `AAssetManager`, stripping the `assets/` prefix), while
 (`data/` on desktop, `internal_data/data/` on Android).
 
 The whole `data/` directory is in `.gitignore`: worlds, the manifest and
-`settings.json` are created locally and never land in a commit. Texture packs,
-shaders and mods are separate content: their manifests under `texture_pack/`,
-`shaders/` and `mods/` are explicitly unignored so they can be committed. See
-[texture-packs.md](texture-packs.md), [shaders.md](shaders.md) and
-[mods.md](mods.md).
+`settings.json` are created locally and never land in a commit. Player content
+is separate: the manifests under `texture_pack/` and `shaders/` are explicitly
+unignored and can be committed. The writable `mods/*/mod.json` files are
+ignored on purpose — they hold the player's `use` flag, while the shipped
+defaults live in `assets/mods/*/mod.json`. See [texture-packs.md](texture-packs.md),
+[shaders.md](shaders.md) and [mods.md](mods.md).
 
 ## Map files
 

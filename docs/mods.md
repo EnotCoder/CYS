@@ -8,17 +8,19 @@ take over.
 
 ## Locations
 
-| Platform | Root |
-|---|---|
-| Desktop | `mods/<id>/` next to the working directory |
-| Android | `assets/mods/<id>/`, bundled into the APK at build time |
+| Platform | Writable root | Shipped copy |
+|---|---|---|
+| Desktop | `mods/<id>/` next to the working directory | `assets/mods/<id>/` fallback for installed builds |
+| Android | none | `assets/mods/<id>/`, bundled into the APK |
 
 Each immediate subdirectory with a `mod.json` is a mod; its folder name is the
 mod **id**. The two bundled examples ship in both locations: `double_money`
 (shoppers pay more) and `big_shop` (extra starting money plus a neon box item).
-They are disabled by default. On desktop the folder can be extended while the
-game is running — the list is rescanned when the **Mods** window opens. Android
-mods require an APK rebuild.
+Their shipped manifests have `"use": false`, while the writable desktop copies
+keep the player's own flag — the two values are intentionally different.
+On desktop the writable root can be extended while the game is running — the
+list is rescanned when the **Mods** window opens. Android mods require an APK
+rebuild.
 
 ## Layout
 
@@ -65,9 +67,9 @@ are rejected.
 in [settings.json](#enabling-mods) for that mod, while mods without the field
 still follow the saved list. The load order from settings is preserved, and
 `use: true` mods missing from settings are appended in discovery order. When a
-checkbox is toggled in the Mods window, the game writes `use` back to every
-`mod.json` on desktop. Android assets are read-only, so there the choice is
-kept only in settings.
+checkbox is toggled in the Mods window, the game writes `use` back to the
+writable `mods/` copies on desktop, not to the shipped `assets/mods/` files.
+Android assets are read-only, so there the choice is kept only in settings.
 
 ## Lua API
 

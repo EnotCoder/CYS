@@ -2,7 +2,10 @@
 
 The source tree follows the Godot convention: `src/` contains exactly
 12 top-level module folders, each with a `mod.rs` that wires submodules
-together. Everything outside `src/` is either an asset or a build artifact.
+together. Many folders also have nested subdirectories — `scenes/game/`,
+`scenes/cutscene/`, `ecs/adapter/` and `data/map/`. Everything outside `src/`
+is either an asset, player content or a build artifact. The authoritative
+file-by-file list is [source-map.md](source-map.md).
 
 ```
 src/
@@ -20,12 +23,19 @@ src/
 └── tests/
 ```
 
+Nested areas: `scenes/game/` (HUD, level, tutorial, weather FX, inventory
+input), `scenes/cutscene/` (intro), `ecs/adapter/`, `data/map/` and the
+additional `npc/` files for interactions and movement.
+
 Assets live in `assets/` (`assets/tex/`, `assets/sounds/`, `assets/scripts/`,
 map files) and are not part of `src/`. On Android they are packed into the APK.
-Player texture packs are a separate optional tree: `texture_pack/` on desktop
-and `assets/texture_pack/` in the APK. Player shaders use `shaders/` or
-`assets/shaders/` the same way. See [texture-packs.md](texture-packs.md) and
-[shaders.md](shaders.md).
+Player content has matching roots on both platforms: `texture_pack/`,
+`shaders/` and `mods/` are writable on desktop, while `assets/texture_pack/`,
+`assets/shaders/` and `assets/mods/` are the shipped copies packed into the
+APK. Desktop reads the writable root first and falls back to the `assets/`
+copy, so both roots share the same folder names and ids. See
+[texture-packs.md](texture-packs.md), [shaders.md](shaders.md) and
+[mods.md](mods.md).
 
 ## Crate layout
 
@@ -69,8 +79,8 @@ suspended           → surface = None
 ## Scenes
 
 `SceneManager` owns a single ECS world and a registry of scenes (`menu`,
-`game`). `switch_to` stops music, clears the world and calls `on_enter` on the
-new scene. Scenes implement the `Scene` trait:
+`intro`, `game`). `switch_to` stops music, clears the world and calls
+`on_enter` on the new scene. Scenes implement the `Scene` trait:
 
 | Method | Meaning |
 |---|---|

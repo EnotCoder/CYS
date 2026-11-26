@@ -8,9 +8,11 @@ and replace shopper idle/walk frames. To add items or change balance, use
 
 ## Pack locations
 
-On desktop, packs live in `texture_pack/` next to the working directory. On
-Android they are bundled into the APK under `assets/texture_pack/`; no external
-storage is scanned.
+On desktop, the writable root is `texture_pack/` next to the working directory;
+`assets/texture_pack/` is the shipped copy used by installed builds. On Android
+only the APK copy under `assets/texture_pack/` is scanned. Both roots use the
+same pack ids, so a pack can be shipped for both platforms by mirroring its
+folder.
 
 Each immediate subdirectory is a pack **id** when it contains either a
 `textures/` directory or a `pack.json` file. Dots at the start of a name are

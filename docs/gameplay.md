@@ -149,9 +149,10 @@ the same scrollable enable/disable panel as **Settings → Mods...** in game;
   `ShopOwned`; the object then becomes placeable in this world.
 - **Settings** (`Esc`, or the gear icon) pauses gameplay: rent, day/night,
   shoppers and weather stop. It holds VSync, zoom speed, music, SFX, a
-  **Texture Pack** selector and a **Mods...** button, and writes
-  `data/settings.json` immediately. Pack changes are applied live; see
-  [texture-packs.md](texture-packs.md). Mods are enabled in
+  **Texture Pack** selector, a **Shader** selector and a **Mods...** button,
+  and writes `data/settings.json` immediately. Pack and shader changes are
+  applied live; see [texture-packs.md](texture-packs.md) and
+  [shaders.md](shaders.md). Mods are enabled in
   [mods.md](mods.md); logic changes apply on the next world entry or restart.
 - **Tutorial** opens once per session when the shop is still empty, and can be
   closed with `Esc` or its button. It sways slightly with a sine wave, like the

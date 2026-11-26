@@ -63,7 +63,7 @@ The manifest contains the `cargo-apk` metadata:
 |---|---|
 | package | `ru.enotcoder.createshop` |
 | targets | `aarch64-linux-android`, `x86_64-linux-android` |
-| assets | `assets/` packed into the APK, including `assets/texture_pack/` and `assets/shaders/` |
+| assets | `assets/` packed into the APK, including `assets/mods/`, `assets/texture_pack/` and `assets/shaders/` |
 | resources | `res/` |
 | min SDK / target SDK | 26 / 34 |
 | orientation | landscape |
@@ -91,10 +91,13 @@ system Back button is treated as `Esc`: close a panel, or open settings/pause.
 - `data/settings.json` — VSync, zoom, music, SFX and the selected texture pack
   and shader, created on first change;
 - `data/worlds/` — user saves, created on demand;
-- `texture_pack/` (desktop) or `assets/texture_pack/` (Android) — optional
-  texture packs, see [texture-packs.md](texture-packs.md);
-- `shaders/` (desktop) or `assets/shaders/` (Android) — optional WGSL shaders,
-  see [shaders.md](shaders.md).
+- `texture_pack/` (writable on desktop) and its shipped copy
+  `assets/texture_pack/` (Android) — optional texture packs, see
+  [texture-packs.md](texture-packs.md);
+- `shaders/` (writable on desktop) and `assets/shaders/` (Android) — optional
+  WGSL shaders, see [shaders.md](shaders.md);
+- `mods/` (writable on desktop) and `assets/mods/` (Android) — optional Lua
+  mods, see [mods.md](mods.md).
 
 The font path must point at a file readable through `core::asset`; changing it
 requires a restart because `TextRenderer` caches the font at startup.

@@ -11,8 +11,8 @@
 //    render.rs   — отрисовка кадра по слоям (map / transparent / ui);
 //    constants.rs — все константы игры;
 //    util.rs     — вспомогательные утилиты (кэш-ключи, координаты, иконки);
-//    texture_pack.rs — замены текстур и анимаций из папки texture_pack/.
-//    shader_pack.rs — пользовательские WGSL-шейдеры из папки shaders/.
+//    texture_pack.rs — замены текстур и анимаций из assets/texture_pack/.
+//    shader_pack.rs — пользовательские WGSL-шейдеры из assets/shaders/.
 // ========================================================================
 
 pub mod asset;

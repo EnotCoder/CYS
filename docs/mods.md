@@ -8,24 +8,22 @@ take over.
 
 ## Locations
 
-| Platform | Writable root | Shipped copy |
+| Platform | Content root | Writable overrides |
 |---|---|---|
-| Desktop | `mods/<id>/` next to the working directory | `assets/mods/<id>/` fallback for installed builds |
-| Android | none | `assets/mods/<id>/`, bundled into the APK |
+| Desktop | `assets/mods/<id>/` in the checkout or installed files | `<user data>/assets/mods/<id>/` (`./assets/mods/` in a source checkout) |
+| Android | `assets/mods/<id>/`, bundled into the APK | none; the enabled state is kept in settings |
 
 Each immediate subdirectory with a `mod.json` is a mod; its folder name is the
-mod **id**. The two bundled examples ship in both locations: `double_money`
+mod **id**. The two bundled examples ship in `assets/mods/`: `double_money`
 (shoppers pay more) and `big_shop` (extra starting money plus a neon box item).
-Their shipped manifests have `"use": false`, while the writable desktop copies
-keep the player's own flag — the two values are intentionally different.
-On desktop the writable root can be extended while the game is running — the
-list is rescanned when the **Mods** window opens. Android mods require an APK
-rebuild.
+Both bundled manifests have `"use": true`, so they are enabled by default.
+Desktop also scans mods under the user data directory, and the list is
+rescanned when the **Mods** window opens. Android mods require an APK rebuild.
 
 ## Layout
 
 ```text
-mods/
+assets/mods/
   double_money/
     mod.json
     main.lua
@@ -67,9 +65,10 @@ are rejected.
 in [settings.json](#enabling-mods) for that mod, while mods without the field
 still follow the saved list. The load order from settings is preserved, and
 `use: true` mods missing from settings are appended in discovery order. When a
-checkbox is toggled in the Mods window, the game writes `use` back to the
-writable `mods/` copies on desktop, not to the shipped `assets/mods/` files.
-Android assets are read-only, so there the choice is kept only in settings.
+checkbox is toggled in the Mods window, desktop writes `use` to the writable
+copy under the user data directory (`./assets/mods/` in a source checkout),
+not to the system-wide installation. Android assets are read-only, so there
+the choice is kept only in settings.
 
 ## Lua API
 

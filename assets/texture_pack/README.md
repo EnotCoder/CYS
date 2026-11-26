@@ -1,9 +1,10 @@
 # Bundled player texture packs
 
-This is the shipped copy of the desktop `texture_pack/` folder and is packed
-into the APK as `assets/texture_pack/`, so both platforms use the same pack
-ids. No ready-made packs ship yet; the folder is kept so a pack can be added
-in one place on both platforms.
+Texture packs live in `assets/texture_pack/` on both desktop and Android. This
+folder is packed into the APK; desktop reads the same folder from the checkout
+or an installed build and also scans `<user data>/assets/texture_pack/` for
+custom packs. No ready-made packs ship yet; the folder is kept so a pack can
+be added in one place on both platforms.
 
 ```text
 assets/texture_pack/
@@ -13,8 +14,6 @@ assets/texture_pack/
       map/grass.png
 ```
 
-On desktop the writable `texture_pack/` root takes priority; this folder is
-the fallback for installed builds and the only source on Android. The selected
-id is stored in `data/settings.json`. See
+The selected id is stored in `data/settings.json`. See
 [docs/texture-packs.md](../../docs/texture-packs.md) for the `pack.json`
 format.

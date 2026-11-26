@@ -50,14 +50,14 @@ is missing from this map.
 - **`src/core/shaders.wgsl`** — vertex and fragment shaders: quads, camera,
   lighting, night dimming, UI space.
 - **`src/core/shader_pack.rs`** — player WGSL shaders: discovery of
-  `shaders/<id>/`, `shader.json` metadata and custom file, source loading,
+  `assets/shaders/<id>/`, `shader.json` metadata and custom file, source loading,
   activation, error state and the embedded vanilla source.
 - **`src/core/texture.rs`** — `Texture` (texture + view + sampler): from
   PNG/JPEG bytes, from disk (`from_path` resolves the active pack, retries the
   vanilla path, then falls back to `null.png`), from raw RGBA (`from_rgba`,
   text and UI).
 - **`src/core/texture_pack.rs`** — player texture packs: discovery of
-  `texture_pack/<id>/`, `pack.json` metadata/aliases, safe path resolution with
+  `assets/texture_pack/<id>/`, `pack.json` metadata/aliases, safe path resolution with
   vanilla fallback, live activation, object/NPC animation overrides and mod
   texture overlay layers above the active pack.
 - **`src/core/util.rs`** — `sprite_cache_key`, `ndc_to_world`, `inventory_index`,
@@ -311,7 +311,7 @@ is missing from this map.
   `money_changed`, lets a mod `npc_update` handler take over, and falls back
   when the script is missing.
 - **`src/scripts/mods.rs`** — player mods: `mod.json` manifests (including the
-  `use` enable flag), discovery in `mods/` and `assets/mods/`, dependency
+  `use` enable flag), discovery in `assets/mods/`, dependency
   ordering (`load_after`), sandboxed shared Lua VM (`mod.*` API), events,
   balance/item overrides, texture layers, `enabled_from` (merges `use` with the
   saved load order), `write_use_flag` / `persist_enabled` (desktop writes back
@@ -361,3 +361,15 @@ is missing from this map.
 - **`src/tests/texture_pack_tests.rs`** — pack discovery and naming, file
   overlay, `pack.json` object/NPC overrides, path traversal protection and
   vanilla fallback.
+
+---
+
+## Build scripts
+
+These `.rs` files live outside `src/`; the map lists them for completeness.
+
+- **`build/cargo/main.rs`** — Cargo build-script entry; detects the target via
+  `CARGO_CFG_TARGET_OS` and embeds the Windows icon when cross-compiling.
+- **`build/cargo/windows.rs`** — `winres` setup: `build/icons/app.ico` and the
+  mingw `windres` tool selection. Other build and packaging tools are mapped in
+  [build/README.md](../build/README.md).

@@ -96,7 +96,8 @@ Before a release, run the game and check:
   (or `R`) updates the list and counter without closing it, keeping other
   checkboxes as they were;
 - **Settings → Mods...** shows the same state in-game; toggling updates `use`
-  in `mods/<id>/mod.json` on desktop;
+  in `assets/mods/<id>/mod.json` in a source checkout (or the user-data
+  override on an installed build);
 - shop purchase survives `Ctrl+S` and a reload from the menu;
 - Android: Back closes panels, pinch zooms, one-finger drag moves the camera
   only in `move` mode.

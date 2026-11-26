@@ -8,15 +8,16 @@ the first entry in Settings.
 
 ## Locations
 
-On desktop, the writable root is `shaders/` next to the working directory;
-`assets/shaders/` is the shipped copy used by installed builds. On Android only
-the APK copy under `assets/shaders/` is scanned. Both roots use the same folder
-names, so each immediate subdirectory is a shader **id** when it contains a
-`shader.json` or `shader.wgsl` file. Dots at the start of a name are ignored,
-ids are deduplicated and sorted, and `Vanilla` is prepended in Settings.
+Both desktop and Android read shaders from `assets/shaders/`. Desktop also
+scans `<user data>/assets/shaders/` (the repository's `./assets/shaders/` in
+a source checkout), so custom packs can be added without modifying an
+installed build. Each immediate subdirectory is a shader
+**id** when it contains a `shader.json` or `shader.wgsl` file. Dots at the
+start of a name are ignored, ids are deduplicated and sorted, and `Vanilla`
+is prepended in Settings.
 
 ```text
-shaders/
+assets/shaders/
   pixel/
     shader.json
     shader.wgsl
@@ -26,10 +27,9 @@ shaders/
 ```
 
 The repository includes a ready-made `warm/` pack named **Comics**, with bold
-colours and posterized shading; its files are mirrored in `assets/shaders/warm/`.
-The `retro/` pack is mirrored the same way. The list is rescanned when Settings
-opens, so a folder added while the game is running appears without a restart.
-Android packs must be present in `assets/shaders/` at build time.
+colours and posterized shading, and a `retro/` pack. The list is rescanned when
+Settings opens, so a folder added while the game is running appears without a
+restart. Android packs must be present in `assets/shaders/` at build time.
 
 ## Manifest
 

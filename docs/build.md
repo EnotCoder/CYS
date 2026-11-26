@@ -42,18 +42,20 @@ keeps only Dx12 + WGSL:
 wgpu = { version = "30", default-features = false, features = ["dx12", "wgsl"] }
 ```
 
-`build/main.rs` embeds `build/app.ico` into the `.exe` via `winres`. The build
-script is compiled for the host, so it detects the target with
+`build/cargo/main.rs` embeds `build/icons/app.ico` into the `.exe` via `winres`.
+The build script is compiled for the host, so it detects the target with
 `CARGO_CFG_TARGET_OS` instead of `cfg(target_os)` — otherwise the icon silently
-disappears during cross-compilation. `build/windows.rs` also selects
+disappears during cross-compilation. `build/cargo/windows.rs` also selects
 `x86_64-w64-mingw32-windres` (or the `i686` variant) when cross-compiling from
 a non-Windows host.
 
 ## Packaging
 
-To produce installable artifacts (`.deb`, a Linux tarball with `install.sh`,
-and a Windows Inno Setup installer), see [packaging.md](packaging.md). It also
-documents where the installed game looks for assets and writes saves.
+All packaging tools live under `build/` (`linux/`, `windows/`, `icons/`); the
+old root-level commands are kept as wrappers. To produce installable artifacts
+(`.deb`, a Linux tarball with `install.sh`, and a Windows Inno Setup installer),
+see [packaging.md](packaging.md). It also documents where the installed game
+looks for assets and writes saves.
 
 ## Android
 
@@ -64,7 +66,7 @@ The manifest contains the `cargo-apk` metadata:
 | package | `ru.enotcoder.createshop` |
 | targets | `aarch64-linux-android`, `x86_64-linux-android` |
 | assets | `assets/` packed into the APK, including `assets/mods/`, `assets/texture_pack/` and `assets/shaders/` |
-| resources | `res/` |
+| resources | `build/icons/android/` |
 | min SDK / target SDK | 26 / 34 |
 | orientation | landscape |
 | theme | `Theme.NoTitleBar.Fullscreen` |
@@ -91,13 +93,10 @@ system Back button is treated as `Esc`: close a panel, or open settings/pause.
 - `data/settings.json` — VSync, zoom, music, SFX and the selected texture pack
   and shader, created on first change;
 - `data/worlds/` — user saves, created on demand;
-- `texture_pack/` (writable on desktop) and its shipped copy
-  `assets/texture_pack/` (Android) — optional texture packs, see
+- `assets/texture_pack/` — optional texture packs on both platforms, see
   [texture-packs.md](texture-packs.md);
-- `shaders/` (writable on desktop) and `assets/shaders/` (Android) — optional
-  WGSL shaders, see [shaders.md](shaders.md);
-- `mods/` (writable on desktop) and `assets/mods/` (Android) — optional Lua
-  mods, see [mods.md](mods.md).
+- `assets/shaders/` — optional WGSL shaders, see [shaders.md](shaders.md);
+- `assets/mods/` — optional Lua mods, see [mods.md](mods.md).
 
 The font path must point at a file readable through `core::asset`; changing it
 requires a restart because `TextRenderer` caches the font at startup.

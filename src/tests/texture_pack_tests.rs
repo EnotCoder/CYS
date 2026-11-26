@@ -91,7 +91,7 @@ fn pack_overlay_overrides_and_vanilla_fallback_work() {
         .any(|p| p.id == TEST_ID && p.name == "Test Pack"));
 
     use crate::core::texture_pack as pack;
-    let mirror = format!("texture_pack/{TEST_ID}/textures/map/grass.png");
+    let mirror = format!("assets/texture_pack/{TEST_ID}/textures/map/grass.png");
     assert_eq!(pack::resolve("assets/tex/map/grass.png"), mirror);
     // Суффикс @WxH — не часть имени файла.
     assert_eq!(pack::resolve("assets/tex/map/grass.png@2x1"), mirror);
@@ -105,7 +105,7 @@ fn pack_overlay_overrides_and_vanilla_fallback_work() {
 
     assert_eq!(
         pack::object_texture("box", "vanilla"),
-        format!("texture_pack/{TEST_ID}/textures/box_alt.png")
+        format!("assets/texture_pack/{TEST_ID}/textures/box_alt.png")
     );
     assert_eq!(pack::object_frame("box", [0, 0]), [1, 1]);
     assert_eq!(pack::object_atlas("box", [1, 1]), [2, 2]);
@@ -115,20 +115,20 @@ fn pack_overlay_overrides_and_vanilla_fallback_work() {
     assert_eq!(
         pack::object_frames("arcade_machine", &["vanilla_0", "vanilla_1"]),
         vec![
-            format!("texture_pack/{TEST_ID}/textures/arcade_0.png"),
-            format!("texture_pack/{TEST_ID}/textures/arcade_1.png"),
+            format!("assets/texture_pack/{TEST_ID}/textures/arcade_0.png"),
+            format!("assets/texture_pack/{TEST_ID}/textures/arcade_1.png"),
         ],
     );
-    let arcade = format!("texture_pack/{TEST_ID}/textures/arcade_base.png");
+    let arcade = format!("assets/texture_pack/{TEST_ID}/textures/arcade_base.png");
     assert_eq!(pack::object_texture("arcade_machine", "vanilla"), arcade);
     let (idle, walk, fps) = pack::npc_textures("bob", "idle", "w1", "w2");
     assert_eq!(
         idle,
-        vec![format!("texture_pack/{TEST_ID}/textures/bob_idle.png")]
+        vec![format!("assets/texture_pack/{TEST_ID}/textures/bob_idle.png")]
     );
     assert_eq!(
         walk,
-        vec![format!("texture_pack/{TEST_ID}/textures/bob_walk.png")]
+        vec![format!("assets/texture_pack/{TEST_ID}/textures/bob_walk.png")]
     );
     assert_eq!(fps, Some(6.0));
 

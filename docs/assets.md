@@ -33,17 +33,14 @@ from `std::env` or an absolute location — always go through `core::asset`.
 | `assets/map/*.png` | four 848×448 seasonal map images, 16 px per cell (see [world-format.md](world-format.md)) |
 | `assets/basement.txt` | basement level map (still a text token grid) |
 | `assets/icon.png` | application icon source |
-| `texture_pack/<id>/textures/` | writable desktop pack root, mirroring `assets/tex/` |
-| `shaders/<id>/shader.wgsl` | writable desktop shaders with `shader.json` metadata |
-| `mods/<id>/` | writable desktop Lua mods (`mod.json`, `main.lua`, `textures/`) |
-| `assets/texture_pack/<id>/` | shipped pack copies, packed into the APK |
-| `assets/shaders/<id>/` | shipped shader copies, packed into the APK |
-| `assets/mods/<id>/` | shipped mod copies, packed into the APK |
+| `assets/texture_pack/<id>/` | player texture replacements mirroring `assets/tex/` |
+| `assets/shaders/<id>/` | player WGSL with `shader.json` metadata |
+| `assets/mods/<id>/` | player Lua mods (`mod.json`, `main.lua`, `textures/`) |
 
-The three writable roots and their `assets/` counterparts keep identical
-folder names and ids. On desktop the writable root wins; on Android only the
-`assets/` copy is available. See [texture-packs.md](texture-packs.md),
-[shaders.md](shaders.md) and [mods.md](mods.md).
+The three roots are read from `assets/` on both desktop and Android. On desktop
+the player's `use` overrides and other writable copies go under the user data
+directory. See [texture-packs.md](texture-packs.md), [shaders.md](shaders.md)
+and [mods.md](mods.md).
 
 ## Atlases
 
@@ -123,7 +120,7 @@ effect adds a file to `assets/` or needs a texture-pack entry.
 ## Texture packs
 
 Players can override any `assets/tex/` file by placing a replacement at the same
-relative path under `texture_pack/<id>/textures/`. An optional `pack.json` adds
+relative path under `assets/texture_pack/<id>/textures/`. An optional `pack.json` adds
 explicit path aliases and animation overrides. Packs are selected in Settings
 and applied without reloading the level. The format and precedence rules are in
 [texture-packs.md](texture-packs.md).

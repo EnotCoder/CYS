@@ -71,7 +71,7 @@ fn mod_paths_stay_inside_the_mod_folder() {
     let join = crate::core::texture_pack::safe_join;
     assert_eq!(
         join(&base, "main.lua").as_deref(),
-        Some("mods/neon/main.lua")
+        Some("assets/mods/neon/main.lua")
     );
     assert!(join(&base, "../config.lua").is_none());
     assert!(join(&base, "/etc/passwd").is_none());
@@ -239,27 +239,14 @@ fn write_use_flag_updates_manifest_and_state() {
 #[test]
 fn bundled_manifests_declare_use_flag() {
     for id in ["double_money", "big_shop"] {
-        // APK-assets are read-only, so these ship with a fixed default
-        // (the mod stays off until the player enables it in the menu).
         let shipped = PathBuf::from("assets/mods").join(id).join("mod.json");
         let raw = fs::read_to_string(&shipped).unwrap();
         let parsed: serde_json::Value = serde_json::from_str(&raw).unwrap();
         assert_eq!(
             parsed["use"],
-            serde_json::Value::Bool(false),
-            "{} must ship with `use: false`",
+            serde_json::Value::Bool(true),
+            "{} must ship with `use: true`",
             shipped.display()
-        );
-
-        // Desktop-копия mutable: панель Mods перезаписывает `use` при переключении.
-        // Проверяем только, что поле присутствует и имеет булев тип.
-        let local = PathBuf::from("mods").join(id).join("mod.json");
-        let raw = fs::read_to_string(&local).unwrap();
-        let parsed: serde_json::Value = serde_json::from_str(&raw).unwrap();
-        assert!(
-            parsed["use"].is_boolean(),
-            "{} must declare a boolean `use`",
-            local.display()
         );
     }
 }

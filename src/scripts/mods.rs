@@ -2,7 +2,7 @@
 // Copyright (C) 2026 EnotCoder
 
 // ========================================================================
-//  mods — загрузка модов игрока из папки mods/ и песочница Lua.
+//  mods — загрузка модов игрока из папки assets/mods/ и песочница Lua.
 //
 //  Мод меняет данные и логику: баланс, цены, каталог предметов, события и
 //  необязательный слой текстур. Базовые config.lua / items.lua / npc.lua
@@ -155,13 +155,9 @@ fn load() -> &'static Mutex<LoadContext> {
     LOAD.get_or_init(|| Mutex::new(LoadContext::default()))
 }
 
-/// Корень модов: на Android они лежат внутри APK-assets.
+/// Корень модов: один и тот же путь на ПК и в APK-assets.
 pub fn mods_root() -> &'static str {
-    if cfg!(target_os = "android") {
-        "assets/mods"
-    } else {
-        "mods"
-    }
+    "assets/mods"
 }
 
 pub fn mod_root(id: &str) -> String {

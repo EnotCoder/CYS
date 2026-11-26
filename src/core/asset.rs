@@ -5,8 +5,9 @@
 //  asset.rs — кроссплатформенная загрузка игровых файлов.
 //  На десктопе ассеты ищутся в CYS_ASSETS, рядом с исполняемым файлом,
 //  в /usr/share/cys/assets и в CWD (для разработки). Пользовательские
-//  данные (data/, mods/, texture_pack/, shaders/) пишутся в CYS_HOME,
-//  XDG_DATA_HOME/cys или %APPDATA%/CYS.
+//  данные (data/ и пользовательские копии assets/mods/, assets/shaders/,
+//  assets/texture_pack/) пишутся в CYS_HOME, XDG_DATA_HOME/cys или
+//  %APPDATA%/CYS.
 //  На Android читает из APK-assets через AAssetManager, а сохранения
 //  пишет в internal data dir приложения.
 // ========================================================================
@@ -43,7 +44,7 @@ fn home_dir() -> Option<PathBuf> {
 }
 
 /// Каталог пользовательских файлов. В исходном репозитории совпадает с CWD,
-/// чтобы `cargo run` и тесты работали с ./data, ./mods и т.д. как раньше.
+/// чтобы `cargo run` и тесты работали с ./data и ./assets/... как раньше.
 #[cfg(not(target_os = "android"))]
 fn user_root() -> &'static Path {
     USER_ROOT.get_or_init(|| {

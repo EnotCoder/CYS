@@ -13,9 +13,9 @@ a PNG image.
 | `data/worlds/manifest.json` | `./data/worlds/` relative to the working directory | internal app data |
 | `data/worlds/world_{id}.json` | `./data/worlds/` | internal app data |
 | `data/settings.json` | `./data/settings.json` | internal app data |
-| `texture_pack/<id>/` | `./texture_pack/<id>/` | `assets/texture_pack/<id>/` packed into the APK |
-| `shaders/<id>/` | `./shaders/<id>/` | `assets/shaders/<id>/` packed into the APK |
-| `mods/<id>/` | `./mods/<id>/` | `assets/mods/<id>/` packed into the APK |
+| `assets/texture_pack/<id>/` | `./assets/texture_pack/<id>/`; overrides under user data | packed into the APK |
+| `assets/shaders/<id>/` | `./assets/shaders/<id>/`; overrides under user data | packed into the APK |
+| `assets/mods/<id>/` | `./assets/mods/<id>/`; overrides under user data | packed into the APK |
 
 `core::asset` hides the difference: `load_bytes` reads project assets (on
 Android through `AAssetManager`, stripping the `assets/` prefix), while
@@ -24,11 +24,12 @@ Android through `AAssetManager`, stripping the `assets/` prefix), while
 
 The whole `data/` directory is in `.gitignore`: worlds, the manifest and
 `settings.json` are created locally and never land in a commit. Player content
-is separate: the manifests under `texture_pack/` and `shaders/` are explicitly
-unignored and can be committed. The writable `mods/*/mod.json` files are
-ignored on purpose — they hold the player's `use` flag, while the shipped
-defaults live in `assets/mods/*/mod.json`. See [texture-packs.md](texture-packs.md),
-[shaders.md](shaders.md) and [mods.md](mods.md).
+is separate: the manifests under `assets/texture_pack/` and `assets/shaders/`
+are committed, as are `assets/mods/*/mod.json` with the shipped `use` flag.
+On an installed desktop build, toggling a mod writes an override under the
+user data directory instead of changing these files. See
+[texture-packs.md](texture-packs.md), [shaders.md](shaders.md) and
+[mods.md](mods.md).
 
 ## Map files
 

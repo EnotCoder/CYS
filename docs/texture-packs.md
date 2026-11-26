@@ -8,11 +8,11 @@ and replace shopper idle/walk frames. To add items or change balance, use
 
 ## Pack locations
 
-On desktop, the writable root is `texture_pack/` next to the working directory;
-`assets/texture_pack/` is the shipped copy used by installed builds. On Android
-only the APK copy under `assets/texture_pack/` is scanned. Both roots use the
-same pack ids, so a pack can be shipped for both platforms by mirroring its
-folder.
+Both desktop and Android read packs from `assets/texture_pack/`. Desktop also
+scans `<user data>/assets/texture_pack/` (`./assets/texture_pack/` in a source
+checkout), so custom packs can be added without modifying an installed build.
+A pack placed in `assets/texture_pack/` before packaging is available on both
+platforms.
 
 Each immediate subdirectory is a pack **id** when it contains either a
 `textures/` directory or a `pack.json` file. Dots at the start of a name are
@@ -23,7 +23,7 @@ in a world save.
 ## Layout
 
 ```text
-texture_pack/
+assets/texture_pack/
   neon/
     pack.json                 # optional
     textures/                 # mirror of assets/tex/
@@ -169,14 +169,14 @@ objects, money and the current level are untouched by a pack switch.
 
 ## Adding a pack
 
-1. Create `texture_pack/<id>/textures/` on desktop, or
-   `assets/texture_pack/<id>/textures/` before building for Android.
+1. Create `assets/texture_pack/<id>/textures/`. On an installed desktop build,
+   use `<user data>/assets/texture_pack/<id>/textures/` instead.
 2. Put replacement PNG files under the mirrored paths.
 3. Add an optional `pack.json` for aliases, object overrides or NPC frames.
 4. Open Settings, cycle to the pack and check map, objects, UI and shoppers.
 5. Run `cargo test`; the pack tests cover path safety and vanilla fallback.
 
-`pack.json` files under `texture_pack/` are explicitly unignored by
+`pack.json` files under `assets/texture_pack/` are explicitly unignored by
 `.gitignore`, so a pack can be committed if desired. See
 [assets.md](assets.md) for the vanilla texture tree and file conventions.
 

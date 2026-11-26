@@ -1,7 +1,0 @@
-{
-  "name": "Comics",
-  "description": "Gives the scene a comic-book look with bold colors, posterized shading.",
-  "author": "CYS",
-  "version": "1.0.0",
-  "file": "shader.wgsl"
-}

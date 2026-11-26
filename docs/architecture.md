@@ -29,11 +29,10 @@ additional `npc/` files for interactions and movement.
 
 Assets live in `assets/` (`assets/tex/`, `assets/sounds/`, `assets/scripts/`,
 map files) and are not part of `src/`. On Android they are packed into the APK.
-Player content has matching roots on both platforms: `texture_pack/`,
-`shaders/` and `mods/` are writable on desktop, while `assets/texture_pack/`,
-`assets/shaders/` and `assets/mods/` are the shipped copies packed into the
-APK. Desktop reads the writable root first and falls back to the `assets/`
-copy, so both roots share the same folder names and ids. See
+Player content lives only under `assets/` on both platforms:
+`assets/texture_pack/`, `assets/shaders/` and `assets/mods/`. Desktop reads the
+same paths from the checkout or installed assets, and writes player overrides
+to the user data directory; Android reads them from the APK. See
 [texture-packs.md](texture-packs.md), [shaders.md](shaders.md) and
 [mods.md](mods.md).
 

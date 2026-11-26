@@ -70,13 +70,9 @@ fn state() -> &'static Mutex<PackState> {
     STATE.get_or_init(|| Mutex::new(PackState::default()))
 }
 
-/// Корень папки паков: на Android паки лежат внутри APK-assets.
+/// Корень папки паков: один и тот же путь на ПК и в APK-assets.
 pub fn packs_root() -> &'static str {
-    if cfg!(target_os = "android") {
-        "assets/texture_pack"
-    } else {
-        "texture_pack"
-    }
+    "assets/texture_pack"
 }
 
 fn pack_root(id: &str) -> String {

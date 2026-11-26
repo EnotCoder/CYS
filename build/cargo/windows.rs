@@ -6,7 +6,7 @@
 
 pub fn embed_icon() {
     let mut res = winres::WindowsResource::new();
-    res.set_icon("build/app.ico");
+    res.set_icon("build/icons/app.ico");
     if !cfg!(target_os = "windows") {
         let tool = match std::env::var("TARGET").as_deref() {
             Ok("x86_64-pc-windows-gnu") => "x86_64-w64-mingw32-windres",
@@ -17,7 +17,7 @@ pub fn embed_icon() {
     }
     res.compile().unwrap_or_else(|e| {
         panic!(
-            "не удалось встроить иконку build/app.ico в .exe: {e}. \
+            "не удалось встроить иконку build/icons/app.ico в .exe: {e}. \
              Для кросс-сборки установите mingw-w64 (windres)"
         )
     });

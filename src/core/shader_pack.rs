@@ -2,7 +2,7 @@
 // Copyright (C) 2026 EnotCoder
 
 // ========================================================================
-//  shader_pack — пользовательские WGSL-шейдеры из папки shaders/.
+//  shader_pack — пользовательские WGSL-шейдеры из assets/shaders/.
 //
 //  Активный шейдер заменяет встроенный shaders.wgsl при создании обоих
 //  render-пайплайнов. Пак не меняет логику, только внешний вид спрайтов.
@@ -49,13 +49,9 @@ fn state() -> &'static Mutex<ShaderState> {
     STATE.get_or_init(|| Mutex::new(ShaderState::default()))
 }
 
-/// Корень папки шейдеров: на Android они лежат внутри APK-assets.
+/// Корень папки шейдеров: один и тот же путь на ПК и в APK-assets.
 pub fn shaders_root() -> &'static str {
-    if cfg!(target_os = "android") {
-        "assets/shaders"
-    } else {
-        "shaders"
-    }
+    "assets/shaders"
 }
 
 fn shader_root(id: &str) -> String {

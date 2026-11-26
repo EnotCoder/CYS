@@ -364,7 +364,7 @@ impl Mods {
         queue: &wgpu::Queue,
     ) {
         if self.mods.is_empty() {
-            const TEXT: &str = "No mods found — add a folder with mod.json to mods/";
+            const TEXT: &str = "No mods found — add a folder with mod.json to assets/mods/";
             let (entity, key) = text_renderer.set_text(
                 ecs,
                 device,

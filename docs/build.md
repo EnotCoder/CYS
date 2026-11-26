@@ -51,11 +51,10 @@ a non-Windows host.
 
 ## Packaging
 
-All packaging tools live under `build/` (`linux/`, `windows/`, `icons/`); the
-old root-level commands are kept as wrappers. To produce installable artifacts
-(`.deb`, a Linux tarball with `install.sh`, and a Windows Inno Setup installer),
-see [packaging.md](packaging.md). It also documents where the installed game
-looks for assets and writes saves.
+All packaging tools live under `build/` (`linux/`, `windows/`, `icons/`). To
+produce installable artifacts (`.deb`, a Linux tarball with `install.sh`, and a
+Windows Inno Setup installer), see [packaging.md](packaging.md). It also
+documents where the installed game looks for assets and writes saves.
 
 ## Android
 

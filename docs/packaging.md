@@ -8,8 +8,6 @@ CYS ships as three artifacts, all built locally from the same source tree:
 | `cys_<version>_<arch>.deb` | `cargo deb` via the same script | Debian / Ubuntu |
 | `CYS-<version>-setup.exe` | `build/windows/build.ps1` + Inno Setup 6 | Windows 10/11 |
 
-The old `packaging/build-*.sh|ps1` commands remain as thin wrappers.
-
 The release itself is published manually: attach these files to a GitHub
 release (or any file host) and give users the direct download links.
 

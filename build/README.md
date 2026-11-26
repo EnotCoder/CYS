@@ -26,10 +26,8 @@ Run the scripts directly from the new location:
 .\build\windows\build.ps1
 ```
 
-For compatibility, the old commands still work: `./install.sh`,
-`./packaging/build-linux.sh` and `./packaging/build-windows.ps1` are thin
-wrappers around the scripts above. Release tarballs still contain `install.sh`
-at their root, so end users are unaffected.
+Release tarballs still contain `install.sh` at their root, so end users are
+unaffected by the new source-tree layout.
 
 Player mods, shaders and texture packs are shipped inside `assets/` and read
 from `assets/mods/`, `assets/shaders/` and `assets/texture_pack/` on both

@@ -9,8 +9,8 @@
 
 use super::SpriteRenderData;
 use crate::core::constants::{
-    DOOR_FADE_RAMP, DOOR_X_MAX, DOOR_X_MIN, DOOR_Y_MAX, DOOR_Y_MIN, TILE_HALF, Z_CARPET, Z_CURSOR,
-    Z_DECOR, Z_DOOR, Z_LIGHT, Z_MAP, Z_NPC, Z_WEATHER,
+    DOOR_FADE_RAMP, DOOR_TILE_X_SCALE, DOOR_TILE_Y_SCALE, DOOR_X_MAX, DOOR_X_MIN, DOOR_Y_MAX,
+    DOOR_Y_MIN, TILE_HALF, Z_CARPET, Z_CURSOR, Z_DECOR, Z_DOOR, Z_LIGHT, Z_MAP, Z_NPC, Z_WEATHER,
 };
 use crate::data::map::{door_cells, door_frame_for_cell, door_texture_for_step};
 use crate::ecs::components::{
@@ -304,13 +304,14 @@ impl super::EcsAdapter {
     // подменяем и путь, и кадр: четыре кадра вместе снова собирают
     // цельный проём. Шаг 0 = закрыта, шаг 3 = открыта.
     pub fn update_door_textures(&mut self, step: i32) {
-        let path = door_texture_for_step(step);
+        let base = door_texture_for_step(step);
+        let sized = format!("{}@{}x{}", base, DOOR_TILE_X_SCALE, DOOR_TILE_Y_SCALE);
         for (x, y) in door_cells() {
             let Some(&entity) = self.map_entities.get(&(x, y)) else {
                 continue;
             };
             self.set_door_cell_frame(entity, door_frame_for_cell(x, y));
-            self.update_sprite_texture(entity, path);
+            self.update_sprite_texture(entity, &sized);
         }
     }
 

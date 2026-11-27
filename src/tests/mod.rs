@@ -410,8 +410,9 @@ fn shopper_walks_in_through_the_door_and_back_out() {
             crate::data::map::door_frame_for_cell(x, y),
             "неверный кадр клетки ({x},{y})"
         );
+        let (base, _) = crate::ecs::Sprite::split_sized_path(s.texture_path.as_ref());
         assert!(
-            s.texture_path.as_ref().ends_with("shop_door.png"),
+            base.ends_with("shop_door.png"),
             "дверь должна ссылаться на текстуру двери, а не на {}",
             s.texture_path
         );

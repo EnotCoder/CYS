@@ -14,8 +14,8 @@ pub mod pathfinding;
 
 use crate::core::constants::{
     DOOR_TEX_CLOSED, DOOR_TEX_OPEN, DOOR_TEX_OPEN_1, DOOR_TEX_OPEN_2, DOOR_TEX_OPEN_3,
-    DOOR_TILE_SCALE, DOOR_TILE_Y_OFFSET, DOOR_TOKEN, DOOR_X_MAX, DOOR_X_MIN, DOOR_Y_MAX,
-    DOOR_Y_MIN, SHOPPER_SPAWN_X,
+    DOOR_TILE_X_SCALE, DOOR_TILE_Y_OFFSET, DOOR_TILE_Y_SCALE, DOOR_TOKEN, DOOR_X_MAX, DOOR_X_MIN,
+    DOOR_Y_MAX, DOOR_Y_MIN, SHOPPER_SPAWN_X,
     SIDEWALK_Y, WORLD_OFFSET_X, WORLD_OFFSET_Y, Z_MAP,
 };
 use crate::data::map::pathfinding::Node;
@@ -117,17 +117,23 @@ pub fn spawn_map_tile(
     let season = *ecs.world.read_resource::<crate::ecs::components::Season>();
     let (tex_path, tex_pos, tex_count) = token_to_texture(token, season);
     let is_door = is_door_token(token);
-    let scale = if is_door { DOOR_TILE_SCALE } else { 1.0 };
+    let sized_path;
+    let path = if is_door {
+        sized_path = format!("{}@{}x{}", tex_path, DOOR_TILE_X_SCALE, DOOR_TILE_Y_SCALE);
+        sized_path.as_str()
+    } else {
+        tex_path
+    };
     let tile_y = if is_door { world_y + DOOR_TILE_Y_OFFSET } else { world_y };
     let entity = crate::ecs::factory::create_sprite(
         &mut ecs.world,
         world_x,
         tile_y,
         Z_MAP,
-        tex_path,
+        path,
         tex_pos,
         tex_count,
-        scale,
+        1.0,
         1.0,
     );
     if is_door {

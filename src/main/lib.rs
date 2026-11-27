@@ -79,6 +79,9 @@ impl App {
             *crate::save::SETTINGS.lock().unwrap() = s.clone();
             crate::audio::set_music_enabled(s.music);
             crate::audio::set_sfx_enabled(s.sfx);
+            // on_enter у стартовой сцены не вызывается, поэтому музыку меню
+            // запускаем здесь, сразу после применения настроек.
+            crate::audio::play_music("music");
             // Моды, текстур-пак и шейдер применяются до первой отрисовки меню.
             crate::scripts::mods::init();
             crate::core::texture_pack::init();

@@ -890,8 +890,6 @@ impl Scene for MenuScene {
             self.setup_content(ecs, text_renderer, device, queue);
         }
 
-        self.weather_fx.restart_ambient();
-
         let season = *ecs.world.read_resource::<crate::ecs::components::Season>();
         self.weather_fx.tick(ecs, device, queue, season, dt);
 
@@ -1332,6 +1330,9 @@ impl MenuScene {
         if self.settings_ui.sfx_toggled {
             self.settings_ui.sfx_toggled = false;
             crate::audio::set_sfx_enabled(self.settings_ui.sfx.checked);
+            if self.settings_ui.sfx.checked {
+                self.weather_fx.restart_ambient();
+            }
             self.persist_settings();
         }
         if self.settings_ui.texture_pack_changed {

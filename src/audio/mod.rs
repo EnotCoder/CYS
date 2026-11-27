@@ -71,6 +71,15 @@ fn open_output_sink() -> Option<MixerDeviceSink> {
     None
 }
 
+// В rodio 0.22 VorbisDecoder::current_span_len() до первого сэмпла равен 0,
+// поэтому repeat_infinite() (через buffered()) сразу считает поток пустым.
+// Достаточно прочитать один сэмпл — после этого декодер знает длину блока.
+fn looping_source(bytes: Vec<u8>) -> Option<impl Source<Item = f32> + Send + 'static> {
+    let mut decoder = Decoder::new(Cursor::new(bytes)).ok()?;
+    decoder.next()?;
+    Some(decoder.repeat_infinite())
+}
+
 /// Включает/выключает фоновую музыку; при выключении останавливает текущий трек.
 pub fn set_music_enabled(enabled: bool) {
     MUSIC_ENABLED.store(enabled, Ordering::SeqCst);
@@ -157,12 +166,12 @@ impl AudioEngine {
         let Some(bytes) = self.clips.get(name) else {
             return false;
         };
-        let Ok(decoder) = Decoder::new(Cursor::new(bytes.clone())) else {
+        let Some(source) = looping_source(bytes.clone()) else {
             return false;
         };
         // Музыку зацикливаем и храним в списке, чтобы её можно было остановить.
         let player = Player::connect_new(&self.mixer);
-        player.append(decoder.repeat_infinite());
+        player.append(source);
         self.music.push(player);
         true
     }
@@ -179,11 +188,11 @@ impl AudioEngine {
         let Some(bytes) = self.clips.get(name) else {
             return;
         };
-        let Ok(decoder) = Decoder::new(Cursor::new(bytes.clone())) else {
+        let Some(source) = looping_source(bytes.clone()) else {
             return;
         };
         let player = Player::connect_new(&self.mixer);
-        player.append(decoder.repeat_infinite());
+        player.append(source);
         player.set_volume(0.5);
         self.ambient.push(player);
     }
@@ -277,5 +286,16 @@ mod tests {
     fn output_buffer_matches_100_ms_at_common_sample_rates() {
         assert_eq!(output_buffer_size(44_100), cpal::BufferSize::Fixed(4_410));
         assert_eq!(output_buffer_size(48_000), cpal::BufferSize::Fixed(4_800));
+    }
+
+    #[test]
+    fn looping_vorbis_source_yields_samples() {
+        for name in ["music", "rain", "snow"] {
+            let path = format!("assets/sounds/{name}.ogg");
+            let bytes = crate::core::asset::load_bytes(&path).unwrap();
+            let samples: Vec<f32> = looping_source(bytes).unwrap().take(4096).collect();
+            assert_eq!(samples.len(), 4096, "{path} produced no samples");
+            assert!(samples.iter().any(|&sample| sample != 0.0), "{path} is silent");
+        }
     }
 }

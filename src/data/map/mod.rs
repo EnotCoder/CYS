@@ -13,9 +13,10 @@ pub mod pathfinding;
 //  читается построчно старым путём.
 
 use crate::core::constants::{
-    DOOR_TEX_CLOSED, DOOR_TEX_OPEN, DOOR_TEX_OPEN_1, DOOR_TEX_OPEN_2, DOOR_TEX_OPEN_3, DOOR_TOKEN,
-    DOOR_X_MAX, DOOR_X_MIN, DOOR_Y_MAX, DOOR_Y_MIN, SHOPPER_SPAWN_X, SIDEWALK_Y, WORLD_OFFSET_X,
-    WORLD_OFFSET_Y, Z_MAP,
+    DOOR_TEX_CLOSED, DOOR_TEX_OPEN, DOOR_TEX_OPEN_1, DOOR_TEX_OPEN_2, DOOR_TEX_OPEN_3,
+    DOOR_TILE_SCALE, DOOR_TILE_Y_OFFSET, DOOR_TOKEN, DOOR_X_MAX, DOOR_X_MIN, DOOR_Y_MAX,
+    DOOR_Y_MIN, SHOPPER_SPAWN_X,
+    SIDEWALK_Y, WORLD_OFFSET_X, WORLD_OFFSET_Y, Z_MAP,
 };
 use crate::data::map::pathfinding::Node;
 use crate::ecs::components::Season;
@@ -115,18 +116,21 @@ pub fn spawn_map_tile(
 ) -> specs::Entity {
     let season = *ecs.world.read_resource::<crate::ecs::components::Season>();
     let (tex_path, tex_pos, tex_count) = token_to_texture(token, season);
+    let is_door = is_door_token(token);
+    let scale = if is_door { DOOR_TILE_SCALE } else { 1.0 };
+    let tile_y = if is_door { world_y + DOOR_TILE_Y_OFFSET } else { world_y };
     let entity = crate::ecs::factory::create_sprite(
         &mut ecs.world,
         world_x,
-        world_y,
+        tile_y,
         Z_MAP,
         tex_path,
         tex_pos,
         tex_count,
-        1.0,
+        scale,
         1.0,
     );
-    if is_door_token(token) {
+    if is_door {
         ecs.apply_door_cell(entity, grid_x, grid_y);
     }
     ecs.map_entities.insert((grid_x, grid_y), entity);

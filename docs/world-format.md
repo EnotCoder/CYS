@@ -66,9 +66,13 @@ four tokens so the existing placement and pathfinding logic keeps working:
 
 The door is not part of the image: `DOOR_X_MIN..=DOOR_X_MAX` ×
 `DOOR_Y_MIN..=DOOR_Y_MAX` (2×2) is forced to `E` after classification. Its
-sprites form a 2×2 atlas with `Z_DOOR = Z_DECOR` and one frame per cell.
-Baked walls are static — `recompute_wall_token` only touches the hand-authored
-wall tokens of `basement.txt`.
+sprites form a 2×2 atlas with `Z_DOOR = Z_DECOR` and one frame per cell. Their
+scale is `DOOR_TILE_SCALE` (slightly above 1) so the separately rendered door
+quads overlap the baked map background and no 1-pixel seam appears when the
+camera has a fractional offset. `DOOR_TILE_Y_OFFSET` nudges them slightly down
+on screen to align the frame with the facade. Baked walls are static —
+`recompute_wall_token` only touches the hand-authored wall tokens of
+`basement.txt`.
 
 Valid cells for walking are computed by `load_walkable_cells` from the parsed
 image; `W` is not walkable, `.`, `0` and `E` are. The

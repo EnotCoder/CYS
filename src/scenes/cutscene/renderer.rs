@@ -805,6 +805,7 @@ impl CutsceneRenderer {
             wgpu_app.dynamic_alignment,
             &[],
             &wgpu_app.light_buffer,
+            None,
         );
         self.shop_captured = true;
     }

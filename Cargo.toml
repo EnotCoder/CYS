@@ -14,6 +14,10 @@ crate-type = ["cdylib", "rlib"]
 name = "cys"
 path = "src/main/main.rs"
 
+[features]
+# Фоновые потоки для декодирования текстур и записи сохранений (desktop only).
+mt = []
+
 [dependencies]
 winit = "0.30"
 winit_input_helper = "0.17"

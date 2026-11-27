@@ -64,16 +64,32 @@ suspended           → surface = None
 
 `App::render` is the frame pipeline:
 
-1. `scene.update(...)` — input, gameplay, animations. Returns `SceneAction`.
-2. Apply the action: `Switch`, `Quit`, `VsyncToggle`, `None`.
-3. Update IME state (text input on desktop and Android).
-4. Tick the FPS counter and refresh the FPS label.
-5. Write world uniforms (`Size`) and UI uniforms (`UiUniforms`).
+1. `core::jobs::poll()` — collect results from background workers on the main
+   thread (decoded rasters, completed saves).
+2. `scene.update(...)` — input, gameplay, animations. Returns `SceneAction`.
+3. Apply the action: `Switch`, `Quit`, `VsyncToggle`, `None`.
+4. Update IME state (text input on desktop and Android).
+5. Tick the FPS counter and refresh the FPS label.
 6. `scene.sprites(...)` and `scene.lights(...)` — collect render data per layer,
    already culled by the visible bounds.
-7. `core::render` — one pass for the map, one transparent pass for
+7. Write world uniforms (`Size`) and UI uniforms (`UiUniforms`).
+8. `core::render` — one pass for the map, one transparent pass for
    carpets/lights/decor/NPC/weather (including placement particles)/cursor,
    one for UI.
+
+With `CYS_PROFILE=1`, stages `update`, `sprites`, `uniforms`, `render_cache`
+and `render_encode` are timed and reported to stderr once per second. The
+profiler is inert by default and never touches game state.
+
+### Background jobs
+
+The optional `mt` Cargo feature enables two desktop-only threads: `cys-decode`
+decodes texture files into RGBA bytes, and `cys-save` writes world JSON.
+Workers never touch ECS, Lua, winit, wgpu or audio; they only produce bytes,
+and `App::render` decides when to consume them. Decode results carry a
+generation tag that `EcsAdapter::apply_texture_pack` invalidates, so a stale
+result from an older pack is discarded. Android always uses the sequential
+path, even if the feature is enabled.
 
 ## Scenes
 

@@ -13,12 +13,16 @@ them. `EcsAdapter` (`src/ecs/adapter/mod.rs`) is the single façade over
 | `world` | components and resources |
 | `sprite_cache` | GPU sprites keyed by `sprite_cache_key` |
 | `texture_cache` | decoded textures keyed by base path (without `@WxH`) |
+| `fence_paths` | fence textures by (street flag, neighbour mask, asset generation) |
 | map position sets | entity lookup by cell (`map_entities`) |
 | event queues | `pending_food_adds` and `pending_placement_fx`, drained by `GameScene` |
 
 `apply_texture_pack()` clears asset-backed entries in both caches, keeps
 generated text/weather sprites, and reapplies object overrides to living
-entities. NPC frames are refreshed separately by `ShopperManager::refresh_pack`.
+entities. It also clears `fence_paths`, bumps the asset generation used by
+`texture_pack::exists_cached` and invalidates decoded results in `core::jobs`,
+so background work from an older pack is ignored. NPC frames are refreshed
+separately by `ShopperManager::refresh_pack`.
 
 `EcsAdapter::new()` registers every component and resource once. Adding a new
 component means registering it there too, otherwise `world.write_storage::<T>()`
@@ -70,9 +74,10 @@ renderer.
 Culling happens here: sprites outside `bounds` are dropped, and sprites with
 zero alpha are dropped too. On top of that, `update_object_textures` swaps
 box/rack textures by food count, and `update_fence_textures` picks a fence frame
-from its neighbours, checking the active texture pack with
-`texture_pack::exists`. `GameScene::update_animations` advances frame sequences
-per sprite using `anim_fps` and `anim_loop`.
+from its neighbours, caching the resolved path in `fence_paths` and checking the
+active texture pack with `texture_pack::exists_cached`. The doorway fade is
+evaluated only for shoppers. `GameScene::update_animations` advances frame
+sequences per sprite using `anim_fps` and `anim_loop`.
 
 ## Multi-cell objects
 

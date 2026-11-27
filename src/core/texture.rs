@@ -17,6 +17,14 @@ pub struct Texture {
 }
 
 impl Texture {
+    /// Чистое декодирование PNG/JPEG в RGBA8 — используется и GPU-загрузчиком,
+    /// и фоновыми воркерами.
+    pub fn decode_rgba(bytes: &[u8]) -> Result<(Vec<u8>, u32, u32), Box<dyn std::error::Error>> {
+        let img = image::load_from_memory(bytes)?;
+        let dimensions = img.dimensions();
+        Ok((img.to_rgba8().into_raw(), dimensions.0, dimensions.1))
+    }
+
     // Создаёт текстуру из сырых байтов PNG/JPEG (декодирование image-крейтом)
     // и загружает пиксели в GPU через queue.write_texture.
     pub fn from_bytes(
@@ -25,10 +33,8 @@ impl Texture {
         bytes: &[u8],
         label: &str,
     ) -> Result<Self, Box<dyn std::error::Error>> {
-        let img = image::load_from_memory(bytes)?;
-        // Конвертируем в RGBA8: wgpu потребует байты в этом формате.
-        let rgba = img.to_rgba8();
-        let dimensions = img.dimensions();
+        let (rgba, width, height) = Self::decode_rgba(bytes)?;
+        let dimensions = (width, height);
 
         let size = wgpu::Extent3d {
             width: dimensions.0,
@@ -91,10 +97,35 @@ impl Texture {
     // подставляем заглушку null.png.
     pub fn from_path(device: &wgpu::Device, queue: &wgpu::Queue, path: &str, label: &str) -> Self {
         let resolved = crate::core::texture_pack::resolve(path);
+        if let Some(image) = crate::core::jobs::take_decoded(&crate::core::jobs::decode_key(&resolved))
+        {
+            return Self::from_rgba(
+                device,
+                queue,
+                &image.pixels,
+                image.width,
+                image.height,
+                label,
+                wgpu::FilterMode::Nearest,
+            );
+        }
         if let Ok(texture) = Self::try_load(device, queue, &resolved, label) {
             return texture;
         }
         if resolved != path {
+            if let Some(image) =
+                crate::core::jobs::take_decoded(&crate::core::jobs::decode_key(path))
+            {
+                return Self::from_rgba(
+                    device,
+                    queue,
+                    &image.pixels,
+                    image.width,
+                    image.height,
+                    label,
+                    wgpu::FilterMode::Nearest,
+                );
+            }
             if let Ok(texture) = Self::try_load(device, queue, path, label) {
                 return texture;
             }

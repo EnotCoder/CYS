@@ -32,8 +32,9 @@ selected by name, for example `cargo test door`.
 | `src/tests/texture_pack_tests.rs` | file overlay, `pack.json` overrides, path safety, vanilla fallback |
 | `src/tests/shader_pack_tests.rs` | shader discovery, WGSL loading, broken manifest fallback, path traversal protection |
 | `src/tests/docs.rs` | source map completeness and live links |
+| `src/core/jobs.rs` (unit test) | stale decoded results are ignored and disabled workers stay inert |
 
-The suite currently has 144 tests. They are ordinary `#[test]` functions, not
+The suite currently has 147 tests. They are ordinary `#[test]` functions, not
 `specs` systems, so a failure points at a function name, not at a schedule.
 
 ## Writing a test without a GPU

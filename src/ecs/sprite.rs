@@ -52,9 +52,6 @@ pub struct Sprite {
     pub index_buffer: wgpu::Buffer,
     pub index_count: u32,
     pub index_format: wgpu::IndexFormat,
-    // Сырые данные uniform-шейдера последнего кадра — для пропуска обновления,
-    // если состояние не изменилось (оптимизация в системах рендера).
-    pub last_uniform_raw: Option<[u8; 32]>,
 }
 
 impl Sprite {
@@ -173,7 +170,6 @@ impl Sprite {
             index_buffer,
             index_count,
             index_format: wgpu::IndexFormat::Uint16,
-            last_uniform_raw: None,
         }
     }
 
@@ -245,7 +241,6 @@ impl Sprite {
             index_buffer,
             index_count,
             index_format: wgpu::IndexFormat::Uint16,
-            last_uniform_raw: None,
         }
     }
 }

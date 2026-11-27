@@ -117,6 +117,12 @@ alpha). `render_group` then:
    padding each 32-byte struct to `min_storage_buffer_offset_alignment`;
 4. issues one draw per sprite with a dynamic offset.
 
+Transparent sprites, sorted UI and the uniform byte buffer live in
+thread-local scratch vectors that are cleared and reused each frame, so a
+steady-state frame does not allocate three temporary collections. With
+`CYS_PROFILE=1`, `render_cache` measures cache misses (texture/sprite creation)
+and `render_encode` measures the rest of the sprite loop.
+
 The vertex and index buffers are shared (`QUAD_INDICES`), so a sprite costs one
 32-byte uniform slot, not four vertices. A texture-pack switch clears the
 asset-backed part of both caches and keeps generated text/weather sprites; see
@@ -140,11 +146,16 @@ block instead of a soft radial dot.
 `Texture` = `wgpu::Texture` + view + sampler. Two constructors matter:
 
 - `from_path` — resolve the logical path through enabled mod texture layers and
-  the active texture pack, decode PNG/JPEG with the `image` crate, retry lower
+  the active texture pack, consume a decoded raster from `core::jobs` when one
+  is ready, otherwise decode PNG/JPEG with `Texture::decode_rgba`, retry lower
   layers and the vanilla path if a file is unreadable or undecodable, then fall
   back to `dev_tools/null.png` (a broken asset is visible, not fatal);
 - `from_rgba` — raw pixels for text, UI and generated FX sprites (weather and
   placement particles).
+
+`Texture::decode_rgba` is the pure decoder used by both paths. The optional
+`mt` feature moves that work to `cys-decode`, but texture creation still
+happens on the main thread so wgpu resources are never shared across threads.
 
 Atlases are plain grids: `texture_count = [cols, rows]`, `texture_frame =
 [col, row]`, and `TEXEL_EPSILON` shrinks UVs by a fraction of a texel to avoid

@@ -36,6 +36,7 @@ mod ui;
 
 // Реэкспорты, к которым остальной код обращается как crate::* (EcsAdapter, Vertex, ...)
 use crate::core::constants::*;
+use crate::core::frame_profiler::StageId;
 use crate::core::*;
 use crate::ecs::*;
 use crate::input::platform::{DesktopInput, InputSource};
@@ -61,6 +62,7 @@ struct App {
     // Накопитель ввода: десктоп (мышь/клавиши) или тач (Android) через единый трейт
     input: Box<dyn InputSource>,
     fps_counter: FpsCounter,
+    frame_profiler: crate::core::frame_profiler::FrameProfiler,
     // Флаг выхода из приложения
     quit_requested: bool,
     // Последнее применённое состояние IME (чтобы не дёргать окно каждый кадр)
@@ -97,6 +99,7 @@ impl App {
             scene_manager: crate::scenes::SceneManager::new(),
             input,
             fps_counter: FpsCounter::new(),
+            frame_profiler: crate::core::frame_profiler::FrameProfiler::new(),
             quit_requested: false,
             ime_active: false,
         }
@@ -104,6 +107,8 @@ impl App {
 
     // Один кадр: обновить сцену -> применить действие сцены -> отрисовать
     fn render(&mut self) {
+        self.frame_profiler.begin_frame();
+        crate::core::jobs::poll();
         let Some(surface) = &self.surface else { return };
         let Some(ref window) = self.window else {
             return;
@@ -119,6 +124,7 @@ impl App {
 
         // Шаг 1: update сцены — временно берём wgpu_app immutably
         // (внутри обрабатываются ввод, логика игры и возвращается действие сцены)
+        let update_start = self.frame_profiler.stamp();
         let action = {
             let Some(ref wgpu_app) = self.wgpu_app else {
                 return;
@@ -137,6 +143,7 @@ impl App {
                 &wgpu_app.queue,
             )
         };
+        self.frame_profiler.record(StageId::Update, update_start);
 
         // Шаг 2: обрабатываем action — borrow wgpu_app освобождён
         match action {
@@ -262,6 +269,7 @@ impl App {
             cam_y + vis_h / 2.0,
         ));
         // Сбор спрайтов по слоям (z-order: карта, ковры, декорации, персонажи, курсор, UI)
+        let sprites_start = self.frame_profiler.stamp();
         let scene = self
             .scene_manager
             .scenes
@@ -278,11 +286,13 @@ impl App {
             ui_sprites,
         ) = scene.sprites(&self.scene_manager.ecs, bounds);
         let lights = scene.lights(&self.scene_manager.ecs);
+        self.frame_profiler.record(StageId::Sprites, sprites_start);
 
         // Обновляем количество источников света в Size uniform
         let light_count = lights.len() as u32;
 
         // World uniforms: map, camera and lighting for world shaders
+        let uniforms_start = self.frame_profiler.stamp();
         let size_data = Size {
             map_size: ms,
             aspect,
@@ -314,6 +324,7 @@ impl App {
             0,
             bytemuck::cast_slice(&[ui_data]),
         );
+        self.frame_profiler.record(StageId::Uniforms, uniforms_start);
 
         render(
             surface,
@@ -339,6 +350,7 @@ impl App {
             wgpu_app.dynamic_alignment,
             &lights,
             &wgpu_app.light_buffer,
+            Some(&mut self.frame_profiler),
         );
     }
 }
@@ -443,6 +455,7 @@ impl ApplicationHandler for App {
         if let (Some(ref window), Some(_)) = (self.window.as_ref(), self.surface.as_ref()) {
             // Запрашиваем следующий кадр (непрерывный рендер), только когда
             // поверхность готова (в фоне surface=None — рендерить нечего).
+            self.frame_profiler.end_frame();
             window.request_redraw();
         }
     }

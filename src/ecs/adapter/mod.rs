@@ -52,6 +52,9 @@ pub struct EcsAdapter {
     // Кэш загруженных текстур по базовому пути (без суффикса «@WxH»),
     // чтобы анимации масштаба не перечитывали файлы и не дублировали текстуры.
     pub texture_cache: HashMap<String, Texture>,
+    // Путь текстуры забора по (тип, маска соседей, версия пака/модов):
+    // избавляет от проверок файла на диске каждый кадр.
+    fence_paths: HashMap<(bool, u8, u64), Arc<str>>,
     // Инкрементальный счётчик ID многоклеточных объектов (групп).
     pub next_group_id: u32,
     pub current_level: i32,
@@ -111,6 +114,7 @@ impl EcsAdapter {
             world,
             sprite_cache: HashMap::new(),
             texture_cache: HashMap::new(),
+            fence_paths: HashMap::new(),
             next_group_id: 1,
             current_level: 0,
             clear_count: 0,
@@ -338,6 +342,10 @@ impl EcsAdapter {
         }
         self.sprite_cache.retain(|key, _| keep.contains(key));
         self.texture_cache.clear();
+        self.fence_paths.clear();
+        crate::core::texture_pack::clear_caches();
+        crate::core::jobs::clear_decoded();
+        crate::core::jobs::prewarm_game_textures();
 
         let groups = self
             .world
@@ -465,6 +473,7 @@ impl EcsAdapter {
         }
         self.sprite_cache.clear();
         self.texture_cache.clear();
+        self.fence_paths.clear();
         self.cursor_preview.clear();
         self.pending_food_adds.clear();
         self.pending_placement_fx.clear();

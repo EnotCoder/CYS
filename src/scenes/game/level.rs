@@ -385,11 +385,10 @@ impl GameScene {
                 .clone(),
         };
         if let Ok(json) = serde_json::to_string_pretty(&data) {
-            if crate::core::asset::save_data(
-                &crate::save::world_save_path(world_id),
-                json.as_bytes(),
-            )
-            .is_ok()
+            let path = crate::save::world_save_path(world_id);
+            // При асинхронной записи звук проигрывается в jobs::poll на главном потоке.
+            if !crate::core::jobs::save_async(&path, &json)
+                && crate::core::asset::save_data(&path, json.as_bytes()).is_ok()
             {
                 crate::audio::play("save");
             }

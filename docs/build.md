@@ -31,6 +31,16 @@ strip = true
 the binary small; `panic = "abort"` removes unwinding. There is no separate
 `dev` tuning.
 
+## Features and profiling
+
+The optional `mt` feature is off by default. On desktop it enables the two
+background workers described in [architecture.md](architecture.md); on Android
+the same build stays sequential because the feature is gated by
+`not(target_os = "android")`.
+
+Set `CYS_PROFILE=1` to print per-stage frame timings to stderr once per second.
+Without it the profiler is a no-op.
+
 ## Windows
 
 The crate is normally built on Windows with the default Dx12 backend. For

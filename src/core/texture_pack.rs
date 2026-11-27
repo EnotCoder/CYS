@@ -10,7 +10,9 @@
 // ========================================================================
 
 use serde::{Deserialize, Serialize};
+use std::collections::hash_map::DefaultHasher;
 use std::collections::HashMap;
+use std::hash::{Hash, Hasher};
 use std::path::{Component, Path};
 use std::sync::{Mutex, OnceLock};
 
@@ -265,6 +267,37 @@ pub fn resolve(path: &str) -> String {
 /// Проверка существования текстуры с учётом активного пака.
 pub fn exists(path: &str) -> bool {
     readable(&resolve(path))
+}
+
+/// Версия правил резолва: меняется при смене пака или мод-слоёв.
+pub fn resolution_generation() -> u64 {
+    let layers = crate::scripts::mods::texture_layers();
+    let st = state().lock().unwrap();
+    let mut hasher = DefaultHasher::new();
+    st.active.hash(&mut hasher);
+    layers.hash(&mut hasher);
+    hasher.finish()
+}
+
+static EXISTS_CACHE: OnceLock<Mutex<HashMap<(u64, String), bool>>> = OnceLock::new();
+
+/// exists() с кэшем на время одной версии пака/модов.
+pub fn exists_cached(path: &str, generation: u64) -> bool {
+    let cache = EXISTS_CACHE.get_or_init(|| Mutex::new(HashMap::new()));
+    let key = (generation, path.to_string());
+    if let Some(&value) = cache.lock().unwrap().get(&key) {
+        return value;
+    }
+    let value = exists(path);
+    cache.lock().unwrap().insert(key, value);
+    value
+}
+
+/// Убирает кэш existence после полной смены ассетов.
+pub fn clear_caches() {
+    if let Some(cache) = EXISTS_CACHE.get() {
+        cache.lock().unwrap().clear();
+    }
 }
 
 fn object_override(name: &str) -> Option<ObjectOverride> {

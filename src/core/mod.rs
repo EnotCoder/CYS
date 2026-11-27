@@ -13,12 +13,16 @@
 //    util.rs     — вспомогательные утилиты (кэш-ключи, координаты, иконки);
 //    texture_pack.rs — замены текстур и анимаций из assets/texture_pack/.
 //    shader_pack.rs — пользовательские WGSL-шейдеры из assets/shaders/.
+//    frame_profiler.rs — замеры времени по этапам кадра (CYS_PROFILE=1).
+//    jobs.rs — фоновые потоки для декодирования и сохранений (фича mt).
 // ========================================================================
 
 pub mod asset;
 pub mod buffers;
 pub mod constants;
+pub mod frame_profiler;
 pub mod init;
+pub mod jobs;
 pub mod pipeline;
 pub mod render;
 pub mod shader_pack;

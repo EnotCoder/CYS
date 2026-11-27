@@ -25,15 +25,21 @@ is missing from this map.
 
 ## `src/core/` — wgpu kernel
 
-- **`src/core/mod.rs`** — wires `asset`, `buffers`, `init`, `pipeline`,
-  `render`, `shader_pack`, `texture`, `texture_pack`, `constants`, `util` and
-  re-exports the main types.
+- **`src/core/mod.rs`** — wires `asset`, `buffers`, `constants`,
+  `frame_profiler`, `init`, `jobs`, `pipeline`, `render`, `shader_pack`,
+  `texture`, `texture_pack`, `util` and re-exports the main types.
 - **`src/core/asset.rs`** — unified file access: `std::fs` on desktop,
   `AAssetManager` on Android (strips the `assets/` prefix); saves and settings
   go to the app's internal directory; `list_dir` for sounds.
 - **`src/core/constants.rs`** — every constant: z-layers, camera and zoom,
   window and UI sizes, texture paths (including the Mark portrait and walker),
   inventory lists, `MAX_DYNAMIC_SPRITES`, `QUAD_INDICES`, render service values.
+- **`src/core/frame_profiler.rs`** — optional per-stage frame timings; enabled
+  with `CYS_PROFILE=1`, reports average and maximum once per second in stderr.
+- **`src/core/jobs.rs`** — optional desktop-only background workers
+  (`cys-decode` for texture decoding, `cys-save` for world JSON); results are
+  collected on the main thread by `poll` and tagged with a generation that is
+  invalidated when texture assets change.
 - **`src/core/buffers.rs`** — shader-compatible `Vertex` and `Uniforms`,
   `DepthBuffer`, `init_buffers` (bind group layouts, dynamic storage buffer
   with offsets, texture and sampler), depth-stencil states.
@@ -46,7 +52,8 @@ is missing from this map.
   (`create_transparent_pipeline`, Always) plus the vertex layout.
 - **`src/core/render.rs`** — `render` by layers: map (clear), transparent pass,
   UI; `render_group` — sprite cache, batching, `write_buffer`, dynamic offsets;
-  passes light sources.
+  reuses thread-local scratch vectors for sprites, sorted UI and uniform bytes,
+  and feeds stage timings to `FrameProfiler`.
 - **`src/core/shaders.wgsl`** — vertex and fragment shaders: quads, camera,
   lighting, night dimming, UI space.
 - **`src/core/shader_pack.rs`** — player WGSL shaders: discovery of
@@ -54,8 +61,9 @@ is missing from this map.
   activation, error state and the embedded vanilla source.
 - **`src/core/texture.rs`** — `Texture` (texture + view + sampler): from
   PNG/JPEG bytes, from disk (`from_path` resolves the active pack, retries the
-  vanilla path, then falls back to `null.png`), from raw RGBA (`from_rgba`,
-  text and UI).
+  vanilla path, then falls back to `null.png`, and consumes ready worker
+  rasters), from raw RGBA (`from_rgba`, text and UI); `decode_rgba` is the pure
+  decoder shared with the background worker.
 - **`src/core/texture_pack.rs`** — player texture packs: discovery of
   `assets/texture_pack/<id>/`, `pack.json` metadata/aliases, safe path resolution with
   vanilla fallback, live activation, object/NPC animation overrides and mod

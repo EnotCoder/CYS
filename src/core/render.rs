@@ -1,12 +1,16 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Copyright (C) 2026 EnotCoder
 
+use crate::core::frame_profiler::{FrameProfiler, StageId};
 use crate::core::util;
 use crate::ecs::SpriteRenderData;
 use crate::Sprite;
 use crate::Texture;
 use crate::Uniforms;
+use std::cell::RefCell;
+use std::collections::hash_map::Entry;
 use std::collections::HashMap;
+use std::time::{Duration, Instant};
 
 // ========================================================================
 //  render: Главная функция рендера. Рисует слои в правильном порядке.
@@ -16,6 +20,23 @@ use std::collections::HashMap;
 //    2. transparent (z=1.0-2.0)  — carpet + light + decor + npc + weather + cursor (слиты в 1 pass)
 //    3. ui         (z=3.0)       — UI (использует отдельный ui_bind_group)
 // ========================================================================
+
+struct Scratch {
+    transparent: Vec<SpriteRenderData>,
+    ui_sorted: Vec<SpriteRenderData>,
+    uniforms: Vec<u8>,
+}
+
+thread_local! {
+    static SCRATCH: RefCell<Scratch> = const {
+        RefCell::new(Scratch {
+            transparent: Vec::new(),
+            ui_sorted: Vec::new(),
+            uniforms: Vec::new(),
+        })
+    };
+}
+
 pub fn render(
     surface: &wgpu::Surface,
     device: &wgpu::Device,
@@ -40,6 +61,7 @@ pub fn render(
     dynamic_alignment: u64,
     light_data: &[crate::core::buffers::LightData],
     light_buffer: &wgpu::Buffer,
+    profiler: Option<&mut FrameProfiler>,
 ) {
     // Получаем текущий кадр поверхности. Suboptimal тоже показываем —
     // это лишь сигнал о том, что размер окна скоро изменится.
@@ -77,6 +99,7 @@ pub fn render(
         dynamic_alignment,
         light_data,
         light_buffer,
+        profiler,
     );
 
     queue.present(frame);
@@ -109,6 +132,67 @@ pub fn render_to_view(
     dynamic_alignment: u64,
     light_data: &[crate::core::buffers::LightData],
     light_buffer: &wgpu::Buffer,
+    profiler: Option<&mut FrameProfiler>,
+) {
+    SCRATCH.with(|cell| {
+        let mut scratch = cell.borrow_mut();
+        render_scratch(
+            view,
+            device,
+            queue,
+            render_pipeline,
+            transparent_pipeline,
+            depth_view,
+            map_sprites,
+            carpet_sprites,
+            light_sprites,
+            decor_sprites,
+            npc_sprites,
+            weather_sprites,
+            cursor_sprites,
+            ui_sprites,
+            size_bind_group,
+            ui_bind_group,
+            sprite_cache,
+            texture_cache,
+            dynamic_uniform_buffer,
+            dynamic_bind_group,
+            dynamic_alignment,
+            light_data,
+            light_buffer,
+            &mut scratch,
+            profiler,
+        )
+    });
+}
+
+#[allow(clippy::too_many_arguments)]
+fn render_scratch(
+    view: &wgpu::TextureView,
+    device: &wgpu::Device,
+    queue: &wgpu::Queue,
+    render_pipeline: &wgpu::RenderPipeline,
+    transparent_pipeline: &wgpu::RenderPipeline,
+    depth_view: &wgpu::TextureView,
+    map_sprites: &[SpriteRenderData],
+    carpet_sprites: &[SpriteRenderData],
+    light_sprites: &[SpriteRenderData],
+    decor_sprites: &[SpriteRenderData],
+    npc_sprites: &[SpriteRenderData],
+    weather_sprites: &[SpriteRenderData],
+    cursor_sprites: &[SpriteRenderData],
+    ui_sprites: &[SpriteRenderData],
+    size_bind_group: &wgpu::BindGroup,
+    ui_bind_group: &wgpu::BindGroup,
+    sprite_cache: &mut HashMap<u64, Sprite>,
+    texture_cache: &mut HashMap<String, Texture>,
+    dynamic_uniform_buffer: &wgpu::Buffer,
+    dynamic_bind_group: &wgpu::BindGroup,
+    dynamic_alignment: u64,
+    light_data: &[crate::core::buffers::LightData],
+    light_buffer: &wgpu::Buffer,
+    scratch: &mut Scratch,
+    mut profiler: Option<&mut FrameProfiler>,
 ) {
     if !light_data.is_empty() {
         queue.write_buffer(light_buffer, 0, bytemuck::cast_slice(light_data));
@@ -134,7 +218,7 @@ pub fn render_to_view(
         sprite_cache,
         texture_cache,
         &mut encoder,
-        &view,
+        view,
         size_bind_group,
         "map",
         true,
@@ -142,6 +226,8 @@ pub fn render_to_view(
         dynamic_bind_group,
         dynamic_alignment,
         &mut buf_offset,
+        &mut scratch.uniforms,
+        profiler.as_deref_mut(),
     );
 
     // Прозрачные слои (carpet/light/decor/npc/weather/cursor) объединяем в один массив
@@ -154,23 +240,24 @@ pub fn render_to_view(
         + weather_sprites.len()
         + cursor_sprites.len();
     if transparent_count > 0 {
-        let mut transparent = Vec::with_capacity(transparent_count);
-        transparent.extend_from_slice(carpet_sprites);
-        transparent.extend_from_slice(light_sprites);
-        transparent.extend_from_slice(decor_sprites);
-        transparent.extend_from_slice(npc_sprites);
-        transparent.extend_from_slice(weather_sprites);
-        transparent.extend_from_slice(cursor_sprites);
+        scratch.transparent.clear();
+        scratch.transparent.reserve(transparent_count);
+        scratch.transparent.extend_from_slice(carpet_sprites);
+        scratch.transparent.extend_from_slice(light_sprites);
+        scratch.transparent.extend_from_slice(decor_sprites);
+        scratch.transparent.extend_from_slice(npc_sprites);
+        scratch.transparent.extend_from_slice(weather_sprites);
+        scratch.transparent.extend_from_slice(cursor_sprites);
         render_group(
             device,
             queue,
             transparent_pipeline,
-            &transparent,
+            &scratch.transparent,
             depth_view,
             sprite_cache,
             texture_cache,
             &mut encoder,
-            &view,
+            view,
             size_bind_group,
             "transparent",
             false,
@@ -178,6 +265,8 @@ pub fn render_to_view(
             dynamic_bind_group,
             dynamic_alignment,
             &mut buf_offset,
+            &mut scratch.uniforms,
+            profiler.as_deref_mut(),
         );
     }
 
@@ -186,8 +275,10 @@ pub fn render_to_view(
     // порядок отрисовки = порядку в массиве. Сортируем по z по возрастанию,
     // чтобы «подложки» (z чуть ниже) рисовались раньше текста (z выше) и
     // не перекрывали его полупрозрачным чёрным.
-    let mut ui_sorted = ui_sprites.to_vec();
-    ui_sorted.sort_by(|a, b| {
+    scratch.ui_sorted.clear();
+    scratch.ui_sorted.reserve(ui_sprites.len());
+    scratch.ui_sorted.extend_from_slice(ui_sprites);
+    scratch.ui_sorted.sort_by(|a, b| {
         a.position[2]
             .partial_cmp(&b.position[2])
             .unwrap_or(std::cmp::Ordering::Equal)
@@ -196,12 +287,12 @@ pub fn render_to_view(
         device,
         queue,
         transparent_pipeline,
-        &ui_sorted,
+        &scratch.ui_sorted,
         depth_view,
         sprite_cache,
         texture_cache,
         &mut encoder,
-        &view,
+        view,
         ui_bind_group,
         "ui",
         false,
@@ -209,6 +300,8 @@ pub fn render_to_view(
         dynamic_bind_group,
         dynamic_alignment,
         &mut buf_offset,
+        &mut scratch.uniforms,
+        profiler.as_deref_mut(),
     );
 
     // Отправляем все команды кадра в очередь и показываем результат на экране.
@@ -220,6 +313,7 @@ pub fn render_to_view(
 //  clear_color = true только для карты (первый pass).
 //  Все uniform'ы записываются одним batch queue.write_buffer.
 // ========================================================================
+#[allow(clippy::too_many_arguments)]
 fn render_group(
     device: &wgpu::Device,
     queue: &wgpu::Queue,
@@ -237,6 +331,8 @@ fn render_group(
     dynamic_bind_group: &wgpu::BindGroup,
     dynamic_alignment: u64,
     buf_offset: &mut u64,
+    uniforms: &mut Vec<u8>,
+    profiler: Option<&mut FrameProfiler>,
 ) {
     // Пустую группу пропускаем — не создаём лишний render pass.
     if sprites.is_empty() {
@@ -297,11 +393,18 @@ fn render_group(
     });
     render_pass.set_pipeline(pipeline);
 
-    // Первый проход по спрайтам: достаём/загружаем текстуры в кэш.
-    // key — хэш из пути к текстуре + кадра + масштаба; если такой спрайт
-    // уже создавался — берём из кэша и не грузим текстуру повторно.
-    let mut keys: Vec<u64> = Vec::with_capacity(sprites.len());
-    for data in sprites {
+    // Build flat uniforms array: sprites.len() * alignment bytes
+    // Собираем __все__ uniform'ы группы в один плоский массив байтов.
+    // Каждый блок (Uniforms) дополняем нулями до кратности alignment,
+    // чтобы динамический offset указывал ровно на начало следующего блока.
+    let uniform_size = std::mem::size_of::<Uniforms>();
+    let write_offset = *buf_offset;
+    uniforms.clear();
+    uniforms.reserve(sprites.len() * dynamic_alignment as usize);
+    let mut cache_time = Duration::ZERO;
+    let loop_start = profiler.as_ref().map(|_| Instant::now());
+
+    for (i, data) in sprites.iter().enumerate() {
         let key = util::sprite_cache_key(
             key_prefix,
             &data.texture_path,
@@ -309,43 +412,35 @@ fn render_group(
             data.texture_count,
             data.scale,
         );
-
-        if !sprite_cache.contains_key(&key) {
-            // Текстура кэшируется по базовому пути (без «@WxH»), чтобы
-            // новые масштабы не перечитывали файл и не дублировали GPU-ресурсы.
-            let (base, _) = Sprite::split_sized_path(&data.texture_path);
-            let base_owned = base.to_string();
-            if !texture_cache.contains_key(&base_owned) {
-                let tex = Texture::from_path(device, queue, &base_owned, "texture_cache");
-                texture_cache.insert(base_owned.clone(), tex);
+        let sprite = match sprite_cache.entry(key) {
+            Entry::Occupied(entry) => entry.into_mut(),
+            Entry::Vacant(entry) => {
+                let miss_start = profiler.as_ref().map(|_| Instant::now());
+                // Текстура кэшируется по базовому пути (без «@WxH»), чтобы
+                // новые масштабы не перечитывали файл и не дублировали GPU-ресурсы.
+                let (base, _) = Sprite::split_sized_path(&data.texture_path);
+                let base_owned = base.to_string();
+                if !texture_cache.contains_key(&base_owned) {
+                    let tex = Texture::from_path(device, queue, &base_owned, "texture_cache");
+                    texture_cache.insert(base_owned.clone(), tex);
+                }
+                let texture = &texture_cache[&base_owned];
+                let new_sprite = Sprite::new(
+                    device,
+                    texture,
+                    &data.texture_path,
+                    data.texture_frame,
+                    data.texture_count,
+                    data.scale,
+                );
+                if let Some(miss_start) = miss_start {
+                    cache_time += miss_start.elapsed();
+                }
+                entry.insert(new_sprite)
             }
-            let texture = &texture_cache[&base_owned];
-            let new_sprite = Sprite::new(
-                device,
-                texture,
-                &data.texture_path,
-                data.texture_frame,
-                data.texture_count,
-                data.scale,
-            );
-            sprite_cache.insert(key, new_sprite);
-        }
-        keys.push(key);
-    }
+        };
 
-    // Build flat uniforms array: sprites.len() * alignment bytes
-    // Собираем __все__ uniform'ы группы в один плоский массив байтов.
-    // Каждый блок (Uniforms) дополняем нулями до кратности alignment,
-    // чтобы динамический offset указывал ровно на начало следующего блока.
-    let uniform_size = std::mem::size_of::<Uniforms>();
-    let write_offset = *buf_offset;
-    let mut uniforms_raw: Vec<u8> = Vec::with_capacity(sprites.len() * dynamic_alignment as usize);
-    for (i, (data, key)) in sprites.iter().zip(keys.iter()).enumerate() {
-        let sprite = sprite_cache
-            .get_mut(key)
-            .expect("Sprite must exist in cache");
-
-        let uniforms = Uniforms {
+        let uniform_data = Uniforms {
             // translation.w несёт альфу (прозрачность) спрайта.
             translation: [
                 data.position[0],
@@ -356,21 +451,12 @@ fn render_group(
             // rotation.w — резервный флаг, остаётся 1.0.
             rotation: [data.rotation[0], data.rotation[1], data.rotation[2], 1.0],
         };
-        let raw: &[u8] = bytemuck::bytes_of(&uniforms);
-        // Обновляем кэш последних uniform'ов спрайта.
-        // (позволяет later этапам понять, изменились данные или нет).
-        let needs_update = match sprite.last_uniform_raw {
-            None => true,
-            Some(last) => &last[..] != raw,
-        };
-        if needs_update {
-            sprite.last_uniform_raw = Some(raw.try_into().unwrap());
-        }
-
-        uniforms_raw.extend_from_slice(raw);
+        uniforms.extend_from_slice(bytemuck::bytes_of(&uniform_data));
         // Дополняем до alignment нулями (padded slot).
-        let pad = dynamic_alignment as usize - uniform_size;
-        uniforms_raw.extend(std::iter::repeat(0u8).take(pad));
+        uniforms.resize(
+            uniforms.len() + dynamic_alignment as usize - uniform_size,
+            0,
+        );
         let dynamic_offset = write_offset + i as u64 * dynamic_alignment;
 
         // Привязываем ресурсы для текущего спрайта:
@@ -384,10 +470,16 @@ fn render_group(
         render_pass.draw_indexed(0..sprite.index_count, 0, 0..1);
     }
 
+    if let Some(profiler) = profiler {
+        let total = loop_start.map(|start| start.elapsed()).unwrap_or_default();
+        profiler.record_duration(StageId::RenderCache, cache_time);
+        profiler.record_duration(StageId::RenderEncode, total.saturating_sub(cache_time));
+    }
+
     // Записываем собранный массив uniform'ов одним write_buffer
     // (одна передача вместо N отдельных — и меньше CPU-нагрузки).
-    if !uniforms_raw.is_empty() {
-        queue.write_buffer(dynamic_uniform_buffer, write_offset, &uniforms_raw);
-        *buf_offset = write_offset + uniforms_raw.len() as u64;
+    if !uniforms.is_empty() {
+        queue.write_buffer(dynamic_uniform_buffer, write_offset, &uniforms);
+        *buf_offset = write_offset + uniforms.len() as u64;
     }
 }

@@ -92,15 +92,14 @@ impl super::EcsAdapter {
             // Затухание плавное с обеих сторон, поэтому на границах проёма
             // нет щелчка. Работает при любом состоянии двери: закрытая
             // непрозрачна целиком, так что результат тот же.
-            let doorway = doorway_fade(transform.position);
-            if shopper_opt.is_some() && doorway <= 0.0 {
-                // Полностью скрыт — зачем отправлять в батчет спрайт с
-                // нулевой альфой.
-                continue;
-            }
-
             let mut alpha = sprite.alpha;
             if shopper_opt.is_some() {
+                let doorway = doorway_fade(transform.position);
+                if doorway <= 0.0 {
+                    // Полностью скрыт — зачем отправлять в батчет спрайт с
+                    // нулевой альфой.
+                    continue;
+                }
                 alpha *= doorway;
             }
             let data = SpriteRenderData {
@@ -230,6 +229,7 @@ impl super::EcsAdapter {
     // Выбирает текстуру забора по соседям: имя файла кодирует
     // наличие заборов сверху/снизу/слева/справа (например fence_1_0_1_0.png).
     pub fn update_fence_textures(&mut self) {
+        let generation = crate::core::texture_pack::resolution_generation();
         let transforms = self.world.read_storage::<Transform>();
         let fences = self.world.read_storage::<FenceComponent>();
         // Множество всех клеток с заборами для быстрой проверки соседства.
@@ -237,36 +237,64 @@ impl super::EcsAdapter {
             .join()
             .map(|(_, t)| (t.position[0] as i32, t.position[1] as i32))
             .collect();
+        let mut updates: Vec<(specs::Entity, Arc<str>)> = Vec::new();
+        {
+            let entities = self.world.entities();
+            let sprites = self.world.read_storage::<SpriteComponent>();
+            for (entity, fence, transform, sprite) in
+                (&entities, &fences, &transforms, &sprites).join()
+            {
+                let x = transform.position[0] as i32;
+                let y = transform.position[1] as i32;
+                let right = positions.contains(&(x + 1, y));
+                let left = positions.contains(&(x - 1, y));
+                let up = positions.contains(&(x, y + 1));
+                let down = positions.contains(&(x, y - 1));
+                let mask = (up as u8) << 3
+                    | (down as u8) << 2
+                    | (left as u8) << 1
+                    | (right as u8);
+                let street = fence.name == "street_fence";
+                let key = (street, mask, generation);
+                let path = if let Some(path) = self.fence_paths.get(&key) {
+                    Arc::clone(path)
+                } else {
+                    // Разные наборы текстур у уличного и обычного заборов.
+                    let (dir, fallback_arc) = if street {
+                        (
+                            "assets/tex/decor/outdoor/street_fence/street_fence",
+                            Arc::from(
+                                "assets/tex/decor/outdoor/street_fence/street_fence_0_0_0_0.png",
+                            ),
+                        )
+                    } else {
+                        (
+                            "assets/tex/decor/regular/fence/fence",
+                            Arc::from("assets/tex/decor/regular/fence/fence_0_0_0_0.png"),
+                        )
+                    };
+                    let candidate = format!(
+                        "{}_{}_{}_{}_{}.png",
+                        dir, up as u8, down as u8, left as u8, right as u8
+                    );
+                    let chosen = if crate::core::texture_pack::exists_cached(&candidate, generation)
+                    {
+                        Arc::from(candidate.into_boxed_str())
+                    } else {
+                        fallback_arc
+                    };
+                    self.fence_paths.insert(key, Arc::clone(&chosen));
+                    chosen
+                };
+                if sprite.texture_path.as_ref() != path.as_ref() {
+                    updates.push((entity, path));
+                }
+            }
+        }
         let mut sprites = self.world.write_storage::<SpriteComponent>();
-        for (fence, transform, sprite) in (&fences, &transforms, &mut sprites).join() {
-            let x = transform.position[0] as i32;
-            let y = transform.position[1] as i32;
-            let right = positions.contains(&(x + 1, y));
-            let left = positions.contains(&(x - 1, y));
-            let up = positions.contains(&(x, y + 1));
-            let down = positions.contains(&(x, y - 1));
-            // Разные наборы текстур у уличного и обычного заборов.
-            let (dir, fallback_arc) = if fence.name == "street_fence" {
-                (
-                    "assets/tex/decor/outdoor/street_fence/street_fence",
-                    Arc::from("assets/tex/decor/outdoor/street_fence/street_fence_0_0_0_0.png"),
-                )
-            } else {
-                (
-                    "assets/tex/decor/regular/fence/fence",
-                    Arc::from("assets/tex/decor/regular/fence/fence_0_0_0_0.png"),
-                )
-            };
-            let path = format!(
-                "{}_{}_{}_{}_{}.png",
-                dir, up as u8, down as u8, left as u8, right as u8
-            );
-            // Проверяем наличие варианта через загрузчик ассетов (работает и на
-            // Android, где текстуры упакованы в APK, а не лежат файлами на диске).
-            if crate::core::texture_pack::exists(&path) {
-                sprite.texture_path = Arc::from(path.into_boxed_str());
-            } else {
-                sprite.texture_path = fallback_arc;
+        for (entity, path) in updates {
+            if let Some(sprite) = sprites.get_mut(entity) {
+                sprite.texture_path = path;
             }
         }
     }

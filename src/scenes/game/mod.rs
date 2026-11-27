@@ -694,6 +694,7 @@ impl Scene for GameScene {
                     self.setup_content(ecs, text_renderer, device, queue);
                 }
             }
+            crate::core::jobs::prewarm_game_textures();
         }
 
         let now = std::time::Instant::now();

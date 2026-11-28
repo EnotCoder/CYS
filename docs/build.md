@@ -13,7 +13,7 @@
 
 ```sh
 cargo build --release
-cargo run --release
+cargo run --release -p cys
 ```
 
 Debug builds work too and keep debug symbols, but the release profile is
@@ -84,15 +84,16 @@ The manifest contains the `cargo-apk` metadata:
 Build:
 
 ```sh
-cargo apk build --release
+cargo apk build --release -p cys
 ```
 
 Signing uses `release.keystore` (alias `cys-alias`). The keystore is listed in
 the manifest; do not commit real release keys to a public repository — replace
 the placeholder values before publishing a build.
 
-On Android the entry point is `android_main` in `src/main/android.rs`, which
-calls `cys::run()` and sets up the JNI `EditText` used for world names. The
+On Android the entry point is `android_main` in `app/src/android.rs`, which
+calls `cys::run()` and sets up the JNI `EditText` used for world names. Build the
+app package explicitly: `cargo apk build --release -p cys`. The
 system Back button is treated as `Esc`: close a panel, or open settings/pause.
 
 ## Runtime configuration

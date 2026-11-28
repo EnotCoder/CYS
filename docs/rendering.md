@@ -1,12 +1,12 @@
 # Rendering
 
 CYS renders with `wgpu 30` directly: no engine, no sprite-batch crate. The
-whole renderer is about a thousand lines in `src/core/`, and its shape is
+whole renderer is about a thousand lines in `engine/src/gfx/`, and its shape is
 deliberately boring: one GPU context, two pipelines, three passes.
 
 ## GPU context
 
-`WgpuApp` (in `src/core/init.rs`) owns everything long-lived:
+`WgpuApp` (in `engine/src/gfx/init.rs`) owns everything long-lived:
 
 - `Instance`, `Surface`, `Adapter`, `Device`, `Queue`;
 - `Size` uniform buffer (world) and `UiUniforms` buffer (UI);
@@ -42,7 +42,7 @@ game state, rebuilds vanilla pipelines and shows the reason in Settings. See
 
 The logo splash hands over to `IntroScene`, which temporarily owns the whole
 surface through the `Scene::render_custom` hook. It uses four private WGSL
-modules under `src/scenes/cutscene/shaders/`: instanced star quads, procedural
+modules under `game/src/scenes/cutscene/shaders/`: instanced star quads, procedural
 solar-system and continent planes, a two-target radial-blur composite, and a
 small alpha-blended skip hint. The nine-stage schedule and jump focus points
 live in `timeline.rs`; changing the artwork happens in the WGSL files, not in
@@ -84,7 +84,7 @@ when the scene switches back to `menu`.
 
 ## Layers
 
-Lower `z` draws first. Values live in `src/core/constants.rs`:
+Lower `z` draws first. Values live in `engine/src/gfx/constants.rs`:
 
 ```
 Z_MAP=0.0 → Z_CARPET=1.0 → Z_LIGHT=1.2 → Z_DECOR=1.5 (Z_DOOR)

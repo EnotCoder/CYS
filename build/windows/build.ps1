@@ -4,7 +4,7 @@ $ErrorActionPreference = "Stop"
 Set-Location (Join-Path $PSScriptRoot "../..")
 
 if (-not $Version) {
-    $match = Select-String -Path Cargo.toml -Pattern '^version = "([^"]+)"' | Select-Object -First 1
+    $match = Select-String -Path Cargo.toml -Pattern '^\s*version = "([^"]+)"' | Select-Object -First 1
     if (-not $match) { throw "Cannot read version from Cargo.toml" }
     $Version = $match.Matches.Groups[1].Value
 }

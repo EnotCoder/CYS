@@ -14,7 +14,7 @@ release (or any file host) and give users the direct download links.
 ## Runtime paths
 
 The binary no longer assumes that the current directory is the project root.
-`src/core/asset.rs` resolves files as follows:
+`engine/src/assets/asset.rs` resolves files as follows:
 
 - **read-only assets** (`assets/...`): `CYS_ASSETS` (if set), then `assets/`
   next to the executable, then `/usr/share/cys/assets`, then `./assets`;
@@ -58,7 +58,7 @@ outside the prefix, so uninstalling does not delete worlds.
 
 ## Debian package
 
-`Cargo.toml` contains `[package.metadata.deb]` with the binary, game assets,
+`app/Cargo.toml` contains `[package.metadata.deb]` with the binary, game assets,
 desktop entry, icon and GPL license. Install the tool once:
 
 ```sh
@@ -73,8 +73,8 @@ sudo apt install ./dist/cys_0.1.3_amd64.deb
 cys
 ```
 
-`cargo deb` runs the release build itself when invoked directly; the script
-uses `--no-build` because it has just built the binary. The package depends
+`cargo deb -p cys` runs the release build itself when invoked directly; the
+script uses `--no-build` because it has just built the binary. The package depends
 on `$auto` plus `libvulkan1` and `libasound2` (wgpu and rodio load those at
 runtime). Remove with `sudo apt remove cys`.
 

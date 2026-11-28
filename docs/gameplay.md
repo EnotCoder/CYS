@@ -102,7 +102,7 @@ closes after it leaves; the shopper fades to alpha 0 inside the doorway so the
 wall opening does not look like a hole. Empty racks or deleted registers reroute
 the shopper; a closed shop sends shoppers without food straight to the exit.
 
-The state machine exists twice: `src/npc/mod.rs` (`update_fallback`) and
+The state machine exists twice: `game/src/npc/mod.rs` (`update_fallback`) and
 `assets/scripts/npc.lua`. If the script is missing or fails to load, the Rust
 version runs. Both read the same `CONFIG` values.
 
@@ -143,7 +143,7 @@ the same scrollable enable/disable panel as **Settings → Mods...** in game;
 
 ## Shop, settings, tutorial
 
-- **Shop** (`src/ui/shop.rs`) lists every catalogue object except `SHOP_EXEMPT`,
+- **Shop** (`game/src/ui/shop.rs`) lists every catalogue object except `SHOP_EXEMPT`,
   with a scrollbar and a confirmation dialog. A large portrait of Mark stands
   just left of the panel and bobs gently on a sine wave. Buying adds the name to
   `ShopOwned`; the object then becomes placeable in this world.

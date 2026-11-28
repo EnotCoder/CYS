@@ -13,7 +13,7 @@ shelves, serve shopper NPCs and keep the business afloat.
 
 ```sh
 cargo build --release
-cargo run --release
+cargo run --release -p cys
 ```
 
 Requires Rust edition 2021 and a GPU with Vulkan (Linux/Android) or Dx12
@@ -95,22 +95,12 @@ source map, and all relative links must resolve.
 ## Architecture
 
 ```text
-src/
-├── main/     — entry point, App, winit event loop, Android entry
-├── core/     — wgpu kernel: pipeline, textures, render, shaders, packs
-├── scenes/   — menu, cutscene/, game/ (HUD, level, tutorial, weather FX), manager
-├── ecs/      — specs adapter/, components, factory, groups, particles, cursor
-├── data/     — slots/objects, placement logic, map/, pathfinding, door
-├── ui/       — inventory, shop, settings, mods, weather, text renderer
-├── input/    — zoom, cursor, interaction, desktop/touch abstraction
-├── npc/      — ShopperNpc state machine, interactions, movement
-├── audio/    — sound engine (rodio)
-├── scripts/  — Lua bridge (config.lua, items.lua, npc.lua, mods)
-├── save/     — worlds, manifest, data/settings.json
-└── tests/    — unit tests (including docs checks)
+engine/  — technical layer (wgpu, assets, input, text, UI components, audio, ECS)
+game/    — gameplay layer (data, NPC, scenes, ECS adapter, UI, scripts, saves, tests)
+app/     — App, winit loop, desktop and Android entry points
 ```
 
-The 12 folders are top-level; several contain subfolders as they grew.
+Dependencies point only `app → game → engine`; `engine` never refers to `game`.
 `docs/source-map.md` lists every source file.
 
 Assets live in `assets/`: textures, sounds, Lua scripts, maps and the font.

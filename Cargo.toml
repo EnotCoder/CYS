@@ -1,24 +1,14 @@
-[package]
-name = "cys"
+[workspace]
+members = ["engine", "game", "app"]
+resolver = "2"
+
+[workspace.package]
 version = "0.1.3"
 edition = "2021"
-build = "build/cargo/main.rs"
-description = "A 2D shop simulator built with Rust and wgpu"
 
-[lib]
-name = "cys"
-path = "src/main/lib.rs"
-crate-type = ["cdylib", "rlib"]
-
-[[bin]]
-name = "cys"
-path = "src/main/main.rs"
-
-[features]
-# Фоновые потоки для декодирования текстур и записи сохранений (desktop only).
-mt = []
-
-[dependencies]
+[workspace.dependencies]
+cys-engine = { path = "engine" }
+cys-game = { path = "game" }
 winit = "0.30"
 winit_input_helper = "0.17"
 wgpu = "30"
@@ -32,75 +22,8 @@ serde_json = "1"
 mlua = { version = "0.10", features = ["lua54", "vendored"] }
 rodio = "0.22.2"
 
-# Только под Android: точка входа android-activity + упаковка ассетов в APK.
-[target.'cfg(target_os = "android")'.dependencies]
-android-activity = { version = "0.6", features = ["native-activity"] }
-jni = "0.22"
-
-# Только под Windows (кросс-компиляция с mingw): в mingw нет импорт-либы
-# vulkan-1, поэтому отключаем Vulkan-бэкенд и используем Dx12 + WGSL.
-[target.'cfg(target_os = "windows")'.dependencies]
-wgpu = { version = "30", default-features = false, features = ["dx12", "wgsl"] }
-
-# Иконка Windows .exe: winres встраивает build/icons/app.ico. Зависимость обычная,
-# не target-specific: build-скрипт компилируется под хост, а платформу
-# проверяет сам через CARGO_CFG_TARGET_OS.
-[build-dependencies]
-winres = "0.1"
-
-[package.metadata.deb]
-maintainer = "EnotCoder <samaks.sasha@gmail.com>"
-copyright = "2026 EnotCoder"
-license-file = ["LICENSE", "0"]
-extended-description = """\
-A 2D shop simulator built with Rust and wgpu. Design your own shop, place \
-floors, walls, racks and decor, stock the shelves and serve shopper NPCs."""
-depends = "$auto, libasound2, libvulkan1"
-section = "games"
-priority = "optional"
-assets = [
-    ["target/release/cys", "usr/bin/cys", "755"],
-    ["assets/**/*", "usr/share/cys/assets/", "644"],
-    ["build/linux/cys.desktop", "usr/share/applications/cys.desktop", "644"],
-    ["build/icons/icon.png", "usr/share/icons/hicolor/512x512/apps/cys.png", "644"],
-    ["LICENSE", "usr/share/doc/cys/copyright", "644"],
-]
-
 [profile.release]
 lto = true
 codegen-units = 1
 panic = "abort"
 strip = true
-
-# Настройки сборки APK (используются cargo-apk / cargo-ndk).
-# Все игровые файлы лежат в assets/ и упаковываются в APK-assets.
-[package.metadata.android]
-assets = "assets"
-resources = "build/icons/android"
-package = "ru.enotcoder.createshop"
-build_targets = ["aarch64-linux-android", "x86_64-linux-android"]
-
-# Всегда горизонтальная ориентация на телефоне (android:screenOrientation)
-[package.metadata.android.application.activity]
-orientation = "landscape"
-
-[package.metadata.android.signing.release]
-path = "release.keystore"
-keystore_password = "123456"
-key_alias = "cys-alias"
-key_password = "123456"
-
-# Полноэкранный режим: прячем системную статус-панель (время/батарея) ещё до
-# запуска android_main, как в обычных мобильных играх (android:theme).
-# Иконка приложения берётся из build/icons/android/mipmap-* (android:icon).
-[package.metadata.android.application]
-theme = "@android:style/Theme.NoTitleBar.Fullscreen"
-icon = "@mipmap/ic_launcher"
-label = "Create your shop (CYS)"
-
-[package.metadata.android.sdk]
-min_sdk_version = 26
-target_sdk_version = 34
-
-
-

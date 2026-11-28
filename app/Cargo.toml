@@ -1,0 +1,76 @@
+[package]
+name = "cys"
+version.workspace = true
+edition.workspace = true
+build = "../build/cargo/main.rs"
+description = "A 2D shop simulator built with Rust and wgpu"
+
+[lib]
+name = "cys"
+path = "src/lib.rs"
+crate-type = ["cdylib", "rlib"]
+
+[[bin]]
+name = "cys"
+path = "src/main.rs"
+
+[features]
+mt = ["cys-game/mt", "cys-engine/mt"]
+
+[dependencies]
+cys-engine.workspace = true
+cys-game.workspace = true
+winit.workspace = true
+wgpu.workspace = true
+bytemuck.workspace = true
+
+# Только под Android: точка входа android-activity + JNI-bridge для EditText.
+[target.'cfg(target_os = "android")'.dependencies]
+android-activity = { version = "0.6", features = ["native-activity"] }
+jni = "0.22"
+
+# winres компилируется под хост и проверяет целевую платформу сам.
+[build-dependencies]
+winres = "0.1"
+
+[package.metadata.deb]
+maintainer = "EnotCoder <samaks.sasha@gmail.com>"
+copyright = "2026 EnotCoder"
+license-file = ["../LICENSE", "0"]
+extended-description = """\
+A 2D shop simulator built with Rust and wgpu. Design your own shop, place \
+floors, walls, racks and decor, stock the shelves and serve shopper NPCs."""
+depends = "$auto, libasound2, libvulkan1"
+section = "games"
+priority = "optional"
+assets = [
+    ["../target/release/cys", "usr/bin/cys", "755"],
+    ["../assets/**/*", "usr/share/cys/assets/", "644"],
+    ["../build/linux/cys.desktop", "usr/share/applications/cys.desktop", "644"],
+    ["../build/icons/icon.png", "usr/share/icons/hicolor/512x512/apps/cys.png", "644"],
+    ["../LICENSE", "usr/share/doc/cys/copyright", "644"],
+]
+
+[package.metadata.android]
+assets = "../assets"
+resources = "../build/icons/android"
+package = "ru.enotcoder.createshop"
+build_targets = ["aarch64-linux-android", "x86_64-linux-android"]
+
+[package.metadata.android.application.activity]
+orientation = "landscape"
+
+[package.metadata.android.signing.release]
+path = "../release.keystore"
+keystore_password = "123456"
+key_alias = "cys-alias"
+key_password = "123456"
+
+[package.metadata.android.application]
+theme = "@android:style/Theme.NoTitleBar.Fullscreen"
+icon = "@mipmap/ic_launcher"
+label = "Create your shop (CYS)"
+
+[package.metadata.android.sdk]
+min_sdk_version = 26
+target_sdk_version = 34

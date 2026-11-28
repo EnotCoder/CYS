@@ -1,0 +1,30 @@
+[package]
+name = "cys-engine"
+version.workspace = true
+edition.workspace = true
+description = "Rendering, input, UI widgets and audio engine for CYS"
+
+[lib]
+name = "cys_engine"
+path = "src/lib.rs"
+
+[features]
+# Фоновые потоки для декодирования текстур (desktop only).
+mt = []
+
+[dependencies]
+winit.workspace = true
+winit_input_helper.workspace = true
+wgpu.workspace = true
+pollster.workspace = true
+bytemuck.workspace = true
+image.workspace = true
+specs.workspace = true
+ab_glyph.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+rodio.workspace = true
+
+# mingw не имеет импорт-либы vulkan-1: на Windows используем Dx12 + WGSL.
+[target.'cfg(target_os = "windows")'.dependencies]
+wgpu = { version = "30", default-features = false, features = ["dx12", "wgsl"] }

@@ -1,9 +1,9 @@
 # Testing
 
-Tests live in `src/tests/` and are compiled into the library under
-`#[cfg(test)]`. They are fast and do not need a GPU, a window or a sound
-device: rendering and input are represented by plain data and a fake input
-source.
+Gameplay tests live in `game/src/tests/` and are compiled into `cys-game`
+under `#[cfg(test)]`. Engine tests live beside the code in `engine/src/`.
+They are fast and do not need a GPU, a window or a sound device: rendering and
+input are represented by plain data and a fake input source.
 
 ```sh
 cargo test
@@ -18,23 +18,24 @@ selected by name, for example `cargo test door`.
 
 | File | Covers |
 |---|---|
-| `src/tests/mod.rs` | mode cycle, text input, pure helpers, UI scale, map tokens, catalogue |
-| `src/tests/helpers.rs` | shared fixtures: `new_ecs`, placement helpers, `FakeInput`, UI pixel mapping |
-| `src/tests/data_integrity.rs` | constants, `ALL_OBJECTS`, balance config, day/night, sprite cache, settings |
-| `src/tests/placement_rules.rs` | `can_place_at`, `add`, `remove`: categories, conflicts, refunds, walls, basement |
-| `src/tests/particles_tests.rs` | place/remove presets, solid-square texture, item-coloured events, movement/fade/TTL, `MAX_ACTIVE_PARTICLES` |
-| `src/tests/group_tests.rs` | multi-cell layout, atlas frames, layers, `find_group_at_position`, deletion |
-| `src/tests/npc_tests.rs` | shopper states, movement, food/candy, registers, routing, fade, door |
-| `src/tests/input_tests.rs` | zoom, UI hit tests, slider, shop scrolling, world name, door fade, weather |
-| `src/tests/anim_tests.rs` | `PanelAnim` open/close/cancel and text sprites |
-| `src/tests/mods_tests.rs` | mod discovery, manifest defaults and `use` parsing, path sandbox, blocked Lua globals, events, balance/item overrides, texture layers, `enabled_from`, `write_use_flag`, bundled manifests |
-| `src/ui/mods.rs` (unit test) | scroll offset and scrollbar thumb math; a scrolled row resolves to its own mod id; shared status text sprite is kept while another mod row still uses it |
-| `src/tests/texture_pack_tests.rs` | file overlay, `pack.json` overrides, path safety, vanilla fallback |
-| `src/tests/shader_pack_tests.rs` | shader discovery, WGSL loading, broken manifest fallback, path traversal protection |
-| `src/tests/docs.rs` | source map completeness and live links |
-| `src/core/jobs.rs` (unit test) | stale decoded results are ignored and disabled workers stay inert |
+| `game/src/tests/mod.rs` | mode cycle, text input, pure helpers, UI scale, map tokens, catalogue |
+| `game/src/tests/helpers.rs` | shared fixtures: `new_ecs`, placement helpers, `FakeInput`, UI pixel mapping |
+| `game/src/tests/data_integrity.rs` | constants, `ALL_OBJECTS`, balance config, day/night, sprite cache, settings |
+| `game/src/tests/placement_rules.rs` | `can_place_at`, `add`, `remove`: categories, conflicts, refunds, walls, basement |
+| `game/src/tests/particles_tests.rs` | place/remove presets, solid-square texture, item-coloured events, movement/fade/TTL, `MAX_ACTIVE_PARTICLES` |
+| `game/src/tests/group_tests.rs` | multi-cell layout, atlas frames, layers, `find_group_at_position`, deletion |
+| `game/src/tests/npc_tests.rs` | shopper states, movement, food/candy, registers, routing, fade, door |
+| `game/src/tests/input_tests.rs` | zoom, UI hit tests, slider, shop scrolling, world name, door fade, weather |
+| `game/src/tests/anim_tests.rs` | `PanelAnim` open/close/cancel and text sprites |
+| `game/src/tests/mods_tests.rs` | mod discovery, manifest defaults and `use` parsing, path sandbox, blocked Lua globals, events, balance/item overrides, texture layers, `enabled_from`, `write_use_flag`, bundled manifests |
+| `game/src/ui/mods.rs` (unit test) | scroll offset and scrollbar thumb math; a scrolled row resolves to its own mod id; shared status text sprite is kept while another mod row still uses it |
+| `game/src/tests/texture_pack_tests.rs` | file overlay, `pack.json` overrides, path safety, vanilla fallback |
+| `game/src/tests/shader_pack_tests.rs` | shader discovery, WGSL loading, broken manifest fallback, path traversal protection |
+| `game/src/tests/docs.rs` | source map completeness and live links |
+| `game/src/core/jobs.rs` (unit test) | stale decoded results are ignored and disabled workers stay inert |
 
-The suite currently has 147 tests. They are ordinary `#[test]` functions, not
+The workspace currently has 147 tests (135 gameplay, 12 engine). They are
+ordinary `#[test]` functions, not
 `specs` systems, so a failure points at a function name, not at a schedule.
 
 ## Writing a test without a GPU
@@ -64,10 +65,10 @@ Rules of thumb:
 
 ## Documentation tests
 
-`src/tests/docs.rs` is part of `cargo test` and enforces the docs contract:
+`game/src/tests/docs.rs` is part of `cargo test` and enforces the docs contract:
 
-1. every `src/**/*.rs` path appears in `docs/source-map.md`, and every
-   `src/...` path mentioned there exists;
+1. every `engine/src/**/*.rs`, `game/src/**/*.rs` and `app/src/**/*.rs` path
+   appears in `docs/source-map.md`, and every path mentioned there exists;
 2. every relative Markdown link and image resolves to an existing file.
 
 This is why a new module must be added to the source map in the same change.

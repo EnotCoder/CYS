@@ -2,27 +2,21 @@
 
 ## Structure
 
-12 main folders in `src/` (Godot-style), with nested subfolders where a folder
-has grown:
+The workspace has three crates; dependencies point only `app → game → engine`.
 
-- `src/main/` — entry point (`main.rs`) — is crate root via `[[bin]]` in Cargo.toml; `lib.rs` holds App, render loop, winit event handling; `android.rs` is the Android entry
-- `src/core/` — kernel: wgpu pipeline (`buffers`, `init`, `pipeline`, `render`, `texture`, `shaders.wgsl`), constants, util, asset I/O, shader and texture packs
-- `src/data/` — Slot, Object, ALL_OBJECTS (`mod.rs`), placement logic (`placement.rs`), map loading + pathfinding (`map/{mod,image_map,pathfinding}.rs`), door (`door.rs`)
-- `src/npc/` — ShopperNpc (`mod.rs`), interactions (`interactions.rs`), movement (`movement.rs`)
-- `src/ecs/` — ECS adapter (`adapter/{mod,render}.rs`), components, cursor, factory, group, particles, placement, sprite
-- `src/input/` — zoom camera, cursor, interact, platform (desktop/touch); pan/clamp camera lives in `src/scenes/game/camera.rs`
-- `src/scenes/` — menu_scene, cutscene/ (intro), game/ (GameScene with hud, level, tutorial, weather FX and inventory input), scene_manager, scene_trait
-- `src/ui/` — components, fps, inventory, mods, settings, shop, weather, anim, text_input, text_renderer, system
-- `src/audio/` — sound (rodio)
-- `src/scripts/` — Lua bridge (config, items, npc, mods)
-- `src/save/` — worlds, manifest, data/settings.json
-- `src/tests/` — unit tests (tied in via `#[cfg(test)] mod tests;`) and docs checks
+- `engine/` — technical layer: `gfx/` (wgpu pipeline, `shaders.wgsl`, buffers, constants, render, texture, sprite), `assets/` (asset I/O, jobs, shader and texture packs), `input/` (zoom, desktop/touch platform), `text/`, `ui/` (basic components, FPS), `audio/`, basic `ecs/`, `profiler.rs`, `util.rs`; `core/` is a compatibility facade over these modules
+- `game/` — gameplay layer: `data/` (Slot, Object, ALL_OBJECTS, placement, map/, pathfinding, door), `npc/` (ShopperNpc, interactions, movement), `ecs/` (adapter/{mod,render}, components, cursor, group, placement), `input/` (cursor, interact), `scenes/` (menu, cutscene/, game/ with HUD, level, tutorial, weather FX, inventory input, manager, trait), `ui/` (inventory, mods, settings, shop, weather, anim, text_renderer, system), `scripts/` (config, items, npc, mods), `save/`, `particles.rs`, `weather_fx.rs`, `tests/`
+- `app/` — binary and orchestration: `lib.rs` (App, render loop, winit events, `run()`), `main.rs` (desktop entry), `android.rs` (Android entry)
+
+`game/src/core/` adds gameplay-specific util and pack facades on top of
+`engine::core`; `game::core::init()` registers the mod texture-layer provider.
+`EcsAdapter`, `TextRenderer`, `ui::system` and `ui::anim` stay in `game` because
+they depend on gameplay types.
 
 `docs/source-map.md` is the authoritative list of every `.rs` file, including
 nested ones.
 
-Documentation lives outside `src/`, in `docs/` (English only). Root `README.md`
-is English.
+Documentation lives in `docs/` (English only). Root `README.md` is English.
 
 ## Texture paths
 

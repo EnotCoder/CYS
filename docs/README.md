@@ -26,7 +26,7 @@ This folder is the full developer documentation.
 - **Player / first launch** — root [README](../README.md), section *Build & run*.
 - **New to the codebase** — [architecture.md](architecture.md), then
   [source-map.md](source-map.md).
-- **Changing rendering** — [rendering.md](rendering.md) and `src/core/`.
+- **Changing rendering** — [rendering.md](rendering.md) and `engine/src/gfx/`.
 - **Adding a texture pack** — [texture-packs.md](texture-packs.md).
 - **Balancing the game** — [scripts.md](scripts.md).
 - **Changing a save format** — [world-format.md](world-format.md).
@@ -35,7 +35,8 @@ This folder is the full developer documentation.
 
 Documentation is part of the build: `cargo test` checks that
 
-- every `src/**/*.rs` file is mentioned in `source-map.md`;
+- every `.rs` file under `engine/src/`, `game/src/` and `app/src/` is mentioned
+  in `source-map.md`;
 - every relative link and image points at an existing file.
 
 So a renamed file fails CI-level checks instead of rotting silently. Details:

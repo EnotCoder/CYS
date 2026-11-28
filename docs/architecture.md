@@ -1,34 +1,28 @@
 # Architecture (CYS)
 
-The source tree follows the Godot convention: `src/` contains exactly
-12 top-level module folders, each with a `mod.rs` that wires submodules
-together. Many folders also have nested subdirectories — `scenes/game/`,
-`scenes/cutscene/`, `ecs/adapter/` and `data/map/`. Everything outside `src/`
-is either an asset, player content or a build artifact. The authoritative
-file-by-file list is [source-map.md](source-map.md).
+The source tree is a Cargo workspace with three crates:
 
 ```
-src/
-├── main/
-├── core/
-├── scenes/
-├── ecs/
-├── data/
-├── ui/
-├── input/
-├── npc/
-├── audio/
-├── scripts/
-├── save/
-└── tests/
+engine/     technical layer: gfx, assets, input, text, ui, audio, ecs, util
+game/       gameplay layer: data, npc, scenes, ecs, ui, input, scripts, save, tests
+app/        App, winit loop, desktop and Android entry points
 ```
 
-Nested areas: `scenes/game/` (HUD, level, tutorial, weather FX, inventory
-input), `scenes/cutscene/` (intro), `ecs/adapter/`, `data/map/` and the
-additional `npc/` files for interactions and movement.
+Dependencies point only `app → game → engine`; `engine` never refers to `game`.
+`engine/src/core/` is a compatibility facade over the technical modules, and
+`game/src/core/` adds gameplay-specific util and pack facades. `EcsAdapter`,
+`TextRenderer`, `ui::system` and `ui::anim` stay in `game` because they depend
+on gameplay types. The existing render API is preserved: scenes still receive
+`wgpu::Device`/`Queue` handles through `engine` types. Replacing that with a
+`draw_sprite`-style engine API is a separate step. Nested areas include
+`game/src/scenes/game/` (HUD, level,
+tutorial, weather FX, inventory input), `game/src/scenes/cutscene/` (intro),
+`game/src/ecs/adapter/` and `game/src/data/map/`. The authoritative file-by-file
+list is [source-map.md](source-map.md).
 
 Assets live in `assets/` (`assets/tex/`, `assets/sounds/`, `assets/scripts/`,
-map files) and are not part of `src/`. On Android they are packed into the APK.
+map files) and are not part of the source crates. On Android they are packed
+into the APK.
 Player content lives only under `assets/` on both platforms:
 `assets/texture_pack/`, `assets/shaders/` and `assets/mods/`. Desktop reads the
 same paths from the checkout or installed assets, and writes player overrides
@@ -38,16 +32,18 @@ to the user data directory; Android reads them from the APK. See
 
 ## Crate layout
 
-Cargo builds two targets from the same crate:
-
-| Target | Path | Role |
+| Crate | Package | Role |
 |---|---|---|
-| `lib` (`rlib` + `cdylib`) | `src/main/lib.rs` | all game logic, `run()`, `android_main` |
-| `bin` | `src/main/main.rs` | desktop entry point, calls `cys::run()` |
+| `engine/` | `cys-engine` | wgpu, assets, input, text, basic UI/ECS, audio, utilities |
+| `game/` | `cys-game` | gameplay, scenes, gameplay ECS adapter, UI windows, scripts, saves, tests |
+| `app/` | `cys` | `App`, render loop, winit events, `run()`, `android_main`, desktop binary |
 
-`lib.rs` declares the 12 modules with `#[path = "../<module>/mod.rs"]`, so the
-folders keep their Godot-style shape while Cargo sees a flat module tree.
-`main.rs` is intentionally tiny: desktop `main` only delegates to the library.
+`app/` builds a `cdylib` + `rlib` library and a `cys` binary from
+`app/src/lib.rs` and `app/src/main.rs`. The desktop `main.rs` is intentionally
+tiny: it only calls
+`cys::run()`. `run()` initializes mods and gameplay providers with
+`cys_game::scripts::mods::init()` and `cys_game::core::init()` before the first
+frame, then starts the winit event loop.
 
 ## One frame
 
@@ -64,8 +60,8 @@ suspended           → surface = None
 
 `App::render` is the frame pipeline:
 
-1. `core::jobs::poll()` — collect results from background workers on the main
-   thread (decoded rasters, completed saves).
+1. `cys_engine::core::jobs::poll()` — collect results from background workers
+   on the main thread (decoded rasters, completed saves).
 2. `scene.update(...)` — input, gameplay, animations. Returns `SceneAction`.
 3. Apply the action: `Switch`, `Quit`, `VsyncToggle`, `None`.
 4. Update IME state (text input on desktop and Android).
@@ -73,7 +69,7 @@ suspended           → surface = None
 6. `scene.sprites(...)` and `scene.lights(...)` — collect render data per layer,
    already culled by the visible bounds.
 7. Write world uniforms (`Size`) and UI uniforms (`UiUniforms`).
-8. `core::render` — one pass for the map, one transparent pass for
+8. `cys_engine::core::render` — one pass for the map, one transparent pass for
    carpets/lights/decor/NPC/weather (including placement particles)/cursor,
    one for UI.
 
@@ -144,7 +140,8 @@ functions write to the app's internal data directory.
 
 ## Render layers
 
-Lower `z` draws first. Values live in `core::constants`:
+Lower `z` draws first. Values live in `cys_engine::core::constants` and are
+re-exported as `cys_game::core::constants`:
 
 ```
 Z_MAP=0.0 → Z_CARPET=1.0 → Z_LIGHT=1.2 → Z_DECOR=1.5 (Z_DOOR)
@@ -154,8 +151,8 @@ Z_MAP=0.0 → Z_CARPET=1.0 → Z_LIGHT=1.2 → Z_DECOR=1.5 (Z_DOOR)
 
 ## Reading order
 
-1. `src/main/lib.rs` and `src/main/main.rs` — startup.
-2. `src/scenes/scene_trait.rs` and `scene_manager.rs` — the frame contract.
-3. `src/scenes/game/mod.rs` — the gameplay loop.
-4. `src/core/render.rs` and `src/core/init.rs` — how pixels appear.
-5. `src/data/mod.rs` — what the player can place.
+1. `app/src/lib.rs` and `app/src/main.rs` — startup.
+2. `game/src/scenes/scene_trait.rs` and `scene_manager.rs` — the frame contract.
+3. `game/src/scenes/game/mod.rs` — the gameplay loop.
+4. `engine/src/gfx/render.rs` and `init.rs` — how pixels appear.
+5. `game/src/data/mod.rs` — what the player can place.

@@ -3,7 +3,7 @@
 A shader pack replaces the single shared WGSL shader used for the map, decor,
 NPCs, weather and UI. It changes appearance only: gameplay, saves and the object
 catalogue are untouched. `Vanilla` is the built-in
-[`src/core/shaders.wgsl`](../src/core/shaders.wgsl) and is always available as
+[`engine/src/gfx/shaders.wgsl`](../engine/src/gfx/shaders.wgsl) and is always available as
 the first entry in Settings.
 
 ## Locations
@@ -66,7 +66,7 @@ the vanilla entry points and bindings:
 - `@group(2) @binding(0)`: `Size`, `@group(2) @binding(1)`: storage array of `Light`.
 
 See [rendering.md](rendering.md) for the pipeline and layer description. The
-simplest safe pack copies `src/core/shaders.wgsl` and edits only the body of
+simplest safe pack copies `engine/src/gfx/shaders.wgsl` and edits only the body of
 `fs_main`.
 
 ## Live switching and fallback

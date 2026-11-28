@@ -18,7 +18,7 @@ scripts and may extend or override `CONFIG`, `ITEMS` and `npc_update`. The
 
 ## config.lua
 
-Loaded by `src/scripts/config.rs::load` into `BalanceConfig`, then published as
+Loaded by `game/src/scripts/config.rs::load` into `BalanceConfig`, then published as
 the global `CONFIG` for other scripts. Edit values here, not in Rust; the
 defaults in Rust exist only as a fallback.
 
@@ -53,9 +53,9 @@ instead of a visual glitch.
 
 ## items.lua
 
-Loaded by `src/scripts/items.rs::load` into `data::ItemCatalog`, which builds
+Loaded by `game/src/scripts/items.rs::load` into `data::ItemCatalog`, which builds
 `ALL_OBJECTS`, the inventory tab lists and per-item icon metadata. The Rust
-`BUILTIN_OBJECTS` list in `src/data/mod.rs` is only the fallback when this file
+`BUILTIN_OBJECTS` list in `game/src/data/mod.rs` is only the fallback when this file
 is missing, broken or empty.
 
 ```lua
@@ -93,18 +93,18 @@ the 5×5 inventory grid. `tab` only selects the inventory tab; `category`
 controls placement and the z-layer, so an item can live in `tab = "new_year"`
 and still place like a carpet (`category = "carpet"`). A missing `category` is
 derived from `tab` for old catalogues. Tabs are listed in `TAB_NAMES`
-(`src/scripts/items.rs`) and mirrored by `TAB_TEX` (`src/core/constants.rs`);
+(`game/src/scripts/items.rs`) and mirrored by `TAB_TEX` (`engine/src/gfx/constants.rs`);
 the row is paginated five icons per page, with arrow buttons to the left of the
 first icon and to the right of the last. With the inventory open, `←`/`→` cycle
 tabs and the page follows the active tab. Adding, removing or renaming an item
 here updates both the inventory and the placement helpers in
-`src/data/placement.rs`; `SHOP_EXEMPT` and the starting hotbar remain in Rust.
+`game/src/data/placement.rs`; `SHOP_EXEMPT` and the starting hotbar remain in Rust.
 
 ## npc.lua
 
 `npc.lua` implements decisions on top of Rust primitives: state transitions,
 wait timers and route choice. The state numbers mirror `ShopperState` in
-`src/npc/mod.rs`:
+`game/src/npc/mod.rs`:
 
 | Value | State |
 |---|---|

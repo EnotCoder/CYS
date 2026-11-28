@@ -2,21 +2,22 @@
 
 ## Before you change code
 
-- Read [architecture.md](architecture.md) — the 12 top-level folders are
-  intentional; nested subfolders are allowed as modules grow.
+- Read [architecture.md](architecture.md) — the three workspace crates and
+  their dependency direction are intentional; nested subfolders are allowed as
+  modules grow.
 - For anything visual, read [rendering.md](rendering.md); for item logic, read
   [ecs.md](ecs.md); for balance, [scripts.md](scripts.md).
 - Run `cargo test` once before your first change, so you know the baseline.
 
 ## Module rules
 
-- `src/` keeps exactly 12 top-level folders. Do not add a 13th without a strong
-  reason; most code belongs in an existing module, possibly in one of its
-  subfolders (`scenes/game/`, `ecs/adapter/`, `data/map/`, ...).
+- New technical code belongs in `engine/`; gameplay code in `game/`;
+  orchestration and entry points in `app/`. Dependencies point only
+  `app → game → engine`; `engine` must never refer to `game`.
+- Most code belongs in an existing module, possibly in one of its subfolders
+  (`game/src/scenes/game/`, `game/src/ecs/adapter/`, `game/src/data/map/`, ...).
 - A new file is declared in the parent `mod.rs` and, if it is part of the public
   surface, re-exported there.
-- `lib.rs` declares modules with `#[path = "../<module>/mod.rs"]`; keep that
-  pattern.
 - A type's `impl` blocks stay in one file. Trait impls cannot be split across
   submodules, so plan for it.
 - When moving files: move first, then update every `use` path, then build.

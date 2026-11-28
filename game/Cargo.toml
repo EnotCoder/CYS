@@ -1,0 +1,27 @@
+[package]
+name = "cys-game"
+version.workspace = true
+edition.workspace = true
+description = "Gameplay, scenes, data, scripts and saves for CYS"
+
+[lib]
+name = "cys_game"
+path = "src/lib.rs"
+
+[features]
+mt = ["cys-engine/mt"]
+
+[dependencies]
+cys-engine.workspace = true
+winit.workspace = true
+wgpu.workspace = true
+pollster.workspace = true
+bytemuck.workspace = true
+image.workspace = true
+specs.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+mlua.workspace = true
+rodio.workspace = true
+
+ab_glyph.workspace = true

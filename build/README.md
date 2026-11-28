@@ -1,7 +1,8 @@
 # Build and packaging tools
 
 All tooling that prepares, builds or packages CYS lives under `build/`.
-`Cargo.toml` stays at the repository root because Cargo requires it there.
+The root `Cargo.toml` is the workspace manifest; the `cys` package metadata
+(build script, deb and Android metadata) lives in `app/Cargo.toml`.
 
 | Path | Role |
 |---|---|

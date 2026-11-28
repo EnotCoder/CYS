@@ -3,7 +3,7 @@
 CYS uses [`specs`](https://docs.rs/specs) 0.18, but only as a storage: there is
 no `Dispatcher` and no schedule. Gameplay code calls plain functions from
 `GameScene::update`; the ECS just holds entities and lets render code query
-them. `EcsAdapter` (`src/ecs/adapter/mod.rs`) is the single façade over
+them. `EcsAdapter` (`game/src/ecs/adapter/mod.rs`) is the single façade over
 `specs::World`.
 
 ## What the adapter owns
@@ -110,7 +110,7 @@ Rules are split in two:
 - `data::placement::{add, remove}` — side effects: money, refunds, wall
   recomputation, `FoodStorage`, `BasementPlaced`, sounds.
 
-Keeping the predicate pure makes it cheap to test: `src/tests/placement_rules.rs`
+Keeping the predicate pure makes it cheap to test: `game/src/tests/placement_rules.rs`
 builds an ECS without a GPU and checks both directions.
 
 ## Placement particles

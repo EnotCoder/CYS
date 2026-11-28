@@ -4,7 +4,7 @@ set -euo pipefail
 
 cd "$(dirname "$0")/../.."
 
-VERSION="$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -n 1)"
+VERSION="$(sed -n 's/^[[:space:]]*version = "\(.*\)"/\1/p' Cargo.toml | head -n 1)"
 ARCH="$(uname -m)"
 DIST=dist
 STAGE="$DIST/cys-$VERSION-linux-$ARCH"
@@ -45,7 +45,7 @@ if [[ -n "$DEB_TOOL" ]]; then
         *) DEB_ARCH="$ARCH" ;;
     esac
     DEB="$DIST/cys_${VERSION}_${DEB_ARCH}.deb"
-    "$DEB_TOOL" --no-build --output "$DEB"
+    "$DEB_TOOL" -p cys --no-build --output "$DEB"
     echo "Debian package: $DEB"
 else
     echo "cargo-deb not found, skipping .deb (install with: cargo install cargo-deb)"
